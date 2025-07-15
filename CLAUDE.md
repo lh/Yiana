@@ -1,5 +1,12 @@
 # Yiana - Project Context for Claude
 
+## CORE RULES (MUST FOLLOW)
+1. **Development must follow TDD (Test-Driven Development) methodology**
+2. **All implementation must strictly follow the steps outlined in PLAN.md**
+3. **Primary tech stack is [SwiftUI, UIDocument, PDFKit, VisionKit]. Do not introduce other libraries unless specified in the plan**
+4. **Every code change must be small, focused, and verifiable**
+5. **Update memory-bank/activeContext.md after each significant change**
+
 ## Project Overview
 Yiana (Yiana is another notes app) - A document scanning and PDF management app for iOS/iPadOS/macOS.
 
