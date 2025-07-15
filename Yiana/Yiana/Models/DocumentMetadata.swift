@@ -1,0 +1,55 @@
+//
+//  DocumentMetadata.swift
+//  Yiana
+//
+//  Created by Claude on 15/07/2025.
+//
+
+import Foundation
+
+/// Metadata for a document in the Yiana app
+struct DocumentMetadata: Codable, Equatable {
+    /// Unique identifier for the document
+    let id: UUID
+    
+    /// Document title
+    let title: String
+    
+    /// Date when the document was created
+    let created: Date
+    
+    /// Date when the document was last modified
+    let modified: Date
+    
+    /// Number of pages in the PDF document
+    let pageCount: Int
+    
+    /// Tags associated with the document for organization
+    let tags: [String]
+    
+    /// Whether OCR processing has been completed
+    let ocrCompleted: Bool
+    
+    /// Full text extracted from the document via OCR
+    let fullText: String?
+    
+    init(
+        id: UUID,
+        title: String,
+        created: Date,
+        modified: Date,
+        pageCount: Int,
+        tags: [String],
+        ocrCompleted: Bool,
+        fullText: String? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.created = created
+        self.modified = modified
+        self.pageCount = pageCount
+        self.tags = tags
+        self.ocrCompleted = ocrCompleted
+        self.fullText = fullText
+    }
+}

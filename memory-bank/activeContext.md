@@ -11,12 +11,13 @@
 Following PLAN.md Phase 1 - Project Structure & Core Models:
 - ✅ Created folder structure (Models, ViewModels, Views, Services, Utilities, Tests)
 - ✅ Created DocumentMetadataTests.swift with comprehensive tests
-- 🔄 Next: Implement DocumentMetadata struct to make tests pass
+- ✅ Implemented DocumentMetadata struct - all tests passing!
+- 🔄 Next: Create NoteDocumentTests for UIDocument subclass
 
 ## Next Immediate Steps
-1. Implement DocumentMetadata struct in Models folder
-2. Add test file to Xcode project and run tests
-3. Continue with NoteDocument UIDocument subclass
+1. Write failing tests for NoteDocument (UIDocument subclass)
+2. Implement NoteDocument to make tests pass
+3. Continue with removing Core Data in Phase 2
 
 ## Important Context
 - The app is called "Yiana" (Yiana is another notes app)
