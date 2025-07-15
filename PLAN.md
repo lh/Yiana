@@ -2,7 +2,7 @@
 
 ## Phase 1: Project Structure & Core Models
 
-- [ ] Prompt: "Create the folder structure for the project. In the Yiana/Yiana directory, create these folders: Models, ViewModels, Views, Services, Utilities, and Tests. Use mkdir to create each folder."
+- [x] Prompt: "Create the folder structure for the project. In the Yiana/Yiana directory, create these folders: Models, ViewModels, Views, Services, Utilities, and Tests. Use mkdir to create each folder."
 
 - [ ] Prompt: "In Tests folder, create a file DocumentMetadataTests.swift and write failing unit tests for a DocumentMetadata struct that should have properties: id (UUID), title (String), created (Date), modified (Date), pageCount (Int), tags ([String]), ocrCompleted (Bool), and fullText (String?)."
 

@@ -8,15 +8,14 @@
 - ⚠️ Project currently uses Core Data (needs to be replaced with UIDocument)
 
 ## What We're Doing Now
-Setting up the project structure according to the "brilliant amnesiac expert" methodology:
-1. Creating memory-bank files for context persistence
-2. Preparing to generate PLAN.md with TDD-driven implementation steps
-3. Will replace Core Data with UIDocument architecture
+Following PLAN.md Phase 1 - Project Structure & Core Models:
+- ✅ Created folder structure (Models, ViewModels, Views, Services, Utilities, Tests)
+- 🔄 Writing failing tests for DocumentMetadata struct
 
 ## Next Immediate Steps
-1. Complete memory-bank setup
-2. Generate comprehensive PLAN.md
-3. Start implementing UIDocument architecture with failing tests first
+1. Create DocumentMetadataTests.swift with failing tests
+2. Implement DocumentMetadata struct to pass tests
+3. Continue with NoteDocument UIDocument subclass
 
 ## Important Context
 - The app is called "Yiana" (Yiana is another notes app)
