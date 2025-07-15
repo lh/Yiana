@@ -8,7 +8,7 @@
 
 - [x] Prompt: "In Models folder, create DocumentMetadata.swift and implement the DocumentMetadata struct to make the tests pass. Make it Codable and Equatable."
 
-- [ ] Prompt: "In Tests folder, create NoteDocumentTests.swift and write failing unit tests for a NoteDocument class that subclasses UIDocument. Test that it can: 1) Initialize with a fileURL, 2) Store PDF data, 3) Store and retrieve metadata, 4) Encode/decode its contents."
+- [x] Prompt: "In Tests folder, create NoteDocumentTests.swift and write failing unit tests for a NoteDocument class that subclasses UIDocument. Test that it can: 1) Initialize with a fileURL, 2) Store PDF data, 3) Store and retrieve metadata, 4) Encode/decode its contents."
 
 - [ ] Prompt: "In Models folder, create NoteDocument.swift and implement the NoteDocument class as a UIDocument subclass. It should have pdfData and metadata properties, and implement contents(forType:) and load(fromContents:ofType:) methods to make the tests pass."
 
