@@ -10,11 +10,12 @@
 ## What We're Doing Now
 Following PLAN.md Phase 1 - Project Structure & Core Models:
 - ✅ Created folder structure (Models, ViewModels, Views, Services, Utilities, Tests)
-- 🔄 Writing failing tests for DocumentMetadata struct
+- ✅ Created DocumentMetadataTests.swift with comprehensive tests
+- 🔄 Next: Implement DocumentMetadata struct to make tests pass
 
 ## Next Immediate Steps
-1. Create DocumentMetadataTests.swift with failing tests
-2. Implement DocumentMetadata struct to pass tests
+1. Implement DocumentMetadata struct in Models folder
+2. Add test file to Xcode project and run tests
 3. Continue with NoteDocument UIDocument subclass
 
 ## Important Context
