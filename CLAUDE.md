@@ -12,7 +12,7 @@ Yiana (Yiana is another notes app) - A document scanning and PDF management app 
 
 ## Architecture Decisions
 - **Document Storage**: UIDocument with iCloud sync (NOT Core Data)
-- **Package Format**: `.notedoc` containing PDF + metadata.json
+- **Package Format**: `.yianazip` containing PDF + metadata.json
 - **PDF Handling**: PDFKit for read-only viewing (no annotations to avoid memory issues)
 - **Scanning**: VisionKit for document capture
 - **OCR Processing**: Handled by Mac mini server, NOT on device

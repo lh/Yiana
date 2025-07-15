@@ -3,7 +3,7 @@
 ## Architecture Pattern
 **Document-Based App Architecture**
 - Each note is a UIDocument subclass
-- Documents stored as `.notedoc` packages containing:
+- Documents stored as `.yianazip` packages containing:
   - `document.pdf` - The scanned PDF
   - `metadata.json` - OCR text, tags, timestamps
 

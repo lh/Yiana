@@ -23,3 +23,4 @@ Setting up the project structure according to the "brilliant amnesiac expert" me
 - Focus on document scanning and PDF management
 - Mac mini will handle OCR processing (not on-device)
 - Must maintain iOS/iPadOS/macOS compatibility
+- Document packages will use `.yianazip` extension (not `.notedoc`)
