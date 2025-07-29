@@ -79,7 +79,8 @@ struct PDFKitView: ViewRepresentable {
         #if os(iOS)
         pdfView.backgroundColor = UIColor.systemBackground
         pdfView.pageShadowsEnabled = true
-        pdfView.usePageViewController(true, withViewOptions: nil)
+        // Don't use page view controller with continuous scrolling
+        pdfView.usePageViewController(false, withViewOptions: nil)
         #else
         pdfView.backgroundColor = NSColor.windowBackgroundColor
         #endif
