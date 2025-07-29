@@ -79,31 +79,31 @@ struct PageManagementView: View {
                     }
                 }
                 #else
-                if isEditMode && !selectedPages.isEmpty {
+                if isEditMode {
                     ToolbarItemGroup(placement: .automatic) {
-                        // Move up button
-                        if selectedPages.count == 1, let selectedIndex = selectedPages.first, selectedIndex > 0 {
-                            Button {
-                                moveSelectedPage(direction: -1)
-                            } label: {
-                                Label("Move Up", systemImage: "arrow.up")
-                            }
+                        // Move up button - always visible but disabled when inappropriate
+                        Button {
+                            moveSelectedPage(direction: -1)
+                        } label: {
+                            Label("Move Up", systemImage: "arrow.up")
                         }
+                        .disabled(selectedPages.count != 1 || selectedPages.first == 0)
                         
-                        // Move down button
-                        if selectedPages.count == 1, let selectedIndex = selectedPages.first, selectedIndex < pages.count - 1 {
-                            Button {
-                                moveSelectedPage(direction: 1)
-                            } label: {
-                                Label("Move Down", systemImage: "arrow.down")
-                            }
+                        // Move down button - always visible but disabled when inappropriate
+                        Button {
+                            moveSelectedPage(direction: 1)
+                        } label: {
+                            Label("Move Down", systemImage: "arrow.down")
                         }
+                        .disabled(selectedPages.count != 1 || (selectedPages.first ?? 0) >= pages.count - 1)
                         
+                        // Delete button - disabled when nothing selected
                         Button(role: .destructive) {
                             deleteSelectedPages()
                         } label: {
                             Label("Delete Selected", systemImage: "trash")
                         }
+                        .disabled(selectedPages.isEmpty)
                     }
                 }
                 #endif
