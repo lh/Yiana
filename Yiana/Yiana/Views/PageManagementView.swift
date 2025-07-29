@@ -48,12 +48,14 @@ struct PageManagementView: View {
                     Button("Cancel") {
                         isPresented = false
                     }
+                    .keyboardShortcut(.escape)
                 }
                 
                 ToolbarItem(placement: .primaryAction) {
                     Button("Save") {
                         saveChanges()
                     }
+                    .keyboardShortcut("s", modifiers: .command)
                 }
                 
                 // Edit button - only show when not in edit mode
