@@ -13,13 +13,13 @@ struct DocumentMetadata: Codable, Equatable {
     let id: UUID
     
     /// Document title
-    let title: String
+    var title: String
     
     /// Date when the document was created
     let created: Date
     
     /// Date when the document was last modified
-    let modified: Date
+    var modified: Date
     
     /// Number of pages in the PDF document
     let pageCount: Int

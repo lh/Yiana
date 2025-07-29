@@ -1,0 +1,89 @@
+//
+//  NoteDocument.swift
+//  Yiana
+//
+//  Created by Claude on 15/07/2025.
+//
+
+#if os(iOS)
+import UIKit
+import UniformTypeIdentifiers
+
+/// A document containing a PDF and associated metadata
+class NoteDocument: UIDocument {
+    
+    // MARK: - Properties
+    
+    /// The PDF data for the document
+    var pdfData: Data?
+    
+    /// The metadata associated with this document
+    var metadata: DocumentMetadata
+    
+    // MARK: - Initialization
+    
+    override init(fileURL url: URL) {
+        self.metadata = DocumentMetadata(
+            id: UUID(),
+            title: url.deletingPathExtension().lastPathComponent,
+            created: Date(),
+            modified: Date(),
+            pageCount: 0,
+            tags: [],
+            ocrCompleted: false,
+            fullText: nil
+        )
+        super.init(fileURL: url)
+    }
+    
+    // MARK: - UIDocument Overrides
+    
+    override var fileType: String? {
+        return UTType.yianaDocument.identifier
+    }
+    
+    override func contents(forType typeName: String) throws -> Any {
+        // Create a simple data structure combining metadata and PDF
+        let encoder = JSONEncoder()
+        let metadataData = try encoder.encode(metadata)
+        
+        var contents = Data()
+        contents.append(metadataData)
+        contents.append(Data([0xFF, 0xFF, 0xFF, 0xFF])) // Separator
+        contents.append(pdfData ?? Data())
+        
+        return contents
+    }
+    
+    override func load(fromContents contents: Any, ofType typeName: String?) throws {
+        guard let data = contents as? Data else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        
+        // Find the separator
+        let separator = Data([0xFF, 0xFF, 0xFF, 0xFF])
+        guard let separatorRange = data.range(of: separator) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        
+        // Extract metadata and PDF data
+        let metadataData = data.subdata(in: 0..<separatorRange.lowerBound)
+        let pdfDataStart = separatorRange.upperBound
+        
+        let decoder = JSONDecoder()
+        self.metadata = try decoder.decode(DocumentMetadata.self, from: metadataData)
+        
+        if pdfDataStart < data.count {
+            self.pdfData = data.subdata(in: pdfDataStart..<data.count)
+        } else {
+            self.pdfData = nil
+        }
+    }
+}
+
+// MARK: - UTType Extension
+
+extension UTType {
+    static let yianaDocument = UTType(exportedAs: "com.vitygas.yiana.document")
+}
+#endif

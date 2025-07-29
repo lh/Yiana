@@ -6,15 +6,81 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 @main
 struct YianaApp: App {
-    let persistenceController = PersistenceController.shared
-
+    @StateObject private var importHandler = DocumentImportHandler()
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                .environmentObject(importHandler)
+                .onOpenURL { url in
+                    handleIncomingURL(url)
+                }
+        }
+        #if os(iOS)
+        .handlesExternalEvents(matching: ["*"])
+        #endif
+    }
+    
+    private func handleIncomingURL(_ url: URL) {
+        print("DEBUG: Received URL: \(url)")
+        
+        // Check if it's a PDF
+        if url.pathExtension.lowercased() == "pdf" {
+            importHandler.importPDF(from: url)
+        }
+        // Check if it's our custom document type
+        else if url.pathExtension == "yianazip" {
+            // Handle opening existing Yiana documents
+            importHandler.openDocument(at: url)
+        }
+    }
+}
+
+// Document import handler
+class DocumentImportHandler: ObservableObject {
+    @Published var showingImportDialog = false
+    @Published var pdfToImport: URL?
+    @Published var documentToOpen: URL?
+    
+    func importPDF(from url: URL) {
+        // Copy to temporary location if needed
+        if url.startAccessingSecurityScopedResource() {
+            defer { url.stopAccessingSecurityScopedResource() }
+            
+            do {
+                // Read the PDF data
+                let pdfData = try Data(contentsOf: url)
+                
+                // Save to temporary location
+                let tempURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString)
+                    .appendingPathExtension("pdf")
+                
+                try pdfData.write(to: tempURL)
+                
+                DispatchQueue.main.async {
+                    self.pdfToImport = tempURL
+                    self.showingImportDialog = true
+                }
+            } catch {
+                print("Error importing PDF: \(error)")
+            }
+        } else {
+            // Direct access
+            DispatchQueue.main.async {
+                self.pdfToImport = url
+                self.showingImportDialog = true
+            }
+        }
+    }
+    
+    func openDocument(at url: URL) {
+        DispatchQueue.main.async {
+            self.documentToOpen = url
         }
     }
 }

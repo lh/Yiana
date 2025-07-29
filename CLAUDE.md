@@ -16,6 +16,7 @@ Yiana (Yiana is another notes app) - A document scanning and PDF management app 
 - **PDF Handling**: PDFKit for read-only viewing (no annotations to avoid memory issues)
 - **Scanning**: VisionKit for document capture
 - **OCR Processing**: Handled by Mac mini server, NOT on device
+- **Multiplatform Strategy**: iOS/iPadOS and macOS apps share data format but NOT implementation. Each platform uses its native document class (UIDocument vs NSDocument) directly. No shared protocols or complex abstractions needed.
 
 ## Key Implementation Notes
 - The Xcode project was created with Core Data but we need to replace it with UIDocument
