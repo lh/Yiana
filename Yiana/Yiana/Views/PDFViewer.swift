@@ -108,30 +108,28 @@ struct PDFKitView: ViewRepresentable {
     }
     
     private func updatePDFView(_ pdfView: PDFView) {
-        // Only update if the PDF data has changed
-        if pdfView.document?.dataRepresentation() != pdfData {
-            if let document = PDFDocument(data: pdfData) {
-                // Remember current page if document exists
-                let previousPage = pdfView.currentPage
-                let previousPageIndex = pdfView.document?.index(for: previousPage ?? document.page(at: 0)!) ?? 0
-                
-                #if os(macOS)
-                // More aggressive approach for macOS to reduce blinking
-                pdfView.document = nil
-                #endif
-                
-                pdfView.document = document
-                // Call layoutDocumentView to reduce flashing
-                pdfView.layoutDocumentView()
-                
-                DispatchQueue.main.async {
-                    self.totalPages = document.pageCount
-                    // Try to restore previous page position, or stay within bounds
-                    let pageToShow = min(previousPageIndex, document.pageCount - 1)
-                    if let page = document.page(at: pageToShow) {
-                        pdfView.go(to: page)
-                        self.currentPage = pageToShow
-                    }
+        // Always update when called - the SwiftUI update mechanism handles change detection
+        if let document = PDFDocument(data: pdfData) {
+            // Remember current page if document exists
+            let previousPage = pdfView.currentPage
+            let previousPageIndex = pdfView.document?.index(for: previousPage ?? document.page(at: 0)!) ?? 0
+            
+            #if os(macOS)
+            // More aggressive approach for macOS to reduce blinking
+            pdfView.document = nil
+            #endif
+            
+            pdfView.document = document
+            // Call layoutDocumentView to reduce flashing
+            pdfView.layoutDocumentView()
+            
+            DispatchQueue.main.async {
+                self.totalPages = document.pageCount
+                // Try to restore previous page position, or stay within bounds
+                let pageToShow = min(previousPageIndex, document.pageCount - 1)
+                if let page = document.page(at: pageToShow) {
+                    pdfView.go(to: page)
+                    self.currentPage = pageToShow
                 }
             }
         }
