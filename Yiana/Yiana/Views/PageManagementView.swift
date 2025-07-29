@@ -56,13 +56,12 @@ struct PageManagementView: View {
                     }
                 }
                 
-                // Edit/Done button
-                ToolbarItem(placement: .automatic) {
-                    Button(isEditMode ? "Done" : "Edit") {
-                        withAnimation {
-                            isEditMode.toggle()
-                            if !isEditMode {
-                                selectedPages.removeAll()
+                // Edit button - only show when not in edit mode
+                if !isEditMode {
+                    ToolbarItem(placement: .automatic) {
+                        Button("Edit") {
+                            withAnimation {
+                                isEditMode = true
                             }
                         }
                     }
