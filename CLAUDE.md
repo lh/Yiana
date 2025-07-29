@@ -6,6 +6,8 @@
 3. **Primary tech stack is [SwiftUI, UIDocument, PDFKit, VisionKit]. Do not introduce other libraries unless specified in the plan**
 4. **Every code change must be small, focused, and verifiable**
 5. **Update memory-bank/activeContext.md after each significant change**
+6. **Commit to git regularly - after each significant feature or fix is completed and tested**
+7. **Keep commits clean - no emojis, minimal "Co-authored-by" attributions**
 
 ## Project Overview
 Yiana (Yiana is another notes app) - A document scanning and PDF management app for iOS/iPadOS/macOS.
