@@ -21,7 +21,7 @@ struct PageManagementView: View {
     @Binding var isPresented: Bool
     @State private var pages: [PDFPage] = []
     @State private var selectedPages: Set<Int> = []
-    @State private var isEditMode = false
+    @State private var isEditMode = true  // Start in edit mode
     #if os(iOS)
     @State private var draggedPage: Int?
     #endif
@@ -58,19 +58,9 @@ struct PageManagementView: View {
                     .keyboardShortcut("s", modifiers: .command)
                 }
                 
-                // Edit button - only show when not in edit mode
-                if !isEditMode {
-                    ToolbarItem(placement: .automatic) {
-                        Button("Edit") {
-                            withAnimation {
-                                isEditMode = true
-                            }
-                        }
-                    }
-                }
                 
                 #if os(iOS)
-                if isEditMode && !selectedPages.isEmpty {
+                if !selectedPages.isEmpty {
                     ToolbarItem(placement: .bottomBar) {
                         Button(role: .destructive) {
                             deleteSelectedPages()
@@ -80,8 +70,7 @@ struct PageManagementView: View {
                     }
                 }
                 #else
-                if isEditMode {
-                    ToolbarItemGroup(placement: .automatic) {
+                ToolbarItemGroup(placement: .automatic) {
                         // Move up button - always visible but disabled when inappropriate
                         Button {
                             moveSelectedPage(direction: -1)
@@ -105,12 +94,11 @@ struct PageManagementView: View {
                             Label("Delete Selected", systemImage: "trash")
                         }
                         .disabled(selectedPages.isEmpty)
-                    }
                 }
                 #endif
             }
             #if os(iOS)
-            .environment(\.editMode, .constant(isEditMode ? .active : .inactive))
+            .environment(\.editMode, .constant(.active))
             #endif
             #if os(iOS)
             .toolbar(.visible, for: .bottomBar)
@@ -134,9 +122,7 @@ struct PageManagementView: View {
                         isEditMode: isEditMode
                     )
                     .onTapGesture {
-                        if isEditMode {
-                            toggleSelection(for: index)
-                        }
+                        toggleSelection(for: index)
                     }
                     #if os(iOS)
                     .onDrag {
@@ -246,12 +232,10 @@ struct PageThumbnailView: View {
                     )
                 
                 // Selection indicator
-                if isEditMode {
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(isSelected ? .accentColor : .gray)
-                        .background(Circle().fill(Color.white))
-                        .padding(8)
-                }
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(isSelected ? .accentColor : .gray)
+                    .background(Circle().fill(Color.white))
+                    .padding(8)
             }
             
             // Page number
