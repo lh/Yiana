@@ -96,6 +96,8 @@ struct PDFKitView: ViewRepresentable {
         // Load the PDF
         if let document = PDFDocument(data: pdfData) {
             pdfView.document = document
+            // Call layoutDocumentView to reduce initial flashing
+            pdfView.layoutDocumentView()
             DispatchQueue.main.async {
                 self.totalPages = document.pageCount
                 self.currentPage = 0
@@ -112,6 +114,8 @@ struct PDFKitView: ViewRepresentable {
                 let previousPageIndex = pdfView.document?.index(for: previousPage ?? document.page(at: 0)!) ?? 0
                 
                 pdfView.document = document
+                // Call layoutDocumentView to reduce flashing
+                pdfView.layoutDocumentView()
                 
                 DispatchQueue.main.async {
                     self.totalPages = document.pageCount
