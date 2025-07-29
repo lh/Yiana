@@ -77,12 +77,14 @@ struct PDFKitView: ViewRepresentable {
         pdfView.displayDirection = .vertical
         
         #if os(iOS)
-        pdfView.backgroundColor = UIColor.systemBackground
+        // Use white background to match typical PDF page color
+        pdfView.backgroundColor = UIColor.white
         pdfView.pageShadowsEnabled = true
         // Don't use page view controller with continuous scrolling
         pdfView.usePageViewController(false, withViewOptions: nil)
         #else
-        pdfView.backgroundColor = NSColor.windowBackgroundColor
+        // Use white background to match typical PDF page color
+        pdfView.backgroundColor = NSColor.white
         #endif
         
         // Set up notifications for page changes
@@ -112,6 +114,11 @@ struct PDFKitView: ViewRepresentable {
                 // Remember current page if document exists
                 let previousPage = pdfView.currentPage
                 let previousPageIndex = pdfView.document?.index(for: previousPage ?? document.page(at: 0)!) ?? 0
+                
+                #if os(macOS)
+                // More aggressive approach for macOS to reduce blinking
+                pdfView.document = nil
+                #endif
                 
                 pdfView.document = document
                 // Call layoutDocumentView to reduce flashing
