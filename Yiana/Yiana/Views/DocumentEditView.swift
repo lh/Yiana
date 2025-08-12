@@ -21,6 +21,7 @@ struct DocumentEditView: View {
     @State private var isProcessingScans = false
     @State private var showingPageManagement = false
     @State private var scanColorMode: ScanColorMode = .color
+    @State private var showTitleField = false
     
     private let scanningService = ScanningService()
     
@@ -37,28 +38,7 @@ struct DocumentEditView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .navigationTitle("Edit Document")
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(viewModel?.hasChanges ?? false)
-        .toolbar {
-            if viewModel?.hasChanges ?? false {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-                
-                ToolbarItem(placement: .primaryAction) {
-                    if viewModel?.isSaving ?? false {
-                        ProgressView()
-                    } else {
-                        Button("Save") {
-                            saveAndDismiss()
-                        }
-                    }
-                }
-            }
-        }
+        .navigationBarHidden(true)
         .alert("Save Error", isPresented: $showingSaveError) {
             Button("OK") { }
         } message: {
@@ -88,18 +68,10 @@ struct DocumentEditView: View {
     
     @ViewBuilder
     private func documentContent(viewModel: DocumentViewModel) -> some View {
-        VStack(spacing: 0) {
-            // Title editor
-            TextField("Document Title", text: Binding(
-                get: { viewModel.title },
-                set: { viewModel.title = $0 }
-            ))
-            .textFieldStyle(.roundedBorder)
-            .font(.title2)
-            .padding()
-            .focused($titleFieldFocused)
-            
-            Divider()
+        ZStack {
+            VStack(spacing: 0) {
+                // Spacer for collapsible title area
+                Color.clear.frame(height: showTitleField ? 60 : 44)
             
             // PDF content area with scan button
             if isProcessingScans {
@@ -139,6 +111,54 @@ struct DocumentEditView: View {
                     .overlay(alignment: .bottom) {
                         scanButtonBar
                     }
+            }
+            }
+            
+            // Overlay title field at top
+            VStack {
+                if showTitleField {
+                    HStack {
+                        TextField("Document Title", text: Binding(
+                            get: { viewModel.title },
+                            set: { viewModel.title = $0 }
+                        ), onCommit: {
+                            showTitleField = false
+                            Task {
+                                _ = await viewModel.save()
+                            }
+                        })
+                        .textFieldStyle(.roundedBorder)
+                        .focused($titleFieldFocused)
+                        
+                        Button("Done") {
+                            showTitleField = false
+                            titleFieldFocused = false
+                            Task {
+                                _ = await viewModel.save()
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .shadow(radius: 2)
+                } else {
+                    // Minimal title display
+                    HStack {
+                        Text(viewModel.title.isEmpty ? "Untitled" : viewModel.title)
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 12)
+                    .background(Color(.systemBackground).opacity(0.95))
+                    .onTapGesture {
+                        showTitleField = true
+                        titleFieldFocused = true
+                    }
+                }
+                Spacer()
             }
         }
     }
@@ -219,18 +239,7 @@ struct DocumentEditView: View {
         }
     }
     
-    private func saveAndDismiss() {
-        guard let viewModel = viewModel else { return }
-        
-        Task {
-            let success = await viewModel.save()
-            if success {
-                dismiss()
-            } else {
-                showingSaveError = true
-            }
-        }
-    }
+
     
     private func handleScannedImages(_ images: [UIImage]) {
         Task {
