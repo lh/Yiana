@@ -143,29 +143,38 @@ struct DocumentEditView: View {
                     .shadow(radius: 2)
                 } else {
                     // Minimal title display with back button
-                    HStack {
+                    HStack(spacing: 0) {
                         Button(action: {
                             dismiss()
                         }) {
-                            Image(systemName: "chevron.left")
-                                .font(.title3)
-                                .foregroundColor(.accentColor)
+                            HStack {
+                                Image(systemName: "chevron.left")
+                                    .font(.title3)
+                                    .foregroundColor(.accentColor)
+                            }
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                         }
-                        .padding(.trailing, 8)
+                        .padding(.leading, 4)
+                        .padding(.trailing, 16)  // More space between button and title
                         
                         Text(viewModel.title.isEmpty ? "Untitled" : viewModel.title)
                             .font(.headline)
                             .foregroundColor(.primary)
                             .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                showTitleField = true
+                                titleFieldFocused = true
+                            }
+                        
                         Spacer()
                     }
-                    .padding(.horizontal)
-                    .padding(.vertical, 12)
+                    .frame(height: 44)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 0)
                     .background(Color(.systemBackground).opacity(0.95))
-                    .onTapGesture {
-                        showTitleField = true
-                        titleFieldFocused = true
-                    }
                 }
                 Spacer()
             }
