@@ -142,8 +142,17 @@ struct DocumentEditView: View {
                     .background(Color(.systemBackground))
                     .shadow(radius: 2)
                 } else {
-                    // Minimal title display
+                    // Minimal title display with back button
                     HStack {
+                        Button(action: {
+                            dismiss()
+                        }) {
+                            Image(systemName: "chevron.left")
+                                .font(.title3)
+                                .foregroundColor(.accentColor)
+                        }
+                        .padding(.trailing, 8)
+                        
                         Text(viewModel.title.isEmpty ? "Untitled" : viewModel.title)
                             .font(.headline)
                             .foregroundColor(.primary)
