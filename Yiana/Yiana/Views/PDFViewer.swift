@@ -110,9 +110,12 @@ struct PDFKitView: ViewRepresentable {
     private func updatePDFView(_ pdfView: PDFView) {
         // Always update when called - the SwiftUI update mechanism handles change detection
         if let document = PDFDocument(data: pdfData) {
-            // Remember current page if document exists
-            let previousPage = pdfView.currentPage
-            let previousPageIndex = pdfView.document?.index(for: previousPage ?? document.page(at: 0)!) ?? 0
+            // Get current position before updating
+            let currentPageIndex = pdfView.currentPage != nil ? 
+                pdfView.document?.index(for: pdfView.currentPage!) ?? 0 : 0
+            let visibleRect = pdfView.visibleRect
+            let documentView = pdfView.documentView
+            let currentCenter = documentView?.visibleRect.origin ?? .zero
             
             #if os(macOS)
             // More aggressive approach for macOS to reduce blinking
@@ -125,11 +128,15 @@ struct PDFKitView: ViewRepresentable {
             
             DispatchQueue.main.async {
                 self.totalPages = document.pageCount
-                // Try to restore previous page position, or stay within bounds
-                let pageToShow = min(previousPageIndex, document.pageCount - 1)
-                if let page = document.page(at: pageToShow) {
-                    pdfView.go(to: page)
-                    self.currentPage = pageToShow
+                
+                // If we had pages and still have pages, try to maintain position
+                if currentPageIndex > 0 && document.pageCount > 0 {
+                    // Adjust page index if pages were deleted before current position
+                    let pageToShow = min(currentPageIndex, document.pageCount - 1)
+                    if let page = document.page(at: pageToShow) {
+                        pdfView.go(to: page)
+                        self.currentPage = pageToShow
+                    }
                 }
             }
         }
