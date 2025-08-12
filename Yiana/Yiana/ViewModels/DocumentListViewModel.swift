@@ -7,6 +7,21 @@
 
 import Foundation
 import SwiftUI
+import PDFKit
+
+// Search result type to track what matched
+struct SearchResult: Identifiable {
+    let id = UUID()
+    let documentURL: URL
+    let matchType: MatchType
+    let snippet: String?
+    
+    enum MatchType {
+        case title
+        case content
+        case both
+    }
+}
 
 @MainActor
 class DocumentListViewModel: ObservableObject {
@@ -20,6 +35,7 @@ class DocumentListViewModel: ObservableObject {
     // Search results
     @Published var otherFolderResults: [(url: URL, path: String)] = []
     @Published var isSearching = false
+    @Published var searchResults: [SearchResult] = []
     
     private let repository: DocumentRepository
     private var allDocumentURLs: [URL] = []
@@ -127,6 +143,79 @@ class DocumentListViewModel: ObservableObject {
     
     // MARK: - Search
     
+    private func searchPDFContent(at url: URL, for searchText: String) -> String? {
+        // Load the document to extract PDF data
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        
+        // Try to parse as our document format to get PDF data
+        if let pdfData = extractPDFData(from: data),
+           let pdfDocument = PDFDocument(data: pdfData) {
+            
+            // Search through the PDF
+            let selections = pdfDocument.findString(searchText, withOptions: .caseInsensitive)
+            
+            if !selections.isEmpty, let firstMatch = selections.first {
+                // Get the page and surrounding text for context
+                if let page = firstMatch.pages.first,
+                   let pageText = page.string {
+                    // Find the match in the page text and get surrounding context
+                    let snippet = extractSnippet(from: pageText, around: searchText)
+                    return snippet
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    private func extractPDFData(from data: Data) -> Data? {
+        // Check if it's raw PDF
+        let pdfHeader = "%PDF"
+        if let string = String(data: data.prefix(4), encoding: .ascii), string == pdfHeader {
+            return data
+        }
+        
+        // Try to parse as our document format
+        let separator = Data([0xFF, 0xFF, 0xFF, 0xFF])
+        guard let separatorRange = data.range(of: separator) else { return nil }
+        
+        let pdfDataStart = separatorRange.upperBound
+        if pdfDataStart < data.count {
+            return data[pdfDataStart...]
+        }
+        
+        return nil
+    }
+    
+    private func extractSnippet(from text: String, around searchTerm: String, contextLength: Int = 50) -> String {
+        let lowercaseText = text.lowercased()
+        let lowercaseSearch = searchTerm.lowercased()
+        
+        guard let range = lowercaseText.range(of: lowercaseSearch) else {
+            return ""
+        }
+        
+        let startIndex = text.index(range.lowerBound, offsetBy: -contextLength, limitedBy: text.startIndex) ?? text.startIndex
+        let endIndex = text.index(range.upperBound, offsetBy: contextLength, limitedBy: text.endIndex) ?? text.endIndex
+        
+        var snippet = String(text[startIndex..<endIndex])
+        
+        // Clean up the snippet
+        snippet = snippet.trimmingCharacters(in: .whitespacesAndNewlines)
+        snippet = snippet.replacingOccurrences(of: "\n", with: " ")
+        snippet = snippet.replacingOccurrences(of: "  ", with: " ")
+        
+        // Add ellipsis if truncated
+        if startIndex != text.startIndex {
+            snippet = "..." + snippet
+        }
+        if endIndex != text.endIndex {
+            snippet = snippet + "..."
+        }
+        
+        return snippet
+    }
+    
     func filterDocuments(searchText: String) async {
         currentSearchText = searchText
         print("DEBUG: Searching for '\(searchText)' in folder '\(repository.currentFolderPath)'")
@@ -139,16 +228,49 @@ class DocumentListViewModel: ObservableObject {
             documentURLs = allDocumentURLs
             folderURLs = allFolderURLs
             otherFolderResults = []
+            searchResults = []
             isSearching = false
         } else {
-            // Filter by name (case insensitive)
+            // Filter by name and content
             let searchLower = currentSearchText.lowercased()
             isSearching = true
+            searchResults = []
             
-            // Filter current folder documents
-            documentURLs = allDocumentURLs.filter { url in
-                url.deletingPathExtension().lastPathComponent.lowercased().contains(searchLower)
+            // Filter current folder documents by title and content
+            var titleMatches: [URL] = []
+            var contentMatches: [URL] = []
+            
+            for url in allDocumentURLs {
+                let titleMatch = url.deletingPathExtension().lastPathComponent.lowercased().contains(searchLower)
+                if titleMatch {
+                    titleMatches.append(url)
+                }
+                
+                // Also search PDF content
+                if let contentSnippet = searchPDFContent(at: url, for: currentSearchText) {
+                    if !titleMatch {
+                        contentMatches.append(url)
+                        searchResults.append(SearchResult(
+                            documentURL: url,
+                            matchType: .content,
+                            snippet: contentSnippet
+                        ))
+                    } else {
+                        // Both title and content match
+                        if let index = searchResults.firstIndex(where: { $0.documentURL == url }) {
+                            searchResults.remove(at: index)
+                        }
+                        searchResults.append(SearchResult(
+                            documentURL: url,
+                            matchType: .both,
+                            snippet: contentSnippet
+                        ))
+                    }
+                }
             }
+            
+            // Combine results - title matches first, then content matches
+            documentURLs = titleMatches + contentMatches
             
             // Filter current folder subdirectories
             folderURLs = allFolderURLs.filter { url in

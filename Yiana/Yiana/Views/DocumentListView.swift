@@ -197,7 +197,10 @@ struct DocumentListView: View {
                 Section(viewModel.isSearching ? "In This Folder" : "Documents") {
                     ForEach(viewModel.documentURLs, id: \.self) { url in
                         NavigationLink(value: url) {
-                            DocumentRow(url: url)
+                            DocumentRow(
+                                url: url,
+                                searchResult: viewModel.searchResults.first { $0.documentURL == url }
+                            )
                         }
                     }
                     .onDelete(perform: deleteDocuments)
@@ -349,15 +352,42 @@ struct DocumentListView: View {
 // Simple row view for document
 struct DocumentRow: View {
     let url: URL
+    let searchResult: SearchResult?
+    
+    init(url: URL, searchResult: SearchResult? = nil) {
+        self.url = url
+        self.searchResult = searchResult
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(url.deletingPathExtension().lastPathComponent)
-                .font(.headline)
-                .lineLimit(1)
-            Text(formattedDate)
-                .font(.caption)
-                .foregroundColor(.secondary)
+            HStack(spacing: 4) {
+                // Search indicator
+                if let result = searchResult {
+                    Image(systemName: result.matchType == .content ? "doc.text.magnifyingglass" : "textformat")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+                
+                Text(url.deletingPathExtension().lastPathComponent)
+                    .font(.headline)
+                    .lineLimit(1)
+            }
+            
+            // Show snippet for content matches
+            if let result = searchResult,
+               result.matchType == .content || result.matchType == .both,
+               let snippet = result.snippet {
+                Text(snippet)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+                    .padding(.leading, 20)
+            } else {
+                Text(formattedDate)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
         }
         .padding(.vertical, 4)
     }
