@@ -22,7 +22,7 @@ struct PageManagementView: View {
     var onPageSelected: ((Int) -> Void)? = nil  // Callback for navigation
     @State private var pages: [PDFPage] = []
     @State private var selectedPages: Set<Int> = []
-    @State private var isEditMode = true  // Start in edit mode
+    @State private var isEditMode = false  // Start in navigation mode
     @State private var navigateToPage: Int? = nil  // Track navigation request
     #if os(iOS)
     @State private var draggedPage: Int?
@@ -47,23 +47,24 @@ struct PageManagementView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        isPresented = false
+                    if isEditMode {
+                        // Exit selection mode
+                        Button("Cancel") {
+                            selectedPages.removeAll()
+                            isEditMode = false
+                        }
+                    } else {
+                        // Exit page management
+                        Button("Done") {
+                            isPresented = false
+                        }
+                        .keyboardShortcut(.escape)
                     }
-                    .keyboardShortcut(.escape)
-                }
-                
-                ToolbarItem(placement: .principal) {
-                    Picker("Mode", selection: $isEditMode) {
-                        Label("Navigate", systemImage: "hand.tap").tag(false)
-                        Label("Edit", systemImage: "pencil").tag(true)
-                    }
-                    .pickerStyle(.segmented)
-                    .fixedSize()
                 }
                 
                 ToolbarItem(placement: .primaryAction) {
-                    if isEditMode {
+                    if isEditMode && !selectedPages.isEmpty {
+                        // Save changes when in edit mode with selections
                         Button("Save") {
                             saveChanges()
                         }
@@ -145,6 +146,13 @@ struct PageManagementView: View {
                             }
                         }
                     }
+                    .onLongPressGesture(minimumDuration: 0.5) {
+                        // Long press enters selection mode with this item selected
+                        if !isEditMode {
+                            isEditMode = true
+                            selectedPages.insert(index)
+                        }
+                    }
                     #if os(iOS)
                     .onDrag {
                         self.draggedPage = index
@@ -194,6 +202,9 @@ struct PageManagementView: View {
         }
         selectedPages.removeAll()
         // Stay in edit mode after deletion
+        
+        // Update the PDF data
+        saveChanges()
     }
     
     private func reorderPages(from sourceIndex: Int, to destinationIndex: Int) {
@@ -201,6 +212,9 @@ struct PageManagementView: View {
         
         let page = pages.remove(at: sourceIndex)
         pages.insert(page, at: destinationIndex)
+        
+        // Update the PDF data
+        saveChanges()
     }
     
     #if os(macOS)
@@ -228,7 +242,7 @@ struct PageManagementView: View {
         }
         
         pdfData = newDocument.dataRepresentation()
-        isPresented = false
+        // Don't dismiss - let user continue working
     }
 }
 
@@ -252,11 +266,13 @@ struct PageThumbnailView: View {
                             .stroke(isSelected ? Color.accentColor : Color.gray.opacity(0.3), lineWidth: isSelected ? 3 : 1)
                     )
                 
-                // Selection indicator
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(isSelected ? .accentColor : .gray)
-                    .background(Circle().fill(Color.white))
-                    .padding(8)
+                // Selection indicator (only show in edit mode)
+                if isEditMode {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(isSelected ? .accentColor : .gray)
+                        .background(Circle().fill(Color.white))
+                        .padding(8)
+                }
             }
             
             // Page number
