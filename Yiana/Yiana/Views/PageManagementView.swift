@@ -146,8 +146,8 @@ struct PageManagementView: View {
                             }
                         }
                     }
-                    .onLongPressGesture(minimumDuration: 0.5) {
-                        // Long press enters selection mode with this item selected
+                    .onTapGesture(count: 2) {
+                        // Double-tap enters selection mode with this item selected
                         if !isEditMode {
                             isEditMode = true
                             selectedPages.insert(index)
