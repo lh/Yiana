@@ -25,15 +25,40 @@ struct PDFViewer: View {
     }
     
     private var pageIndicator: some View {
-        HStack {
+        HStack(spacing: 20) {
+            // Previous page button
+            Button(action: {
+                NotificationCenter.default.post(name: .goToPreviousPage, object: nil)
+            }) {
+                Image(systemName: "chevron.left")
+                    .font(.title3)
+                    .foregroundColor(.white)
+                    .frame(width: 30, height: 30)
+            }
+            .disabled(currentPage == 0)
+            .opacity(currentPage == 0 ? 0.3 : 1.0)
+            
+            // Page indicator
             Text("Page \(currentPage + 1) of \(totalPages)")
                 .font(.caption)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.black.opacity(0.7))
                 .foregroundColor(.white)
-                .cornerRadius(15)
+            
+            // Next page button
+            Button(action: {
+                NotificationCenter.default.post(name: .goToNextPage, object: nil)
+            }) {
+                Image(systemName: "chevron.right")
+                    .font(.title3)
+                    .foregroundColor(.white)
+                    .frame(width: 30, height: 30)
+            }
+            .disabled(currentPage >= totalPages - 1)
+            .opacity(currentPage >= totalPages - 1 ? 0.3 : 1.0)
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(Color.black.opacity(0.7))
+        .cornerRadius(20)
         .padding()
     }
 }
@@ -71,17 +96,31 @@ struct PDFKitView: ViewRepresentable {
     }
     
     private func configurePDFView(_ pdfView: PDFView, context: Context) {
+        // Store reference to pdfView in coordinator
+        context.coordinator.pdfView = pdfView
+        
         // Common configuration for both platforms
         pdfView.autoScales = true
-        pdfView.displayMode = .singlePageContinuous
-        pdfView.displayDirection = .vertical
+        // Use single page mode to eliminate scrolling artifacts
+        pdfView.displayMode = .singlePage
+        pdfView.displayDirection = .horizontal
         
         #if os(iOS)
         // Use white background to match typical PDF page color
         pdfView.backgroundColor = UIColor.white
-        pdfView.pageShadowsEnabled = true
-        // Don't use page view controller with continuous scrolling
-        pdfView.usePageViewController(false, withViewOptions: nil)
+        // Disable shadows for better performance
+        pdfView.pageShadowsEnabled = false
+        // Use page view controller for smooth page transitions
+        pdfView.usePageViewController(true, withViewOptions: nil)
+        
+        // Add swipe gestures for page navigation
+        let swipeLeft = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeLeft(_:)))
+        swipeLeft.direction = .left
+        pdfView.addGestureRecognizer(swipeLeft)
+        
+        let swipeRight = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeRight(_:)))
+        swipeRight.direction = .right
+        pdfView.addGestureRecognizer(swipeRight)
         #else
         // Use white background to match typical PDF page color
         pdfView.backgroundColor = NSColor.white
@@ -93,6 +132,21 @@ struct PDFKitView: ViewRepresentable {
             selector: #selector(Coordinator.pageChanged(_:)),
             name: .PDFViewPageChanged,
             object: pdfView
+        )
+        
+        // Set up navigation notifications
+        NotificationCenter.default.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.handleNextPage(_:)),
+            name: .goToNextPage,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.handlePreviousPage(_:)),
+            name: .goToPreviousPage,
+            object: nil
         )
         
         // Load the PDF
@@ -148,6 +202,7 @@ struct PDFKitView: ViewRepresentable {
     
     class Coordinator: NSObject {
         var parent: PDFKitView
+        weak var pdfView: PDFView?
         
         init(_ parent: PDFKitView) {
             self.parent = parent
@@ -166,6 +221,36 @@ struct PDFKitView: ViewRepresentable {
                 self.parent.currentPage = pageIndex
             }
         }
+        
+        #if os(iOS)
+        @objc func swipeLeft(_ gesture: UISwipeGestureRecognizer) {
+            guard let pdfView = gesture.view as? PDFView else { return }
+            if pdfView.canGoToNextPage {
+                pdfView.goToNextPage(nil)
+            }
+        }
+        
+        @objc func swipeRight(_ gesture: UISwipeGestureRecognizer) {
+            guard let pdfView = gesture.view as? PDFView else { return }
+            if pdfView.canGoToPreviousPage {
+                pdfView.goToPreviousPage(nil)
+            }
+        }
+        #endif
+        
+        @objc func handleNextPage(_ notification: Notification) {
+            guard let pdfView = self.pdfView else { return }
+            if pdfView.canGoToNextPage {
+                pdfView.goToNextPage(nil)
+            }
+        }
+        
+        @objc func handlePreviousPage(_ notification: Notification) {
+            guard let pdfView = self.pdfView else { return }
+            if pdfView.canGoToPreviousPage {
+                pdfView.goToPreviousPage(nil)
+            }
+        }
     }
 }
 
@@ -175,3 +260,9 @@ typealias ViewRepresentable = UIViewRepresentable
 #else
 typealias ViewRepresentable = NSViewRepresentable
 #endif
+
+// Notification names for page navigation
+extension Notification.Name {
+    static let goToNextPage = Notification.Name("goToNextPage")
+    static let goToPreviousPage = Notification.Name("goToPreviousPage")
+}
