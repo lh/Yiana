@@ -19,9 +19,11 @@ typealias PlatformImage = NSImage
 struct PageManagementView: View {
     @Binding var pdfData: Data?
     @Binding var isPresented: Bool
+    var onPageSelected: ((Int) -> Void)? = nil  // Callback for navigation
     @State private var pages: [PDFPage] = []
     @State private var selectedPages: Set<Int> = []
     @State private var isEditMode = true  // Start in edit mode
+    @State private var navigateToPage: Int? = nil  // Track navigation request
     #if os(iOS)
     @State private var draggedPage: Int?
     #endif
@@ -51,11 +53,22 @@ struct PageManagementView: View {
                     .keyboardShortcut(.escape)
                 }
                 
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Save") {
-                        saveChanges()
+                ToolbarItem(placement: .principal) {
+                    Picker("Mode", selection: $isEditMode) {
+                        Label("Navigate", systemImage: "hand.tap").tag(false)
+                        Label("Edit", systemImage: "pencil").tag(true)
                     }
-                    .keyboardShortcut("s", modifiers: .command)
+                    .pickerStyle(.segmented)
+                    .fixedSize()
+                }
+                
+                ToolbarItem(placement: .primaryAction) {
+                    if isEditMode {
+                        Button("Save") {
+                            saveChanges()
+                        }
+                        .keyboardShortcut("s", modifiers: .command)
+                    }
                 }
                 
                 
@@ -122,7 +135,15 @@ struct PageManagementView: View {
                         isEditMode: isEditMode
                     )
                     .onTapGesture {
-                        toggleSelection(for: index)
+                        if isEditMode {
+                            toggleSelection(for: index)
+                        } else {
+                            // Navigate to page
+                            if let callback = onPageSelected {
+                                callback(index)
+                                isPresented = false
+                            }
+                        }
                     }
                     #if os(iOS)
                     .onDrag {

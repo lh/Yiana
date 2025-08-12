@@ -12,11 +12,17 @@ import PDFKit
 /// Works on both iOS and macOS with platform-specific adjustments
 struct PDFViewer: View {
     let pdfData: Data
+    @Binding var navigateToPage: Int?
     @State private var currentPage = 0
     @State private var totalPages = 0
     
+    init(pdfData: Data, navigateToPage: Binding<Int?> = .constant(nil)) {
+        self.pdfData = pdfData
+        self._navigateToPage = navigateToPage
+    }
+    
     var body: some View {
-        PDFKitView(pdfData: pdfData, currentPage: $currentPage, totalPages: $totalPages)
+        PDFKitView(pdfData: pdfData, currentPage: $currentPage, totalPages: $totalPages, navigateToPage: $navigateToPage)
             .overlay(alignment: .bottom) {
                 if totalPages > 1 {
                     pageIndicator
@@ -43,6 +49,7 @@ struct PDFKitView: ViewRepresentable {
     let pdfData: Data
     @Binding var currentPage: Int
     @Binding var totalPages: Int
+    @Binding var navigateToPage: Int?
     
     #if os(iOS)
     func makeUIView(context: Context) -> PDFView {
@@ -53,6 +60,7 @@ struct PDFKitView: ViewRepresentable {
     
     func updateUIView(_ pdfView: PDFView, context: Context) {
         updatePDFView(pdfView)
+        handleNavigation(pdfView)
     }
     #else
     func makeNSView(context: Context) -> PDFView {
@@ -63,6 +71,7 @@ struct PDFKitView: ViewRepresentable {
     
     func updateNSView(_ pdfView: PDFView, context: Context) {
         updatePDFView(pdfView)
+        handleNavigation(pdfView)
     }
     #endif
     
@@ -158,6 +167,19 @@ struct PDFKitView: ViewRepresentable {
                         self.currentPage = pageToShow
                     }
                 }
+            }
+        }
+    }
+    
+    private func handleNavigation(_ pdfView: PDFView) {
+        if let pageIndex = navigateToPage,
+           let document = pdfView.document,
+           pageIndex >= 0 && pageIndex < document.pageCount,
+           let page = document.page(at: pageIndex) {
+            pdfView.go(to: page)
+            DispatchQueue.main.async {
+                self.currentPage = pageIndex
+                self.navigateToPage = nil  // Clear navigation request
             }
         }
     }
