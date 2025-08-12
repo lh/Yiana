@@ -113,9 +113,13 @@ struct PDFKitView: ViewRepresentable {
             // Get current position before updating
             let currentPageIndex = pdfView.currentPage != nil ? 
                 pdfView.document?.index(for: pdfView.currentPage!) ?? 0 : 0
-            let visibleRect = pdfView.visibleRect
+            // Store current view position
             let documentView = pdfView.documentView
+            #if os(iOS)
+            let currentCenter = documentView?.bounds.origin ?? .zero
+            #else
             let currentCenter = documentView?.visibleRect.origin ?? .zero
+            #endif
             
             #if os(macOS)
             // More aggressive approach for macOS to reduce blinking

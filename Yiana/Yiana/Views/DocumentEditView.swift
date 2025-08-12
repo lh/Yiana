@@ -20,6 +20,7 @@ struct DocumentEditView: View {
     @State private var showingScanner = false
     @State private var isProcessingScans = false
     @State private var showingPageManagement = false
+    @State private var scanColorMode: ScanColorMode = .color
     
     private let scanningService = ScanningService()
     
@@ -114,51 +115,91 @@ struct DocumentEditView: View {
             } else if let pdfData = viewModel.pdfData {
                 PDFViewer(pdfData: pdfData)
                     .overlay(alignment: .bottomTrailing) {
-                        VStack(spacing: 16) {
-                            // Page management button
-                            if pdfData.count > 0 {
-                                Button(action: {
-                                    showingPageManagement = true
-                                }) {
-                                    Label("Pages", systemImage: "rectangle.stack")
-                                        .font(.title3)
-                                        .padding(12)
-                                        .background(Color.secondary.opacity(0.8))
-                                        .foregroundColor(.white)
-                                        .clipShape(Circle())
-                                        .shadow(radius: 4)
-                                }
+                        // Page management button
+                        if pdfData.count > 0 {
+                            Button(action: {
+                                showingPageManagement = true
+                            }) {
+                                Label("Pages", systemImage: "rectangle.stack")
+                                    .font(.title3)
+                                    .padding(12)
+                                    .background(Color.secondary.opacity(0.8))
+                                    .foregroundColor(.white)
+                                    .clipShape(Circle())
+                                    .shadow(radius: 4)
                             }
-                            
-                            // Scan button
-                            scanButton
+                            .padding()
                         }
-                        .padding()
+                    }
+                    .overlay(alignment: .bottom) {
+                        scanButtonBar
                     }
             } else {
                 ContentPlaceholderView()
-                    .overlay {
-                        scanButton
+                    .overlay(alignment: .bottom) {
+                        scanButtonBar
                     }
             }
         }
     }
     
-    private var scanButton: some View {
-        Button(action: {
-            if scanningService.isScanningAvailable() {
-                showingScanner = true
+    private var scanButtonBar: some View {
+        HStack(spacing: 40) {
+            // Color scan button - "Scan"
+            Button(action: {
+                if scanningService.isScanningAvailable() {
+                    scanColorMode = .color
+                    showingScanner = true
+                }
+            }) {
+                VStack(spacing: 4) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [.red.opacity(0.3), .yellow.opacity(0.3), .green.opacity(0.3), .blue.opacity(0.3)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 60, height: 60)
+                        
+                        Image(systemName: "camera.fill")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                    }
+                    Text("Scan")
+                        .font(.caption)
+                        .foregroundColor(.primary)
+                }
             }
-        }) {
-            Label("Scan", systemImage: "doc.text.viewfinder")
-                .font(.title2)
-                .padding()
-                .background(Color.accentColor)
-                .foregroundColor(.white)
-                .clipShape(Circle())
-                .shadow(radius: 4)
+            .disabled(!scanningService.isScanningAvailable())
+            
+            // B&W document scan button - "Doc"
+            Button(action: {
+                if scanningService.isScanningAvailable() {
+                    scanColorMode = .blackAndWhite
+                    showingScanner = true
+                }
+            }) {
+                VStack(spacing: 4) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(width: 60, height: 60)
+                        
+                        Image(systemName: "doc.text.viewfinder")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                    }
+                    Text("Doc")
+                        .font(.caption)
+                        .foregroundColor(.primary)
+                }
+            }
+            .disabled(!scanningService.isScanningAvailable())
         }
-        .disabled(!scanningService.isScanningAvailable())
+        .padding(.bottom, 20)
     }
     
     private func loadDocument() async {
@@ -195,8 +236,8 @@ struct DocumentEditView: View {
         Task {
             isProcessingScans = true
             
-            // Convert images to PDF
-            if let newPDFData = await scanningService.convertImagesToPDF(images),
+            // Convert images to PDF with selected color mode
+            if let newPDFData = await scanningService.convertImagesToPDF(images, colorMode: scanColorMode),
                let viewModel = viewModel {
                 
                 // If document already has PDF data, append pages
