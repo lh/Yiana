@@ -23,6 +23,7 @@ struct DocumentEditView: View {
     @State private var scanColorMode: ScanColorMode = .color
     @State private var showTitleField = false
     @State private var navigateToPage: Int? = nil
+    @State private var currentViewedPage: Int = 0
     
     private let scanningService = ScanningService()
     
@@ -62,12 +63,9 @@ struct DocumentEditView: View {
                         }
                     ),
                     isPresented: $showingPageManagement,
+                    currentPageIndex: currentViewedPage,
                     onPageSelected: { pageIndex in
-                        // Clear any previous navigation first, then set new one
-                        navigateToPage = nil
-                        DispatchQueue.main.async {
-                            navigateToPage = pageIndex
-                        }
+                        navigateToPage = pageIndex
                     }
                 )
             }
@@ -93,7 +91,7 @@ struct DocumentEditView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color(.systemGray6))
             } else if let pdfData = viewModel.pdfData {
-                PDFViewer(pdfData: pdfData, navigateToPage: $navigateToPage)
+                PDFViewer(pdfData: pdfData, navigateToPage: $navigateToPage, currentPage: $currentViewedPage)
                     .overlay(alignment: .bottomTrailing) {
                         // Page management button
                         if pdfData.count > 0 {

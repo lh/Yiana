@@ -19,11 +19,13 @@ typealias PlatformImage = NSImage
 struct PageManagementView: View {
     @Binding var pdfData: Data?
     @Binding var isPresented: Bool
+    var currentPageIndex: Int = 0  // The page currently being viewed
     var onPageSelected: ((Int) -> Void)? = nil  // Callback for navigation
     @State private var pages: [PDFPage] = []
     @State private var selectedPages: Set<Int> = []
     @State private var isEditMode = false  // Start in navigation mode
     @State private var navigateToPage: Int? = nil  // Track navigation request
+    @State private var pendingNavigationIndex: Int? = nil  // Show where we're about to navigate
     #if os(iOS)
     @State private var draggedPage: Int?
     #endif
@@ -133,6 +135,7 @@ struct PageManagementView: View {
                         page: page,
                         pageNumber: index + 1,
                         isSelected: selectedPages.contains(index),
+                        isCurrentPage: pendingNavigationIndex == index ? true : (pendingNavigationIndex == nil && index == currentPageIndex),
                         isEditMode: isEditMode
                     )
                     .onTapGesture {
@@ -141,9 +144,11 @@ struct PageManagementView: View {
                         } else {
                             // Navigate to page
                             if let callback = onPageSelected {
+                                // Show the navigation immediately
+                                pendingNavigationIndex = index
                                 callback(index)
-                                // Small delay to ensure navigation is set before dismissal
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                // Small delay before dismissing to show the transition
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                                     isPresented = false
                                 }
                             }
@@ -253,6 +258,7 @@ struct PageThumbnailView: View {
     let page: PDFPage
     let pageNumber: Int
     let isSelected: Bool
+    let isCurrentPage: Bool
     let isEditMode: Bool
     
     var body: some View {
@@ -266,7 +272,10 @@ struct PageThumbnailView: View {
                     .cornerRadius(8)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(isSelected ? Color.accentColor : Color.gray.opacity(0.3), lineWidth: isSelected ? 3 : 1)
+                            .stroke(
+                                isCurrentPage ? Color.blue : (isSelected ? Color.accentColor : Color.gray.opacity(0.3)),
+                                lineWidth: isCurrentPage ? 4 : (isSelected ? 3 : 1)
+                            )
                     )
                 
                 // Selection indicator (only show in edit mode)

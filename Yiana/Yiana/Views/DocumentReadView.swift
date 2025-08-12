@@ -82,7 +82,8 @@ struct DocumentReadView: View {
         .sheet(isPresented: $showingPageManagement) {
             PageManagementView(
                 pdfData: $pdfData,
-                isPresented: $showingPageManagement
+                isPresented: $showingPageManagement,
+                currentPageIndex: 0  // macOS version doesn't track current page yet
             )
         }
     }

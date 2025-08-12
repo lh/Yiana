@@ -13,12 +13,13 @@ import PDFKit
 struct PDFViewer: View {
     let pdfData: Data
     @Binding var navigateToPage: Int?
-    @State private var currentPage = 0
+    @Binding var currentPage: Int
     @State private var totalPages = 0
     
-    init(pdfData: Data, navigateToPage: Binding<Int?> = .constant(nil)) {
+    init(pdfData: Data, navigateToPage: Binding<Int?> = .constant(nil), currentPage: Binding<Int> = .constant(0)) {
         self.pdfData = pdfData
         self._navigateToPage = navigateToPage
+        self._currentPage = currentPage
     }
     
     var body: some View {
@@ -159,7 +160,8 @@ struct PDFKitView: ViewRepresentable {
                 self.totalPages = document.pageCount
                 
                 // If we had pages and still have pages, try to maintain position
-                if currentPageIndex > 0 && document.pageCount > 0 {
+                // BUT ONLY if we don't have a pending navigation request
+                if navigateToPage == nil && currentPageIndex > 0 && document.pageCount > 0 {
                     // Adjust page index if pages were deleted before current position
                     let pageToShow = min(currentPageIndex, document.pageCount - 1)
                     if let page = document.page(at: pageToShow) {
@@ -176,12 +178,7 @@ struct PDFKitView: ViewRepresentable {
            let document = pdfView.document,
            pageIndex >= 0 && pageIndex < document.pageCount,
            let page = document.page(at: pageIndex) {
-            // Only navigate if we're not already on this page
-            let currentPageIndex = pdfView.currentPage != nil ? 
-                document.index(for: pdfView.currentPage!) : -1
-            if currentPageIndex != pageIndex {
-                pdfView.go(to: page)
-            }
+            pdfView.go(to: page)
             DispatchQueue.main.async {
                 self.currentPage = pageIndex
                 self.navigateToPage = nil  // Clear navigation request
