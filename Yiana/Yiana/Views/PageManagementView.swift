@@ -142,7 +142,10 @@ struct PageManagementView: View {
                             // Navigate to page
                             if let callback = onPageSelected {
                                 callback(index)
-                                isPresented = false
+                                // Small delay to ensure navigation is set before dismissal
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    isPresented = false
+                                }
                             }
                         }
                     }

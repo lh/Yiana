@@ -63,7 +63,11 @@ struct DocumentEditView: View {
                     ),
                     isPresented: $showingPageManagement,
                     onPageSelected: { pageIndex in
-                        navigateToPage = pageIndex
+                        // Clear any previous navigation first, then set new one
+                        navigateToPage = nil
+                        DispatchQueue.main.async {
+                            navigateToPage = pageIndex
+                        }
                     }
                 )
             }

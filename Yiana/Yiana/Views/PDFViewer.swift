@@ -176,7 +176,12 @@ struct PDFKitView: ViewRepresentable {
            let document = pdfView.document,
            pageIndex >= 0 && pageIndex < document.pageCount,
            let page = document.page(at: pageIndex) {
-            pdfView.go(to: page)
+            // Only navigate if we're not already on this page
+            let currentPageIndex = pdfView.currentPage != nil ? 
+                document.index(for: pdfView.currentPage!) : -1
+            if currentPageIndex != pageIndex {
+                pdfView.go(to: page)
+            }
             DispatchQueue.main.async {
                 self.currentPage = pageIndex
                 self.navigateToPage = nil  // Clear navigation request
