@@ -145,13 +145,19 @@ class DocumentListViewModel: ObservableObject {
     
     private func searchPDFContent(at url: URL, for searchText: String) -> String? {
         // Load the document to extract PDF data
-        guard let data = try? Data(contentsOf: url) else { return nil }
+        guard let data = try? Data(contentsOf: url) else { 
+            return nil 
+        }
         
         // Try to parse as our document format to get PDF data
         if let pdfData = extractPDFData(from: data),
            let pdfDocument = PDFDocument(data: pdfData) {
             
-            // Search through the PDF
+            // NOTE: PDFs created from scanned images in this app don't have searchable text
+            // VisionKit performs OCR for display/selection but doesn't embed it in the PDF
+            // This will only work for PDFs that already have embedded text layers
+            
+            // Try PDFKit's built-in search
             let selections = pdfDocument.findString(searchText, withOptions: .caseInsensitive)
             
             if !selections.isEmpty, let firstMatch = selections.first {
@@ -177,11 +183,13 @@ class DocumentListViewModel: ObservableObject {
         
         // Try to parse as our document format
         let separator = Data([0xFF, 0xFF, 0xFF, 0xFF])
-        guard let separatorRange = data.range(of: separator) else { return nil }
+        guard let separatorRange = data.range(of: separator) else { 
+            return nil 
+        }
         
         let pdfDataStart = separatorRange.upperBound
         if pdfDataStart < data.count {
-            return data[pdfDataStart...]
+            return Data(data[pdfDataStart...])
         }
         
         return nil
@@ -235,6 +243,7 @@ class DocumentListViewModel: ObservableObject {
             let searchLower = currentSearchText.lowercased()
             isSearching = true
             searchResults = []
+            
             
             // Filter current folder documents by title and content
             var titleMatches: [URL] = []
