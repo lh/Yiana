@@ -25,40 +25,15 @@ struct PDFViewer: View {
     }
     
     private var pageIndicator: some View {
-        HStack(spacing: 20) {
-            // Previous page button
-            Button(action: {
-                NotificationCenter.default.post(name: .goToPreviousPage, object: nil)
-            }) {
-                Image(systemName: "chevron.left")
-                    .font(.title3)
-                    .foregroundColor(.white)
-                    .frame(width: 30, height: 30)
-            }
-            .disabled(currentPage == 0)
-            .opacity(currentPage == 0 ? 0.3 : 1.0)
-            
-            // Page indicator
+        HStack {
             Text("Page \(currentPage + 1) of \(totalPages)")
                 .font(.caption)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.black.opacity(0.7))
                 .foregroundColor(.white)
-            
-            // Next page button
-            Button(action: {
-                NotificationCenter.default.post(name: .goToNextPage, object: nil)
-            }) {
-                Image(systemName: "chevron.right")
-                    .font(.title3)
-                    .foregroundColor(.white)
-                    .frame(width: 30, height: 30)
-            }
-            .disabled(currentPage >= totalPages - 1)
-            .opacity(currentPage >= totalPages - 1 ? 0.3 : 1.0)
+                .cornerRadius(15)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(Color.black.opacity(0.7))
-        .cornerRadius(20)
         .padding()
     }
 }
@@ -134,20 +109,7 @@ struct PDFKitView: ViewRepresentable {
             object: pdfView
         )
         
-        // Set up navigation notifications
-        NotificationCenter.default.addObserver(
-            context.coordinator,
-            selector: #selector(Coordinator.handleNextPage(_:)),
-            name: .goToNextPage,
-            object: nil
-        )
-        
-        NotificationCenter.default.addObserver(
-            context.coordinator,
-            selector: #selector(Coordinator.handlePreviousPage(_:)),
-            name: .goToPreviousPage,
-            object: nil
-        )
+
         
         // Load the PDF
         if let document = PDFDocument(data: pdfData) {
@@ -237,20 +199,7 @@ struct PDFKitView: ViewRepresentable {
             }
         }
         #endif
-        
-        @objc func handleNextPage(_ notification: Notification) {
-            guard let pdfView = self.pdfView else { return }
-            if pdfView.canGoToNextPage {
-                pdfView.goToNextPage(nil)
-            }
-        }
-        
-        @objc func handlePreviousPage(_ notification: Notification) {
-            guard let pdfView = self.pdfView else { return }
-            if pdfView.canGoToPreviousPage {
-                pdfView.goToPreviousPage(nil)
-            }
-        }
+
     }
 }
 
@@ -260,9 +209,3 @@ typealias ViewRepresentable = UIViewRepresentable
 #else
 typealias ViewRepresentable = NSViewRepresentable
 #endif
-
-// Notification names for page navigation
-extension Notification.Name {
-    static let goToNextPage = Notification.Name("goToNextPage")
-    static let goToPreviousPage = Notification.Name("goToPreviousPage")
-}
