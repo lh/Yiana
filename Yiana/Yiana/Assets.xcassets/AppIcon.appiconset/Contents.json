@@ -1,6 +1,7 @@
 {
   "images" : [
     {
+      "filename" : "Yiana_logo.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -12,6 +13,7 @@
           "value" : "dark"
         }
       ],
+      "filename" : "Yiana_logo 2.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -23,6 +25,7 @@
           "value" : "tinted"
         }
       ],
+      "filename" : "Yiana_logo 3.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -73,6 +76,7 @@
       "size" : "512x512"
     },
     {
+      "filename" : "Yiana_logo 1.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "512x512"
