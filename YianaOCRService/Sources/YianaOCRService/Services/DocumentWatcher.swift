@@ -10,18 +10,23 @@ public class DocumentWatcher {
     private var processedDocuments = Set<String>()
     private let processedDocumentsFile: URL
     
-    public init(logger: Logger) {
+    public init(logger: Logger, customPath: String? = nil) {
         self.logger = logger
         self.processor = OCRProcessor(logger: logger)
         
-        // Get the iCloud Documents container
-        if let iCloudURL = FileManager.default.url(forUbiquityContainerIdentifier: "iCloud.com.vitygas.Yiana") {
-            self.documentsURL = iCloudURL.appendingPathComponent("Documents")
+        if let customPath = customPath {
+            // Use the provided custom path
+            self.documentsURL = URL(fileURLWithPath: customPath)
         } else {
-            // Fallback to local Documents if iCloud not available
-            self.documentsURL = FileManager.default.urls(for: .documentDirectory, 
-                                                        in: .userDomainMask).first!
-                .appendingPathComponent("YianaDocuments")
+            // Get the iCloud Documents container
+            if let iCloudURL = FileManager.default.url(forUbiquityContainerIdentifier: "iCloud.com.vitygas.Yiana") {
+                self.documentsURL = iCloudURL.appendingPathComponent("Documents")
+            } else {
+                // Fallback to local Documents if iCloud not available
+                self.documentsURL = FileManager.default.urls(for: .documentDirectory, 
+                                                            in: .userDomainMask).first!
+                    .appendingPathComponent("YianaDocuments")
+            }
         }
         
         // Track processed documents
@@ -42,9 +47,38 @@ public class DocumentWatcher {
     public func start() async {
         logger.info("Starting document watcher")
         
-        // Ensure documents directory exists
-        try? FileManager.default.createDirectory(at: documentsURL, 
-                                                withIntermediateDirectories: true)
+        // Check if the directory exists
+        var isDirectory: ObjCBool = false
+        let exists = FileManager.default.fileExists(atPath: documentsURL.path, isDirectory: &isDirectory)
+        
+        if !exists {
+            logger.error("Documents directory does not exist!", metadata: [
+                "path": .string(documentsURL.path)
+            ])
+            // Try to create it
+            do {
+                try FileManager.default.createDirectory(at: documentsURL, 
+                                                       withIntermediateDirectories: true)
+                logger.info("Created documents directory", metadata: [
+                    "path": .string(documentsURL.path)
+                ])
+            } catch {
+                logger.critical("Failed to create documents directory! OCR service cannot function.", metadata: [
+                    "path": .string(documentsURL.path),
+                    "error": .string(error.localizedDescription)
+                ])
+                return
+            }
+        } else if !isDirectory.boolValue {
+            logger.critical("Documents path exists but is not a directory!", metadata: [
+                "path": .string(documentsURL.path)
+            ])
+            return
+        } else {
+            logger.info("Documents directory verified", metadata: [
+                "path": .string(documentsURL.path)
+            ])
+        }
         
         // Initial scan of existing documents
         await scanExistingDocuments()
@@ -64,31 +98,77 @@ public class DocumentWatcher {
         logger.info("Scanning existing documents")
         
         do {
-            let fileURLs = try FileManager.default.contentsOfDirectory(
+            // Use enumerator to recursively find all files
+            let enumerator = FileManager.default.enumerator(
                 at: documentsURL,
                 includingPropertiesForKeys: [.nameKey, .isDirectoryKey, .contentModificationDateKey],
-                options: .skipsHiddenFiles
+                options: [.skipsHiddenFiles, .skipsPackageDescendants]
             )
             
-            for fileURL in fileURLs {
+            var documentCount = 0
+            var allFiles: [URL] = []
+            
+            // Collect all files from the enumerator
+            while let fileURL = enumerator?.nextObject() as? URL {
+                allFiles.append(fileURL)
+            }
+            
+            logger.info("Found items in directory tree", metadata: [
+                "count": .stringConvertible(allFiles.count),
+                "path": .string(documentsURL.path)
+            ])
+            
+            for fileURL in allFiles {
+                logger.debug("Checking file", metadata: [
+                    "file": .string(fileURL.lastPathComponent),
+                    "path": .string(fileURL.path),
+                    "extension": .string(fileURL.pathExtension)
+                ])
+                
                 if fileURL.pathExtension == "yianazip" {
+                    documentCount += 1
+                    logger.info("Found document to process", metadata: [
+                        "file": .string(fileURL.lastPathComponent),
+                        "folder": .string(fileURL.deletingLastPathComponent().lastPathComponent)
+                    ])
                     await checkAndProcessDocument(at: fileURL)
                 }
             }
+            
+            if documentCount == 0 {
+                logger.warning("No Yiana documents found in directory tree!", metadata: [
+                    "path": .string(documentsURL.path),
+                    "totalFilesScanned": .stringConvertible(allFiles.count)
+                ])
+            } else {
+                logger.info("Found Yiana documents", metadata: [
+                    "count": .stringConvertible(documentCount)
+                ])
+            }
         } catch {
             logger.error("Error scanning documents", metadata: [
-                "error": .string(error.localizedDescription)
+                "error": .string(error.localizedDescription),
+                "path": .string(documentsURL.path)
             ])
         }
     }
     
     private func setupDirectoryMonitor() {
+        // Monitor the main directory
         directoryMonitor = DirectoryMonitor(url: documentsURL) { [weak self] in
             Task {
                 await self?.scanExistingDocuments()
             }
         }
         directoryMonitor?.start()
+        
+        // Also set up a periodic scan to catch any missed changes in subdirectories
+        Task {
+            while true {
+                try? await Task.sleep(nanoseconds: 5_000_000_000) // Check every 5 seconds
+                await scanExistingDocuments()
+            }
+        }
     }
     
     private func checkAndProcessDocument(at url: URL) async {
@@ -142,6 +222,15 @@ public class DocumentWatcher {
                 try updatedDocument.save(to: url)
                 processedDocuments.insert(fileIdentifier)
                 saveProcessedDocuments()
+                return
+            }
+            
+            // Check if PDF data exists (might be syncing from iCloud)
+            guard let pdfData = document.pdfData, !pdfData.isEmpty else {
+                logger.warning("No PDF data found yet, will retry", metadata: [
+                    "file": .string(fileName)
+                ])
+                // Don't mark as processed, will retry on next scan
                 return
             }
             
@@ -202,21 +291,49 @@ public class DocumentWatcher {
         
         // Store extracted data if available
         if let extractedData = result.extractedData {
+            // Use default encoder (same as iOS app - numeric dates as TimeInterval since 2001)
             let encoder = JSONEncoder()
             updatedMetadata.extractedData = try encoder.encode(extractedData)
         }
         
-        // Create updated document with OCR'd PDF if available
+        // Embed text layer in PDF if we have PDF data
+        var pdfDataWithText = document.pdfData
+        if let pdfData = document.pdfData {
+            do {
+                pdfDataWithText = try processor.embedTextLayer(in: pdfData, with: result)
+                logger.info("Successfully embedded text layer in PDF", metadata: [
+                    "file": .string(url.lastPathComponent),
+                    "originalSize": .stringConvertible(pdfData.count),
+                    "newSize": .stringConvertible(pdfDataWithText?.count ?? 0)
+                ])
+            } catch {
+                logger.error("Failed to embed text layer", metadata: [
+                    "file": .string(url.lastPathComponent),
+                    "error": .string(error.localizedDescription)
+                ])
+                // Continue with original PDF if embedding fails
+                pdfDataWithText = pdfData
+            }
+        }
+        
+        // Create updated document with OCR'd PDF
         let updatedDocument = YianaDocument(
             metadata: updatedMetadata,
-            pdfData: document.pdfData // TODO: Replace with OCR'd PDF when text layer is added
+            pdfData: pdfDataWithText
         )
         
         // Save updated document
         try updatedDocument.save(to: url)
         
         // Save OCR results in multiple formats
-        let ocrResultsDir = documentsURL.appendingPathComponent(".ocr_results")
+        // Preserve the folder structure within .ocr_results
+        let relativePath = url.deletingLastPathComponent().path.replacingOccurrences(of: documentsURL.path, with: "")
+        let trimmedPath = relativePath.hasPrefix("/") ? String(relativePath.dropFirst()) : relativePath
+        
+        let ocrResultsDir = documentsURL
+            .appendingPathComponent(".ocr_results")
+            .appendingPathComponent(trimmedPath)
+        
         try FileManager.default.createDirectory(at: ocrResultsDir, 
                                                withIntermediateDirectories: true)
         

@@ -449,6 +449,24 @@ public class OCRProcessor {
         // Could use NLLanguageRecognizer for better detection
         return ["en-US"]
     }
+    
+    /// Embed OCR text as an invisible layer in the PDF
+    public func embedTextLayer(in pdfData: Data, with ocrResult: OCRResult) throws -> Data {
+        // For now, just return the original PDF data
+        // The text layer embedding is causing issues with text selection
+        // We'll keep the OCR results in metadata and separate files for search
+        
+        logger.info("Text layer embedding temporarily disabled", metadata: [
+            "reason": .string("Preserving native PDF text selection")
+        ])
+        
+        return pdfData
+    }
+    
+    private func addInvisibleTextToPage(_ page: PDFPage, ocrData: OCRPage) {
+        // This method is temporarily disabled
+        // Widget annotations were interfering with text selection
+    }
 }
 
 /// OCR processing errors

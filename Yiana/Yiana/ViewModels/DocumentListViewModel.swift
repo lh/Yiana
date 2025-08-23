@@ -144,7 +144,12 @@ class DocumentListViewModel: ObservableObject {
     // MARK: - Search
     
     private func searchPDFContent(at url: URL, for searchText: String) -> String? {
-        // Load the document to extract PDF data
+        // First try to use our OCR data
+        if let ocrSnippet = searchOCRContent(at: url, for: searchText) {
+            return ocrSnippet
+        }
+        
+        // Fallback: Load the document to extract PDF data
         guard let data = try? Data(contentsOf: url) else { 
             return nil 
         }
@@ -169,6 +174,57 @@ class DocumentListViewModel: ObservableObject {
                     return snippet
                 }
             }
+        }
+        
+        return nil
+    }
+    
+    private func searchOCRContent(at documentURL: URL, for searchText: String) -> String? {
+        let result = searchOCRContentWithPageInfo(at: documentURL, for: searchText)
+        return result?.snippet
+    }
+    
+    private func searchOCRContentWithPageInfo(at documentURL: URL, for searchText: String) -> (snippet: String, pageNumber: Int)? {
+        // Build path to OCR JSON file
+        let documentsDir = repository.documentsDirectory
+        let relativePath = documentURL.deletingLastPathComponent().path.replacingOccurrences(of: documentsDir.path, with: "")
+        let trimmedPath = relativePath.hasPrefix("/") ? String(relativePath.dropFirst()) : relativePath
+        
+        let ocrResultsDir = documentsDir
+            .appendingPathComponent(".ocr_results")
+            .appendingPathComponent(trimmedPath)
+        
+        let baseFileName = documentURL.deletingPathExtension().lastPathComponent
+        let jsonURL = ocrResultsDir.appendingPathComponent("\(baseFileName).json")
+        
+        // Check if OCR JSON exists
+        guard FileManager.default.fileExists(atPath: jsonURL.path) else {
+            return nil
+        }
+        
+        do {
+            // Read and parse OCR JSON
+            let jsonData = try Data(contentsOf: jsonURL)
+            if let json = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
+               let pages = json["pages"] as? [[String: Any]] {
+                
+                // Search through all pages and track page numbers
+                var allMatches: [(snippet: String, pageNumber: Int)] = []
+                
+                for page in pages {
+                    if let pageText = page["text"] as? String,
+                       let pageNumber = page["pageNumber"] as? Int,
+                       pageText.lowercased().contains(searchText.lowercased()) {
+                        let snippet = extractSnippet(from: pageText, around: searchText)
+                        allMatches.append((snippet: snippet, pageNumber: pageNumber))
+                    }
+                }
+                
+                // Return first match for now (we'll enhance this later to show all matches)
+                return allMatches.first
+            }
+        } catch {
+            print("DEBUG: Error reading OCR data: \(error)")
         }
         
         return nil
@@ -288,21 +344,35 @@ class DocumentListViewModel: ObservableObject {
             
             // Search globally for documents NOT in current folder
             let currentPath = repository.currentFolderPath
-            otherFolderResults = allDocumentsGlobal
-                .filter { item in
-                    // Check if document matches search
-                    item.url.deletingPathExtension().lastPathComponent.lowercased().contains(searchLower)
+            var globalResults: [(URL, String)] = []
+            
+            for item in allDocumentsGlobal {
+                // Skip documents in current folder (already searched above)
+                if item.relativePath == currentPath {
+                    continue
                 }
-                .filter { item in
-                    // Exclude documents in current folder
-                    item.relativePath != currentPath
-                }
-                .map { item in
-                    // Format the path for display
+                
+                let titleMatch = item.url.deletingPathExtension().lastPathComponent.lowercased().contains(searchLower)
+                let contentSnippet = searchPDFContent(at: item.url, for: currentSearchText)
+                
+                // Include if title matches OR content matches
+                if titleMatch || contentSnippet != nil {
                     let displayPath = item.relativePath.isEmpty ? "Documents" : item.relativePath.replacingOccurrences(of: "/", with: " > ")
-                    return (item.url, displayPath)
+                    globalResults.append((item.url, displayPath))
+                    
+                    // Add to search results if content matches
+                    if let snippet = contentSnippet {
+                        let matchType: SearchResult.MatchType = titleMatch ? .both : .content
+                        searchResults.append(SearchResult(
+                            documentURL: item.url,
+                            matchType: matchType,
+                            snippet: snippet
+                        ))
+                    }
                 }
-                .sorted { $0.url.lastPathComponent < $1.url.lastPathComponent }
+            }
+            
+            otherFolderResults = globalResults.sorted { $0.0.lastPathComponent < $1.0.lastPathComponent }
             
             print("DEBUG: Found \(documentURLs.count) in current folder, \(otherFolderResults.count) in other folders")
         }
