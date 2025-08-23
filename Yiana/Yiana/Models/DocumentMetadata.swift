@@ -22,7 +22,7 @@ struct DocumentMetadata: Codable, Equatable {
     var modified: Date
     
     /// Number of pages in the PDF document
-    let pageCount: Int
+    var pageCount: Int
     
     /// Tags associated with the document for organization
     let tags: [String]

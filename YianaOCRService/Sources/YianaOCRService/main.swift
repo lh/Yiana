@@ -29,14 +29,20 @@ extension YianaOCR {
             let logger = Logger(label: "com.vitygas.yiana.ocr")
             logger.info("Starting Yiana OCR service in watch mode")
             
-            let watcher = DocumentWatcher(logger: logger)
+            let watcher: DocumentWatcher
+            if let customPath = path {
+                watcher = DocumentWatcher(logger: logger, customPath: customPath)
+            } else {
+                watcher = DocumentWatcher(logger: logger)
+            }
             await watcher.start()
             
             // Keep the service running
-            await withTaskGroup(of: Void.self) { group in
-                group.addTask {
-                    await Task.sleepForever()
-                }
+            logger.info("Watcher is running. Press Ctrl+C to stop.")
+            
+            // Use a continuous sleep loop instead of Task.sleepForever
+            while true {
+                try await Task.sleep(nanoseconds: 1_000_000_000 * 60) // Sleep for 60 seconds
             }
         }
     }
@@ -215,12 +221,3 @@ extension YianaOCR {
     }
 }
 
-extension Task where Success == Never, Failure == Never {
-    static func sleepForever() async {
-        do {
-            try await Task.sleep(nanoseconds: .max)
-        } catch {
-            // Task was cancelled
-        }
-    }
-}

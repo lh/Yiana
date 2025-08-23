@@ -61,6 +61,15 @@ class DocumentViewModel: ObservableObject {
         document.metadata.title = title
         document.metadata.modified = Date()
         
+        // Update page count from PDF data
+        if let pdfData = pdfData,
+           let pdfDocument = PDFDocument(data: pdfData) {
+            document.metadata.pageCount = pdfDocument.pageCount
+        }
+        
+        // Update document's PDF data
+        document.pdfData = pdfData
+        
         // Save
         return await withCheckedContinuation { continuation in
             document.save(to: document.fileURL, for: .forOverwriting) { success in
