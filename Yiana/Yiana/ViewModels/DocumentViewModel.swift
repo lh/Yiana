@@ -7,9 +7,11 @@
 
 import Foundation
 import SwiftUI
+import PDFKit
 
 #if os(iOS)
 import UIKit
+import PDFKit
 
 @MainActor
 class DocumentViewModel: ObservableObject {
