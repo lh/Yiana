@@ -138,9 +138,29 @@ class LetterGenerator:
     def _prepare_variables(self, patient: Dict, note: PatientNote, 
                           recipient: str, gp_data: Optional[Dict],
                           copy_to: Optional[List[str]]) -> Dict:
-        """Prepare template variables for simple template"""
+        """Prepare template variables for improved template"""
         
-        # Determine recipient details
+        # Format patient's full address for Re: line
+        patient_addr_parts = []
+        if patient.get('address_line_1'):
+            patient_addr_parts.append(patient['address_line_1'])
+        if patient.get('address_line_2'):
+            patient_addr_parts.append(patient['address_line_2'])
+        if patient.get('city'):
+            patient_addr_parts.append(patient['city'])
+        if patient.get('postcode'):
+            patient_addr_parts.append(patient['postcode'])
+        patient_full_address = ' '.join(patient_addr_parts)
+        
+        # Format patient phone numbers
+        phone_parts = []
+        if patient.get('phone'):
+            phone_parts.append(f"Home: {patient['phone']}")
+        if patient.get('phone_mobile'):
+            phone_parts.append(f"Mobile: {patient['phone_mobile']}")
+        patient_phones = '. '.join(phone_parts) if phone_parts else ''
+        
+        # Determine recipient details for envelope window
         if recipient == 'patient':
             recipient_name = patient.get('full_name', '')
             recipient_addr1 = patient.get('address_line_1', '')
@@ -167,27 +187,34 @@ class LetterGenerator:
                 salutation = note.gp_name or 'Doctor'
         
         variables = {
-            # Patient details (always in Re: line)
-            'PATIENT_NAME': patient.get('full_name', ''),
+            # Practice/Hospital details for header
+            'PRACTICE_NAME': 'Private Practice',
+            'PRACTICE_ADDRESS_1': 'Gatwick Park Hospital',
+            'PRACTICE_ADDRESS_2': 'Povey Cross Road',
+            'PRACTICE_CITY': 'Horley, Surrey',
+            'PRACTICE_POSTCODE': 'RH6 0BB',
+            'PRACTICE_PHONE': '0207 8849411',
+            'HOSPITAL_LOCATION': 'Gatwick Park Hospital.',
             
-            # Recipient details for address block
+            # Patient details for Re: line (all in bold)
+            'PATIENT_NAME': patient.get('full_name', ''),
+            'PATIENT_DOB': patient.get('date_of_birth', 'DOB not available'),
+            'SPIRE_MRN': note.spire_mrn,  # Just the number, not GPK prefix
+            'PATIENT_FULL_ADDRESS': patient_full_address,
+            'PATIENT_PHONES': patient_phones,
+            
+            # Recipient details for envelope window
             'RECIPIENT_NAME': recipient_name,
             'RECIPIENT_ADDRESS_1': recipient_addr1,
             'RECIPIENT_ADDRESS_2': recipient_addr2,
             'RECIPIENT_CITY': recipient_city,
             'RECIPIENT_POSTCODE': recipient_postcode,
             
-            # Salutation
+            # Letter content
             'SALUTATION': salutation,
-            
-            # MRN
-            'SPIRE_MRN': note.get_gpk_number(),
-            
-            # Letter details
             'LETTER_DATE': self._format_date(note.date),
-            
-            # Clinical content - escape LaTeX special characters
             'CLINICAL_CONTENT': self._escape_latex(note.clinical_content),
+            'CLOSING': 'With best wishes' if recipient == 'patient' else 'Yours sincerely',
             
             # Consultant details
             'CONSULTANT_NAME': self.consultant['name'],
@@ -200,8 +227,41 @@ class LetterGenerator:
         
         # Format copy list if present
         if copy_to:
-            copy_text = f"\\noindent\\\\\\textit{{Copy to: {', '.join(copy_to)}}}"
-            variables['COPY_LIST'] = copy_text
+            copy_lines = []
+            for recipient_cc in copy_to:
+                # Try to get full details for each CC recipient
+                if 'GP' in recipient_cc or 'Dr' in recipient_cc or 'Doctor' in recipient_cc:
+                    cc_gp = self.db.get_practitioner(recipient_cc)
+                    if cc_gp and cc_gp.get('practice_name'):
+                        cc_addr_parts = [cc_gp.get('practice_name', '')]
+                        if cc_gp.get('address_line_1'):
+                            cc_addr_parts.append(cc_gp['address_line_1'])
+                        if cc_gp.get('postcode'):
+                            cc_addr_parts.append(cc_gp['postcode'])
+                        copy_lines.append(f"Cc: {recipient_cc} {' '.join(cc_addr_parts)}.")
+                    else:
+                        copy_lines.append(f"Cc: {recipient_cc}")
+                else:
+                    copy_lines.append(f"Cc: {recipient_cc}")
+            
+            variables['COPY_LIST'] = '\\\\'.join(copy_lines) if copy_lines else ''
+        
+        # Format GP in copy list when letter is to patient
+        if recipient == 'patient' and note.gp_name and note.gp_name != "Unknown GP":
+            if gp_data and gp_data.get('practice_name'):
+                gp_addr_parts = [gp_data.get('practice_name', '')]
+                if gp_data.get('address_line_1'):
+                    gp_addr_parts.append(gp_data['address_line_1'])
+                if gp_data.get('postcode'):
+                    gp_addr_parts.append(gp_data['postcode'])
+                gp_cc = f"Cc: {note.gp_name} {' '.join(gp_addr_parts)}."
+            else:
+                gp_cc = f"Cc: {note.gp_name}"
+            
+            if variables['COPY_LIST']:
+                variables['COPY_LIST'] = gp_cc + '\\\\' + variables['COPY_LIST']
+            else:
+                variables['COPY_LIST'] = gp_cc
         
         return variables
     

@@ -1,0 +1,103 @@
+% Medical Letter Template - Improved Layout
+% For C5 Window Envelopes (45mm x 100mm window, 15mm from left, 72mm from top)
+\documentclass[a4paper,11pt]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{helvet}
+
+% Page geometry for A4
+\geometry{
+    a4paper,
+    left=20mm,
+    right=20mm,
+    top=15mm,
+    bottom=20mm
+}
+
+% Use Helvetica as default font
+\renewcommand{\familydefault}{\sfdefault}
+
+% Disable page numbers
+\pagestyle{empty}
+
+\begin{document}
+
+% Header with consultant and practice details
+\begin{center}
+    \textbf{<CONSULTANT_NAME>}\\
+    <CONSULTANT_TITLE>\\
+    <CONSULTANT_QUALS>\\
+    \vspace{3mm}
+    <PRACTICE_NAME>\\
+    <PRACTICE_ADDRESS_1>\\
+    <PRACTICE_ADDRESS_2>\\
+    <PRACTICE_CITY>\\
+    <PRACTICE_POSTCODE>\\
+    \vspace{2mm}
+    Ph: <PRACTICE_PHONE>\\
+\end{center}
+
+\vspace{5mm}
+
+% Date
+\noindent
+<LETTER_DATE>\\
+<HOSPITAL_LOCATION>
+
+\vspace{8mm}
+
+% Recipient address box - positioned for C5 window
+% This should appear at 72mm from top, 15mm from left
+\noindent
+\vspace*{20mm} % Adjust for window position
+\begin{flushleft}
+<RECIPIENT_NAME>\\
+<RECIPIENT_ADDRESS_1>\\
+<RECIPIENT_ADDRESS_2>
+<RECIPIENT_CITY>\\
+<RECIPIENT_POSTCODE>
+\end{flushleft}
+
+\vspace{10mm}
+
+% Re: line with comprehensive patient details in bold
+\noindent
+\textbf{Re: <PATIENT_NAME>. DoB: <PATIENT_DOB>. PN: <SPIRE_MRN>. Address: <PATIENT_FULL_ADDRESS>. <PATIENT_PHONES>}
+
+\vspace{8mm}
+
+% Salutation
+\noindent
+Dear <SALUTATION>,
+
+\vspace{5mm}
+
+% Clinical content
+\noindent
+<CLINICAL_CONTENT>
+
+\vspace{10mm}
+
+% Closing
+\noindent
+<CLOSING>
+
+\vspace{3mm}
+
+\noindent
+Yours sincerely
+
+\vspace{15mm}
+
+\noindent
+\textbf{<CONSULTANT_NAME>}
+
+\vspace{8mm}
+
+% Copy list
+<COPY_LIST>
+
+\end{document}
