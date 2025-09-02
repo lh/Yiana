@@ -15,6 +15,8 @@ struct SearchResult: Identifiable {
     let documentURL: URL
     let matchType: MatchType
     let snippet: String?
+    let pageNumber: Int?  // 1-based page number (page 1 is first page)
+    let searchTerm: String?  // The search term that matched
     
     enum MatchType {
         case title
@@ -143,10 +145,10 @@ class DocumentListViewModel: ObservableObject {
     
     // MARK: - Search
     
-    private func searchPDFContent(at url: URL, for searchText: String) -> String? {
-        // First try to use our OCR data
-        if let ocrSnippet = searchOCRContent(at: url, for: searchText) {
-            return ocrSnippet
+    private func searchPDFContent(at url: URL, for searchText: String) -> (snippet: String, pageNumber: Int?)? {
+        // First try to use our OCR data with page info
+        if let ocrResult = searchOCRContentWithPageInfo(at: url, for: searchText) {
+            return (snippet: ocrResult.snippet, pageNumber: ocrResult.pageNumber)
         }
         
         // Fallback: Load the document to extract PDF data
@@ -171,7 +173,8 @@ class DocumentListViewModel: ObservableObject {
                    let pageText = page.string {
                     // Find the match in the page text and get surrounding context
                     let snippet = extractSnippet(from: pageText, around: searchText)
-                    return snippet
+                    let pageIndex = pdfDocument.index(for: page)
+                    return (snippet: snippet, pageNumber: pageIndex + 1)  // Convert to 1-based
                 }
             }
         }
@@ -211,12 +214,15 @@ class DocumentListViewModel: ObservableObject {
                 // Search through all pages and track page numbers
                 var allMatches: [(snippet: String, pageNumber: Int)] = []
                 
-                for page in pages {
+                for (index, page) in pages.enumerated() {
                     if let pageText = page["text"] as? String,
-                       let pageNumber = page["pageNumber"] as? Int,
-                       pageText.lowercased().contains(searchText.lowercased()) {
-                        let snippet = extractSnippet(from: pageText, around: searchText)
-                        allMatches.append((snippet: snippet, pageNumber: pageNumber))
+                       let pageNumber = page["pageNumber"] as? Int {  // 1-based from OCR
+                        if pageText.lowercased().contains(searchText.lowercased()) {
+                            let snippet = extractSnippet(from: pageText, around: searchText)
+                            allMatches.append((snippet: snippet, pageNumber: pageNumber))
+                            print("DEBUG: Found '\(searchText)' in OCR page \(pageNumber) (array index \(index))")
+                            print("DEBUG: Page text preview: \(String(pageText.prefix(100)))")
+                        }
                     }
                 }
                 
@@ -312,13 +318,15 @@ class DocumentListViewModel: ObservableObject {
                 }
                 
                 // Also search PDF content
-                if let contentSnippet = searchPDFContent(at: url, for: currentSearchText) {
+                if let contentResult = searchPDFContent(at: url, for: currentSearchText) {
                     if !titleMatch {
                         contentMatches.append(url)
                         searchResults.append(SearchResult(
                             documentURL: url,
                             matchType: .content,
-                            snippet: contentSnippet
+                            snippet: contentResult.snippet,
+                            pageNumber: contentResult.pageNumber,
+                            searchTerm: currentSearchText
                         ))
                     } else {
                         // Both title and content match
@@ -328,7 +336,9 @@ class DocumentListViewModel: ObservableObject {
                         searchResults.append(SearchResult(
                             documentURL: url,
                             matchType: .both,
-                            snippet: contentSnippet
+                            snippet: contentResult.snippet,
+                            pageNumber: contentResult.pageNumber,
+                            searchTerm: currentSearchText
                         ))
                     }
                 }
@@ -353,20 +363,22 @@ class DocumentListViewModel: ObservableObject {
                 }
                 
                 let titleMatch = item.url.deletingPathExtension().lastPathComponent.lowercased().contains(searchLower)
-                let contentSnippet = searchPDFContent(at: item.url, for: currentSearchText)
+                let contentResult = searchPDFContent(at: item.url, for: currentSearchText)
                 
                 // Include if title matches OR content matches
-                if titleMatch || contentSnippet != nil {
+                if titleMatch || contentResult != nil {
                     let displayPath = item.relativePath.isEmpty ? "Documents" : item.relativePath.replacingOccurrences(of: "/", with: " > ")
                     globalResults.append((item.url, displayPath))
                     
                     // Add to search results if content matches
-                    if let snippet = contentSnippet {
+                    if let result = contentResult {
                         let matchType: SearchResult.MatchType = titleMatch ? .both : .content
                         searchResults.append(SearchResult(
                             documentURL: item.url,
                             matchType: matchType,
-                            snippet: snippet
+                            snippet: result.snippet,
+                            pageNumber: result.pageNumber,
+                            searchTerm: currentSearchText
                         ))
                     }
                 }

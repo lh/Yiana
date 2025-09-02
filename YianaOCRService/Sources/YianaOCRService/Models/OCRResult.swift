@@ -35,7 +35,7 @@ public struct OCRResult: Codable {
 
 /// Represents OCR results for a single page
 public struct OCRPage: Codable {
-    /// Page number (0-based)
+    /// Page number (1-based, page 1 is the first page)
     let pageNumber: Int
     
     /// Full text of the page

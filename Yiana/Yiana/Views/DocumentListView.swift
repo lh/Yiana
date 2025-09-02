@@ -80,7 +80,31 @@ struct DocumentListView: View {
                         TextField("Search", text: $searchText)
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 200)
+                            .onSubmit {
+                                Task {
+                                    await viewModel.filterDocuments(searchText: searchText)
+                                }
+                            }
+                        if !searchText.isEmpty {
+                            Button(action: {
+                                searchText = ""
+                                Task {
+                                    await viewModel.filterDocuments(searchText: "")
+                                }
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
+                }
+                #endif
+                
+                // Development menu (DEBUG only)
+                #if DEBUG && os(macOS)
+                ToolbarItem(placement: .automatic) {
+                    DevelopmentMenu()
                 }
                 #endif
             }
@@ -114,6 +138,16 @@ struct DocumentListView: View {
                 DocumentReadView(documentURL: url)
                 #endif
             }
+            .navigationDestination(for: DocumentNavigationData.self) { navData in
+                #if os(iOS)
+                DocumentEditView(documentURL: navData.url)
+                #else
+                DocumentReadView(
+                    documentURL: navData.url,
+                    searchResult: navData.searchResult
+                )
+                #endif
+            }
         }
         .task {
             await viewModel.loadDocuments()
@@ -121,10 +155,12 @@ struct DocumentListView: View {
         .refreshable {
             await viewModel.refresh()
         }
+        #if os(iOS)
         .searchable(text: $searchText, prompt: "Search documents")
-        .onChange(of: searchText) { _ in
+        #endif
+        .onChange(of: searchText) { _, newValue in
             Task {
-                await viewModel.filterDocuments(searchText: searchText)
+                await viewModel.filterDocuments(searchText: newValue)
             }
         }
     }
@@ -196,11 +232,15 @@ struct DocumentListView: View {
             if !viewModel.documentURLs.isEmpty {
                 Section(viewModel.isSearching ? "In This Folder" : "Documents") {
                     ForEach(viewModel.documentURLs, id: \.self) { url in
-                        NavigationLink(value: url) {
-                            DocumentRow(
-                                url: url,
-                                searchResult: viewModel.searchResults.first { $0.documentURL == url }
-                            )
+                        let searchResult = viewModel.searchResults.first { $0.documentURL == url }
+                        if let result = searchResult {
+                            NavigationLink(value: DocumentNavigationData(url: url, searchResult: result)) {
+                                DocumentRow(url: url, searchResult: result)
+                            }
+                        } else {
+                            NavigationLink(value: url) {
+                                DocumentRow(url: url, searchResult: nil)
+                            }
                         }
                     }
                     .onDelete(perform: deleteDocuments)
@@ -211,7 +251,9 @@ struct DocumentListView: View {
             if viewModel.isSearching && !viewModel.otherFolderResults.isEmpty {
                 Section("In Other Folders") {
                     ForEach(viewModel.otherFolderResults, id: \.url) { result in
-                        NavigationLink(value: result.url) {
+                        // Find the corresponding search result
+                        let searchResult = viewModel.searchResults.first { $0.documentURL == result.url }
+                        NavigationLink(value: DocumentNavigationData(url: result.url, searchResult: searchResult)) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(result.url.deletingPathExtension().lastPathComponent)
@@ -221,6 +263,14 @@ struct DocumentListView: View {
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                         .lineLimit(1)
+                                    
+                                    // Show snippet if available
+                                    if let snippet = searchResult?.snippet {
+                                        Text(snippet)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                            .lineLimit(2)
+                                    }
                                 }
                                 Spacer()
                             }

@@ -45,7 +45,7 @@ class LetterGenerator:
         self.consultant = consultant_details or {
             'name': 'Mr R Smith',
             'title': 'Consultant Ophthalmologist',
-            'qualifications': 'MB ChB, FRCOphth, MD'
+            'qualifications': 'FRCOphth'
         }
         
         # Load template
@@ -138,23 +138,53 @@ class LetterGenerator:
     def _prepare_variables(self, patient: Dict, note: PatientNote, 
                           recipient: str, gp_data: Optional[Dict],
                           copy_to: Optional[List[str]]) -> Dict:
-        """Prepare template variables"""
+        """Prepare template variables for simple template"""
+        
+        # Determine recipient details
+        if recipient == 'patient':
+            recipient_name = patient.get('full_name', '')
+            recipient_addr1 = patient.get('address_line_1', '')
+            recipient_addr2 = patient.get('address_line_2', '') + '\\\\' if patient.get('address_line_2') else ''
+            recipient_city = patient.get('city', '')
+            recipient_postcode = patient.get('postcode', '')
+            salutation = patient.get('full_name', '').split()[-1] if patient.get('full_name') else 'Patient'
+        else:  # GP
+            if gp_data:
+                recipient_name = gp_data.get('full_name', gp_data.get('name_as_written', ''))
+                recipient_addr1 = gp_data.get('practice_name', '') or gp_data.get('address_line_1', '')
+                recipient_addr2 = (gp_data.get('address_line_1', '') if gp_data.get('practice_name') 
+                                  else gp_data.get('address_line_2', ''))
+                recipient_addr2 = recipient_addr2 + '\\\\' if recipient_addr2 else ''
+                recipient_city = gp_data.get('city', '')
+                recipient_postcode = gp_data.get('postcode', '')
+                salutation = gp_data.get('salutation', f"Dr {gp_data.get('name_as_written', 'Doctor')}")
+            else:
+                recipient_name = note.gp_name or 'GP'
+                recipient_addr1 = ''
+                recipient_addr2 = ''
+                recipient_city = ''
+                recipient_postcode = ''
+                salutation = note.gp_name or 'Doctor'
         
         variables = {
-            # Patient details
+            # Patient details (always in Re: line)
             'PATIENT_NAME': patient.get('full_name', ''),
-            'PATIENT_ADDRESS_1': patient.get('address_line_1', ''),
-            'PATIENT_ADDRESS_2': patient.get('address_line_2', ''),
-            'PATIENT_CITY': patient.get('city', ''),
-            'PATIENT_POSTCODE': patient.get('postcode', ''),
+            
+            # Recipient details for address block
+            'RECIPIENT_NAME': recipient_name,
+            'RECIPIENT_ADDRESS_1': recipient_addr1,
+            'RECIPIENT_ADDRESS_2': recipient_addr2,
+            'RECIPIENT_CITY': recipient_city,
+            'RECIPIENT_POSTCODE': recipient_postcode,
+            
+            # Salutation
+            'SALUTATION': salutation,
             
             # MRN
             'SPIRE_MRN': note.get_gpk_number(),
-            'NHS_NUMBER': '',  # Not usually available
             
             # Letter details
             'LETTER_DATE': self._format_date(note.date),
-            'RECIPIENT_TYPE': recipient.upper(),
             
             # Clinical content - escape LaTeX special characters
             'CLINICAL_CONTENT': self._escape_latex(note.clinical_content),
@@ -165,29 +195,13 @@ class LetterGenerator:
             'CONSULTANT_QUALS': self.consultant['qualifications'],
             
             # Copy list
-            'COPY_LIST': ', '.join(copy_to) if copy_to else ''
+            'COPY_LIST': ''
         }
         
-        # Add GP details if available
-        if gp_data:
-            variables.update({
-                'GP_NAME': gp_data.get('full_name', gp_data.get('name_as_written', '')),
-                'PRACTICE_ADDRESS_1': gp_data.get('practice_name', '') or gp_data.get('address_line_1', ''),
-                'PRACTICE_ADDRESS_2': gp_data.get('address_line_1', '') if gp_data.get('practice_name') else gp_data.get('address_line_2', ''),
-                'PRACTICE_CITY': gp_data.get('city', ''),
-                'PRACTICE_POSTCODE': gp_data.get('postcode', '')
-            })
-        else:
-            variables.update({
-                'GP_NAME': note.gp_name or 'GP',
-                'PRACTICE_ADDRESS_1': '',
-                'PRACTICE_ADDRESS_2': '',
-                'PRACTICE_CITY': '',
-                'PRACTICE_POSTCODE': ''
-            })
-        
-        # Define patient type for comparison
-        variables['patienttype'] = 'PATIENT'
+        # Format copy list if present
+        if copy_to:
+            copy_text = f"\\noindent\\\\\\textit{{Copy to: {', '.join(copy_to)}}}"
+            variables['COPY_LIST'] = copy_text
         
         return variables
     
@@ -199,11 +213,6 @@ class LetterGenerator:
         for key, value in variables.items():
             placeholder = f"<{key}>"
             content = content.replace(placeholder, str(value) if value else '')
-        
-        # Handle the recipient type comparison
-        if variables['RECIPIENT_TYPE'] == 'PATIENT':
-            content = content.replace(r'\newcommand{\patienttype}{<PATIENT_TYPE>}', 
-                                     r'\newcommand{\patienttype}{PATIENT}')
         
         return content
     

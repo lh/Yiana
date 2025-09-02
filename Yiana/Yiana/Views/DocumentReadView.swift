@@ -11,14 +11,21 @@ import PDFKit
 #if os(macOS)
 struct DocumentReadView: View {
     let documentURL: URL
+    let searchResult: SearchResult?
     @State private var pdfData: Data?
     @State private var documentTitle: String = ""
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var showingPageManagement = false
+    @State private var initialPageToShow: Int?
+    
+    init(documentURL: URL, searchResult: SearchResult? = nil) {
+        self.documentURL = documentURL
+        self.searchResult = searchResult
+    }
     
     var body: some View {
-        Group {
+        ZStack {
             if isLoading {
                 ProgressView("Loading document...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -58,8 +65,25 @@ struct DocumentReadView: View {
                     
                     Divider()
                     
-                    // PDF content
-                    PDFViewer(pdfData: pdfData)
+                    // PDF content with enhanced navigation
+                    // Note: searchResult.pageNumber is 1-based
+                    let _ = {
+                        print("DEBUG DocumentReadView: searchResult = \(String(describing: searchResult))")
+                        print("DEBUG DocumentReadView: pageNumber = \(String(describing: searchResult?.pageNumber))")
+                        print("DEBUG DocumentReadView: searchTerm = \(String(describing: searchResult?.searchTerm))")
+                    }()
+                    if let pageNum = searchResult?.pageNumber {
+                        EnhancedMacPDFViewer(
+                            pdfData: pdfData,
+                            initialPage: pageNum,  // Pass 1-based page number
+                            searchTerm: searchResult?.searchTerm
+                        )
+                    } else {
+                        EnhancedMacPDFViewer(
+                            pdfData: pdfData,
+                            searchTerm: searchResult?.searchTerm
+                        )
+                    }
                 }
             } else {
                 VStack(spacing: 20) {

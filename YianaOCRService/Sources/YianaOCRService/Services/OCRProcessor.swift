@@ -87,7 +87,8 @@ public class OCRProcessor {
         for pageIndex in 0..<pdfDocument.pageCount {
             guard let page = pdfDocument.page(at: pageIndex) else { continue }
             
-            let ocrPage = try await processPage(page, pageNumber: pageIndex, options: options)
+            // Pass 1-based page number to processPage
+            let ocrPage = try await processPage(page, pageNumber: pageIndex + 1, options: options)
             pages.append(ocrPage)
             
             logger.debug("Processed page", metadata: [

@@ -55,24 +55,32 @@ struct PDFKitView: ViewRepresentable {
     #if os(iOS)
     func makeUIView(context: Context) -> PDFView {
         let pdfView = PDFView()
+        context.coordinator.isInitialLoad = true
         configurePDFView(pdfView, context: context)
         return pdfView
     }
     
     func updateUIView(_ pdfView: PDFView, context: Context) {
-        updatePDFView(pdfView)
+        if !context.coordinator.isInitialLoad {
+            updatePDFView(pdfView)
+        }
         handleNavigation(pdfView)
+        context.coordinator.isInitialLoad = false
     }
     #else
     func makeNSView(context: Context) -> PDFView {
         let pdfView = PDFView()
+        context.coordinator.isInitialLoad = true
         configurePDFView(pdfView, context: context)
         return pdfView
     }
     
     func updateNSView(_ pdfView: PDFView, context: Context) {
-        updatePDFView(pdfView)
+        if !context.coordinator.isInitialLoad {
+            updatePDFView(pdfView)
+        }
         handleNavigation(pdfView)
+        context.coordinator.isInitialLoad = false
     }
     #endif
     
@@ -89,6 +97,7 @@ struct PDFKitView: ViewRepresentable {
         // Use single page mode to eliminate scrolling artifacts
         pdfView.displayMode = .singlePage
         pdfView.displayDirection = .horizontal
+        pdfView.displaysPageBreaks = false
         
         #if os(iOS)
         // Use white background to match typical PDF page color
@@ -109,6 +118,27 @@ struct PDFKitView: ViewRepresentable {
         #else
         // Use white background to match typical PDF page color
         pdfView.backgroundColor = NSColor.white
+        
+        // Set up keyboard navigation (only if not already set)
+        if context.coordinator.keyEventMonitor == nil {
+            context.coordinator.keyEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                if context.coordinator.handleKeyDown(event) {
+                    return nil // Event was handled, don't propagate
+                }
+                return event
+            }
+        }
+        
+        // Set up scroll wheel navigation (only if not already set)
+        if context.coordinator.scrollEventMonitor == nil {
+            context.coordinator.scrollEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
+                // Only handle if the PDFView is the first responder
+                if pdfView.window?.firstResponder == pdfView {
+                    context.coordinator.handleScrollWheel(event)
+                }
+                return event
+            }
+        }
         #endif
         
         // Set up notifications for page changes
@@ -123,50 +153,41 @@ struct PDFKitView: ViewRepresentable {
         
         // Load the PDF
         if let document = PDFDocument(data: pdfData) {
-            pdfView.document = document
-            // Call layoutDocumentView to reduce initial flashing
-            pdfView.layoutDocumentView()
+            // Defer state updates to avoid "modifying state during view update" warning
             DispatchQueue.main.async {
                 self.totalPages = document.pageCount
                 self.currentPage = 0
             }
+            
+            // Set the document
+            pdfView.document = document
         }
     }
     
     private func updatePDFView(_ pdfView: PDFView) {
-        // Always update when called - the SwiftUI update mechanism handles change detection
-        if let document = PDFDocument(data: pdfData) {
-            // Get current position before updating
-            let currentPageIndex = pdfView.currentPage != nil ? 
-                pdfView.document?.index(for: pdfView.currentPage!) ?? 0 : 0
-            // Store current view position
-            let documentView = pdfView.documentView
-            #if os(iOS)
-            let currentCenter = documentView?.bounds.origin ?? .zero
-            #else
-            let currentCenter = documentView?.visibleRect.origin ?? .zero
-            #endif
-            
-            #if os(macOS)
-            // More aggressive approach for macOS to reduce blinking
-            pdfView.document = nil
-            #endif
-            
-            pdfView.document = document
-            // Call layoutDocumentView to reduce flashing
-            pdfView.layoutDocumentView()
-            
-            DispatchQueue.main.async {
-                self.totalPages = document.pageCount
+        // Only update if document has actually changed
+        if pdfView.document == nil || pdfView.document?.dataRepresentation() != pdfData {
+            if let document = PDFDocument(data: pdfData) {
+                // Get current position before updating
+                let currentPageIndex = pdfView.currentPage != nil ? 
+                    pdfView.document?.index(for: pdfView.currentPage!) ?? 0 : 0
                 
-                // If we had pages and still have pages, try to maintain position
-                // BUT ONLY if we don't have a pending navigation request
-                if navigateToPage == nil && currentPageIndex > 0 && document.pageCount > 0 {
-                    // Adjust page index if pages were deleted before current position
-                    let pageToShow = min(currentPageIndex, document.pageCount - 1)
-                    if let page = document.page(at: pageToShow) {
-                        pdfView.go(to: page)
-                        self.currentPage = pageToShow
+                pdfView.document = document
+                // Call layoutDocumentView to reduce flashing
+                pdfView.layoutDocumentView()
+                
+                DispatchQueue.main.async {
+                    self.totalPages = document.pageCount
+                    
+                    // If we had pages and still have pages, try to maintain position
+                    // BUT ONLY if we don't have a pending navigation request
+                    if navigateToPage == nil && currentPageIndex > 0 && document.pageCount > 0 {
+                        // Adjust page index if pages were deleted before current position
+                        let pageToShow = min(currentPageIndex, document.pageCount - 1)
+                        if let page = document.page(at: pageToShow) {
+                            pdfView.go(to: page)
+                            self.currentPage = pageToShow
+                        }
                     }
                 }
             }
@@ -189,9 +210,25 @@ struct PDFKitView: ViewRepresentable {
     class Coordinator: NSObject {
         var parent: PDFKitView
         weak var pdfView: PDFView?
+        var isInitialLoad = true
+        #if os(macOS)
+        var keyEventMonitor: Any?
+        var scrollEventMonitor: Any?
+        #endif
         
         init(_ parent: PDFKitView) {
             self.parent = parent
+        }
+        
+        deinit {
+            #if os(macOS)
+            if let monitor = keyEventMonitor {
+                NSEvent.removeMonitor(monitor)
+            }
+            if let monitor = scrollEventMonitor {
+                NSEvent.removeMonitor(monitor)
+            }
+            #endif
         }
         
         @objc func pageChanged(_ notification: Notification) {
@@ -220,6 +257,60 @@ struct PDFKitView: ViewRepresentable {
             guard let pdfView = gesture.view as? PDFView else { return }
             if pdfView.canGoToPreviousPage {
                 pdfView.goToPreviousPage(nil)
+            }
+        }
+        #else
+        // macOS keyboard event handling
+        @objc func handleKeyDown(_ event: NSEvent) -> Bool {
+            guard let pdfView = pdfView else { return false }
+            
+            switch event.keyCode {
+            case 123: // Left arrow
+                if pdfView.canGoToPreviousPage {
+                    pdfView.goToPreviousPage(nil)
+                    return true
+                }
+            case 124: // Right arrow
+                if pdfView.canGoToNextPage {
+                    pdfView.goToNextPage(nil)
+                    return true
+                }
+            case 49: // Space
+                if event.modifierFlags.contains(.shift) {
+                    if pdfView.canGoToPreviousPage {
+                        pdfView.goToPreviousPage(nil)
+                        return true
+                    }
+                } else {
+                    if pdfView.canGoToNextPage {
+                        pdfView.goToNextPage(nil)
+                        return true
+                    }
+                }
+            default:
+                break
+            }
+            return false
+        }
+        
+        // macOS scroll wheel handling
+        @objc func handleScrollWheel(_ event: NSEvent) {
+            guard let pdfView = pdfView else { return }
+            
+            // Only handle horizontal scrolling or vertical with shift
+            if abs(event.deltaY) > abs(event.deltaX) && !event.modifierFlags.contains(.shift) {
+                // Vertical scroll - navigate pages
+                if event.deltaY > 0.5 {
+                    // Scrolling up - previous page
+                    if pdfView.canGoToPreviousPage {
+                        pdfView.goToPreviousPage(nil)
+                    }
+                } else if event.deltaY < -0.5 {
+                    // Scrolling down - next page
+                    if pdfView.canGoToNextPage {
+                        pdfView.goToNextPage(nil)
+                    }
+                }
             }
         }
         #endif
