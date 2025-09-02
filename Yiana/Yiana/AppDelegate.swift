@@ -5,13 +5,16 @@
 //  Ensures file URL opens (e.g., from Share → Copy to Yiana) are handled reliably.
 //
 
-#if os(iOS)
-import UIKit
+import Foundation
 
+// Define notifications for both iOS and macOS
 extension Notification.Name {
     static let yianaOpenURL = Notification.Name("yianaOpenURL")
     static let yianaDocumentsChanged = Notification.Name("yianaDocumentsChanged")
 }
+
+#if os(iOS)
+import UIKit
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {

@@ -22,11 +22,13 @@ struct YianaApp: App {
                 .onOpenURL { url in
                     handleIncomingURL(url)
                 }
+                #if os(iOS)
                 .onReceive(NotificationCenter.default.publisher(for: Notification.Name.yianaOpenURL)) { notification in
                     if let url = notification.object as? URL {
                         handleIncomingURL(url)
                     }
                 }
+                #endif
         }
         #if os(iOS)
         .handlesExternalEvents(matching: ["*"])
