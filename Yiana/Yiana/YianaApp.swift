@@ -10,6 +10,9 @@ import UniformTypeIdentifiers
 
 @main
 struct YianaApp: App {
+    #if os(iOS)
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    #endif
     @StateObject private var importHandler = DocumentImportHandler()
     
     var body: some Scene {
@@ -18,6 +21,11 @@ struct YianaApp: App {
                 .environmentObject(importHandler)
                 .onOpenURL { url in
                     handleIncomingURL(url)
+                }
+                .onReceive(NotificationCenter.default.publisher(for: Notification.Name.yianaOpenURL)) { notification in
+                    if let url = notification.object as? URL {
+                        handleIncomingURL(url)
+                    }
                 }
         }
         #if os(iOS)

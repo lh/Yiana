@@ -26,6 +26,7 @@
 			<key>LSItemContentTypes</key>
 			<array>
 				<string>com.adobe.pdf</string>
+				<string>public.pdf</string>
 			</array>
 		</dict>
 	</array>
