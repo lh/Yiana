@@ -1,13 +1,14 @@
 # Yiana - Project Context for Claude
 
 ## CORE RULES (MUST FOLLOW)
-1. **Development must follow TDD (Test-Driven Development) methodology**
-2. **All implementation must strictly follow the steps outlined in PLAN.md**
-3. **Primary tech stack is [SwiftUI, UIDocument, PDFKit, VisionKit]. Do not introduce other libraries unless specified in the plan**
-4. **Every code change must be small, focused, and verifiable**
-5. **Update memory-bank/activeContext.md after each significant change**
-6. **Commit to git regularly - after each significant feature or fix is completed and tested**
-7. **Keep commits clean - no emojis, minimal "Co-authored-by" attributions**
+1. **ALWAYS USE SERENA MCP TOOLS for code exploration and editing** - Use mcp__serena__ tools instead of basic Read/Edit
+2. **Development must follow TDD (Test-Driven Development) methodology**
+3. **All implementation must strictly follow the steps outlined in PLAN.md**
+4. **Primary tech stack is [SwiftUI, UIDocument, PDFKit, VisionKit]. Do not introduce other libraries unless specified in the plan**
+5. **Every code change must be small, focused, and verifiable**
+6. **Update memory-bank/activeContext.md after each significant change**
+7. **Commit to git regularly - after each significant feature or fix is completed and tested**
+8. **Keep commits clean - no emojis, minimal "Co-authored-by" attributions**
 
 ## Project Overview
 Yiana (Yiana is another notes app) - A document scanning and PDF management app for iOS/iPadOS/macOS.
@@ -49,3 +50,14 @@ xcodebuild -scheme Yiana -destination 'platform=macOS'
 2. Simplicity over feature bloat
 3. Read-only PDF viewing (no annotations)
 4. Mac mini handles heavy processing (OCR)
+
+## SERENA TOOLS USAGE (MANDATORY)
+**ALWAYS use Serena MCP tools for this project:**
+- `mcp__serena__get_symbols_overview` - First look at any code file
+- `mcp__serena__find_symbol` - Find functions/classes
+- `mcp__serena__search_for_pattern` - Search code
+- `mcp__serena__list_dir` - Explore directories
+- `mcp__serena__replace_symbol_body` - Replace entire functions
+- `mcp__serena__insert_before_symbol` / `insert_after_symbol` - Add code
+- `mcp__serena__write_memory` / `read_memory` - Track project state
+- Only use basic Read/Edit for non-code files or tiny edits

@@ -1,0 +1,142 @@
+% Medical Letter Template for C5 Window Envelopes
+% Window position: 45mm x 100mm, 15mm from left, 72mm from top
+\documentclass[a4paper,11pt]{letter}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{datetime2}
+\usepackage{setspace}
+\usepackage{microtype}
+\usepackage{helvet} % Clean, professional font
+
+% Page geometry for A4
+\geometry{
+    a4paper,
+    left=20mm,
+    right=20mm,
+    top=15mm,
+    bottom=20mm
+}
+
+% Use Helvetica as default font (clean, professional)
+\renewcommand{\familydefault}{\sfdefault}
+
+% Disable page numbers
+\pagestyle{empty}
+
+% Custom commands for placeholders
+\newcommand{\patientname}{<PATIENT_NAME>}
+\newcommand{\patientaddressone}{<PATIENT_ADDRESS_1>}
+\newcommand{\patientaddresstwo}{<PATIENT_ADDRESS_2>}
+\newcommand{\patientcity}{<PATIENT_CITY>}
+\newcommand{\patientpostcode}{<PATIENT_POSTCODE>}
+
+\newcommand{\gpname}{<GP_NAME>}
+\newcommand{\practiceaddressone}{<PRACTICE_ADDRESS_1>}
+\newcommand{\practiceaddresstwo}{<PRACTICE_ADDRESS_2>}
+\newcommand{\practicecity}{<PRACTICE_CITY>}
+\newcommand{\practicepostcode}{<PRACTICE_POSTCODE>}
+
+\newcommand{\letterdate}{<LETTER_DATE>}
+\newcommand{\spiremrn}{<SPIRE_MRN>}
+\newcommand{\nhsnumber}{<NHS_NUMBER>}
+\newcommand{\clinicalcontent}{<CLINICAL_CONTENT>}
+\newcommand{\consultantname}{<CONSULTANT_NAME>}
+\newcommand{\consultanttitle}{<CONSULTANT_TITLE>}
+\newcommand{\consultantqualifications}{<CONSULTANT_QUALS>}
+
+\newcommand{\recipienttype}{<RECIPIENT_TYPE>} % PATIENT or GP
+\newcommand{\copylist}{<COPY_LIST>}
+
+\begin{document}
+
+% Sender's details (top right)
+\begin{flushright}
+    \textbf{\consultantname}\\
+    \consultanttitle\\
+    \consultantqualifications\\
+    \vspace{3mm}
+    Spire Healthcare\\
+    Private Consultation\\
+    \vspace{3mm}
+    \letterdate
+\end{flushright}
+
+\vspace{10mm}
+
+% Recipient address box - positioned for C5 window
+% This should appear at 72mm from top, 15mm from left
+\noindent
+\begin{minipage}[t][45mm][t]{100mm}
+    \vspace*{42mm} % Adjust to position at 72mm from top of page
+    \hspace*{-5mm} % Adjust to position at 15mm from left margin
+    \begin{flushleft}
+        \ifx\recipienttype\patienttype
+            % Letter to patient
+            \patientname\\
+            \patientaddressone\\
+            \ifx\patientaddresstwo\empty\else\patientaddresstwo\\\fi
+            \patientcity\\
+            \patientpostcode
+        \else
+            % Letter to GP
+            \gpname\\
+            \practiceaddressone\\
+            \ifx\practiceaddresstwo\empty\else\practiceaddresstwo\\\fi
+            \practicecity\\
+            \practicepostcode
+        \fi
+    \end{flushleft}
+\end{minipage}
+
+\vspace{15mm}
+
+% Re: line with patient details
+\noindent
+\textbf{Re: \patientname}\\
+\ifx\spiremrn\empty\else\textbf{Spire MRN:} \spiremrn\\\fi
+\ifx\nhsnumber\empty\else\textbf{NHS Number:} \nhsnumber\\\fi
+
+\vspace{10mm}
+
+% Salutation
+\noindent
+\ifx\recipienttype\patienttype
+    Dear \patientname,
+\else
+    Dear \gpname,
+\fi
+
+\vspace{5mm}
+
+% Clinical content
+\noindent
+\clinicalcontent
+
+\vspace{10mm}
+
+% Closing
+\noindent
+Yours sincerely,
+
+\vspace{15mm}
+
+\noindent
+\textbf{\consultantname}\\
+\consultanttitle\\
+\consultantqualifications
+
+\vspace{10mm}
+
+% Copy list
+\ifx\copylist\empty
+\else
+    \noindent
+    \textit{Copy to: \copylist}
+\fi
+
+\end{document}

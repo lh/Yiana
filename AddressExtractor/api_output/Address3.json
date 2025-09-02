@@ -1,0 +1,38 @@
+{
+  "document_id": "Address3",
+  "extracted_at": "2025-08-26T15:27:25.218652",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Peter Hitchcock",
+        "date_of_birth": "11/07/1966",
+        "phones": {
+          "home": "01403711898",
+          "work": "01403711898",
+          "mobile": "07768613372"
+        }
+      },
+      "address": {
+        "line_1": "Eastcot,Jolesfield",
+        "line_2": "Partridge Green, Horsham",
+        "city": "Horsham",
+        "county": "West Sussex",
+        "postcode": "RH13 8JT",
+        "postcode_valid": true,
+        "postcode_district": "RH13"
+      },
+      "gp": {
+        "name": "Dr Reade",
+        "practice": "MENFIELD",
+        "address": null,
+        "postcode": null
+      },
+      "extraction": {
+        "method": "spire_form+llm",
+        "confidence": 0.9
+      }
+    }
+  ]
+}

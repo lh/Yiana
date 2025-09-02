@@ -1,0 +1,91 @@
+% Medical Letter Template for C5 Window Envelopes
+% Window position: 45mm x 100mm, 15mm from left, 72mm from top
+\documentclass[a4paper,11pt]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{helvet}
+
+% Page geometry for A4
+\geometry{
+    a4paper,
+    left=20mm,
+    right=20mm,
+    top=15mm,
+    bottom=20mm
+}
+
+% Use Helvetica as default font
+\renewcommand{\familydefault}{\sfdefault}
+
+% Disable page numbers
+\pagestyle{empty}
+
+\begin{document}
+
+% Sender's details (top right)
+\begin{flushright}
+    \textbf{<CONSULTANT_NAME>}\\
+    <CONSULTANT_TITLE>\\
+    <CONSULTANT_QUALS>\\
+    \vspace{3mm}
+    Spire Healthcare\\
+    Private Consultation\\
+    \vspace{3mm}
+    <LETTER_DATE>
+\end{flushright}
+
+\vspace{10mm}
+
+% Recipient address box - positioned for C5 window
+% This should appear at 72mm from top, 15mm from left
+\noindent
+\vspace*{35mm} % Position for window
+\begin{flushleft}
+<RECIPIENT_NAME>\\
+<RECIPIENT_ADDRESS_1>\\
+<RECIPIENT_ADDRESS_2>
+<RECIPIENT_CITY>\\
+<RECIPIENT_POSTCODE>
+\end{flushleft}
+
+\vspace{15mm}
+
+% Re: line with patient details
+\noindent
+\textbf{Re: <PATIENT_NAME>}\\
+\textbf{Spire MRN:} <SPIRE_MRN>\\
+
+\vspace{10mm}
+
+% Salutation
+\noindent
+Dear <SALUTATION>,
+
+\vspace{5mm}
+
+% Clinical content
+\noindent
+<CLINICAL_CONTENT>
+
+\vspace{10mm}
+
+% Closing
+\noindent
+Yours sincerely,
+
+\vspace{15mm}
+
+\noindent
+\textbf{<CONSULTANT_NAME>}\\
+<CONSULTANT_TITLE>\\
+<CONSULTANT_QUALS>
+
+\vspace{10mm}
+
+% Copy list
+<COPY_LIST>
+
+\end{document}
