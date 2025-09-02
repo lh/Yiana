@@ -9,6 +9,7 @@ public class DocumentWatcher {
     private var directoryMonitor: DirectoryMonitor?
     private var processedDocuments = Set<String>()
     private let processedDocumentsFile: URL
+    private let health: HealthMonitor
     
     public init(logger: Logger, customPath: String? = nil) {
         self.logger = logger
@@ -35,6 +36,7 @@ public class DocumentWatcher {
         let ocrDir = appSupport.appendingPathComponent("YianaOCR")
         try? FileManager.default.createDirectory(at: ocrDir, withIntermediateDirectories: true)
         self.processedDocumentsFile = ocrDir.appendingPathComponent("processed.json")
+        self.health = HealthMonitor(logger: logger)
         
         loadProcessedDocuments()
         
@@ -46,6 +48,7 @@ public class DocumentWatcher {
     /// Start watching for documents
     public func start() async {
         logger.info("Starting document watcher")
+        health.touchHeartbeat(note: "start")
         
         // Check if the directory exists
         var isDirectory: ObjCBool = false
@@ -82,6 +85,7 @@ public class DocumentWatcher {
         
         // Initial scan of existing documents
         await scanExistingDocuments()
+        health.touchHeartbeat(note: "initial-scan-complete")
         
         // Set up directory monitoring
         setupDirectoryMonitor()
@@ -96,6 +100,7 @@ public class DocumentWatcher {
     
     private func scanExistingDocuments() async {
         logger.info("Scanning existing documents")
+        health.touchHeartbeat(note: "scan")
         
         do {
             // Use enumerator to recursively find all files
@@ -150,6 +155,7 @@ public class DocumentWatcher {
                 "error": .string(error.localizedDescription),
                 "path": .string(documentsURL.path)
             ])
+            health.recordError("scanExistingDocuments: \(error.localizedDescription)")
         }
     }
     
@@ -267,6 +273,7 @@ public class DocumentWatcher {
                 "file": .string(fileName),
                 "error": .string(error.localizedDescription)
             ])
+            health.recordError("processDocument: \(fileName): \(error.localizedDescription)")
         }
     }
     

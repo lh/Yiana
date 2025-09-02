@@ -27,5 +27,10 @@ let package = Package(
                 .unsafeFlags(["-parse-as-library"])
             ]
         ),
+        .testTarget(
+            name: "YianaOCRServiceTests",
+            dependencies: ["YianaOCRService"],
+            path: "Tests/YianaOCRServiceTests"
+        ),
     ]
 )
