@@ -152,6 +152,9 @@ struct DocumentListView: View {
         .task {
             await viewModel.loadDocuments()
         }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name.yianaDocumentsChanged)) { _ in
+            Task { await viewModel.refresh() }
+        }
         .refreshable {
             await viewModel.refresh()
         }

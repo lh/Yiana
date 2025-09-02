@@ -10,6 +10,7 @@ import UIKit
 
 extension Notification.Name {
     static let yianaOpenURL = Notification.Name("yianaOpenURL")
+    static let yianaDocumentsChanged = Notification.Name("yianaDocumentsChanged")
 }
 
 class AppDelegate: NSObject, UIApplicationDelegate {
@@ -20,4 +21,3 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     }
 }
 #endif
-

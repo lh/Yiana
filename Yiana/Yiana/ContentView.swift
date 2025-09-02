@@ -136,7 +136,11 @@ struct ImportPDFView: View {
                 }
                 // Clean up temp file
                 try? FileManager.default.removeItem(at: pdfURL)
-                await MainActor.run { isPresented = false }
+                await MainActor.run {
+                    // Notify list to refresh and close sheet
+                    NotificationCenter.default.post(name: .yianaDocumentsChanged, object: nil)
+                    isPresented = false
+                }
             } catch {
                 print("Error importing PDF: \(error)")
             }
