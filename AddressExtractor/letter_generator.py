@@ -167,7 +167,12 @@ class LetterGenerator:
             recipient_addr2 = patient.get('address_line_2', '') + '\\\\' if patient.get('address_line_2') else ''
             recipient_city = patient.get('city', '')
             recipient_postcode = patient.get('postcode', '')
-            salutation = patient.get('full_name', '').split()[-1] if patient.get('full_name') else 'Patient'
+            # Use title and surname for proper salutation
+            if patient.get('title') and patient.get('full_name'):
+                surname = patient.get('full_name', '').split()[-1]
+                salutation = f"{patient.get('title')} {surname}"
+            else:
+                salutation = patient.get('full_name', '').split()[-1] if patient.get('full_name') else 'Patient'
         else:  # GP
             if gp_data:
                 recipient_name = gp_data.get('full_name', gp_data.get('name_as_written', ''))
