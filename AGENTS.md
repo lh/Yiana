@@ -12,6 +12,11 @@
 - App tests (CLI):
   - `xcodebuild test -scheme Yiana -destination 'platform=iOS Simulator,name=iPhone 16'`
   - Run one test: `xcodebuild test -scheme Yiana -only-testing:YianaTests/DocumentMetadataTests`
+- Simulator tip: list available devices with `xcrun simctl list devices` and substitute an installed simulator (e.g., `iPhone 15`).
+- CI examples:
+  - iOS build (no simulator): `xcodebuild -scheme Yiana -destination 'generic/platform=iOS' -configuration Release build`
+  - Tests (headless runner): ensure a simulator is available, then `xcodebuild -scheme Yiana -destination 'platform=iOS Simulator,OS=latest,name=iPhone 15' -only-testing:YianaTests test`
+  - macOS build: `xcodebuild -scheme Yiana -destination 'platform=macOS' -configuration Release build`
 - OCR service: `cd YianaOCRService && swift build -c release` then `swift run yiana-ocr --help`.
 - Python tools: `cd AddressExtractor && python test_system.py` (integration test). Install deps: `python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`.
 
@@ -33,4 +38,3 @@
 ## Security & Configuration Tips
 - Do not commit personal signing profiles or secrets. Local SQLite databases (`*.db`) are development artifacts—clean before committing if generated.
 - Keep OCR on server-side; app remains read-only for PDFs.
-
