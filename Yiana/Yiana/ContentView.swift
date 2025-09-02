@@ -75,9 +75,12 @@ struct ImportPDFView: View {
                         } else {
                             Text("Choose an existing document to append")
                                 .font(.headline)
-                            List(availableDocuments, id: \.self, selection: $selectedExistingURL) {
-                                Text($0.deletingPathExtension().lastPathComponent)
-                                    .lineLimit(1)
+                            List(selection: $selectedExistingURL) {
+                                ForEach(availableDocuments, id: \.self) { url in
+                                    Text(url.deletingPathExtension().lastPathComponent)
+                                        .lineLimit(1)
+                                        .tag(url as URL?)
+                                }
                             }
                             .frame(minHeight: 160)
                         }
