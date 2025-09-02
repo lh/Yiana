@@ -30,7 +30,16 @@ struct ImportPDFView: View {
     @Binding var isPresented: Bool
     @State private var documentTitle = ""
     @State private var selectedFolderPath = ""
+    @State private var importMode: ImportTarget = .createNew
+    @State private var selectedExistingURL: URL? = nil
     @State private var isImporting = false
+    @State private var availableDocuments: [URL] = []
+
+    enum ImportTarget: String, CaseIterable, Identifiable {
+        case createNew = "New Document"
+        case appendExisting = "Append to Existing"
+        var id: String { rawValue }
+    }
     
     var body: some View {
         NavigationStack {
@@ -45,16 +54,36 @@ struct ImportPDFView: View {
                                 .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                         )
                     
-                    // Title input
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Document Title")
-                            .font(.headline)
-                        TextField("Enter title", text: $documentTitle)
-                            .textFieldStyle(.roundedBorder)
-                            .onAppear {
-                                // Suggest filename as title
-                                documentTitle = pdfURL.deletingPathExtension().lastPathComponent
+                    // Target and title selection
+                    VStack(alignment: .leading, spacing: 12) {
+                        Picker("Import Target", selection: $importMode) {
+                            ForEach(ImportTarget.allCases) { mode in
+                                Text(mode.rawValue).tag(mode)
                             }
+                        }
+                        .pickerStyle(.segmented)
+
+                        if importMode == .createNew {
+                            Text("Document Title")
+                                .font(.headline)
+                            TextField("Enter title", text: $documentTitle)
+                                .textFieldStyle(.roundedBorder)
+                                .onAppear {
+                                    // Suggest filename as title
+                                    documentTitle = pdfURL.deletingPathExtension().lastPathComponent
+                                }
+                        } else {
+                            Text("Choose an existing document to append")
+                                .font(.headline)
+                            List(selection: $selectedExistingURL) {
+                                ForEach(availableDocuments, id: \.self) { url in
+                                    Text(url.deletingPathExtension().lastPathComponent)
+                                        .lineLimit(1)
+                                        .tag(url as URL?)
+                                }
+                            }
+                            .frame(minHeight: 160)
+                        }
                     }
                     .padding(.horizontal)
                     
@@ -68,6 +97,11 @@ struct ImportPDFView: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
+            .task {
+                // Load available documents for append option
+                let repo = DocumentRepository()
+                availableDocuments = repo.documentURLs()
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -79,56 +113,51 @@ struct ImportPDFView: View {
                     Button("Import") {
                         importPDF()
                     }
-                    .disabled(documentTitle.isEmpty || isImporting)
+                    .disabled(disableImportButton)
                 }
             }
         }
     }
     
     private func importPDF() {
-        guard let pdfURL = pdfURL,
-              let pdfData = try? Data(contentsOf: pdfURL) else { return }
-        
+        guard let pdfURL = pdfURL else { return }
+
         isImporting = true
-        
+
         Task {
-            // Create a new document with the PDF
-            let repository = DocumentRepository()
-            let documentURL = repository.newDocumentURL(title: documentTitle)
-            
-            // Create metadata
-            let metadata = DocumentMetadata(
-                id: UUID(),
-                title: documentTitle,
-                created: Date(),
-                modified: Date(),
-                pageCount: 0, // Could calculate from PDF
-                tags: [],
-                ocrCompleted: false,
-                fullText: nil
-            )
-            
-            // Create document in NoteDocument format
-            let encoder = JSONEncoder()
-            if let metadataData = try? encoder.encode(metadata) {
-                var contents = Data()
-                contents.append(metadataData)
-                contents.append(Data([0xFF, 0xFF, 0xFF, 0xFF])) // Separator
-                contents.append(pdfData)
-                
-                do {
-                    try contents.write(to: documentURL)
-                    
-                    // Clean up temp file
-                    try? FileManager.default.removeItem(at: pdfURL)
-                    
-                    await MainActor.run {
-                        isPresented = false
-                    }
-                } catch {
-                    print("Error saving imported PDF: \(error)")
+            let service = ImportService()
+            do {
+                switch importMode {
+                case .createNew:
+                    _ = try service.importPDF(from: pdfURL, mode: .createNew(title: documentTitle))
+                case .appendExisting:
+                    guard let target = selectedExistingURL else { return }
+                    _ = try service.importPDF(from: pdfURL, mode: .appendToExisting(targetURL: target))
                 }
+                // Clean up temp file
+                try? FileManager.default.removeItem(at: pdfURL)
+                await MainActor.run {
+                    // Notify list to refresh and close sheet
+                    NotificationCenter.default.post(name: .yianaDocumentsChanged, object: nil)
+                    isPresented = false
+                }
+            } catch {
+                print("Error importing PDF: \(error)")
             }
+            isImporting = false
+        }
+    }
+}
+
+// Helpers
+extension ImportPDFView {
+    private var disableImportButton: Bool {
+        if isImporting { return true }
+        switch importMode {
+        case .createNew:
+            return documentTitle.isEmpty
+        case .appendExisting:
+            return selectedExistingURL == nil
         }
     }
 }

@@ -18,6 +18,14 @@ struct DocumentListView: View {
     @State private var searchText = ""
     @State private var isSearching = false
     
+    // Build date string for version display
+    private var buildDateString: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: Date())
+    }
+    
     var body: some View {
         NavigationStack(path: $navigationPath) {
             Group {
@@ -152,6 +160,9 @@ struct DocumentListView: View {
         .task {
             await viewModel.loadDocuments()
         }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name.yianaDocumentsChanged)) { _ in
+            Task { await viewModel.refresh() }
+        }
         .refreshable {
             await viewModel.refresh()
         }
@@ -278,6 +289,26 @@ struct DocumentListView: View {
                         }
                     }
                 }
+            }
+            
+            // Version info section at the bottom
+            Section {
+                HStack {
+                    Spacer()
+                    VStack(spacing: 4) {
+                        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+                           let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
+                            Text("Version \(version) (\(build))")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        Text("Build Date: \(buildDateString)")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                }
+                .listRowBackground(Color.clear)
             }
             }
             #if os(iOS)
