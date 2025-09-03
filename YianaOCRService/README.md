@@ -63,6 +63,23 @@ Common commands:
 
 For production, point `ProgramArguments` to a built binary (`.build/release/yiana-ocr`).
 
+## Health Monitoring
+- Heartbeat and errors are written under `~/Library/Application Support/YianaOCR/health/`:
+  - `heartbeat.json`: updated on start and each scan (contains ISO8601 timestamp)
+  - `last_error.json`: overwritten when a scan/process error occurs
+- Watchdog script: `./scripts/ocr_watchdog.sh [--max-age-seconds 180]`
+  - Alerts (macOS notification + stderr) if heartbeat is stale or an error is present
+  - Example launchd plist snippet to run every 2 minutes:
+```
+<key>StartInterval</key><integer>120</integer>
+<key>ProgramArguments</key>
+<array>
+  <string>/bin/bash</string>
+  <string>-lc</string>
+  <string>$HOME/Code/Yiana/YianaOCRService/scripts/ocr_watchdog.sh --max-age-seconds 300</string>
+  </array>
+```
+
 ## Troubleshooting
 - No documents found: confirm iCloud container exists, or use `--path` to a local mirror.
 - Reprocessing doesn’t happen: delete processed set at `~/Library/Application Support/YianaOCR/processed.json` (it will rebuild).
@@ -72,4 +89,3 @@ For production, point `ProgramArguments` to a built binary (`.build/release/yian
 ## Notes
 - OCR options can be tuned in code (`DocumentWatcher` and `Process` subcommand).
 - Service intentionally rescans every few seconds to catch missed FS events.
-
