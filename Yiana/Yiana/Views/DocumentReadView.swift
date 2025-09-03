@@ -17,6 +17,8 @@ struct DocumentReadView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var showingPageManagement = false
+    @State private var showingInfoPanel = false
+    @State private var document: NoteDocument?
     @State private var initialPageToShow: Int?
     
     init(documentURL: URL, searchResult: SearchResult? = nil) {
@@ -25,7 +27,9 @@ struct DocumentReadView: View {
     }
     
     var body: some View {
-        ZStack {
+        HSplitView {
+            // Main document view
+            ZStack {
             if isLoading {
                 ProgressView("Loading document...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -50,16 +54,28 @@ struct DocumentReadView: View {
                             .padding()
                         Spacer()
                         
-                        // Page management button
-                        if pdfData.count > 0 {
+                        // Control buttons
+                        HStack(spacing: 12) {
+                            // Info panel toggle
                             Button(action: {
-                                showingPageManagement = true
+                                showingInfoPanel.toggle()
                             }) {
-                                Label("Manage Pages", systemImage: "rectangle.stack")
+                                Label("Info", systemImage: showingInfoPanel ? "info.circle.fill" : "info.circle")
                             }
                             .buttonStyle(.borderless)
-                            .padding(.trailing)
+                            .help("Toggle document info panel")
+                            
+                            // Page management button
+                            if pdfData.count > 0 {
+                                Button(action: {
+                                    showingPageManagement = true
+                                }) {
+                                    Label("Manage Pages", systemImage: "rectangle.stack")
+                                }
+                                .buttonStyle(.borderless)
+                            }
                         }
+                        .padding(.trailing)
                     }
                     .background(Color(NSColor.windowBackgroundColor))
                     
@@ -98,6 +114,13 @@ struct DocumentReadView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            }
+            
+            // Info panel (when visible)
+            if showingInfoPanel, let document = document {
+                DocumentInfoPanel(document: document)
+                    .frame(minWidth: 300, maxWidth: 400)
+            }
         }
         .navigationTitle(documentURL.deletingPathExtension().lastPathComponent)
         .task {
@@ -117,31 +140,47 @@ struct DocumentReadView: View {
         errorMessage = nil
         
         do {
-            // Read the document data directly
-            let data = try Data(contentsOf: documentURL)
+            // Create a NoteDocument instance
+            let noteDocument = NoteDocument(fileURL: documentURL)
             
-            // Try to decode as a simple yianazip format
-            // For now, we'll just check if it's PDF data directly
-            if isPDFData(data) {
-                // It's a raw PDF (shouldn't happen with our format)
-                pdfData = data
-                documentTitle = documentURL.deletingPathExtension().lastPathComponent
-            } else if data.isEmpty {
-                // Empty file (created on macOS)
-                pdfData = nil
-                documentTitle = documentURL.deletingPathExtension().lastPathComponent
-            } else {
-                // Try to parse as our document format
-                // For now, we'll assume it's our custom format with metadata
-                if let document = try? extractDocumentData(from: data) {
-                    pdfData = document.pdfData
-                    documentTitle = document.title
-                } else {
-                    throw YianaError.invalidFormat
-                }
-            }
+            // Load the document content
+            try noteDocument.read(from: documentURL)
+            
+            // Store the document and its data
+            self.document = noteDocument
+            self.pdfData = noteDocument.pdfData
+            self.documentTitle = noteDocument.metadata.title
+            
         } catch {
-            errorMessage = error.localizedDescription
+            // If loading as NoteDocument fails, try legacy approach
+            do {
+                let data = try Data(contentsOf: documentURL)
+                
+                if isPDFData(data) {
+                    // It's a raw PDF
+                    pdfData = data
+                    documentTitle = documentURL.deletingPathExtension().lastPathComponent
+                } else if data.isEmpty {
+                    // Empty file
+                    pdfData = nil
+                    documentTitle = documentURL.deletingPathExtension().lastPathComponent
+                } else {
+                    // Try to parse as our document format
+                    if let documentData = try? extractDocumentData(from: data) {
+                        pdfData = documentData.pdfData
+                        documentTitle = documentData.title
+                        
+                        // Create document with extracted metadata
+                        let noteDoc = NoteDocument(fileURL: documentURL)
+                        // Load will have been called during extraction
+                        self.document = noteDoc
+                    } else {
+                        throw YianaError.invalidFormat
+                    }
+                }
+            } catch {
+                errorMessage = error.localizedDescription
+            }
         }
         
         isLoading = false

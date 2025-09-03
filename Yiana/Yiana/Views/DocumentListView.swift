@@ -6,6 +6,14 @@
 //
 
 import SwiftUI
+#if os(macOS)
+import UniformTypeIdentifiers
+
+struct PDFImportData: Identifiable {
+    let id = UUID()
+    let urls: [URL]
+}
+#endif
 
 struct DocumentListView: View {
     @StateObject private var viewModel = DocumentListViewModel()
@@ -17,6 +25,10 @@ struct DocumentListView: View {
     @State private var newFolderName = ""
     @State private var searchText = ""
     @State private var isSearching = false
+    #if os(macOS)
+    @State private var pdfImportData: PDFImportData? = nil
+    @State private var isDraggingPDFs = false
+    #endif
     
     // Build date string for version display
     private var buildDateString: String {
@@ -74,6 +86,13 @@ struct DocumentListView: View {
                         Button(action: { showingFolderAlert = true }) {
                             Label("New Folder", systemImage: "folder.badge.plus")
                         }
+                        #if os(macOS)
+                        Divider()
+                        Button(action: { selectPDFsForImport() }) {
+                            Label("Import PDFs...", systemImage: "square.and.arrow.down.on.square")
+                        }
+                        .keyboardShortcut("I", modifiers: [.command, .shift])
+                        #endif
                     } label: {
                         Label("Add", systemImage: "plus")
                     }
@@ -174,6 +193,43 @@ struct DocumentListView: View {
                 await viewModel.filterDocuments(searchText: newValue)
             }
         }
+        #if os(macOS)
+        .sheet(item: $pdfImportData) { data in
+            BulkImportView(
+                pdfURLs: data.urls,
+                folderPath: viewModel.folderPath.joined(separator: "/"),
+                isPresented: .constant(false),
+                onDismiss: {
+                    pdfImportData = nil
+                }
+            )
+        }
+        .onDrop(of: [.pdf], isTargeted: $isDraggingPDFs) { providers in
+            handleDrop(providers: providers)
+        }
+        .overlay(
+            Group {
+                if isDraggingPDFs {
+                    ZStack {
+                        Color.accentColor.opacity(0.1)
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.accentColor, lineWidth: 3)
+                            .padding(20)
+                        VStack(spacing: 12) {
+                            Image(systemName: "arrow.down.doc.fill")
+                                .font(.system(size: 48))
+                                .foregroundColor(.accentColor)
+                            Text("Drop PDFs to import")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.accentColor)
+                        }
+                    }
+                    .ignoresSafeArea()
+                }
+            }
+        )
+        #endif
     }
     
     private var emptyStateView: some View {
@@ -428,6 +484,71 @@ struct DocumentListView: View {
             }
         }
     }
+    
+    #if os(macOS)
+    private func selectPDFsForImport() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.pdf]
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.message = "Select PDF files to import"
+        panel.prompt = "Import"
+        
+        panel.begin { response in
+            if response == .OK && !panel.urls.isEmpty {
+                print("Selected PDFs: \(panel.urls)")
+                // Create PDFImportData which will trigger the sheet
+                DispatchQueue.main.async {
+                    self.pdfImportData = PDFImportData(urls: panel.urls)
+                }
+            }
+        }
+    }
+    
+    private func handleDrop(providers: [NSItemProvider]) -> Bool {
+        var pdfURLs: [URL] = []
+        let group = DispatchGroup()
+        
+        for provider in providers {
+            if provider.hasItemConformingToTypeIdentifier(UTType.pdf.identifier) {
+                group.enter()
+                provider.loadFileRepresentation(forTypeIdentifier: UTType.pdf.identifier) { url, error in
+                    if let url = url {
+                        // Copy to temporary location since the provided URL is temporary
+                        // Use just the original filename - the temp directory ensures uniqueness
+                        let tempDir = FileManager.default.temporaryDirectory
+                            .appendingPathComponent("YianaPDFImport", isDirectory: true)
+                        
+                        // Create the temp subdirectory if needed
+                        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+                        
+                        // Use timestamp for uniqueness instead of UUID in filename
+                        let timestamp = Int(Date().timeIntervalSince1970 * 1000)
+                        let cleanName = url.lastPathComponent
+                        let destinationURL = tempDir.appendingPathComponent("\(timestamp)_\(cleanName)")
+                        
+                        do {
+                            try FileManager.default.copyItem(at: url, to: destinationURL)
+                            pdfURLs.append(destinationURL)
+                        } catch {
+                            print("Failed to copy dropped file: \(error)")
+                        }
+                    }
+                    group.leave()
+                }
+            }
+        }
+        
+        group.notify(queue: .main) {
+            if !pdfURLs.isEmpty {
+                self.pdfImportData = PDFImportData(urls: pdfURLs)
+            }
+        }
+        
+        return !providers.isEmpty
+    }
+    #endif
 }
 
 // Simple row view for document

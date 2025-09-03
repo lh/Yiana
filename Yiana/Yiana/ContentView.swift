@@ -28,12 +28,14 @@ struct ContentView: View {
 struct ImportPDFView: View {
     let pdfURL: URL?
     @Binding var isPresented: Bool
+    @AppStorage("lastUsedImportFolder") private var lastUsedImportFolder = ""
     @State private var documentTitle = ""
     @State private var selectedFolderPath = ""
     @State private var importMode: ImportTarget = .createNew
     @State private var selectedExistingURL: URL? = nil
     @State private var isImporting = false
     @State private var availableDocuments: [URL] = []
+    @State private var availableFolders: [String] = []
 
     enum ImportTarget: String, CaseIterable, Identifiable {
         case createNew = "New Document"
@@ -72,6 +74,21 @@ struct ImportPDFView: View {
                                     // Suggest filename as title
                                     documentTitle = pdfURL.deletingPathExtension().lastPathComponent
                                 }
+                            
+                            // Folder selection
+                            if !availableFolders.isEmpty {
+                                Text("Folder")
+                                    .font(.headline)
+                                    .padding(.top, 8)
+                                
+                                Picker("Select Folder", selection: $selectedFolderPath) {
+                                    Text("Documents (Root)").tag("")
+                                    ForEach(availableFolders, id: \.self) { folder in
+                                        Text(folder).tag(folder)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                            }
                         } else {
                             Text("Choose an existing document to append")
                                 .font(.headline)
@@ -98,9 +115,21 @@ struct ImportPDFView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .task {
-                // Load available documents for append option
+                // Load available documents and folders
                 let repo = DocumentRepository()
                 availableDocuments = repo.documentURLs()
+                
+                // Get all folders recursively
+                availableFolders = getAllFolderPaths(in: repo.documentsDirectory)
+                
+                // Set the selected folder to last used, if it still exists
+                if !lastUsedImportFolder.isEmpty && 
+                   (lastUsedImportFolder == "" || availableFolders.contains(lastUsedImportFolder)) {
+                    selectedFolderPath = lastUsedImportFolder
+                } else {
+                    // Default to root if last used folder doesn't exist
+                    selectedFolderPath = ""
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -125,11 +154,14 @@ struct ImportPDFView: View {
         isImporting = true
 
         Task {
-            let service = ImportService()
+            // Use the selected folder path for import
+            let service = ImportService(folderPath: selectedFolderPath)
             do {
                 switch importMode {
                 case .createNew:
                     _ = try service.importPDF(from: pdfURL, mode: .createNew(title: documentTitle))
+                    // Save the folder preference for next time
+                    lastUsedImportFolder = selectedFolderPath
                 case .appendExisting:
                     guard let target = selectedExistingURL else { return }
                     _ = try service.importPDF(from: pdfURL, mode: .appendToExisting(targetURL: target))
@@ -159,6 +191,37 @@ extension ImportPDFView {
         case .appendExisting:
             return selectedExistingURL == nil
         }
+    }
+    
+    private func getAllFolderPaths(in directory: URL, relativeTo base: URL? = nil, currentPath: String = "") -> [String] {
+        var folders: [String] = []
+        let fileManager = FileManager.default
+        let baseURL = base ?? directory
+        
+        do {
+            let items = try fileManager.contentsOfDirectory(
+                at: directory,
+                includingPropertiesForKeys: [.isDirectoryKey],
+                options: [.skipsHiddenFiles]
+            )
+            
+            for item in items {
+                let resourceValues = try item.resourceValues(forKeys: [.isDirectoryKey])
+                if resourceValues.isDirectory == true {
+                    let folderName = item.lastPathComponent
+                    let fullPath = currentPath.isEmpty ? folderName : "\(currentPath)/\(folderName)"
+                    folders.append(fullPath)
+                    
+                    // Recursively get subfolders
+                    let subfolders = getAllFolderPaths(in: item, relativeTo: baseURL, currentPath: fullPath)
+                    folders.append(contentsOf: subfolders)
+                }
+            }
+        } catch {
+            print("Error getting folders: \(error)")
+        }
+        
+        return folders.sorted()
     }
 }
 

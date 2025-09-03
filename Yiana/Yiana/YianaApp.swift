@@ -33,6 +33,21 @@ struct YianaApp: App {
         #if os(iOS)
         .handlesExternalEvents(matching: ["*"])
         #endif
+        #if os(macOS) && DEBUG
+        .commands {
+            CommandMenu("Debug") {
+                Button("Create Test Document with OCR") {
+                    TestDataHelper.createTestDocumentWithOCR()
+                }
+                .keyboardShortcut("T", modifiers: [.command, .shift])
+                
+                Button("Create Test Document without OCR") {
+                    TestDataHelper.createTestDocumentWithoutOCR()
+                }
+                .keyboardShortcut("N", modifiers: [.command, .shift])
+            }
+        }
+        #endif
     }
     
     private func handleIncomingURL(_ url: URL) {

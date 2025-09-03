@@ -87,3 +87,91 @@ extension UTType {
     static let yianaDocument = UTType(exportedAs: "com.vitygas.yiana.document")
 }
 #endif
+
+#if os(macOS)
+import AppKit
+import UniformTypeIdentifiers
+
+/// A document containing a PDF and associated metadata (macOS version)
+class NoteDocument: NSDocument {
+    
+    // MARK: - Properties
+    
+    /// The PDF data for the document
+    var pdfData: Data?
+    
+    /// The metadata associated with this document
+    var metadata: DocumentMetadata
+    
+    // MARK: - Initialization
+    
+    override init() {
+        self.metadata = DocumentMetadata(
+            id: UUID(),
+            title: "Untitled",
+            created: Date(),
+            modified: Date(),
+            pageCount: 0,
+            tags: [],
+            ocrCompleted: false,
+            fullText: nil
+        )
+        super.init()
+    }
+    
+    convenience init(fileURL: URL) {
+        self.init()
+        self.fileURL = fileURL
+        self.metadata.title = fileURL.deletingPathExtension().lastPathComponent
+    }
+    
+    // MARK: - NSDocument Overrides
+    
+    override class var autosavesInPlace: Bool {
+        return true
+    }
+    
+    override func makeWindowControllers() {
+        // No window controllers for this document
+    }
+    
+    override func data(ofType typeName: String) throws -> Data {
+        // Create a simple data structure combining metadata and PDF
+        let encoder = JSONEncoder()
+        let metadataData = try encoder.encode(metadata)
+        
+        var contents = Data()
+        contents.append(metadataData)
+        contents.append(Data([0xFF, 0xFF, 0xFF, 0xFF])) // Separator
+        contents.append(pdfData ?? Data())
+        
+        return contents
+    }
+    
+    override func read(from data: Data, ofType typeName: String) throws {
+        // Find the separator
+        let separator = Data([0xFF, 0xFF, 0xFF, 0xFF])
+        guard let separatorRange = data.range(of: separator) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        
+        // Extract metadata and PDF data
+        let metadataData = data.subdata(in: 0..<separatorRange.lowerBound)
+        let pdfDataStart = separatorRange.upperBound
+        
+        let decoder = JSONDecoder()
+        self.metadata = try decoder.decode(DocumentMetadata.self, from: metadataData)
+        
+        if pdfDataStart < data.count {
+            self.pdfData = data.subdata(in: pdfDataStart..<data.count)
+        } else {
+            self.pdfData = nil
+        }
+    }
+    
+    func read(from url: URL) throws {
+        let data = try Data(contentsOf: url)
+        try read(from: data, ofType: "yianaDocument")
+    }
+}
+#endif

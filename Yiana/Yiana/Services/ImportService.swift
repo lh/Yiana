@@ -28,6 +28,11 @@ enum ImportError: Error {
 /// - Appends PDF pages to an existing .yianazip
 class ImportService {
     private let separator = Data([0xFF, 0xFF, 0xFF, 0xFF])
+    private let folderPath: String
+    
+    init(folderPath: String = "") {
+        self.folderPath = folderPath
+    }
 
     func importPDF(from pdfURL: URL, mode: ImportMode) throws -> ImportResult {
         guard let importedData = try? Data(contentsOf: pdfURL),
@@ -47,6 +52,14 @@ class ImportService {
 
     private func createNewDocument(from pdfData: Data, title: String) throws -> ImportResult {
         let repository = DocumentRepository()
+        // Set the folder path if provided
+        if !folderPath.isEmpty {
+            // Navigate to the correct folder
+            let components = folderPath.components(separatedBy: "/").filter { !$0.isEmpty }
+            for component in components {
+                repository.navigateToFolder(component)
+            }
+        }
         let targetURL = repository.newDocumentURL(title: title)
 
         let pageCount = PDFDocument(data: pdfData)?.pageCount ?? 0
