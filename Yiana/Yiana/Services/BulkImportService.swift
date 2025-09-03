@@ -178,10 +178,8 @@ class BulkImportService: ObservableObject {
                 )
             }
             
-            // Replace underscores and hyphens with spaces
-            title = title
-                .replacingOccurrences(of: "_", with: " ")
-                .replacingOccurrences(of: "-", with: " ")
+            // Don't mess with underscores and hyphens - keep them as-is!
+            // Users want their filenames preserved exactly
             
             // Remove date patterns like 2024-01-15 or 20240115
             let datePatterns = [
@@ -205,12 +203,8 @@ class BulkImportService: ObservableObject {
             // Clean up multiple spaces
             title = title.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
             
-            // Capitalize appropriately
-            title = title
-                .split(separator: " ")
-                .map { $0.capitalized }
-                .joined(separator: " ")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+            // Just trim whitespace - don't mess with capitalization either!
+            title = title.trimmingCharacters(in: .whitespacesAndNewlines)
             
             return title.isEmpty ? filename : title
         }
