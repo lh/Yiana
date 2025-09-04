@@ -24,8 +24,11 @@ struct DocumentEditView: View {
     @State private var showTitleField = false
     @State private var navigateToPage: Int? = nil
     @State private var currentViewedPage: Int = 0
+    @State private var showingShareSheet = false
+    @State private var exportedPDFURL: URL?
     
     private let scanningService = ScanningService()
+    private let exportService = ExportService()
     
     var body: some View {
         Group {
@@ -51,6 +54,16 @@ struct DocumentEditView: View {
         }
         .documentScanner(isPresented: $showingScanner) { scannedImages in
             handleScannedImages(scannedImages)
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            if let url = exportedPDFURL {
+                ShareSheet(items: [url])
+                    .onDisappear {
+                        // Clean up temporary file
+                        try? FileManager.default.removeItem(at: url)
+                        exportedPDFURL = nil
+                    }
+            }
         }
         .sheet(isPresented: $showingPageManagement) {
             if let viewModel = viewModel {
@@ -176,6 +189,20 @@ struct DocumentEditView: View {
                             }
                         
                         Spacer()
+                        
+                        // Export button
+                        if viewModel.pdfData != nil {
+                            Button(action: {
+                                exportPDF()
+                            }) {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.title3)
+                                    .foregroundColor(.accentColor)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .padding(.trailing, 8)
+                        }
                     }
                     .frame(height: 44)
                     .padding(.horizontal, 8)
@@ -300,6 +327,35 @@ struct DocumentEditView: View {
             
             isProcessingScans = false
         }
+    }
+    
+    private func exportPDF() {
+        do {
+            // Create a temporary PDF file
+            let tempURL = try exportService.createTemporaryPDF(from: documentURL)
+            exportedPDFURL = tempURL
+            showingShareSheet = true
+        } catch {
+            // Handle error (could show an alert)
+            print("Export failed: \(error)")
+        }
+    }
+}
+
+// ShareSheet for iOS
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(
+            activityItems: items,
+            applicationActivities: nil
+        )
+        return controller
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
+        // Nothing to update
     }
 }
 

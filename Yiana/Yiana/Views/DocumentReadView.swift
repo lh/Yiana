@@ -20,6 +20,8 @@ struct DocumentReadView: View {
     @State private var showingInfoPanel = false
     @State private var document: NoteDocument?
     @State private var initialPageToShow: Int?
+    @State private var showingExportError = false
+    @State private var exportErrorMessage = ""
     
     init(documentURL: URL, searchResult: SearchResult? = nil) {
         self.documentURL = documentURL
@@ -56,6 +58,15 @@ struct DocumentReadView: View {
                         
                         // Control buttons
                         HStack(spacing: 12) {
+                            // Export button
+                            Button(action: {
+                                exportPDF()
+                            }) {
+                                Label("Export PDF", systemImage: "square.and.arrow.up")
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Export as PDF")
+                            
                             // Info panel toggle
                             Button(action: {
                                 showingInfoPanel.toggle()
@@ -133,6 +144,11 @@ struct DocumentReadView: View {
                 currentPageIndex: 0  // macOS version doesn't track current page yet
             )
         }
+        .alert("Export Error", isPresented: $showingExportError) {
+            Button("OK") { }
+        } message: {
+            Text(exportErrorMessage)
+        }
     }
     
     private func loadDocument() async {
@@ -193,6 +209,31 @@ struct DocumentReadView: View {
             return string == pdfHeader
         }
         return false
+    }
+    
+    private func exportPDF() {
+        let exportService = ExportService()
+        
+        // Create save panel
+        let savePanel = NSSavePanel()
+        savePanel.allowedContentTypes = [.pdf]
+        savePanel.nameFieldStringValue = exportService.suggestedFileName(for: documentURL)
+        savePanel.title = "Export PDF"
+        savePanel.message = "Choose where to save the exported PDF"
+        
+        savePanel.begin { response in
+            if response == .OK, let destinationURL = savePanel.url {
+                do {
+                    try exportService.exportToPDF(from: documentURL, to: destinationURL)
+                    // Optionally show success feedback
+                    NSWorkspace.shared.selectFile(destinationURL.path, inFileViewerRootedAtPath: destinationURL.deletingLastPathComponent().path)
+                } catch {
+                    // Show error
+                    exportErrorMessage = error.localizedDescription
+                    showingExportError = true
+                }
+            }
+        }
     }
     
     private func extractDocumentData(from data: Data) throws -> (title: String, pdfData: Data?) {
