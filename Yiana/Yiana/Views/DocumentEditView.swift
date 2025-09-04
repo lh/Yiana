@@ -9,6 +9,18 @@ import SwiftUI
 import PDFKit
 
 #if os(iOS)
+enum ActiveSheet: Identifiable {
+    case share(URL)
+    case pageManagement
+    
+    var id: String {
+        switch self {
+        case .share: return "share"
+        case .pageManagement: return "pageManagement"
+        }
+    }
+}
+
 struct DocumentEditView: View {
     let documentURL: URL
     @State private var document: NoteDocument?
@@ -19,13 +31,12 @@ struct DocumentEditView: View {
     @FocusState private var titleFieldFocused: Bool
     @State private var showingScanner = false
     @State private var isProcessingScans = false
-    @State private var showingPageManagement = false
     @State private var scanColorMode: ScanColorMode = .color
     @State private var showTitleField = false
     @State private var navigateToPage: Int? = nil
     @State private var currentViewedPage: Int = 0
-    @State private var showingShareSheet = false
     @State private var exportedPDFURL: URL?
+    @State private var activeSheet: ActiveSheet?
     
     private let scanningService = ScanningService()
     private let exportService = ExportService()
@@ -55,32 +66,34 @@ struct DocumentEditView: View {
         .documentScanner(isPresented: $showingScanner) { scannedImages in
             handleScannedImages(scannedImages)
         }
-        .sheet(isPresented: $showingShareSheet) {
-            if let url = exportedPDFURL {
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .share(let url):
                 ShareSheet(items: [url])
                     .onDisappear {
                         // Clean up temporary file
                         try? FileManager.default.removeItem(at: url)
                         exportedPDFURL = nil
+                        activeSheet = nil
                     }
-            }
-        }
-        .sheet(isPresented: $showingPageManagement) {
-            if let viewModel = viewModel {
-                PageManagementView(
-                    pdfData: Binding(
-                        get: { viewModel.pdfData },
-                        set: { 
-                            viewModel.pdfData = $0
-                            viewModel.hasChanges = true
+            case .pageManagement:
+                if let viewModel = viewModel {
+                        PageManagementView(
+                        pdfData: Binding(
+                            get: { viewModel.pdfData },
+                            set: { 
+                                viewModel.pdfData = $0
+                                viewModel.hasChanges = true
+                            }
+                        ),
+                        isPresented: .constant(true),
+                        currentPageIndex: currentViewedPage,
+                        onPageSelected: { pageIndex in
+                            navigateToPage = pageIndex
+                            activeSheet = nil
                         }
-                    ),
-                    isPresented: $showingPageManagement,
-                    currentPageIndex: currentViewedPage,
-                    onPageSelected: { pageIndex in
-                        navigateToPage = pageIndex
-                    }
-                )
+                    )
+                }
             }
         }
     }
@@ -109,7 +122,7 @@ struct DocumentEditView: View {
                         // Page management button
                         if pdfData.count > 0 {
                             Button(action: {
-                                showingPageManagement = true
+                                activeSheet = .pageManagement
                             }) {
                                 Label("Pages", systemImage: "rectangle.stack")
                                     .font(.title3)
@@ -331,21 +344,33 @@ struct DocumentEditView: View {
     
     private func exportPDF() {
         guard let viewModel = viewModel, let pdfData = viewModel.pdfData else {
-            print("No PDF data to export")
+            print("DEBUG Export: No PDF data to export")
             return
         }
+        
+        print("DEBUG Export: PDF data size: \(pdfData.count) bytes")
         
         // Create a temporary file with the PDF data
         let tempDir = FileManager.default.temporaryDirectory
         let fileName = "\(viewModel.title.isEmpty ? "Document" : viewModel.title).pdf"
         let tempURL = tempDir.appendingPathComponent(fileName)
         
+        print("DEBUG Export: Creating temp file at: \(tempURL.path)")
+        
         do {
             try pdfData.write(to: tempURL)
-            exportedPDFURL = tempURL
-            showingShareSheet = true
+            print("DEBUG Export: Successfully wrote PDF to temp file")
+            
+            // Verify file exists
+            if FileManager.default.fileExists(atPath: tempURL.path) {
+                print("DEBUG Export: File exists, size: \(try FileManager.default.attributesOfItem(atPath: tempURL.path)[.size] ?? 0)")
+                exportedPDFURL = tempURL
+                activeSheet = .share(tempURL)
+            } else {
+                print("DEBUG Export: ERROR - File doesn't exist after writing!")
+            }
         } catch {
-            print("Export failed: \(error)")
+            print("DEBUG Export: Failed to write PDF - \(error)")
         }
     }
 }
@@ -355,10 +380,20 @@ struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
     
     func makeUIViewController(context: Context) -> UIActivityViewController {
+        print("DEBUG ShareSheet: Creating with \(items.count) items")
+        for (index, item) in items.enumerated() {
+            print("DEBUG ShareSheet: Item \(index): \(type(of: item)) - \(item)")
+            if let url = item as? URL {
+                print("DEBUG ShareSheet: URL path: \(url.path)")
+                print("DEBUG ShareSheet: File exists: \(FileManager.default.fileExists(atPath: url.path))")
+            }
+        }
+        
         let controller = UIActivityViewController(
             activityItems: items,
             applicationActivities: nil
         )
+        controller.excludedActivityTypes = [.addToReadingList, .assignToContact]
         return controller
     }
     
