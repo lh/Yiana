@@ -330,13 +330,21 @@ struct DocumentEditView: View {
     }
     
     private func exportPDF() {
+        guard let viewModel = viewModel, let pdfData = viewModel.pdfData else {
+            print("No PDF data to export")
+            return
+        }
+        
+        // Create a temporary file with the PDF data
+        let tempDir = FileManager.default.temporaryDirectory
+        let fileName = "\(viewModel.title.isEmpty ? "Document" : viewModel.title).pdf"
+        let tempURL = tempDir.appendingPathComponent(fileName)
+        
         do {
-            // Create a temporary PDF file
-            let tempURL = try exportService.createTemporaryPDF(from: documentURL)
+            try pdfData.write(to: tempURL)
             exportedPDFURL = tempURL
             showingShareSheet = true
         } catch {
-            // Handle error (could show an alert)
             print("Export failed: \(error)")
         }
     }
