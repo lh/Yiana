@@ -414,7 +414,11 @@ struct DocumentEditView: View {
                 self.proceedWithQLMarkup(pdfData: pdfData)
             })
             alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-            present(alert, animated: true)
+            
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let rootVC = windowScene.windows.first?.rootViewController {
+                rootVC.present(alert, animated: true)
+            }
         } else {
             proceedWithQLMarkup(pdfData: pdfData)
         }
@@ -447,17 +451,20 @@ struct DocumentEditView: View {
         // New PDFKit implementation (reliable)
         print("DEBUG Markup: Using PDFKit implementation for page \(currentViewedPage + 1)")
         
-        // Present PDFMarkupViewController
+        // Present PDFMarkupViewController via UIKit
         let markupVC = PDFMarkupViewController(
             pdfData: pdfData,
             pageIndex: currentViewedPage
-        ) { [weak self] result in
+        ) { result in
             Task { @MainActor in
-                await self?.handleMarkupResult(result)
+                await handleMarkupResult(result)
             }
         }
         
-        present(markupVC, animated: true)
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootVC = windowScene.windows.first?.rootViewController {
+            rootVC.present(markupVC, animated: true)
+        }
     }
     
     private func handleMarkupResult(_ result: Result<Data, Error>) async {

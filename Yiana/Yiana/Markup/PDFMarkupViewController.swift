@@ -360,13 +360,153 @@ class PDFMarkupViewController: UIViewController {
     // MARK: - Gesture Handlers
     
     @objc private func handleDrawing(_ gesture: UIPanGestureRecognizer) {
-        // Will be implemented in next step
-        print("DEBUG PDFMarkup: Drawing gesture - tool: \(currentTool)")
+        guard let page = pdfView.currentPage else { return }
+        
+        let locationInView = gesture.location(in: pdfView)
+        let locationOnPage = pdfView.convert(locationInView, to: page)
+        
+        switch currentTool {
+        case .pen:
+            handlePenDrawing(gesture: gesture, at: locationOnPage, on: page)
+        case .eraser:
+            handleEraser(at: locationOnPage, on: page)
+        default:
+            break
+        }
+    }
+    
+    private func handlePenDrawing(gesture: UIPanGestureRecognizer, at point: CGPoint, on page: PDFPage) {
+        switch gesture.state {
+        case .began:
+            // Start a new ink annotation
+            let bounds = CGRect(x: point.x - 1, y: point.y - 1, width: 2, height: 2)
+            let inkAnnotation = PDFAnnotation(bounds: bounds, forType: .ink, withProperties: nil)
+            inkAnnotation.color = currentColor.uiColor
+            
+            // Initialize the path
+            inkPath = UIBezierPath()
+            inkPath?.move(to: point)
+            
+            // Create the ink paths array for PDFAnnotation
+            let path = UIBezierPath()
+            path.move(to: point)
+            inkAnnotation.add(path)
+            
+            page.addAnnotation(inkAnnotation)
+            currentInkAnnotation = inkAnnotation
+            addedAnnotations.append(inkAnnotation)
+            
+            print("DEBUG PDFMarkup: Started ink annotation at \(point)")
+            
+        case .changed:
+            guard let annotation = currentInkAnnotation else { return }
+            
+            // For ink annotations, we need to recreate the path
+            inkPath?.addLine(to: point)
+            
+            // Remove old annotation and add updated one
+            page.removeAnnotation(annotation)
+            
+            // Calculate new bounds
+            var bounds = annotation.bounds
+            bounds = bounds.union(CGRect(x: point.x - 1, y: point.y - 1, width: 2, height: 2))
+            
+            // Create new annotation with updated path
+            let newAnnotation = PDFAnnotation(bounds: bounds, forType: .ink, withProperties: nil)
+            newAnnotation.color = currentColor.uiColor
+            if let path = inkPath {
+                newAnnotation.add(path)
+            }
+            
+            page.addAnnotation(newAnnotation)
+            currentInkAnnotation = newAnnotation
+            
+            // Update our tracking
+            if let index = addedAnnotations.firstIndex(of: annotation) {
+                addedAnnotations[index] = newAnnotation
+            }
+            
+            // Force redraw
+            pdfView.setNeedsDisplay()
+            
+        case .ended, .cancelled:
+            currentInkAnnotation = nil
+            inkPath = nil
+            print("DEBUG PDFMarkup: Ended ink annotation")
+            
+        default:
+            break
+        }
+    }
+    
+    private func handleEraser(at point: CGPoint, on page: PDFPage) {
+        // Find annotation at point and remove it
+        for annotation in page.annotations {
+            if annotation.bounds.contains(point) {
+                page.removeAnnotation(annotation)
+                if let index = addedAnnotations.firstIndex(of: annotation) {
+                    addedAnnotations.remove(at: index)
+                }
+                pdfView.setNeedsDisplay()
+                print("DEBUG PDFMarkup: Erased annotation at \(point)")
+                break
+            }
+        }
     }
     
     @objc private func handleTextPlacement(_ gesture: UITapGestureRecognizer) {
-        // Will be implemented in next step
-        print("DEBUG PDFMarkup: Text placement at \(gesture.location(in: pdfView))")
+        guard let page = pdfView.currentPage else { return }
+        
+        let locationInView = gesture.location(in: pdfView)
+        let locationOnPage = pdfView.convert(locationInView, to: page)
+        
+        // Create text input field
+        let textField = UITextField()
+        textField.borderStyle = .roundedRect
+        textField.backgroundColor = .systemBackground
+        textField.placeholder = "Enter text"
+        textField.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Add to view at tap location
+        view.addSubview(textField)
+        NSLayoutConstraint.activate([
+            textField.centerXAnchor.constraint(equalTo: view.leadingAnchor, constant: locationInView.x),
+            textField.centerYAnchor.constraint(equalTo: view.topAnchor, constant: locationInView.y),
+            textField.widthAnchor.constraint(equalToConstant: 200)
+        ])
+        
+        // Become first responder
+        textField.becomeFirstResponder()
+        
+        // Handle text completion
+        textField.addAction(UIAction { [weak self, weak textField] _ in
+            guard let self = self,
+                  let text = textField?.text,
+                  !text.isEmpty else {
+                textField?.removeFromSuperview()
+                return
+            }
+            
+            // Create text annotation
+            let textBounds = CGRect(x: locationOnPage.x, y: locationOnPage.y - 20, width: 200, height: 40)
+            let textAnnotation = PDFAnnotation(bounds: textBounds, forType: .freeText, withProperties: nil)
+            textAnnotation.contents = text
+            textAnnotation.font = UIFont.systemFont(ofSize: 16)
+            textAnnotation.fontColor = self.currentColor.uiColor
+            textAnnotation.color = UIColor.clear // Background color
+            
+            page.addAnnotation(textAnnotation)
+            self.addedAnnotations.append(textAnnotation)
+            
+            // Remove text field
+            textField?.removeFromSuperview()
+            
+            // Force redraw
+            self.pdfView.setNeedsDisplay()
+            
+            print("DEBUG PDFMarkup: Added text annotation: \(text)")
+            
+        }, for: .editingDidEndOnExit)
     }
     
     // MARK: - Annotation Flattening
@@ -374,9 +514,43 @@ class PDFMarkupViewController: UIViewController {
     private func flattenAnnotations() -> Data? {
         print("DEBUG PDFMarkup: Flattening \(addedAnnotations.count) annotations")
         
-        // For now, just return the original document with annotations
-        // Proper flattening will be implemented next
-        return pdfDocument.dataRepresentation()
+        guard let page = pdfDocument.page(at: pageIndex) else {
+            print("DEBUG PDFMarkup: Failed to get page at index \(pageIndex)")
+            return nil
+        }
+        
+        // Get the page bounds
+        let pageBounds = page.bounds(for: .mediaBox)
+        
+        // Create a new PDF with the flattened content
+        let pdfRenderer = UIGraphicsPDFRenderer(bounds: pageBounds)
+        
+        let flattenedPageData = pdfRenderer.pdfData { context in
+            context.beginPage()
+            
+            // Draw the original page with annotations
+            // This automatically includes all annotations as they're part of the page
+            UIGraphicsPushContext(context.cgContext)
+            page.draw(with: .mediaBox, to: context.cgContext)
+            UIGraphicsPopContext()
+        }
+        
+        // Create a new PDF document from the flattened page
+        guard let flattenedPageDoc = PDFDocument(data: flattenedPageData),
+              let flattenedPage = flattenedPageDoc.page(at: 0) else {
+            print("DEBUG PDFMarkup: Failed to create flattened page")
+            return nil
+        }
+        
+        // Replace the page in the original document
+        pdfDocument.removePage(at: pageIndex)
+        pdfDocument.insert(flattenedPage, at: pageIndex)
+        
+        // Return the complete document
+        let finalData = pdfDocument.dataRepresentation()
+        print("DEBUG PDFMarkup: Successfully flattened page \(pageIndex + 1)")
+        
+        return finalData
     }
 }
 
