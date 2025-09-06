@@ -268,6 +268,15 @@ struct DocumentListView: View {
             }
             
             List {
+                #if os(iOS)
+                #if DEBUG
+                // Temporary runtime switch for markup engine (iOS only)
+                Section("Markup Engine (temporary)") {
+                    MarkupEnginePicker()
+                }
+                #endif
+                #endif
+
                 // Folders section
                 if !viewModel.folderURLs.isEmpty {
                 Section("Folders") {

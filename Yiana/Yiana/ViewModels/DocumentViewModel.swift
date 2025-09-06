@@ -54,7 +54,13 @@ class DocumentViewModel: ObservableObject {
     }
     
     func save() async -> Bool {
-        guard hasChanges else { return true }
+        guard hasChanges else { 
+            print("DEBUG DocumentViewModel: No changes to save")
+            return true 
+        }
+        
+        print("DEBUG DocumentViewModel: Starting save...")
+        print("DEBUG DocumentViewModel: PDF data size: \(pdfData?.count ?? 0) bytes")
         
         isSaving = true
         errorMessage = nil
@@ -67,10 +73,13 @@ class DocumentViewModel: ObservableObject {
         if let pdfData = pdfData,
            let pdfDocument = PDFDocument(data: pdfData) {
             document.metadata.pageCount = pdfDocument.pageCount
+            print("DEBUG DocumentViewModel: Updated page count to \(pdfDocument.pageCount)")
         }
         
         // Update document's PDF data
         document.pdfData = pdfData
+        
+        print("DEBUG DocumentViewModel: Saving to \(document.fileURL.path)")
         
         // Save
         return await withCheckedContinuation { continuation in
@@ -79,8 +88,10 @@ class DocumentViewModel: ObservableObject {
                     self.isSaving = false
                     if success {
                         self.hasChanges = false
+                        print("DEBUG DocumentViewModel: Save successful!")
                     } else {
                         self.errorMessage = "Failed to save document"
+                        print("DEBUG DocumentViewModel: Save failed!")
                     }
                     continuation.resume(returning: success)
                 }

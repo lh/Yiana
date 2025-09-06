@@ -148,11 +148,22 @@ class PDFMarkupViewController: UIViewController {
         pdfView.displayMode = .singlePage
         pdfView.autoScales = true
         pdfView.backgroundColor = .systemGray6
+        pdfView.displayDirection = .vertical
+        pdfView.usePageViewController(false)
         
-        // Display the single page
+        // Create a new document with just the single page
+        // Important: We need to copy the page, not just insert the reference
         let singlePageDocument = PDFDocument()
-        singlePageDocument.insert(currentPage, at: 0)
-        pdfView.document = singlePageDocument
+        if let pageCopy = currentPage.copy() as? PDFPage {
+            singlePageDocument.insert(pageCopy, at: 0)
+            pdfView.document = singlePageDocument
+            
+            // Go to the page to ensure it's displayed
+            pdfView.go(to: pageCopy)
+        } else {
+            singlePageDocument.insert(currentPage, at: 0)
+            pdfView.document = singlePageDocument
+        }
         
         view.addSubview(pdfView)
         
@@ -163,6 +174,11 @@ class PDFMarkupViewController: UIViewController {
             pdfView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             pdfView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -44)
         ])
+        
+        // Ensure the page is visible and scaled to fit
+        DispatchQueue.main.async { [weak self] in
+            self?.pdfView.scaleFactor = self?.pdfView.scaleFactorForSizeToFit ?? 1.0
+        }
     }
     
     private func setupToolbar() {
@@ -237,6 +253,8 @@ class PDFMarkupViewController: UIViewController {
         // Drawing gesture
         drawingGestureRecognizer = UIPanGestureRecognizer(target: self, action: #selector(handleDrawing(_:)))
         drawingGestureRecognizer.delegate = self
+        drawingGestureRecognizer.minimumNumberOfTouches = 1
+        drawingGestureRecognizer.maximumNumberOfTouches = 1
         
         // Text placement gesture
         textGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTextPlacement(_:)))
@@ -246,8 +264,17 @@ class PDFMarkupViewController: UIViewController {
     }
     
     private func updateGestureRecognizers() {
-        // Remove all gesture recognizers
-        pdfView.gestureRecognizers?.forEach { pdfView.removeGestureRecognizer($0) }
+        // Remove our gesture recognizers if they're added
+        if drawingGestureRecognizer.view != nil {
+            pdfView.removeGestureRecognizer(drawingGestureRecognizer)
+        }
+        if textGestureRecognizer.view != nil {
+            pdfView.removeGestureRecognizer(textGestureRecognizer)
+        }
+        
+        // Disable PDFView's built-in interactions during markup
+        pdfView.isUserInteractionEnabled = true
+        pdfView.autoScales = false  // Prevent auto-scaling during markup
         
         // Add appropriate recognizer based on current tool
         switch currentTool {
@@ -378,6 +405,8 @@ class PDFMarkupViewController: UIViewController {
     private func handlePenDrawing(gesture: UIPanGestureRecognizer, at point: CGPoint, on page: PDFPage) {
         switch gesture.state {
         case .began:
+            print("DEBUG PDFMarkup: Started ink annotation at \(point)")
+            
             // Initialize the path
             inkPath = UIBezierPath()
             inkPath?.lineWidth = 2.0
@@ -385,46 +414,83 @@ class PDFMarkupViewController: UIViewController {
             inkPath?.lineJoinStyle = .round
             inkPath?.move(to: point)
             
-            // Start with a reasonable bounds
-            let bounds = CGRect(x: point.x - 50, y: point.y - 50, width: 100, height: 100)
-            let inkAnnotation = PDFAnnotation(bounds: bounds, forType: .ink, withProperties: nil)
-            inkAnnotation.color = currentColor.uiColor.withAlphaComponent(0.8)
+            // Create ink annotation with initial point
+            let initialBounds = CGRect(x: point.x - 1, y: point.y - 1, width: 2, height: 2)
+            let inkAnnotation = PDFAnnotation(bounds: initialBounds, forType: .ink, withProperties: nil)
+            inkAnnotation.color = currentColor.uiColor
+            
+            // Add the initial path
+            if let path = inkPath {
+                inkAnnotation.add(path)
+            }
             
             page.addAnnotation(inkAnnotation)
             currentInkAnnotation = inkAnnotation
             addedAnnotations.append(inkAnnotation)
             
-            print("DEBUG PDFMarkup: Started ink annotation at \(point)")
+            // Force immediate display update
+            pdfView.setNeedsDisplay()
+            pdfView.layoutDocumentView()
             
         case .changed:
             guard let annotation = currentInkAnnotation,
-                  let path = inkPath else { return }
+                  let path = inkPath else { 
+                print("DEBUG PDFMarkup: No current annotation or path in .changed")
+                return 
+            }
             
             // Add to path
             path.addLine(to: point)
             
-            // Calculate bounds that encompass entire path
+            // Calculate bounds that encompass entire path with padding
             let pathBounds = path.bounds
-            let expandedBounds = pathBounds.insetBy(dx: -10, dy: -10)
+            let expandedBounds = pathBounds.insetBy(dx: -20, dy: -20)
             
-            // Update annotation
+            // Remove old annotation
             page.removeAnnotation(annotation)
-            annotation.bounds = expandedBounds
             
-            // Create the paths array in the format PDFKit expects
-            let bezierPath = UIBezierPath()
-            bezierPath.cgPath = path.cgPath
-            annotation.add(bezierPath)
+            // Create new annotation with updated path
+            let newAnnotation = PDFAnnotation(bounds: expandedBounds, forType: .ink, withProperties: nil)
+            newAnnotation.color = currentColor.uiColor
             
-            page.addAnnotation(annotation)
+            // Add the complete path to the new annotation
+            newAnnotation.add(path)
             
-            // Force redraw
+            // Add new annotation
+            page.addAnnotation(newAnnotation)
+            
+            // Update reference
+            currentInkAnnotation = newAnnotation
+            
+            // Update the array reference
+            if let index = addedAnnotations.firstIndex(of: annotation) {
+                addedAnnotations[index] = newAnnotation
+            }
+            
+            // Force redraw with multiple methods
             pdfView.setNeedsDisplay()
+            pdfView.layoutDocumentView()
+            
+            // Additional force refresh for the specific page
+            if let currentPage = pdfView.currentPage {
+                pdfView.go(to: currentPage)
+            }
             
         case .ended, .cancelled:
+            print("DEBUG PDFMarkup: Ended ink annotation")
+            
+            // Final update to ensure annotation is properly set
+            if let annotation = currentInkAnnotation {
+                // Force one more display update
+                pdfView.setNeedsDisplay()
+                pdfView.layoutDocumentView()
+                
+                print("DEBUG PDFMarkup: Final annotation bounds: \(annotation.bounds)")
+                print("DEBUG PDFMarkup: Total annotations on page: \(page.annotations.count)")
+            }
+            
             currentInkAnnotation = nil
             inkPath = nil
-            print("DEBUG PDFMarkup: Ended ink annotation")
             
         default:
             break
@@ -547,8 +613,30 @@ class PDFMarkupViewController: UIViewController {
 
 extension PDFMarkupViewController: UIGestureRecognizerDelegate {
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-        // Allow our gestures to work with PDFView's built-in gestures
+        // Allow our drawing gestures to work alongside PDFView's gestures
+        if gestureRecognizer == drawingGestureRecognizer || gestureRecognizer == textGestureRecognizer {
+            // But not with other pan or tap gestures to avoid conflicts
+            if otherGestureRecognizer is UIPanGestureRecognizer || otherGestureRecognizer is UITapGestureRecognizer {
+                return false
+            }
+            return true
+        }
         return false
+    }
+    
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRequireFailureOf otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        // Our gestures should take priority over PDFView's pan/tap gestures
+        if (gestureRecognizer == drawingGestureRecognizer || gestureRecognizer == textGestureRecognizer) {
+            if otherGestureRecognizer is UIPanGestureRecognizer || otherGestureRecognizer is UITapGestureRecognizer {
+                return false
+            }
+        }
+        return false
+    }
+    
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        // Always allow our gestures to begin
+        return true
     }
 }
 

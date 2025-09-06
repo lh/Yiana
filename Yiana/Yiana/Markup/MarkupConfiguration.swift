@@ -22,15 +22,32 @@ struct MarkupConfiguration {
         case pencilKit
     }
     
-    /// Current active implementation
-    /// Change this to switch between implementations
-    #if DEBUG
-    // In debug builds, make it easy to test different implementations
-    static let activeImplementation: MarkupImplementation = .pdfKit
-    #else
-    // In release builds, use the reliable implementation
-    static let activeImplementation: MarkupImplementation = .pdfKit
-    #endif
+    /// Storage key for runtime selection
+    private static let implKey = "yiana.markupEngine"
+
+    /// Current active implementation (backed by UserDefaults for runtime switching)
+    static var activeImplementation: MarkupImplementation {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: implKey) else {
+                return .pdfKit
+            }
+            switch raw {
+            case "ql": return .qlPreviewController
+            case "pencil": return .pencilKit
+            case "pdfkit": fallthrough
+            default: return .pdfKit
+            }
+        }
+        set {
+            let raw: String
+            switch newValue {
+            case .qlPreviewController: raw = "ql"
+            case .pencilKit: raw = "pencil"
+            case .pdfKit: raw = "pdfkit"
+            }
+            UserDefaults.standard.set(raw, forKey: implKey)
+        }
+    }
     
     /// Check if QLPreviewController should be available
     /// Set to true when Apple fixes the iOS 17+ bug (FB14376916)

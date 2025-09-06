@@ -388,8 +388,7 @@ struct DocumentEditView: View {
         case .pdfKit:
             presentPDFKitMarkup(pdfData: pdfData)
         case .pencilKit:
-            // Future implementation
-            print("DEBUG Markup: PencilKit implementation not yet available")
+            presentPencilKitMarkup(pdfData: pdfData)
         }
     }
     
@@ -448,11 +447,11 @@ struct DocumentEditView: View {
     }
     
     private func presentPDFKitMarkup(pdfData: Data) {
-        // New PDFKit implementation (reliable)
-        print("DEBUG Markup: Using PDFKit implementation for page \(currentViewedPage + 1)")
+        // Use zoomable overlay approach for phones and tablets
+        print("DEBUG Markup: Using Zoomable PDFKit implementation for page \(currentViewedPage + 1)")
         
-        // Present PDFMarkupViewController via UIKit
-        let markupVC = PDFMarkupViewController(
+        // Present ZoomablePDFMarkupViewController via UIKit
+        let markupVC = ZoomablePDFMarkupViewController(
             pdfData: pdfData,
             pageIndex: currentViewedPage
         ) { result in
@@ -461,6 +460,22 @@ struct DocumentEditView: View {
             }
         }
         
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootVC = windowScene.windows.first?.rootViewController {
+            rootVC.present(markupVC, animated: true)
+        }
+    }
+
+    private func presentPencilKitMarkup(pdfData: Data) {
+        print("DEBUG Markup: Using PencilKit implementation for page \(currentViewedPage + 1)")
+        let markupVC = PencilKitMarkupViewController(
+            pdfData: pdfData,
+            pageIndex: currentViewedPage
+        ) { result in
+            Task { @MainActor in
+                await handleMarkupResult(result)
+            }
+        }
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let rootVC = windowScene.windows.first?.rootViewController {
             rootVC.present(markupVC, animated: true)
