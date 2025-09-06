@@ -77,7 +77,22 @@ class MarkupCoordinator: NSObject {
         let controller = QLPreviewController()
         controller.dataSource = self
         controller.delegate = self
+        
+        // Try to show navigation items
+        controller.navigationItem.rightBarButtonItem = UIBarButtonItem(
+            title: "Save",
+            style: .done,
+            target: self,
+            action: #selector(saveButtonTapped)
+        )
+        
         return controller
+    }
+    
+    @objc private func saveButtonTapped() {
+        print("DEBUG Markup: Custom save button tapped")
+        // Note: We can't directly trigger QLPreviewController's save
+        // The user must use the built-in markup Done button
     }
 }
 

@@ -578,16 +578,45 @@ struct ContentPlaceholderView: View {
 
 struct MarkupViewWrapper: UIViewControllerRepresentable {
     let coordinator: MarkupCoordinator
+    @Environment(\.dismiss) private var dismiss
     
     func makeUIViewController(context: Context) -> UINavigationController {
         let previewController = coordinator.createPreviewController()
+        
+        // Force navigation bar to be visible
+        previewController.navigationItem.leftBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .cancel,
+            target: context.coordinator,
+            action: #selector(context.coordinator.cancelTapped)
+        )
+        
         let navController = UINavigationController(rootViewController: previewController)
         navController.modalPresentationStyle = .fullScreen
+        navController.navigationBar.isHidden = false
+        navController.navigationBar.prefersLargeTitles = false
+        
         return navController
     }
     
     func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {
-        // No updates needed
+        // Ensure navigation bar stays visible
+        uiViewController.navigationBar.isHidden = false
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject {
+        let parent: MarkupViewWrapper
+        
+        init(_ parent: MarkupViewWrapper) {
+            self.parent = parent
+        }
+        
+        @objc func cancelTapped() {
+            parent.dismiss()
+        }
     }
 }
 
