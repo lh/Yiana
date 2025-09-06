@@ -378,19 +378,17 @@ class PDFMarkupViewController: UIViewController {
     private func handlePenDrawing(gesture: UIPanGestureRecognizer, at point: CGPoint, on page: PDFPage) {
         switch gesture.state {
         case .began:
-            // Start a new ink annotation
-            let bounds = CGRect(x: point.x - 1, y: point.y - 1, width: 2, height: 2)
-            let inkAnnotation = PDFAnnotation(bounds: bounds, forType: .ink, withProperties: nil)
-            inkAnnotation.color = currentColor.uiColor
-            
             // Initialize the path
             inkPath = UIBezierPath()
+            inkPath?.lineWidth = 2.0
+            inkPath?.lineCapStyle = .round
+            inkPath?.lineJoinStyle = .round
             inkPath?.move(to: point)
             
-            // Create the ink paths array for PDFAnnotation
-            let path = UIBezierPath()
-            path.move(to: point)
-            inkAnnotation.add(path)
+            // Start with a reasonable bounds
+            let bounds = CGRect(x: point.x - 50, y: point.y - 50, width: 100, height: 100)
+            let inkAnnotation = PDFAnnotation(bounds: bounds, forType: .ink, withProperties: nil)
+            inkAnnotation.color = currentColor.uiColor.withAlphaComponent(0.8)
             
             page.addAnnotation(inkAnnotation)
             currentInkAnnotation = inkAnnotation
@@ -399,32 +397,26 @@ class PDFMarkupViewController: UIViewController {
             print("DEBUG PDFMarkup: Started ink annotation at \(point)")
             
         case .changed:
-            guard let annotation = currentInkAnnotation else { return }
+            guard let annotation = currentInkAnnotation,
+                  let path = inkPath else { return }
             
-            // For ink annotations, we need to recreate the path
-            inkPath?.addLine(to: point)
+            // Add to path
+            path.addLine(to: point)
             
-            // Remove old annotation and add updated one
+            // Calculate bounds that encompass entire path
+            let pathBounds = path.bounds
+            let expandedBounds = pathBounds.insetBy(dx: -10, dy: -10)
+            
+            // Update annotation
             page.removeAnnotation(annotation)
+            annotation.bounds = expandedBounds
             
-            // Calculate new bounds
-            var bounds = annotation.bounds
-            bounds = bounds.union(CGRect(x: point.x - 1, y: point.y - 1, width: 2, height: 2))
+            // Create the paths array in the format PDFKit expects
+            let bezierPath = UIBezierPath()
+            bezierPath.cgPath = path.cgPath
+            annotation.add(bezierPath)
             
-            // Create new annotation with updated path
-            let newAnnotation = PDFAnnotation(bounds: bounds, forType: .ink, withProperties: nil)
-            newAnnotation.color = currentColor.uiColor
-            if let path = inkPath {
-                newAnnotation.add(path)
-            }
-            
-            page.addAnnotation(newAnnotation)
-            currentInkAnnotation = newAnnotation
-            
-            // Update our tracking
-            if let index = addedAnnotations.firstIndex(of: annotation) {
-                addedAnnotations[index] = newAnnotation
-            }
+            page.addAnnotation(annotation)
             
             // Force redraw
             pdfView.setNeedsDisplay()
@@ -460,53 +452,40 @@ class PDFMarkupViewController: UIViewController {
         let locationInView = gesture.location(in: pdfView)
         let locationOnPage = pdfView.convert(locationInView, to: page)
         
-        // Create text input field
-        let textField = UITextField()
-        textField.borderStyle = .roundedRect
-        textField.backgroundColor = .systemBackground
-        textField.placeholder = "Enter text"
-        textField.translatesAutoresizingMaskIntoConstraints = false
+        // Show alert for text input (more reliable than inline text field)
+        let alert = UIAlertController(title: "Add Text", message: "Enter text for annotation", preferredStyle: .alert)
         
-        // Add to view at tap location
-        view.addSubview(textField)
-        NSLayoutConstraint.activate([
-            textField.centerXAnchor.constraint(equalTo: view.leadingAnchor, constant: locationInView.x),
-            textField.centerYAnchor.constraint(equalTo: view.topAnchor, constant: locationInView.y),
-            textField.widthAnchor.constraint(equalToConstant: 200)
-        ])
+        alert.addTextField { textField in
+            textField.placeholder = "Enter text"
+            textField.autocapitalizationType = .sentences
+        }
         
-        // Become first responder
-        textField.becomeFirstResponder()
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         
-        // Handle text completion
-        textField.addAction(UIAction { [weak self, weak textField] _ in
+        alert.addAction(UIAlertAction(title: "Add", style: .default) { [weak self] _ in
             guard let self = self,
-                  let text = textField?.text,
-                  !text.isEmpty else {
-                textField?.removeFromSuperview()
-                return
-            }
+                  let text = alert.textFields?.first?.text,
+                  !text.isEmpty else { return }
             
-            // Create text annotation
-            let textBounds = CGRect(x: locationOnPage.x, y: locationOnPage.y - 20, width: 200, height: 40)
+            // Create text annotation at the tapped location
+            let textBounds = CGRect(x: locationOnPage.x - 100, y: locationOnPage.y - 20, width: 200, height: 40)
             let textAnnotation = PDFAnnotation(bounds: textBounds, forType: .freeText, withProperties: nil)
             textAnnotation.contents = text
-            textAnnotation.font = UIFont.systemFont(ofSize: 16)
+            textAnnotation.font = UIFont.systemFont(ofSize: 14)
             textAnnotation.fontColor = self.currentColor.uiColor
-            textAnnotation.color = UIColor.clear // Background color
+            textAnnotation.color = UIColor.white.withAlphaComponent(0.8) // Semi-transparent white background
+            textAnnotation.alignment = .left
             
             page.addAnnotation(textAnnotation)
             self.addedAnnotations.append(textAnnotation)
             
-            // Remove text field
-            textField?.removeFromSuperview()
-            
             // Force redraw
             self.pdfView.setNeedsDisplay()
             
-            print("DEBUG PDFMarkup: Added text annotation: \(text)")
-            
-        }, for: .editingDidEndOnExit)
+            print("DEBUG PDFMarkup: Added text annotation: '\(text)' at \(locationOnPage)")
+        })
+        
+        present(alert, animated: true)
     }
     
     // MARK: - Annotation Flattening
@@ -528,11 +507,21 @@ class PDFMarkupViewController: UIViewController {
         let flattenedPageData = pdfRenderer.pdfData { context in
             context.beginPage()
             
-            // Draw the original page with annotations
-            // This automatically includes all annotations as they're part of the page
-            UIGraphicsPushContext(context.cgContext)
-            page.draw(with: .mediaBox, to: context.cgContext)
-            UIGraphicsPopContext()
+            let cgContext = context.cgContext
+            
+            // CRITICAL: Save the graphics state before flipping
+            cgContext.saveGState()
+            
+            // PDF coordinate system is flipped compared to UIKit
+            // We need to flip it to draw correctly
+            cgContext.translateBy(x: 0, y: pageBounds.height)
+            cgContext.scaleBy(x: 1.0, y: -1.0)
+            
+            // Now draw the page with annotations in the correct orientation
+            page.draw(with: .mediaBox, to: cgContext)
+            
+            // Restore the graphics state
+            cgContext.restoreGState()
         }
         
         // Create a new PDF document from the flattened page
