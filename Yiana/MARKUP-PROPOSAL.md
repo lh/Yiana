@@ -1,98 +1,55 @@
-# Apple Markup Integration Proposal for Yiana
+# Apple Markup Integration Proposal for Yiana (Revised)
 
 ## Executive Summary
 
-This proposal outlines the integration of Apple's native markup capabilities into Yiana, allowing users to annotate PDFs using the familiar iOS/iPadOS markup tools while maintaining the application's core philosophy of simplicity and reliability.
+This proposal outlines the integration of Apple's native markup capabilities into Yiana. It follows a "paper document" philosophy: annotations are permanently applied to the PDF after each markup session. This approach leverages `QLPreviewController` for a familiar user experience while maintaining architectural simplicity and eliminating conflicts between annotations and structural document edits.
 
-## Current State Analysis
+## Core Philosophy: "Ink on Paper"
 
-### Architecture Overview
-- **Document Format**: `.yianazip` files containing:
-  - `metadata.json`: Document metadata, OCR text, tags
-  - Binary separator: 4 bytes (0xFF, 0xFF, 0xFF, 0xFF)
-  - PDF data: Original PDF content
-- **PDF Handling**: PDFKit configured for read-only viewing
-- **Platform Distribution**: 
-  - iOS/iPadOS: Primary platform for document viewing, scanning, management
-  - macOS: Document viewing, bulk import capabilities
-  - Mac mini server: Future OCR processing and indexing
-
-### Technical Stack
-- **iOS/iPadOS**: UIDocument, PDFKit, VisionKit for scanning
-- **macOS**: NSDocument, PDFKit
-- **Storage**: iCloud Documents synchronization via CloudKit
-- **Design Constraints**: 
-  - No PDF editing/annotations (deliberate architectural choice)
-  - Memory optimization for large PDF handling
-  - Read-only PDF viewing to avoid PDFKit memory issues
-
-### Current File Structure
-```
-iCloud Documents/
-└── DocumentName.yianazip
-    ├── [metadata JSON]
-    ├── [separator bytes]
-    └── [PDF data]
-```
+The guiding principle is that marking up a document is like writing on paper with ink. The change is immediate and permanent.
+- **No Editable Annotations:** Once a markup session is complete, the annotations are "burned into" the PDF. They are not stored on a separate layer and cannot be edited later.
+- **No "Undo":** This is an intentional design choice. Reversible markup is considered an anti-feature for the intended "paper-like" workflow.
+- **Simplicity:** This eliminates the need for complex state management, view modes, or user choices during export. There is only one version of the document: its current state.
+- **Preserved Searchability:** Typed text annotations remain as searchable PDF text objects, not rasterized images.
 
 ## Problem Statement
 
-Users require PDF annotation capabilities using Apple's standard markup tools (as seen in Mail, Files, and Screenshots) while maintaining:
-1. Current architectural integrity
-2. Memory efficiency with large PDFs
-3. Application simplicity
-4. Original PDF preservation
-5. Familiar user experience
+Users require a simple, reliable way to annotate PDFs using Apple's standard markup tools. The solution must integrate seamlessly with existing features like page deletion and reordering, without causing data inconsistency or user confusion.
 
-## Proposed Solution
+## Proposed Solution: Immediate Flattening
 
-### Enhanced Document Format
+The solution is to use `QLPreviewController` to handle the markup UI, and then immediately use its output to overwrite the existing document.
 
-#### New Structure
+### Document Format
+The existing `.yianazip` structure is preserved with minimal changes. The `document.pdf` within the package is considered mutable, with a one-time backup created before the first markup.
 ```
 .yianazip/
-├── metadata.json       # Enhanced with markup tracking
-├── document.pdf        # Original PDF (immutable)
-└── markups/           # Markup versions directory
-    ├── latest.pdf     # Most recent marked-up version
-    └── history/       # Optional version history
-        ├── 2024-01-15_143022.pdf
-        └── 2024-01-15_151545.pdf
+├── metadata.json
+├── document.pdf      # Mutable, updated in-place after markup
+└── .backup/          # Hidden directory (created on first markup)
+    └── original.pdf  # One-time backup of pre-markup document
 ```
 
-#### Enhanced Metadata Schema
-```json
-{
-  "title": "Document Title",
-  "created": "2024-01-15T10:30:00Z",
-  "modified": "2024-01-15T11:45:00Z",
-  "page_count": 12,
-  "file_size": 2048000,
-  "tags": ["client", "meeting", "project-alpha"],
-  "ocr_completed": true,
-  "ocr_timestamp": "2024-01-15T10:35:00Z",
-  "full_text": "Complete OCR text content...",
-  "markup": {
-    "has_markup": true,
-    "last_markup_date": "2024-01-15T15:15:45Z",
-    "markup_count": 2,
-    "active_version": "latest",
-    "preserve_history": false,
-    "total_markup_size": 3145728
-  }
-}
-```
+### Workflow
+1.  **User Initiates Markup:** User taps a "Markup" button.
+2.  **First-Time Backup:** If this is the first markup, create `.backup/original.pdf`.
+3.  **`QLPreviewController` is Presented:** The standard iOS/iPadOS markup interface is shown for the `document.pdf`.
+4.  **User Annotates and Saves:** User makes their changes (typed text, drawings, highlights) and taps "Done".
+5.  **Document is Overwritten:** The app receives the annotated PDF from the controller and atomically replaces the `document.pdf` inside the `.yianazip` package with this new version.
+6.  **Text Re-extraction:** The full text is extracted from the updated PDF (including typed annotations) for search indexing.
+
+This workflow ensures that there is only ever one version of the document, which includes all annotations. This completely prevents any conflict between structural edits (add/delete/reorder pages) and annotations.
 
 ## Implementation Strategy
 
 ### Phase 1: Core Markup Integration (iOS)
 
 #### 1.1 QLPreviewController Integration
+The `MarkupCoordinator` remains the entry point, but its completion handler will trigger the document overwrite.
 ```swift
 // New: MarkupCoordinator.swift
 class MarkupCoordinator: NSObject, QLPreviewControllerDelegate {
-    let documentURL: URL
-    let completion: (Data?) -> Void
+    let completion: (Data) -> Void // Returns the new PDF data
     
     func previewController(_ controller: QLPreviewController, 
                           editingModeFor previewItem: QLPreviewItem) -> QLPreviewItemEditingMode {
@@ -102,212 +59,154 @@ class MarkupCoordinator: NSObject, QLPreviewControllerDelegate {
     func previewController(_ controller: QLPreviewController,
                           didSaveEditedCopyOf previewItem: QLPreviewItem,
                           at modifiedContentsURL: URL) {
-        // Extract and save marked-up PDF
-        let markedPDF = try? Data(contentsOf: modifiedContentsURL)
-        completion(markedPDF)
+        // Extract marked-up PDF and pass to completion handler
+        if let markedPDF = try? Data(contentsOf: modifiedContentsURL) {
+            completion(markedPDF)
+        }
     }
 }
 ```
 
 #### 1.2 UI Integration Points
-- Add "Markup" button to DocumentEditView toolbar (iOS)
-- Present QLPreviewController as full-screen modal
-- Save marked-up PDF to document structure on completion
-- Update metadata to track markup state
+- Add "Markup" button to the document view toolbar.
+- Check file size before allowing markup (50MB limit).
+- Create one-time backup if this is the first markup.
+- Present `QLPreviewController` as a full-screen modal.
+- On completion, atomically overwrite the `document.pdf` with the new data.
+- Re-extract text for search indexing (preserves typed annotations as searchable text).
 
-### Phase 2: View Mode Management
-
-#### 2.1 Dual View System
-```swift
-enum PDFViewMode: String, CaseIterable {
-    case original = "Original"
-    case markup = "Markup"
-}
-
-struct DocumentView {
-    @State private var viewMode: PDFViewMode = .original
-    @AppStorage("preferredViewMode") private var defaultViewMode: PDFViewMode = .original
-    
-    var currentPDFData: Data {
-        switch viewMode {
-        case .original:
-            return document.originalPDF
-        case .markup:
-            return document.markupPDF ?? document.originalPDF
-        }
-    }
-}
-```
-
-#### 2.2 Visual Indicators
-- Segmented control for view mode selection
-- Badge indicator on documents with markup in list view
-- Different tint color for marked-up mode
-- "Modified" indicator with timestamp
-
-### Phase 3: Export Enhancement
-
-#### 3.1 Multi-Mode Export
-```swift
-enum ExportMode: String, CaseIterable {
-    case original = "Original Only"
-    case withMarkup = "With Markup"
-    case both = "Both Versions"
-}
-
-extension ExportService {
-    func exportPDF(document: Document, mode: ExportMode) -> [ExportResult] {
-        switch mode {
-        case .original:
-            return [exportOriginal(document)]
-        case .withMarkup:
-            return [exportMarkup(document)]
-        case .both:
-            return [exportOriginal(document), exportMarkup(document)]
-        }
-    }
-}
-```
-
-### Phase 4: macOS Support (Optional)
-
-- Investigate Quick Look framework for macOS
-- Alternative: Defer macOS markup to future release
-- Maintain view-only capability for marked-up documents
+### Phase 2: macOS Support (Optional)
+- Investigate the Quick Look framework on macOS for a similar "update-in-place" workflow.
+- If not feasible, macOS can remain a viewer for the marked-up PDFs created on iOS/iPadOS.
 
 ## Technical Considerations
 
 ### Memory Management
-
-**Challenge**: QLPreviewController memory consumption with large PDFs
-
+The primary challenge remains the memory consumption of `QLPreviewController` with large PDFs.
 **Mitigation Strategies**:
-- Release source PDF data after passing to QLPreviewController
-- Enforce single-document markup sessions
-- Implement memory pressure monitoring
-- Clear preview cache after markup completion
-- Set maximum file size for markup (e.g., 50MB)
+- Enforce single-document markup sessions.
+- Implement memory pressure monitoring.
+- Enforce a 50MB file size limit for markup feature.
+```swift
+let MAX_MARKUP_SIZE_MB = 50
+let fileSizeMB = pdfData.count / (1024 * 1024)
+if fileSizeMB > MAX_MARKUP_SIZE_MB {
+    // Show alert: "This document is too large for markup."
+}
+```
 
-### Storage Optimization
+### Storage and Synchronization
+Since we are not creating multiple versions or storing history (except the one-time backup), the risks of "storage bloat" and "sync conflicts" are minimal. The storage impact is limited to:
+- One-time backup (same size as original)
+- Natural size increase from annotations (typically < 10%)
 
-**Challenge**: Multiple PDF versions increase storage requirements
-
-**Solutions**:
-- **Default**: Store only latest markup version
-- **Option A**: Compressed storage using PDF optimization
-- **Option B**: Delta storage (store differences only)
-- **Option C**: User-configurable history retention policy
-
-### Synchronization Strategy
-
-**Challenge**: Increased iCloud sync traffic
-
-**Approach**:
-- Prioritize original document sync
-- Lazy sync for markup versions
-- Optional markup sync (user preference)
-- Compress marked PDFs before sync
-- Implement sync conflict resolution
+### Text Preservation
+**Critical Insight**: Typed text annotations added through QLPreviewController remain as searchable PDF text objects, not rasterized images. This means:
+- Original OCR'd text is preserved
+- New typed annotations are immediately searchable
+- No re-OCR required, just text re-extraction
+- Search quality is maintained
 
 ## Alternative Approaches Considered
 
-### Option A: PencilKit Overlay
-- **Pros**: Granular control, separate annotation layer, smaller storage
-- **Cons**: Complex coordinate mapping, high maintenance burden, custom UI required
-- **Decision**: Rejected due to complexity
-
-### Option B: PDFKit Native Annotations
-- **Pros**: Native to PDFKit, programmatic access
-- **Cons**: Known memory issues, flattening challenges, crash risks
-- **Decision**: Rejected due to reliability concerns
-
-### Option C: Third-party SDK (PSPDFKit, etc.)
-- **Pros**: Feature-complete, proven stability
-- **Cons**: Licensing costs, external dependency, app size increase
-- **Decision**: Rejected to maintain independence
+The decision to use `QLPreviewController` over `PencilKit` overlays or native `PDFKit` annotations remains valid. This approach was chosen to prioritize simplicity, reliability, and a familiar user experience, which aligns with the project's "LEGO" philosophy. The revised "ink on paper" workflow makes this choice even more compelling, as it removes the need for the complex state management that other solutions would have required.
 
 ## Risk Assessment
 
 | Risk | Likelihood | Impact | Mitigation Strategy |
 |------|------------|--------|-------------------|
-| Memory exhaustion during markup | Medium | High | Single-document limit, memory monitoring, file size caps |
-| Storage bloat from versions | High | Medium | Compression, retention limits, user controls |
-| iCloud sync conflicts | Low | High | Version isolation, conflict resolution UI |
-| QLPreviewController bugs | Medium | Medium | Fallback to read-only, error recovery |
-| User confusion with modes | Low | Low | Clear UI indicators, onboarding |
+| Memory exhaustion during markup | Medium | High | Single-document limit, memory monitoring, 50MB file size cap |
+| `QLPreviewController` bugs | Medium | Medium | Error handling and fallback to read-only view on failure |
+| Accidental user markup | Low | Low | Explicit user intent required; one-time backup provides safety net |
+| Loss of original document | Very Low | Medium | One-time backup before first markup |
+| Text becomes unsearchable | Very Low | Low | Typed text remains searchable; only handwriting is not OCR'd |
 
 ## Success Metrics
 
-- **Performance**: Markup operations complete without memory warnings
-- **Storage**: Document size increase < 2x with typical markups
-- **Sync**: Sync time increase < 20% for marked documents
-- **UX**: Mode switching latency < 0.5 seconds
-- **Reliability**: < 0.1% crash rate during markup operations
+- **Performance**: Markup operations complete without memory warnings on target devices.
+- **Reliability**: < 0.1% crash rate during markup operations.
+- **Workflow Integrity**: Users can perform structural edits (delete/move pages) immediately after a markup session with no data loss or warnings.
 
 ## Migration Plan
 
-1. **Backward Compatibility**: Existing documents continue working unchanged
-2. **Progressive Enhancement**: Markup features appear only when first used
-3. **No Data Migration**: Additive changes only, no document conversion required
-4. **Gradual Rollout**: Feature flag for beta testing
-
-## Open Questions for Technical Review
-
-1. **Storage Policy**: Should markup history be preserved or only the latest version?
-2. **Sync Strategy**: Should markups sync via iCloud or remain device-local?
-3. **Platform Scope**: Should we support markup on macOS initially or focus on iOS?
-4. **Protection**: Should original PDFs be cryptographically protected from modification?
-5. **Size Limits**: What's the acceptable storage increase threshold (2x, 3x, user-defined)?
-6. **Cleanup**: Automatic cleanup policy for old markup versions?
+No data migration is required. This is an additive feature. Existing documents will work as-is and will be updated in-place if and when a user chooses to mark them up.
 
 ## Proof of Concept Implementation
 
 ### Minimum Viable Features
-1. Single "Markup" button in iOS DocumentEditView
-2. QLPreviewController presentation with save handling
-3. Store marked PDF as `document_markup.pdf`
-4. Toggle control for original/markup views
-5. Export includes choice of version
+1. A "Markup" button in the iOS document view.
+2. `QLPreviewController` presentation and handling of the saved result.
+3. A method in `DocumentRepository` to overwrite the `document.pdf` with the new data from the markup session.
+4. The ability to immediately perform a structural edit (e.g., delete a page) on the newly marked-up document.
 
 ### Estimated Timeline
-- Phase 1 (Core Markup): 2 weeks
-- Phase 2 (View Modes): 1 week
-- Phase 3 (Export): 3 days
+- Core Markup & Overwrite Logic: 1-2 weeks
 - Testing & Polish: 1 week
-- **Total**: ~1 month for iOS MVP
+- **Total**: ~2-3 weeks for a production-ready iOS MVP.
 
 ## Conclusion
 
-This proposal maintains Yiana's core philosophy of leveraging proven Apple frameworks while adding significant user value through native markup capabilities. The approach prioritizes reliability, simplicity, and user familiarity while carefully managing technical risks.
+This revised proposal aligns with the core "paper document" philosophy of the application. By treating annotations as permanent, immediate changes, we eliminate architectural complexity and potential user confusion. This approach delivers the desired functionality in the simplest, most robust way possible, staying true to the Yiana project's principles.
 
 ## Appendix: Code Examples
 
 ### Example: Markup Button Integration
 ```swift
-// In DocumentEditView.swift
+// In DocumentView.swift
 Button(action: { 
-    presentMarkupView() 
+    presentMarkupView() // This will trigger the MarkupCoordinator
 }) {
     Label("Markup", systemImage: "pencil.tip.crop.circle")
 }
 .disabled(viewModel.pdfData == nil)
 ```
 
-### Example: Storage Structure Update
+### Example: Updating the Document in the Repository
 ```swift
 extension DocumentRepository {
-    func saveMarkup(_ pdfData: Data, for document: Document) throws {
-        let markupURL = documentURL
-            .appendingPathComponent("markups")
-            .appendingPathComponent("latest.pdf")
+    func updateDocumentWithMarkup(newPDFData: Data, for document: Document) throws {
+        // 1. Create one-time backup if first markup
+        if !document.hasBackup {
+            try createBackup(for: document)
+        }
         
-        try FileManager.default.createDirectory(
-            at: markupURL.deletingLastPathComponent(),
-            withIntermediateDirectories: true
+        // 2. Atomic save to prevent corruption
+        let tempURL = document.pdfURL.appendingPathExtension("tmp")
+        try newPDFData.write(to: tempURL)
+        try FileManager.default.replaceItem(
+            at: document.pdfURL,
+            withItemAt: tempURL,
+            backupItemName: nil,
+            options: []
         )
         
-        try pdfData.write(to: markupURL)
-        updateMetadata(for: document, markupSaved: true)
+        // 3. Update metadata
+        document.metadata.hasMarkup = true
+        document.metadata.lastMarkupDate = Date()
+        document.metadata.modified = Date()
+        
+        // 4. Re-extract text for search (preserves typed annotations)
+        if let pdf = PDFDocument(data: newPDFData) {
+            document.metadata.fullText = pdf.string ?? ""
+        }
+        
+        // 5. Save document
+        try document.save()
     }
+}
+```
+
+### Example: Testing Text Preservation
+```swift
+func verifyTextPreservation(original: Data, marked: Data) {
+    let originalPDF = PDFDocument(data: original)!
+    let markedPDF = PDFDocument(data: marked)!
+    
+    let originalText = originalPDF.string ?? ""
+    let markedText = markedPDF.string ?? ""
+    
+    assert(markedText.contains(originalText), "Original text preserved")
+    assert(markedText.count >= originalText.count, "Text not lost")
+    print("✓ Typed annotations are searchable!")
 }
 ```
