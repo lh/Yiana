@@ -31,6 +31,7 @@ Yiana is a document scanning and PDF management app for iOS, iPadOS, and macOS. 
 ## Learn More
 - Architecture: `Yiana/docs/Architecture.md`
 - Importing PDFs: `Yiana/docs/Importing.md`
+- Project Status (Sep 2025): `Yiana/docs/ProjectStatus-2025-09.md`
 - Coding style: `CODING_STYLE.md`
 - API & data structures: `Yiana/docs/API.md`, `Yiana/docs/DataStructures.md`
 - Plan & roadmap: `PLAN.md`

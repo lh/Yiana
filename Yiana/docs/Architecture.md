@@ -23,6 +23,7 @@ flowchart LR
 ```
 
 ## Components & Responsibilities
+For a high-level snapshot of the current feature set and rationale, see `ProjectStatus-2025-09.md`.
 - App (`Yiana/`)
   - SwiftUI views for listing, viewing, and (on iOS) editing documents
   - Importing PDFs (new or append) via ImportService
@@ -66,4 +67,3 @@ flowchart LR
 - Add insertion-at-position on append by reusing PDFKit page APIs
 - Surface OCR status in list/read views from metadata and `.ocr_results`
 - macOS save path can mirror iOS NoteDocument format for symmetry
-
