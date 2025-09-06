@@ -14,6 +14,7 @@ import UIKit
 
 /// Container view controller for QLPreviewController with overlay save button
 class MarkupContainerViewController: UIViewController {
+    private let navController: UINavigationController
     private let previewController: QLPreviewController
     private let coordinator: MarkupCoordinator
     private var saveButton: UIButton!
@@ -21,6 +22,8 @@ class MarkupContainerViewController: UIViewController {
     init(previewController: QLPreviewController, coordinator: MarkupCoordinator) {
         self.previewController = previewController
         self.coordinator = coordinator
+        // Wrap the preview controller in a navigation controller to get the toolbar
+        self.navController = UINavigationController(rootViewController: previewController)
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -31,21 +34,33 @@ class MarkupContainerViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Add preview controller as child
-        addChild(previewController)
-        view.addSubview(previewController.view)
-        previewController.view.translatesAutoresizingMaskIntoConstraints = false
+        // Add navigation controller as child (which contains the preview controller)
+        addChild(navController)
+        view.addSubview(navController.view)
+        navController.view.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            previewController.view.topAnchor.constraint(equalTo: view.topAnchor),
-            previewController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            previewController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            previewController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            navController.view.topAnchor.constraint(equalTo: view.topAnchor),
+            navController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            navController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            navController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
-        previewController.didMove(toParent: self)
+        navController.didMove(toParent: self)
+        
+        // Add a close button to the navigation bar
+        previewController.navigationItem.leftBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .cancel,
+            target: self,
+            action: #selector(closeTapped)
+        )
         
         // Create floating save button
         setupFloatingSaveButton()
     }
+    
+    @objc private func closeTapped() {
+        dismiss(animated: true)
+    }
+    
     
     private func setupFloatingSaveButton() {
         // Create a floating Done button
