@@ -12,6 +12,57 @@ import PDFKit
 #if os(iOS)
 import UIKit
 
+/// Custom QLPreviewController subclass to intercept dismissal
+class CustomQLPreviewController: QLPreviewController {
+    var dismissalHandler: (() -> Void)?
+    private var isDismissing = false
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        // Set up presentation controller delegate to intercept dismissal
+        self.presentationController?.delegate = self
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        
+        // Check if we're being dismissed (not just covered by another view)
+        if isBeingDismissed || isMovingFromParent {
+            if !isDismissing {
+                isDismissing = true
+                dismissalHandler?()
+            }
+        }
+    }
+    
+    override func dismiss(animated flag: Bool, completion: (() -> Void)? = nil) {
+        if !isDismissing {
+            isDismissing = true
+            dismissalHandler?()
+        }
+        super.dismiss(animated: flag, completion: completion)
+    }
+}
+
+// MARK: - UIAdaptivePresentationControllerDelegate
+extension CustomQLPreviewController: UIAdaptivePresentationControllerDelegate {
+    func presentationControllerWillDismiss(_ presentationController: UIPresentationController) {
+        if !isDismissing {
+            isDismissing = true
+            dismissalHandler?()
+        }
+    }
+    
+    func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+        // Additional safety check
+        if !isDismissing {
+            isDismissing = true
+            dismissalHandler?()
+        }
+    }
+}
+
 /// Coordinates the markup workflow for PDFs using QLPreviewController
 class MarkupCoordinator: NSObject {
     
@@ -22,6 +73,8 @@ class MarkupCoordinator: NSObject {
     private var tempFileURL: URL?
     private let originalPDFData: Data
     private let pageIndex: Int
+    private var hasChanges = false
+    private var savedData: Data?
     
     // MARK: - Initialization
     
@@ -73,26 +126,89 @@ class MarkupCoordinator: NSObject {
     // MARK: - Public Methods
     
     /// Creates and configures a QLPreviewController for markup
-    func createPreviewController() -> QLPreviewController {
-        let controller = QLPreviewController()
+    func createPreviewController() -> CustomQLPreviewController {
+        let controller = CustomQLPreviewController()
         controller.dataSource = self
         controller.delegate = self
-        
-        // Try to show navigation items
-        controller.navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: "Save",
-            style: .done,
-            target: self,
-            action: #selector(saveButtonTapped)
-        )
+        controller.dismissalHandler = { [weak self] in
+            self?.handleDismissal()
+        }
         
         return controller
     }
     
+    // MARK: - Private Methods
+    
+    private func handleDismissal() {
+        print("DEBUG Markup: Handling custom dismissal")
+        
+        // If we have saved data, use it
+        if let savedData = savedData {
+            print("DEBUG Markup: Using saved data from didSaveEditedCopyOf")
+            completion(.success(savedData))
+            return
+        }
+        
+        // If we detected changes but no save, try to recover
+        if hasChanges {
+            print("DEBUG Markup: Changes detected but no save - checking for auto-saved file")
+            
+            // Check if there's an auto-saved version
+            let autoSaveURL = tempFileURL?.deletingPathExtension().appendingPathExtension("autosave.pdf")
+            if let autoSaveURL = autoSaveURL,
+               FileManager.default.fileExists(atPath: autoSaveURL.path),
+               let autoSavedData = try? Data(contentsOf: autoSaveURL) {
+                print("DEBUG Markup: Found auto-saved file, attempting to merge")
+                
+                // Process the auto-saved data
+                if let markedPagePDF = PDFDocument(data: autoSavedData),
+                   markedPagePDF.pageCount == 1,
+                   let markedPage = markedPagePDF.page(at: 0),
+                   let originalPDF = PDFDocument(data: originalPDFData) {
+                    
+                    originalPDF.removePage(at: pageIndex)
+                    originalPDF.insert(markedPage, at: pageIndex)
+                    
+                    if let completeData = originalPDF.dataRepresentation() {
+                        print("DEBUG Markup: Successfully recovered and merged auto-saved changes")
+                        completion(.success(completeData))
+                        return
+                    }
+                }
+            }
+            
+            print("DEBUG Markup: Changes were made but could not be recovered")
+            completion(.failure(MarkupError.changesMadeButNotSaved))
+        } else {
+            print("DEBUG Markup: No changes detected - user cancelled")
+            completion(.failure(MarkupError.userCancelled))
+        }
+    }
+    
     @objc private func saveButtonTapped() {
-        print("DEBUG Markup: Custom save button tapped")
-        // Note: We can't directly trigger QLPreviewController's save
-        // The user must use the built-in markup Done button
+        print("DEBUG Markup: Save button tapped - QLPreviewController limitation")
+        
+        // Unfortunately, we cannot programmatically save QLPreviewController markups
+        // This is a known limitation. The user MUST use the built-in Done button.
+        // 
+        // Alternative solutions:
+        // 1. Use PDFKit with PDFAnnotation (more complex but reliable)
+        // 2. Use WKWebView with JavaScript PDF annotation libraries
+        // 3. Use a third-party library like PSPDFKit
+        //
+        // For now, alert the user about the limitation
+        
+        let alert = UIAlertController(
+            title: "Saving Markup",
+            message: "Due to an iOS limitation, markups must be saved using the 'Done' button in the markup toolbar at the bottom of the screen.\n\nIf you don't see a 'Done' button, try:\n• Rotating your device\n• Swiping to show hidden toolbars\n• Using landscape orientation",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootVC = windowScene.windows.first?.rootViewController?.presentedViewController {
+            rootVC.present(alert, animated: true)
+        }
     }
 }
 
@@ -147,12 +263,12 @@ extension MarkupCoordinator: QLPreviewControllerDelegate {
                 return
             }
             
+            // Store the saved data for the dismissal handler
+            self.savedData = completeData
+            
             // Log for debugging
             print("DEBUG Markup: Successfully merged marked page \(pageIndex + 1) back into document")
             print("DEBUG Markup: Final document has \(originalPDF.pageCount) pages")
-            
-            // Return the complete document with the marked-up page
-            completion(.success(completeData))
             
             // Clean up the modified file
             try? FileManager.default.removeItem(at: modifiedContentsURL)
@@ -173,6 +289,7 @@ extension MarkupCoordinator: QLPreviewControllerDelegate {
     func previewController(_ controller: QLPreviewController, didUpdateContentsOf previewItem: QLPreviewItem) {
         // This is called when the user makes changes
         print("DEBUG Markup: User is actively editing the document")
+        hasChanges = true
     }
 }
 
@@ -182,6 +299,8 @@ enum MarkupError: LocalizedError {
     case invalidPDF
     case fileSizeTooLarge
     case backupFailed
+    case changesMadeButNotSaved
+    case userCancelled
     
     var errorDescription: String? {
         switch self {
@@ -191,6 +310,10 @@ enum MarkupError: LocalizedError {
             return "This document is too large for markup (maximum 50MB)"
         case .backupFailed:
             return "Failed to create backup before markup"
+        case .changesMadeButNotSaved:
+            return "Changes were made but could not be saved. Please try again using the Done button in the markup toolbar."
+        case .userCancelled:
+            return "Markup was cancelled"
         }
     }
 }
