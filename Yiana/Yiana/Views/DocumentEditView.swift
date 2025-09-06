@@ -388,6 +388,27 @@ struct DocumentEditView: View {
             return
         }
         
+        // Show instructions
+        let alert = UIAlertController(
+            title: "Markup Page \(currentViewedPage + 1)",
+            message: "To save your annotations:\n\n1. Tap the Markup button (pencil icon) at the top\n2. Make your annotations\n3. Tap 'Done' in the markup toolbar\n\nImportant: Use the 'Done' button in the markup toolbar, not the < button.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Got it", style: .default) { _ in
+            self.proceedWithMarkup(pdfData: pdfData)
+        })
+        
+        // Present the alert
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootVC = windowScene.windows.first?.rootViewController {
+            rootVC.present(alert, animated: true)
+        } else {
+            // Fallback if we can't show alert
+            proceedWithMarkup(pdfData: pdfData)
+        }
+    }
+    
+    private func proceedWithMarkup(pdfData: Data) {
         do {
             // Create coordinator with current page
             markupCoordinator = try MarkupCoordinator(

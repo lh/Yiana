@@ -149,9 +149,15 @@ extension MarkupCoordinator: QLPreviewControllerDelegate {
     }
     
     func previewControllerDidDismiss(_ controller: QLPreviewController) {
-        // If dismissed without saving, this is called
-        // We don't treat this as an error - user simply cancelled
-        print("DEBUG Markup: Preview controller dismissed")
+        // This is called when the controller is dismissed
+        // If the user saved, didSaveEditedCopyOf would have been called first
+        // If not, this means they cancelled or dismissed without saving
+        print("DEBUG Markup: Preview controller dismissed - user may have cancelled markup")
+    }
+    
+    func previewController(_ controller: QLPreviewController, didUpdateContentsOf previewItem: QLPreviewItem) {
+        // This is called when the user makes changes
+        print("DEBUG Markup: User is actively editing the document")
     }
 }
 
