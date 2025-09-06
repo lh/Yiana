@@ -580,27 +580,15 @@ struct MarkupViewWrapper: UIViewControllerRepresentable {
     let coordinator: MarkupCoordinator
     @Environment(\.dismiss) private var dismiss
     
-    func makeUIViewController(context: Context) -> UINavigationController {
-        let previewController = coordinator.createPreviewController()
+    func makeUIViewController(context: Context) -> UIViewController {
+        let container = coordinator.createMarkupContainer()
+        container.modalPresentationStyle = .fullScreen
         
-        // Force navigation bar to be visible
-        previewController.navigationItem.leftBarButtonItem = UIBarButtonItem(
-            barButtonSystemItem: .cancel,
-            target: context.coordinator,
-            action: #selector(context.coordinator.cancelTapped)
-        )
-        
-        let navController = UINavigationController(rootViewController: previewController)
-        navController.modalPresentationStyle = .fullScreen
-        navController.navigationBar.isHidden = false
-        navController.navigationBar.prefersLargeTitles = false
-        
-        return navController
+        return container
     }
     
-    func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {
-        // Ensure navigation bar stays visible
-        uiViewController.navigationBar.isHidden = false
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
+        // Nothing to update
     }
     
     func makeCoordinator() -> Coordinator {

@@ -12,53 +12,76 @@ import PDFKit
 #if os(iOS)
 import UIKit
 
-/// Custom QLPreviewController subclass to intercept dismissal
-class CustomQLPreviewController: QLPreviewController {
-    var dismissalHandler: (() -> Void)?
-    private var isDismissing = false
+/// Container view controller for QLPreviewController with overlay save button
+class MarkupContainerViewController: UIViewController {
+    private let previewController: QLPreviewController
+    private let coordinator: MarkupCoordinator
+    private var saveButton: UIButton!
+    
+    init(previewController: QLPreviewController, coordinator: MarkupCoordinator) {
+        self.previewController = previewController
+        self.coordinator = coordinator
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Set up presentation controller delegate to intercept dismissal
-        self.presentationController?.delegate = self
-    }
-    
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
+        // Add preview controller as child
+        addChild(previewController)
+        view.addSubview(previewController.view)
+        previewController.view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            previewController.view.topAnchor.constraint(equalTo: view.topAnchor),
+            previewController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            previewController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            previewController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+        previewController.didMove(toParent: self)
         
-        // Check if we're being dismissed (not just covered by another view)
-        if isBeingDismissed || isMovingFromParent {
-            if !isDismissing {
-                isDismissing = true
-                dismissalHandler?()
-            }
-        }
+        // Create floating save button
+        setupFloatingSaveButton()
     }
     
-    override func dismiss(animated flag: Bool, completion: (() -> Void)? = nil) {
-        if !isDismissing {
-            isDismissing = true
-            dismissalHandler?()
-        }
-        super.dismiss(animated: flag, completion: completion)
-    }
-}
-
-// MARK: - UIAdaptivePresentationControllerDelegate
-extension CustomQLPreviewController: UIAdaptivePresentationControllerDelegate {
-    func presentationControllerWillDismiss(_ presentationController: UIPresentationController) {
-        if !isDismissing {
-            isDismissing = true
-            dismissalHandler?()
-        }
+    private func setupFloatingSaveButton() {
+        // Create a floating Done button
+        saveButton = UIButton(type: .system)
+        saveButton.setTitle("Done", for: .normal)
+        saveButton.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
+        saveButton.backgroundColor = .systemBlue
+        saveButton.setTitleColor(.white, for: .normal)
+        saveButton.layer.cornerRadius = 25
+        saveButton.layer.shadowColor = UIColor.black.cgColor
+        saveButton.layer.shadowOffset = CGSize(width: 0, height: 2)
+        saveButton.layer.shadowOpacity = 0.3
+        saveButton.layer.shadowRadius = 4
+        saveButton.translatesAutoresizingMaskIntoConstraints = false
+        
+        saveButton.addTarget(self, action: #selector(saveButtonTapped), for: .touchUpInside)
+        
+        view.addSubview(saveButton)
+        
+        NSLayoutConstraint.activate([
+            saveButton.widthAnchor.constraint(equalToConstant: 80),
+            saveButton.heightAnchor.constraint(equalToConstant: 50),
+            saveButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
+            saveButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -100)
+        ])
     }
     
-    func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
-        // Additional safety check
-        if !isDismissing {
-            isDismissing = true
-            dismissalHandler?()
+    @objc private func saveButtonTapped() {
+        print("DEBUG Markup: Floating Done button tapped")
+        
+        // Try to trigger save programmatically
+        coordinator.attemptSave()
+        
+        // Dismiss after a short delay to allow save to complete
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.dismiss(animated: true)
         }
     }
 }
@@ -125,16 +148,55 @@ class MarkupCoordinator: NSObject {
     
     // MARK: - Public Methods
     
-    /// Creates and configures a QLPreviewController for markup
-    func createPreviewController() -> CustomQLPreviewController {
-        let controller = CustomQLPreviewController()
-        controller.dataSource = self
-        controller.delegate = self
-        controller.dismissalHandler = { [weak self] in
-            self?.handleDismissal()
+    /// Creates and configures a container with QLPreviewController for markup
+    func createMarkupContainer() -> MarkupContainerViewController {
+        let previewController = QLPreviewController()
+        previewController.dataSource = self
+        previewController.delegate = self
+        
+        let container = MarkupContainerViewController(
+            previewController: previewController,
+            coordinator: self
+        )
+        
+        return container
+    }
+    
+    /// Attempts to save the current markup
+    func attemptSave() {
+        print("DEBUG Markup: Attempting to save markup")
+        
+        // Check if we have saved data already
+        if savedData != nil {
+            print("DEBUG Markup: Already have saved data")
+            return
         }
         
-        return controller
+        // If changes were made, try to read the temp file again
+        if hasChanges, let tempURL = tempFileURL {
+            do {
+                let currentData = try Data(contentsOf: tempURL)
+                
+                // Check if it's different from original
+                if let currentPDF = PDFDocument(data: currentData),
+                   currentPDF.pageCount == 1,
+                   let currentPage = currentPDF.page(at: 0),
+                   let originalPDF = PDFDocument(data: originalPDFData) {
+                    
+                    // Replace the page
+                    originalPDF.removePage(at: pageIndex)
+                    originalPDF.insert(currentPage, at: pageIndex)
+                    
+                    if let completeData = originalPDF.dataRepresentation() {
+                        print("DEBUG Markup: Successfully saved via attemptSave")
+                        self.savedData = completeData
+                        completion(.success(completeData))
+                    }
+                }
+            } catch {
+                print("DEBUG Markup: Failed to read temp file in attemptSave: \(error)")
+            }
+        }
     }
     
     // MARK: - Private Methods
