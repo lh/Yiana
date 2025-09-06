@@ -12,11 +12,13 @@ import PDFKit
 enum ActiveSheet: Identifiable {
     case share(URL)
     case pageManagement
+    case markup
     
     var id: String {
         switch self {
         case .share: return "share"
         case .pageManagement: return "pageManagement"
+        case .markup: return "markup"
         }
     }
 }
@@ -37,6 +39,9 @@ struct DocumentEditView: View {
     @State private var currentViewedPage: Int = 0
     @State private var exportedPDFURL: URL?
     @State private var activeSheet: ActiveSheet?
+    @State private var markupCoordinator: MarkupCoordinator?
+    @State private var showingMarkupError = false
+    @State private var markupErrorMessage = ""
     
     private let scanningService = ScanningService()
     private let exportService = ExportService()
@@ -94,7 +99,21 @@ struct DocumentEditView: View {
                         }
                     )
                 }
+            case .markup:
+                if let coordinator = markupCoordinator {
+                    MarkupViewWrapper(coordinator: coordinator)
+                        .ignoresSafeArea()
+                        .onDisappear {
+                            markupCoordinator = nil
+                            activeSheet = nil
+                        }
+                }
             }
+        }
+        .alert("Markup Error", isPresented: $showingMarkupError) {
+            Button("OK") { }
+        } message: {
+            Text(markupErrorMessage)
         }
     }
     
@@ -202,6 +221,20 @@ struct DocumentEditView: View {
                             }
                         
                         Spacer()
+                        
+                        // Markup button
+                        if viewModel.pdfData != nil {
+                            Button(action: {
+                                presentMarkup()
+                            }) {
+                                Image(systemName: "pencil.tip.crop.circle")
+                                    .font(.title3)
+                                    .foregroundColor(.accentColor)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .padding(.trailing, 4)
+                        }
                         
                         // Export button
                         if viewModel.pdfData != nil {
@@ -342,6 +375,80 @@ struct DocumentEditView: View {
         }
     }
     
+    private func presentMarkup() {
+        guard let viewModel = viewModel, let pdfData = viewModel.pdfData else {
+            print("DEBUG Markup: No PDF data to mark up")
+            return
+        }
+        
+        // Check file size limit
+        if !MarkupCoordinator.canMarkup(pdfData: pdfData) {
+            markupErrorMessage = "This document is too large for markup (maximum 50MB). Current size: \(MarkupCoordinator.formattedFileSize(for: pdfData))"
+            showingMarkupError = true
+            return
+        }
+        
+        do {
+            // Create coordinator
+            markupCoordinator = try MarkupCoordinator(pdfData: pdfData) { result in
+                Task { @MainActor in
+                    await handleMarkupResult(result)
+                }
+            }
+            
+            // Present markup interface
+            activeSheet = .markup
+            
+        } catch {
+            markupErrorMessage = "Failed to prepare document for markup: \(error.localizedDescription)"
+            showingMarkupError = true
+        }
+    }
+    
+    private func handleMarkupResult(_ result: Result<Data, Error>) async {
+        switch result {
+        case .success(let markedPDFData):
+            print("DEBUG Markup: Received marked PDF with \(markedPDFData.count) bytes")
+            
+            // Update the document with marked-up PDF
+            if let viewModel = viewModel {
+                // TODO: Create backup before first markup
+                // TODO: Implement atomic save
+                
+                // Update PDF data
+                viewModel.pdfData = markedPDFData
+                viewModel.hasChanges = true
+                
+                // Re-extract text for search
+                if let pdfDocument = PDFDocument(data: markedPDFData) {
+                    let extractedText = pdfDocument.string ?? ""
+                    print("DEBUG Markup: Extracted \(extractedText.count) characters of text")
+                    // TODO: Update metadata with extracted text
+                }
+                
+                // Save the document
+                let saved = await viewModel.save()
+                if saved {
+                    print("DEBUG Markup: Document saved successfully")
+                } else {
+                    markupErrorMessage = "Failed to save marked-up document"
+                    showingMarkupError = true
+                }
+            }
+            
+            // Dismiss markup interface
+            activeSheet = nil
+            markupCoordinator = nil
+            
+        case .failure(let error):
+            print("DEBUG Markup: Failed - \(error)")
+            markupErrorMessage = error.localizedDescription
+            showingMarkupError = true
+            activeSheet = nil
+            markupCoordinator = nil
+        }
+    }
+    
     private func exportPDF() {
         guard let viewModel = viewModel, let pdfData = viewModel.pdfData else {
             print("DEBUG Export: No PDF data to export")
@@ -438,6 +545,23 @@ struct ContentPlaceholderView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGray6))
+    }
+}
+
+// MARK: - MarkupViewWrapper
+
+struct MarkupViewWrapper: UIViewControllerRepresentable {
+    let coordinator: MarkupCoordinator
+    
+    func makeUIViewController(context: Context) -> UINavigationController {
+        let previewController = coordinator.createPreviewController()
+        let navController = UINavigationController(rootViewController: previewController)
+        navController.modalPresentationStyle = .fullScreen
+        return navController
+    }
+    
+    func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {
+        // No updates needed
     }
 }
 
