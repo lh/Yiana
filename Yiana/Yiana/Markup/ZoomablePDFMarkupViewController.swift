@@ -369,7 +369,7 @@ class ZoomablePDFMarkupViewController: UIViewController {
         // Drawing coordinates: origin at top-left, Y increases downward
         // PDF coordinates: origin at bottom-left, Y increases upward
         
-        for (index, line) in drawingView.lines.enumerated() {
+        for line in drawingView.lines {
             if line.points.isEmpty { continue }
             
             // First, find the bounds of the original line in drawing coordinates
