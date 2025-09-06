@@ -389,12 +389,17 @@ struct DocumentEditView: View {
         }
         
         do {
-            // Create coordinator
-            markupCoordinator = try MarkupCoordinator(pdfData: pdfData) { result in
+            // Create coordinator with current page
+            markupCoordinator = try MarkupCoordinator(
+                pdfData: pdfData,
+                currentPageIndex: currentViewedPage
+            ) { result in
                 Task { @MainActor in
                     await handleMarkupResult(result)
                 }
             }
+            
+            print("DEBUG Markup: Opening markup for page \(currentViewedPage + 1)")
             
             // Present markup interface
             activeSheet = .markup

@@ -20,23 +20,47 @@ class MarkupCoordinator: NSObject {
     private let sourceURL: URL
     private let completion: (Result<Data, Error>) -> Void
     private var tempFileURL: URL?
+    private let originalPDFData: Data
+    private let pageIndex: Int
     
     // MARK: - Initialization
     
-    init(pdfData: Data, completion: @escaping (Result<Data, Error>) -> Void) throws {
+    init(pdfData: Data, currentPageIndex: Int, completion: @escaping (Result<Data, Error>) -> Void) throws {
+        // Validate inputs
+        guard let pdfDocument = PDFDocument(data: pdfData),
+              currentPageIndex >= 0,
+              currentPageIndex < pdfDocument.pageCount,
+              let currentPage = pdfDocument.page(at: currentPageIndex) else {
+            throw MarkupError.invalidPDF
+        }
+        
+        // Store original data for merging later
+        self.originalPDFData = pdfData
+        self.pageIndex = currentPageIndex
+        self.completion = completion
+        
+        // Create single-page PDF
+        let singlePagePDF = PDFDocument()
+        singlePagePDF.insert(currentPage, at: 0)
+        
+        guard let singlePageData = singlePagePDF.dataRepresentation() else {
+            throw MarkupError.invalidPDF
+        }
+        
         // Create a temporary file for QLPreviewController
         let tempDir = FileManager.default.temporaryDirectory
-        let tempFileName = "markup_\(UUID().uuidString).pdf"
+        let tempFileName = "markup_page_\(currentPageIndex)_\(UUID().uuidString).pdf"
         let tempURL = tempDir.appendingPathComponent(tempFileName)
         
-        // Write PDF data to temp file
-        try pdfData.write(to: tempURL)
+        // Write single page PDF data to temp file
+        try singlePageData.write(to: tempURL)
         
         self.sourceURL = tempURL
         self.tempFileURL = tempURL
-        self.completion = completion
         
         super.init()
+        
+        print("DEBUG Markup: Extracted page \(currentPageIndex + 1) for markup")
     }
     
     deinit {
@@ -80,27 +104,46 @@ extension MarkupCoordinator: QLPreviewControllerDelegate {
     }
     
     func previewController(_ controller: QLPreviewController, didSaveEditedCopyOf previewItem: QLPreviewItem, at modifiedContentsURL: URL) {
-        // Read the marked-up PDF
+        // Read the marked-up single page PDF
         do {
-            let markedPDFData = try Data(contentsOf: modifiedContentsURL)
+            let markedPageData = try Data(contentsOf: modifiedContentsURL)
             
             // Verify it's valid PDF data
-            guard let pdfDocument = PDFDocument(data: markedPDFData) else {
+            guard let markedPagePDF = PDFDocument(data: markedPageData),
+                  markedPagePDF.pageCount == 1,
+                  let markedPage = markedPagePDF.page(at: 0) else {
+                completion(.failure(MarkupError.invalidPDF))
+                return
+            }
+            
+            // Load the original full document
+            guard let originalPDF = PDFDocument(data: originalPDFData) else {
+                completion(.failure(MarkupError.invalidPDF))
+                return
+            }
+            
+            // Replace the page in the original document
+            originalPDF.removePage(at: pageIndex)
+            originalPDF.insert(markedPage, at: pageIndex)
+            
+            // Get the complete document with the marked-up page
+            guard let completeData = originalPDF.dataRepresentation() else {
                 completion(.failure(MarkupError.invalidPDF))
                 return
             }
             
             // Log for debugging
-            print("DEBUG Markup: Successfully received marked PDF with \(pdfDocument.pageCount) pages")
+            print("DEBUG Markup: Successfully merged marked page \(pageIndex + 1) back into document")
+            print("DEBUG Markup: Final document has \(originalPDF.pageCount) pages")
             
-            // Return the marked-up data
-            completion(.success(markedPDFData))
+            // Return the complete document with the marked-up page
+            completion(.success(completeData))
             
             // Clean up the modified file
             try? FileManager.default.removeItem(at: modifiedContentsURL)
             
         } catch {
-            print("DEBUG Markup: Failed to read marked PDF - \(error)")
+            print("DEBUG Markup: Failed to process marked page - \(error)")
             completion(.failure(error))
         }
     }
