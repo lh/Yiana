@@ -381,6 +381,21 @@ struct DocumentEditView: View {
             return
         }
         
+        // Check which implementation to use
+        switch MarkupConfiguration.activeImplementation {
+        case .qlPreviewController:
+            presentQLPreviewMarkup(pdfData: pdfData)
+        case .pdfKit:
+            presentPDFKitMarkup(pdfData: pdfData)
+        case .pencilKit:
+            // Future implementation
+            print("DEBUG Markup: PencilKit implementation not yet available")
+        }
+    }
+    
+    private func presentQLPreviewMarkup(pdfData: Data) {
+        // Original QLPreviewController implementation (preserved for when Apple fixes the bug)
+        
         // Check file size limit
         if !MarkupCoordinator.canMarkup(pdfData: pdfData) {
             markupErrorMessage = "This document is too large for markup (maximum 50MB). Current size: \(MarkupCoordinator.formattedFileSize(for: pdfData))"
@@ -388,27 +403,24 @@ struct DocumentEditView: View {
             return
         }
         
-        // Show instructions
-        let alert = UIAlertController(
-            title: "Markup Page \(currentViewedPage + 1)",
-            message: "To save your annotations:\n\n1. Tap the Markup button (pencil icon) at the top\n2. Make your annotations\n3. Tap 'Done' in the markup toolbar\n\nImportant: Use the 'Done' button in the markup toolbar, not the < button.",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "Got it", style: .default) { _ in
-            self.proceedWithMarkup(pdfData: pdfData)
-        })
-        
-        // Present the alert
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootVC = windowScene.windows.first?.rootViewController {
-            rootVC.present(alert, animated: true)
+        // Show warning if using broken implementation
+        if MarkupConfiguration.shouldShowImplementationWarning {
+            let alert = UIAlertController(
+                title: "Warning: Known iOS Bug",
+                message: "Using QLPreviewController which has a known bug in iOS 17+. The Done button may not work. Consider using PDFKit implementation instead.",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "Continue Anyway", style: .destructive) { _ in
+                self.proceedWithQLMarkup(pdfData: pdfData)
+            })
+            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+            present(alert, animated: true)
         } else {
-            // Fallback if we can't show alert
-            proceedWithMarkup(pdfData: pdfData)
+            proceedWithQLMarkup(pdfData: pdfData)
         }
     }
     
-    private func proceedWithMarkup(pdfData: Data) {
+    private func proceedWithQLMarkup(pdfData: Data) {
         do {
             // Create coordinator with current page
             markupCoordinator = try MarkupCoordinator(
@@ -420,7 +432,7 @@ struct DocumentEditView: View {
                 }
             }
             
-            print("DEBUG Markup: Opening markup for page \(currentViewedPage + 1)")
+            print("DEBUG Markup: Opening QLPreview markup for page \(currentViewedPage + 1)")
             
             // Present markup interface
             activeSheet = .markup
@@ -429,6 +441,23 @@ struct DocumentEditView: View {
             markupErrorMessage = "Failed to prepare document for markup: \(error.localizedDescription)"
             showingMarkupError = true
         }
+    }
+    
+    private func presentPDFKitMarkup(pdfData: Data) {
+        // New PDFKit implementation (reliable)
+        print("DEBUG Markup: Using PDFKit implementation for page \(currentViewedPage + 1)")
+        
+        // Present PDFMarkupViewController
+        let markupVC = PDFMarkupViewController(
+            pdfData: pdfData,
+            pageIndex: currentViewedPage
+        ) { [weak self] result in
+            Task { @MainActor in
+                await self?.handleMarkupResult(result)
+            }
+        }
+        
+        present(markupVC, animated: true)
     }
     
     private func handleMarkupResult(_ result: Result<Data, Error>) async {
