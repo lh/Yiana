@@ -115,10 +115,9 @@ class OverlayPDFMarkupViewController: UIViewController {
         pdfView.backgroundColor = .systemGray6
         pdfView.isUserInteractionEnabled = false // Disable interaction so overlay gets touches
         
-        // Create a document with just our page
-        let singlePageDoc = PDFDocument()
-        singlePageDoc.insert(currentPage, at: 0)
-        pdfView.document = singlePageDoc
+        // Show full document and navigate to target page to avoid moving pages between documents
+        pdfView.document = pdfDocument
+        pdfView.go(to: currentPage)
         
         view.addSubview(pdfView)
         
@@ -254,40 +253,53 @@ class OverlayPDFMarkupViewController: UIViewController {
     
     private func addDrawingAnnotationsToPDF() {
         guard let page = pdfView.currentPage else { return }
-        
-        // Convert each line to a PDF annotation
+
         for line in drawingView.lines {
-            if line.points.isEmpty { continue }
-            
-            // Convert points from view coordinates to PDF page coordinates
-            let path = UIBezierPath()
+            if line.points.count < 2 { continue }
+
+            // 1) Convert all points to PDF page coordinates (bottom-left origin)
             var pdfPoints: [CGPoint] = []
-            
-            for point in line.points {
-                let pdfPoint = pdfView.convert(point, to: page)
-                pdfPoints.append(pdfPoint)
+            pdfPoints.reserveCapacity(line.points.count)
+            for p in line.points {
+                pdfPoints.append(pdfView.convert(p, to: page))
             }
-            
-            if pdfPoints.isEmpty { continue }
-            
-            // Create path
-            path.move(to: pdfPoints[0])
+
+            // 2) Compute bounds in PDF coordinates
+            var minX = CGFloat.greatestFiniteMagnitude
+            var minY = CGFloat.greatestFiniteMagnitude
+            var maxX: CGFloat = -CGFloat.greatestFiniteMagnitude
+            var maxY: CGFloat = -CGFloat.greatestFiniteMagnitude
+            for q in pdfPoints {
+                minX = min(minX, q.x)
+                minY = min(minY, q.y)
+                maxX = max(maxX, q.x)
+                maxY = max(maxY, q.y)
+            }
+            let padding: CGFloat = 3
+            let bounds = CGRect(x: minX - padding,
+                                y: minY - padding,
+                                width: (maxX - minX) + 2*padding,
+                                height: (maxY - minY) + 2*padding)
+
+            // 3) Build path with RELATIVE points to bounds origin (no Y flip needed: already PDF coords)
+            let path = UIBezierPath()
+            path.move(to: CGPoint(x: pdfPoints[0].x - bounds.minX, y: pdfPoints[0].y - bounds.minY))
             for i in 1..<pdfPoints.count {
-                path.addLine(to: pdfPoints[i])
+                let rel = CGPoint(x: pdfPoints[i].x - bounds.minX, y: pdfPoints[i].y - bounds.minY)
+                path.addLine(to: rel)
             }
-            
-            // Calculate bounds with padding
-            let bounds = path.bounds.insetBy(dx: -5, dy: -5)
-            
-            // Create ink annotation
+
+            // 4) Create and add annotation
             let annotation = PDFAnnotation(bounds: bounds, forType: .ink, withProperties: nil)
             annotation.color = line.color
+            let border = PDFBorder()
+            border.lineWidth = 2.0
+            annotation.border = border
             annotation.add(path)
-            
             page.addAnnotation(annotation)
         }
-        
-        print("DEBUG: Added \(drawingView.lines.count) annotations to PDF")
+
+        print("DEBUG: Added \(drawingView.lines.count) annotations to PDF (Overlay)")
     }
     
     // MARK: - Flattening
@@ -318,11 +330,15 @@ class OverlayPDFMarkupViewController: UIViewController {
               let flattenedPage = flattenedPageDoc.page(at: 0) else {
             return nil
         }
-        
-        pdfDocument.removePage(at: pageIndex)
-        pdfDocument.insert(flattenedPage, at: pageIndex)
-        
-        return pdfDocument.dataRepresentation()
+        // Construct a new document replacing only the target page
+        let liveIndex = pdfDocument.index(for: currentPage)
+        let target = (liveIndex >= 0) ? liveIndex : pageIndex
+        let newDoc = PDFDocument()
+        for i in 0..<pdfDocument.pageCount {
+            let src = (i == target) ? flattenedPage : (pdfDocument.page(at: i) ?? flattenedPage)
+            newDoc.insert(src, at: newDoc.pageCount)
+        }
+        return newDoc.dataRepresentation()
     }
     
     private func showError(_ message: String) {

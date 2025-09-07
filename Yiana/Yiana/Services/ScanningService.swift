@@ -101,10 +101,10 @@ class ScanningService: ScanningServiceProtocol {
         guard !images.isEmpty else { return nil }
         
         return await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            DispatchQueue.global(qos: .userInitiated).async {
                 // Process images based on color mode
-                let processedImages = colorMode == .blackAndWhite ? 
-                    images.compactMap { self?.convertToBlackAndWhite($0) } : images
+                let processedImages = colorMode == .blackAndWhite ?
+                    images.compactMap { ScanningService.convertToBlackAndWhite($0) } : images
                 
                 let pdfData = NSMutableData()
                 UIGraphicsBeginPDFContextToData(pdfData, .zero, nil)
@@ -136,7 +136,7 @@ class ScanningService: ScanningServiceProtocol {
         }
     }
     
-    private func convertToBlackAndWhite(_ image: UIImage) -> UIImage? {
+    private static func convertToBlackAndWhite(_ image: UIImage) -> UIImage? {
         guard let ciImage = CIImage(image: image) else { return image }
         
         // Apply noir filter for black and white conversion

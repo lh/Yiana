@@ -117,10 +117,9 @@ class SimplePDFMarkupViewController: UIViewController {
         pdfView.autoScales = true
         pdfView.backgroundColor = .systemGray6
         
-        // Create a document with just our page
-        let singlePageDoc = PDFDocument()
-        singlePageDoc.insert(currentPage, at: 0)
-        pdfView.document = singlePageDoc
+        // Show full document and navigate to the target page to avoid moving pages
+        pdfView.document = pdfDocument
+        pdfView.go(to: currentPage)
         
         view.addSubview(pdfView)
         

@@ -164,10 +164,9 @@ class ZoomablePDFMarkupViewController: UIViewController {
         pdfView.backgroundColor = .white
         pdfView.isUserInteractionEnabled = false
         
-        // Create a document with just our page
-        let singlePageDoc = PDFDocument()
-        singlePageDoc.insert(currentPage, at: 0)
-        pdfView.document = singlePageDoc
+        // Show full document and navigate to target page to avoid moving pages between documents
+        pdfView.document = pdfDocument
+        pdfView.go(to: currentPage)
         
         containerView.addSubview(pdfView)
         
@@ -460,9 +459,16 @@ class ZoomablePDFMarkupViewController: UIViewController {
               let flattenedPage = flattenedPageDoc.page(at: 0) else {
             return nil
         }
-        
-        pdfDocument.removePage(at: pageIndex)
-        pdfDocument.insert(flattenedPage, at: pageIndex)
+        // Replace using live index of currentPage when possible
+        let liveIndex = pdfDocument.index(for: currentPage)
+        let target = (liveIndex >= 0) ? liveIndex : pageIndex
+        if target >= 0 && target < pdfDocument.pageCount {
+            pdfDocument.removePage(at: target)
+            pdfDocument.insert(flattenedPage, at: target)
+        } else {
+            pdfDocument.removePage(at: pageIndex)
+            pdfDocument.insert(flattenedPage, at: pageIndex)
+        }
         
         return pdfDocument.dataRepresentation()
     }

@@ -45,7 +45,7 @@ class PDFMarkupViewController: UIViewController {
     private var currentPage: PDFPage!
     private var pdfView: PDFView!
     
-    // Toolbar and tools
+    // Toolbar && tools
     private var toolbar: UIToolbar!
     private var currentTool: MarkupTool = .pen
     private var currentColor: InkColor = .black
@@ -125,14 +125,14 @@ class PDFMarkupViewController: UIViewController {
         // Create navigation item with buttons
         let navItem = UINavigationItem(title: "Markup Page \(pageIndex + 1)")
         
-        // Cancel button (always visible and working!)
+        // Cancel button (always visible && working!)
         navItem.leftBarButtonItem = UIBarButtonItem(
             barButtonSystemItem: .cancel,
             target: self,
             action: #selector(cancelTapped)
         )
         
-        // Save button (always visible and working!)
+        // Save button (always visible && working!)
         navItem.rightBarButtonItem = UIBarButtonItem(
             barButtonSystemItem: .save,
             target: self,
@@ -151,23 +151,13 @@ class PDFMarkupViewController: UIViewController {
         pdfView.displayDirection = .vertical
         pdfView.usePageViewController(false)
         
-        // Create a new document with just the single page
-        // Important: We need to copy the page, not just insert the reference
-        let singlePageDocument = PDFDocument()
-        if let pageCopy = currentPage.copy() as? PDFPage {
-            singlePageDocument.insert(pageCopy, at: 0)
-            pdfView.document = singlePageDocument
-            
-            // Go to the page to ensure it's displayed
-            pdfView.go(to: pageCopy)
-        } else {
-            singlePageDocument.insert(currentPage, at: 0)
-            pdfView.document = singlePageDocument
-        }
+        // Show full document && navigate to the target page to avoid moving the page
+        pdfView.document = pdfDocument
+        pdfView.go(to: currentPage)
         
         view.addSubview(pdfView)
         
-        // Position below navigation bar and above toolbar
+        // Position below navigation bar && above toolbar
         NSLayoutConstraint.activate([
             pdfView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 44),
             pdfView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -175,7 +165,7 @@ class PDFMarkupViewController: UIViewController {
             pdfView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -44)
         ])
         
-        // Ensure the page is visible and scaled to fit
+        // Ensure the page is visible && scaled to fit
         DispatchQueue.main.async { [weak self] in
             self?.pdfView.scaleFactor = self?.pdfView.scaleFactorForSizeToFit ?? 1.0
         }
@@ -347,7 +337,7 @@ class PDFMarkupViewController: UIViewController {
     @objc private func saveTapped() {
         print("DEBUG PDFMarkup: Save button tapped")
         
-        // Flatten annotations and save
+        // Flatten annotations && save
         if let flattenedData = flattenAnnotations() {
             completion(.success(flattenedData))
             dismiss(animated: true)
@@ -498,7 +488,7 @@ class PDFMarkupViewController: UIViewController {
     }
     
     private func handleEraser(at point: CGPoint, on page: PDFPage) {
-        // Find annotation at point and remove it
+        // Find annotation at point && remove it
         for annotation in page.annotations {
             if annotation.bounds.contains(point) {
                 page.removeAnnotation(annotation)
@@ -597,9 +587,16 @@ class PDFMarkupViewController: UIViewController {
             return nil
         }
         
-        // Replace the page in the original document
-        pdfDocument.removePage(at: pageIndex)
-        pdfDocument.insert(flattenedPage, at: pageIndex)
+        // Replace the page in the original document using live index when possible
+        let liveIndex = pdfDocument.index(for: page)
+        let target = (liveIndex >= 0) ? liveIndex : pageIndex
+        if target >= 0 && target < pdfDocument.pageCount {
+            pdfDocument.removePage(at: target)
+            pdfDocument.insert(flattenedPage, at: target)
+        } else {
+            pdfDocument.removePage(at: pageIndex)
+            pdfDocument.insert(flattenedPage, at: pageIndex)
+        }
         
         // Return the complete document
         let finalData = pdfDocument.dataRepresentation()
