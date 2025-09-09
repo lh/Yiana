@@ -1,6 +1,7 @@
 import XCTest
 @testable import Yiana
 
+@MainActor
 final class OCRSearchTests: XCTestCase {
     func testOCRSearchFindsMatchAndReportsOneBasedPage() async throws {
         let docsDir = try TempDir.makeUnique()
@@ -40,4 +41,3 @@ final class OCRSearchTests: XCTestCase {
         XCTAssertEqual(match?.matchType == .content || match?.matchType == .both, true)
     }
 }
-

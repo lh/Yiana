@@ -5,11 +5,10 @@
 //  Markup using PencilKit overlay; flattens strokes into PDF on save
 //
 
+#if os(iOS)
 import UIKit
 import PDFKit
 import PencilKit
-
-#if os(iOS)
 
 final class PencilKitMarkupViewController: UIViewController, PKCanvasViewDelegate, UIScrollViewDelegate {
 

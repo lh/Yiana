@@ -21,7 +21,7 @@ final class PDFPageIndexingTests: XCTestCase {
         XCTAssertEqual(doc.pageCount, 3)
 
         // Remove last page using 1-based index
-        doc.removePage(at: 3)
+        doc.removePage(byNumber: 3)
         XCTAssertEqual(doc.pageCount, 2)
     }
 }

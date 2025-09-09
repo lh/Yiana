@@ -5,10 +5,9 @@
 //  PDF markup using PDFKit with reliable Save functionality
 //
 
+#if os(iOS)
 import UIKit
 import PDFKit
-
-#if os(iOS)
 
 /// Tool types for markup
 enum MarkupTool {
@@ -587,22 +586,16 @@ class PDFMarkupViewController: UIViewController {
             return nil
         }
         
-        // Replace the page in the original document using live index when possible
+                // Construct a new document replacing only the target page to avoid index shifts
         let liveIndex = pdfDocument.index(for: page)
         let target = (liveIndex >= 0) ? liveIndex : pageIndex
-        if target >= 0 && target < pdfDocument.pageCount {
-            pdfDocument.removePage(at: target)
-            pdfDocument.insert(flattenedPage, at: target)
-        } else {
-            pdfDocument.removePage(at: pageIndex)
-            pdfDocument.insert(flattenedPage, at: pageIndex)
+        let newDoc = PDFDocument()
+        for i in 0..<pdfDocument.pageCount {
+            let src = (i == target) ? flattenedPage : (pdfDocument.page(at: i) ?? flattenedPage)
+            newDoc.insert(src, at: newDoc.pageCount)
         }
-        
-        // Return the complete document
-        let finalData = pdfDocument.dataRepresentation()
         print("DEBUG PDFMarkup: Successfully flattened page \(pageIndex + 1)")
-        
-        return finalData
+        return newDoc.dataRepresentation()
     }
 }
 

@@ -5,10 +5,9 @@
 //  PDF markup with zoom/pan support using overlay approach
 //
 
+#if os(iOS)
 import UIKit
 import PDFKit
-
-#if os(iOS)
 
 class ZoomablePDFMarkupViewController: UIViewController {
     

@@ -14,19 +14,35 @@ struct SimpleMacPDFViewer: NSViewRepresentable {
     let pdfData: Data
     @Binding var currentPage: Int  // 1-based page number
     let searchTerm: String?  // Term to highlight
+    @ObservedObject var annotationViewModel: AnnotationViewModel
+    let isMarkupMode: Bool
     @State private var pdfView = PDFView()
     
     func makeNSView(context: Context) -> PDFView {
         // Configure PDF view
-        pdfView.autoScales = true
+        pdfView.autoScales = false // set after document to avoid min/max conflicts
         pdfView.displayMode = .singlePage
         pdfView.displayDirection = .horizontal
-        pdfView.backgroundColor = NSColor.white
-        pdfView.displaysPageBreaks = false
+        pdfView.displayBox = .cropBox
+        pdfView.displaysPageBreaks = true
+        pdfView.backgroundColor = NSColor.windowBackgroundColor
+        // Set very safe magnification bounds BEFORE assigning document to avoid AppKit crashes
+        pdfView.minScaleFactor = 0.001
+        pdfView.maxScaleFactor = 10.0
+        pdfView.delegate = context.coordinator
         
         // Load the document
         if let document = PDFDocument(data: pdfData) {
+            // Assign document after safe bounds set
             pdfView.document = document
+            // Now turn on autoScales and fit
+            pdfView.autoScales = true
+            // Re-establish sane bounds in case PDFKit tweaked them
+            let fit = pdfView.scaleFactorForSizeToFit
+            pdfView.minScaleFactor = min(0.001, fit)
+            pdfView.maxScaleFactor = max(fit * 2.0, fit + 0.01)
+            pdfView.scaleFactor = fit
+            pdfView.layoutDocumentView()
             
             // Highlight search term if provided
             if let searchTerm = searchTerm, !searchTerm.isEmpty {
@@ -59,16 +75,32 @@ struct SimpleMacPDFViewer: NSViewRepresentable {
             print("DEBUG SimpleMacPDFViewer.updateNSView: Cannot navigate to page \(currentPage) - out of bounds?")
         }
         
-        // Only update document if the data has changed
-        if let currentDocument = nsView.document,
-           currentDocument.dataRepresentation() == pdfData {
+        // Update annotation view model's current page when in markup mode
+        if isMarkupMode, let page = nsView.currentPage {
+            annotationViewModel.setCurrentPage(page)
+        }
+        
+        // Only update document if the input data identity has changed
+        let dataId = pdfData.hashValue
+        if context.coordinator.lastDocumentHash == dataId {
             return // No change needed
         }
         
         // Document has changed, update it
         if let document = PDFDocument(data: pdfData) {
+            // Set safe bounds before swapping document
+            nsView.autoScales = false
+            nsView.minScaleFactor = 0.001
+            nsView.maxScaleFactor = 10.0
             nsView.document = document
-            
+            // Fit and restore
+            nsView.autoScales = true
+            let fit = nsView.scaleFactorForSizeToFit
+            nsView.minScaleFactor = min(0.001, fit)
+            nsView.maxScaleFactor = max(fit * 2.0, fit + 0.01)
+            nsView.scaleFactor = fit
+            nsView.layoutDocumentView()
+            context.coordinator.lastDocumentHash = dataId
             // Re-apply search highlighting if needed
             if let searchTerm = searchTerm, !searchTerm.isEmpty {
                 highlightSearchTerm(searchTerm, in: nsView)
@@ -77,7 +109,7 @@ struct SimpleMacPDFViewer: NSViewRepresentable {
     }
     
     func makeCoordinator() -> Coordinator {
-        Coordinator()
+        Coordinator(annotationViewModel: annotationViewModel, isMarkupMode: isMarkupMode)
     }
     
     private func highlightSearchTerm(_ term: String, in pdfView: PDFView) {
@@ -122,10 +154,19 @@ struct SimpleMacPDFViewer: NSViewRepresentable {
         }
     }
     
-    class Coordinator: NSObject {
+    class Coordinator: NSObject, PDFViewDelegate {
         var keyMonitor: Any?
         var scrollMonitor: Any?
         var parent: SimpleMacPDFViewer?
+        let annotationViewModel: AnnotationViewModel
+        let isMarkupMode: Bool
+        var lastDocumentHash: Int?
+        
+        init(annotationViewModel: AnnotationViewModel, isMarkupMode: Bool) {
+            self.annotationViewModel = annotationViewModel
+            self.isMarkupMode = isMarkupMode
+            super.init()
+        }
         
         deinit {
             if let monitor = keyMonitor {
@@ -227,14 +268,21 @@ struct EnhancedMacPDFViewer: View {
     let pdfData: Data
     let initialPage: Int?  // 1-based page number
     let searchTerm: String?  // Term to highlight in the PDF
+    @Binding var isMarkupMode: Bool
+    @ObservedObject var annotationViewModel: AnnotationViewModel
+    
     @State private var showingSidebar = true
     @State private var currentPage = 1  // 1-based current page
     @State private var pdfDocument: PDFDocument?
+    @State private var showingInspector = false
     
-    init(pdfData: Data, initialPage: Int? = nil, searchTerm: String? = nil) {
+    init(pdfData: Data, initialPage: Int? = nil, searchTerm: String? = nil, 
+         isMarkupMode: Binding<Bool>, annotationViewModel: AnnotationViewModel) {
         self.pdfData = pdfData
         self.initialPage = initialPage
         self.searchTerm = searchTerm
+        self._isMarkupMode = isMarkupMode
+        self.annotationViewModel = annotationViewModel
     }
     
     var body: some View {
@@ -269,7 +317,24 @@ struct EnhancedMacPDFViewer: View {
             }
             
             VStack(spacing: 0) {
-                // Toolbar
+                // Show markup toolbar when in markup mode
+                if isMarkupMode {
+                    MarkupToolbar(
+                        selectedTool: $annotationViewModel.selectedTool,
+                        isMarkupMode: $isMarkupMode,
+                        onCommit: {
+                            annotationViewModel.commitAllChanges()
+                        },
+                        onRevert: {
+                            annotationViewModel.revertAllChanges()
+                        }
+                    )
+                    .padding()
+                    
+                    Divider()
+                }
+                
+                // Regular toolbar
                 HStack {
                     Button(action: { 
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -295,7 +360,13 @@ struct EnhancedMacPDFViewer: View {
                 Divider()
                 
                 // PDF View with binding to current page
-                SimpleMacPDFViewer(pdfData: pdfData, currentPage: $currentPage, searchTerm: searchTerm)
+                SimpleMacPDFViewer(
+                    pdfData: pdfData, 
+                    currentPage: $currentPage, 
+                    searchTerm: searchTerm,
+                    annotationViewModel: annotationViewModel,
+                    isMarkupMode: isMarkupMode
+                )
             }
         }
         .onAppear {

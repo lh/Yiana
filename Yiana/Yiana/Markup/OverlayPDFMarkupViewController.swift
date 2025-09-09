@@ -5,10 +5,9 @@
 //  PDF markup using a transparent overlay view to capture touches
 //
 
+#if os(iOS)
 import UIKit
 import PDFKit
-
-#if os(iOS)
 
 class OverlayPDFMarkupViewController: UIViewController {
     

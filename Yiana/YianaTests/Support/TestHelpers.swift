@@ -35,7 +35,7 @@ enum TestPDFFactory {
         let doc = PDFDocument()
         for _ in 0..<pageCount {
             let page = PDFPage()
-            doc.insert(page!, at: doc.pageCount)
+            doc.insert(page, at: doc.pageCount)
         }
         return doc.dataRepresentation() ?? Data()
         #endif

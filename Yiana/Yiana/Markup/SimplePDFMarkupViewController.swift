@@ -5,10 +5,10 @@
 //  Simplified PDF markup using proven patterns from reference implementations
 //
 
+#if os(iOS)
+
 import UIKit
 import PDFKit
-
-#if os(iOS)
 
 class SimplePDFMarkupViewController: UIViewController {
     

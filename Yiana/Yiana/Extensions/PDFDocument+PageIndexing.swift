@@ -40,7 +40,7 @@ extension PDFDocument {
     
     /// Remove a page using 1-based index
     /// - Parameter pageNumber: 1-based page number to remove
-    func removePage(at pageNumber: Int) {
+    func removePage(byNumber pageNumber: Int) {
         guard pageNumber > 0 && pageNumber <= pageCount else { return }
         removePage(at: pageNumber - 1)
     }
