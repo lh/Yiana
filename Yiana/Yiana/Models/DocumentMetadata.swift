@@ -25,13 +25,13 @@ struct DocumentMetadata: Codable, Equatable {
     var pageCount: Int
     
     /// Tags associated with the document for organization
-    let tags: [String]
+    var tags: [String]
     
     /// Whether OCR processing has been completed
-    let ocrCompleted: Bool
-    
+    var ocrCompleted: Bool
+
     /// Full text extracted from the document via OCR
-    let fullText: String?
+    var fullText: String?
     
     init(
         id: UUID,

@@ -57,7 +57,12 @@ class PDFFlattenerTests: XCTestCase {
         context.beginPDFPage(nil)
         
         // Use AppKit/CoreText to draw a string, creating a text layer.
-        let attributedString = NSAttributedString(string: knownText, attributes: [.font: NSFont.systemFont(ofSize: 24)])
+        #if os(macOS)
+        let font = NSFont.systemFont(ofSize: 24)
+        #else
+        let font = UIFont.systemFont(ofSize: 24)
+        #endif
+        let attributedString = NSAttributedString(string: knownText, attributes: [.font: font])
         let frameSetter = CTFramesetterCreateWithAttributedString(attributedString)
         let framePath = CGPath(rect: pageBounds.insetBy(dx: 72, dy: 72), transform: nil)
         let frame = CTFramesetterCreateFrame(frameSetter, CFRange(location: 0, length: attributedString.length), framePath, nil)
@@ -123,7 +128,7 @@ class PDFFlattenerTests: XCTestCase {
 private class MockBadPDFPage: PDFPage {
     // By overriding bounds to return a zero rect, we can force the
     // CGContext creation in the flattener to fail, allowing us to test the error path.
-    override func bounds(for box: PDFDisplayBox) -> NSRect {
+    override func bounds(for box: PDFDisplayBox) -> CGRect {
         return .zero
     }
 }

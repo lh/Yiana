@@ -83,8 +83,12 @@ class MockScanningService: ScanningServiceProtocol {
     }
     
     func convertImagesToPDF(_ images: [UIImage]) async -> Data? {
+        return await convertImagesToPDF(images, colorMode: .color)
+    }
+
+    func convertImagesToPDF(_ images: [UIImage], colorMode: ScanColorMode) async -> Data? {
         guard !images.isEmpty else { return nil }
-        
+
         // Create a simple PDF
         let pdfData = NSMutableData()
         UIGraphicsBeginPDFContextToData(pdfData, .zero, nil)

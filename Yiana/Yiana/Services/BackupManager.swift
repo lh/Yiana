@@ -203,20 +203,26 @@ public final class BackupManager {
 
         var isStale = false
         do {
+            #if os(macOS)
             let resolvedURL = try URL(resolvingBookmarkData: bookmark, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
-            
+            #else
+            let resolvedURL = try URL(resolvingBookmarkData: bookmark, options: [], relativeTo: nil, bookmarkDataIsStale: &isStale)
+            #endif
+
             if isStale {
                 // In a real app, you would need to create a new bookmark and persist it.
                 // For now, we'll just throw an error.
                 throw BackupError.bookmarkIsStale
             }
-            
+
+            #if os(macOS)
             guard resolvedURL.startAccessingSecurityScopedResource() else {
                 throw BackupError.permissionDenied
             }
-            
+
             defer { resolvedURL.stopAccessingSecurityScopedResource() }
-            
+            #endif
+
             try action(resolvedURL)
             
         } catch let error as BackupError {
