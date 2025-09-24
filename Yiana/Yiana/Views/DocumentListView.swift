@@ -25,6 +25,8 @@ struct DocumentListView: View {
     @State private var newFolderName = ""
     @State private var searchText = ""
     @State private var isSearching = false
+    @State private var showingDeleteConfirmation = false
+    @State private var documentToDelete: URL?
     #if os(macOS)
     @State private var pdfImportData: PDFImportData? = nil
     @State private var isDraggingPDFs = false
@@ -241,6 +243,26 @@ struct DocumentListView: View {
                     createFolder()
                 }
             }
+            .alert("Delete Document", isPresented: $showingDeleteConfirmation) {
+                Button("Cancel", role: .cancel) {
+                    documentToDelete = nil
+                }
+                Button("Delete", role: .destructive) {
+                    if let url = documentToDelete {
+                        Task {
+                            do {
+                                try await viewModel.deleteDocument(at: url)
+                            } catch {
+                                viewModel.errorMessage = error.localizedDescription
+                                showingError = true
+                            }
+                        }
+                    }
+                    documentToDelete = nil
+                }
+            } message: {
+                Text("Are you sure you want to delete this document? This action cannot be undone.")
+            }
             .navigationDestination(for: URL.self) { url in
                 #if os(iOS)
                 DocumentEditView(documentURL: url)
@@ -392,14 +414,31 @@ struct DocumentListView: View {
                 Section(viewModel.isSearching ? "In This Folder" : "Documents") {
                     ForEach(viewModel.documentURLs, id: \.self) { url in
                         let searchResult = viewModel.searchResults.first { $0.documentURL == url }
-                        if let result = searchResult {
-                            NavigationLink(value: DocumentNavigationData(url: url, searchResult: result)) {
-                                DocumentRow(url: url, searchResult: result)
+                        Group {
+                            if let result = searchResult {
+                                NavigationLink(value: DocumentNavigationData(url: url, searchResult: result)) {
+                                    DocumentRow(url: url, searchResult: result)
+                                }
+                            } else {
+                                NavigationLink(value: url) {
+                                    DocumentRow(url: url, searchResult: nil)
+                                }
                             }
-                        } else {
-                            NavigationLink(value: url) {
-                                DocumentRow(url: url, searchResult: nil)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                documentToDelete = url
+                                showingDeleteConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
                             }
+
+                            Button {
+                                duplicateDocument(url)
+                            } label: {
+                                Label("Duplicate", systemImage: "doc.on.doc")
+                            }
+                            .tint(.indigo)
                         }
                     }
                     .onDelete(perform: deleteDocuments)
@@ -529,7 +568,18 @@ struct DocumentListView: View {
             }
         }
     }
-    
+
+    private func duplicateDocument(_ url: URL) {
+        Task {
+            do {
+                try await viewModel.duplicateDocument(at: url)
+            } catch {
+                viewModel.errorMessage = "Could not duplicate document: \(error.localizedDescription)"
+                showingError = true
+            }
+        }
+    }
+
     private func createFolder() {
         Task {
             guard !newFolderName.isEmpty else { return }

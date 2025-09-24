@@ -98,18 +98,101 @@ class DocumentRepositoryTests: XCTestCase {
         XCTAssertTrue(url3.lastPathComponent.contains("Duplicate Test 2"))
     }
     
+    func testDuplicateDocument() throws {
+        // Create an original document
+        let originalURL = testDirectory.appendingPathComponent("Original.yianazip")
+        let testData = "Test content".data(using: .utf8)!
+        try testData.write(to: originalURL)
+
+        // Duplicate the document
+        let duplicateURL = try repository.duplicateDocument(at: originalURL)
+
+        // Verify the duplicate exists
+        XCTAssertTrue(FileManager.default.fileExists(atPath: duplicateURL.path))
+
+        // Verify the duplicate has a different name
+        XCTAssertNotEqual(originalURL, duplicateURL)
+        XCTAssertTrue(duplicateURL.lastPathComponent.contains("Original Copy"))
+
+        // Verify the content is the same
+        let duplicateData = try Data(contentsOf: duplicateURL)
+        XCTAssertEqual(duplicateData, testData)
+    }
+
+    func testDuplicateDocumentMultipleTimes() throws {
+        // Create an original document
+        let originalURL = testDirectory.appendingPathComponent("Original.yianazip")
+        let testData = "Test content".data(using: .utf8)!
+        try testData.write(to: originalURL)
+
+        // First duplicate
+        let duplicate1 = try repository.duplicateDocument(at: originalURL)
+        XCTAssertTrue(duplicate1.lastPathComponent.contains("Original Copy.yianazip"))
+
+        // Second duplicate
+        let duplicate2 = try repository.duplicateDocument(at: originalURL)
+        XCTAssertTrue(duplicate2.lastPathComponent.contains("Original Copy 1.yianazip"))
+
+        // Third duplicate
+        let duplicate3 = try repository.duplicateDocument(at: originalURL)
+        XCTAssertTrue(duplicate3.lastPathComponent.contains("Original Copy 2.yianazip"))
+
+        // Verify all exist
+        XCTAssertTrue(FileManager.default.fileExists(atPath: originalURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: duplicate1.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: duplicate2.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: duplicate3.path))
+    }
+
+    func testDuplicateDocumentInSubfolder() throws {
+        // Create a subfolder
+        try repository.createFolder(name: "TestFolder")
+        repository.navigateToFolder("TestFolder")
+
+        // Create an original document in the subfolder
+        let originalURL = testDirectory
+            .appendingPathComponent("TestFolder")
+            .appendingPathComponent("Original.yianazip")
+        try FileManager.default.createDirectory(
+            at: testDirectory.appendingPathComponent("TestFolder"),
+            withIntermediateDirectories: true
+        )
+        let testData = "Test content".data(using: .utf8)!
+        try testData.write(to: originalURL)
+
+        // Duplicate the document
+        let duplicateURL = try repository.duplicateDocument(at: originalURL)
+
+        // Verify the duplicate is in the same subfolder
+        XCTAssertTrue(FileManager.default.fileExists(atPath: duplicateURL.path))
+        XCTAssertEqual(
+            duplicateURL.deletingLastPathComponent().lastPathComponent,
+            "TestFolder"
+        )
+        XCTAssertTrue(duplicateURL.lastPathComponent.contains("Original Copy"))
+    }
+
+    func testDuplicateNonExistentDocumentThrows() {
+        let nonExistentURL = testDirectory.appendingPathComponent("nonexistent.yianazip")
+
+        XCTAssertThrowsError(try repository.duplicateDocument(at: nonExistentURL)) { error in
+            // Verify it's the expected error
+            XCTAssertTrue(error.localizedDescription.contains("not found"))
+        }
+    }
+
     func testDeleteDocument() throws {
         let url = testDirectory.appendingPathComponent("test.yianazip")
         try Data().write(to: url)
         XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
-        
+
         try repository.deleteDocument(at: url)
         XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
     }
-    
+
     func testDeleteNonExistentDocumentThrows() {
         let url = testDirectory.appendingPathComponent("nonexistent.yianazip")
-        
+
         XCTAssertThrowsError(try repository.deleteDocument(at: url))
     }
 }

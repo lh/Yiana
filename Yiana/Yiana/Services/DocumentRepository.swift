@@ -86,7 +86,45 @@ class DocumentRepository {
     func deleteDocument(at url: URL) throws {
         try FileManager.default.removeItem(at: url)
     }
-    
+
+    func duplicateDocument(at url: URL) throws -> URL {
+        let fileManager = FileManager.default
+
+        // Read the original document data
+        guard fileManager.fileExists(atPath: url.path) else {
+            throw NSError(domain: "DocumentRepository", code: 404,
+                         userInfo: [NSLocalizedDescriptionKey: "Document not found"])
+        }
+
+        // Get the target directory (same as current folder)
+        let targetDirectory = currentFolderPath.isEmpty ?
+            documentsDirectory :
+            documentsDirectory.appendingPathComponent(currentFolderPath)
+
+        // Generate a new name with " Copy" suffix
+        let originalName = url.deletingPathExtension().lastPathComponent
+        var newName = "\(originalName) Copy"
+        var counter = 1
+
+        // Keep incrementing if "Copy" already exists
+        var newURL = targetDirectory
+            .appendingPathComponent("\(newName)")
+            .appendingPathExtension("yianazip")
+
+        while fileManager.fileExists(atPath: newURL.path) {
+            newName = "\(originalName) Copy \(counter)"
+            newURL = targetDirectory
+                .appendingPathComponent("\(newName)")
+                .appendingPathExtension("yianazip")
+            counter += 1
+        }
+
+        // Copy the file
+        try fileManager.copyItem(at: url, to: newURL)
+
+        return newURL
+    }
+
     /// Check if using iCloud
     var isUsingiCloud: Bool {
         return documentsDirectory.path.contains("com~apple~CloudDocs") || 

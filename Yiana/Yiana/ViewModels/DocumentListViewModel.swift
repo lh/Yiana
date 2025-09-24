@@ -107,7 +107,18 @@ class DocumentListViewModel: ObservableObject {
             throw error
         }
     }
-    
+
+    func duplicateDocument(at url: URL) async throws {
+        do {
+            let newURL = try repository.duplicateDocument(at: url)
+            // Refresh to show the new document
+            await loadDocuments()
+        } catch {
+            errorMessage = "Failed to duplicate: \(error.localizedDescription)"
+            throw error
+        }
+    }
+
     func refresh() async {
         await loadDocuments()
     }
