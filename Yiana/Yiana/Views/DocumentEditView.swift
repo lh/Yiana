@@ -382,14 +382,8 @@ struct DocumentEditView: View {
         }
         
         // Check which implementation to use
-        switch MarkupConfiguration.activeImplementation {
-        case .qlPreviewController:
-            presentQLPreviewMarkup(pdfData: pdfData)
-        case .pdfKit:
-            presentPDFKitMarkup(pdfData: pdfData)
-        case .pencilKit:
-            presentPencilKitMarkup(pdfData: pdfData)
-        }
+        // Always use PencilKit for markup
+        presentPencilKitMarkup(pdfData: pdfData)
     }
     
     private func presentQLPreviewMarkup(pdfData: Data) {
@@ -443,26 +437,6 @@ struct DocumentEditView: View {
         } catch {
             markupErrorMessage = "Failed to prepare document for markup: \(error.localizedDescription)"
             showingMarkupError = true
-        }
-    }
-    
-    private func presentPDFKitMarkup(pdfData: Data) {
-        // Use zoomable overlay approach for phones and tablets
-        print("DEBUG Markup: Using Zoomable PDFKit implementation for page \(currentViewedPage + 1)")
-        
-        // Present ZoomablePDFMarkupViewController via UIKit
-        let markupVC = ZoomablePDFMarkupViewController(
-            pdfData: pdfData,
-            pageIndex: currentViewedPage
-        ) { result in
-            Task { @MainActor in
-                await handleMarkupResult(result)
-            }
-        }
-        
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootVC = windowScene.windows.first?.rootViewController {
-            rootVC.present(markupVC, animated: true)
         }
     }
 

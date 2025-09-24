@@ -14,11 +14,8 @@ struct MarkupConfiguration {
     enum MarkupImplementation {
         /// Use Apple's QLPreviewController (currently broken in iOS 17+)
         case qlPreviewController
-        
-        /// Use PDFKit with PDFAnnotation (reliable custom implementation)
-        case pdfKit
-        
-        /// Future: Use PencilKit overlay (if we want to explore this)
+
+        /// Use PencilKit overlay for drawing and annotations
         case pencilKit
     }
     
@@ -29,13 +26,12 @@ struct MarkupConfiguration {
     static var activeImplementation: MarkupImplementation {
         get {
             guard let raw = UserDefaults.standard.string(forKey: implKey) else {
-                return .pdfKit
+                return .pencilKit
             }
             switch raw {
             case "ql": return .qlPreviewController
             case "pencil": return .pencilKit
-            case "pdfkit": fallthrough
-            default: return .pdfKit
+            default: return .pencilKit
             }
         }
         set {
@@ -43,7 +39,6 @@ struct MarkupConfiguration {
             switch newValue {
             case .qlPreviewController: raw = "ql"
             case .pencilKit: raw = "pencil"
-            case .pdfKit: raw = "pdfkit"
             }
             UserDefaults.standard.set(raw, forKey: implKey)
         }
@@ -80,8 +75,8 @@ struct MarkupConfiguration {
             // If Apple has fixed the bug, we can use QLPreviewController
             return .qlPreviewController
         } else {
-            // Use our reliable PDFKit implementation
-            return .pdfKit
+            // Use PencilKit implementation
+            return .pencilKit
         }
     }
     
@@ -102,12 +97,12 @@ extension MarkupConfiguration {
     /// Instructions for reverting to QLPreviewController when Apple fixes the bug
     static let migrationInstructions = """
     To revert to QLPreviewController when Apple fixes FB14376916:
-    
+
     1. Set MarkupConfiguration.isQLPreviewControllerFixed = true
     2. Change activeImplementation to .qlPreviewController
     3. Test thoroughly on iOS 17+ devices
     4. The MarkupCoordinator.swift code is preserved and ready to use
-    
-    The PDFKit implementation will remain as a fallback option.
+
+    The PencilKit implementation will remain as the primary option.
     """
 }

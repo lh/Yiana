@@ -22,8 +22,6 @@ struct DocumentReadView: View {
     @State private var initialPageToShow: Int?
     @State private var showingExportError = false
     @State private var exportErrorMessage = ""
-    @State private var isMarkupMode = false
-    @StateObject private var annotationViewModel = AnnotationViewModel()
     
     init(documentURL: URL, searchResult: SearchResult? = nil) {
         self.documentURL = documentURL
@@ -60,19 +58,6 @@ struct DocumentReadView: View {
                         
                         // Control buttons
                         HStack(spacing: 12) {
-                            // Markup mode toggle
-                            Button(action: {
-                                isMarkupMode.toggle()
-                            }) {
-                                Label("Markup", systemImage: isMarkupMode ? "pencil.circle.fill" : "pencil.circle")
-                                    .foregroundColor(isMarkupMode ? .accentColor : .primary)
-                            }
-                            .buttonStyle(.borderless)
-                            .help(isMarkupMode ? "Exit Markup Mode" : "Enter Markup Mode")
-                            
-                            Divider()
-                                .frame(height: 20)
-                            
                             // Export button
                             Button(action: {
                                 exportPDF()
@@ -81,7 +66,6 @@ struct DocumentReadView: View {
                             }
                             .buttonStyle(.borderless)
                             .help("Export as PDF")
-                            .disabled(isMarkupMode) // Disable export during markup
                             
                             // Info panel toggle
                             Button(action: {
@@ -115,34 +99,8 @@ struct DocumentReadView: View {
                         print("DEBUG DocumentReadView: pageNumber = \(String(describing: searchResult?.pageNumber))")
                         print("DEBUG DocumentReadView: searchTerm = \(String(describing: searchResult?.searchTerm))")
                     }()
-                    VStack(spacing: 0) {
-                        if isMarkupMode {
-                            // Markup toolbar using existing annotation system
-                            MarkupToolbar(
-                                selectedTool: $annotationViewModel.selectedTool,
-                                isMarkupMode: $annotationViewModel.isMarkupMode,
-                                onCommit: {
-                                    annotationViewModel.commitAllChanges()
-                                },
-                                onRevert: {
-                                    annotationViewModel.revertAllChanges()
-                                }
-                            )
-                            .padding()
-                            .background(Color(NSColor.controlBackgroundColor))
-                            Divider()
-                        }
-                        
-                        // PDF viewer with annotation support when in markup mode
-                        if isMarkupMode {
-                            AnnotatablePDFViewer(
-                                pdfData: pdfData,
-                                annotationViewModel: annotationViewModel
-                            )
-                        } else {
-                            MacPDFViewer(pdfData: pdfData)
-                        }
-                    }
+                    // PDF viewer
+                    MacPDFViewer(pdfData: pdfData)
                 }
             } else {
                 VStack(spacing: 20) {
@@ -168,13 +126,6 @@ struct DocumentReadView: View {
         .navigationTitle(documentURL.deletingPathExtension().lastPathComponent)
         .task {
             await loadDocument()
-            // Setup annotation view model
-            annotationViewModel.documentURL = documentURL
-            annotationViewModel.documentBookmark = nil
-            annotationViewModel.isMarkupMode = isMarkupMode
-        }
-        .onChange(of: isMarkupMode) { newValue in
-            annotationViewModel.isMarkupMode = newValue
         }
         .sheet(isPresented: $showingPageManagement) {
             PageManagementView(
