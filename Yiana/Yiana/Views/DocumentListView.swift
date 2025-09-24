@@ -122,7 +122,7 @@ struct DocumentListView: View {
                             Button(action: {
                                 currentSortOption = .dateModified
                                 Task {
-                                    await viewModel.sortDocuments(by: .dateModified, ascending: false)
+                                    await viewModel.sortDocuments(by: .dateModified, ascending: isAscending)
                                 }
                             }) {
                                 HStack {
@@ -137,7 +137,7 @@ struct DocumentListView: View {
                             Button(action: {
                                 currentSortOption = .dateCreated
                                 Task {
-                                    await viewModel.sortDocuments(by: .dateCreated, ascending: false)
+                                    await viewModel.sortDocuments(by: .dateCreated, ascending: isAscending)
                                 }
                             }) {
                                 HStack {
@@ -152,7 +152,7 @@ struct DocumentListView: View {
                             Button(action: {
                                 currentSortOption = .size
                                 Task {
-                                    await viewModel.sortDocuments(by: .size, ascending: false)
+                                    await viewModel.sortDocuments(by: .size, ascending: isAscending)
                                 }
                             }) {
                                 HStack {
