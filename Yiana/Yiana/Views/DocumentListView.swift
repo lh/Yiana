@@ -425,6 +425,14 @@ struct DocumentListView: View {
                                 }
                             }
                         }
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            Button {
+                                duplicateDocument(url)
+                            } label: {
+                                Label("Duplicate", systemImage: "doc.on.doc")
+                            }
+                            .tint(.indigo)
+                        }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
                                 documentToDelete = url
@@ -432,13 +440,6 @@ struct DocumentListView: View {
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
-
-                            Button {
-                                duplicateDocument(url)
-                            } label: {
-                                Label("Duplicate", systemImage: "doc.on.doc")
-                            }
-                            .tint(.indigo)
                         }
                     }
                     .onDelete(perform: deleteDocuments)
