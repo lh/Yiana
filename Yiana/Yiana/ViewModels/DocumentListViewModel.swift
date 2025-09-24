@@ -10,6 +10,17 @@ import SwiftUI
 import PDFKit
 
 // Search result type to track what matched
+import Foundation
+import SwiftUI
+import Combine
+
+enum SortOption: String, CaseIterable {
+    case title = "Title"
+    case dateModified = "Date Modified"
+    case dateCreated = "Date Created"
+    case size = "Size"
+}
+
 struct SearchResult: Identifiable {
     let id = UUID()
     let documentURL: URL
@@ -44,6 +55,9 @@ class DocumentListViewModel: ObservableObject {
     private var allFolderURLs: [URL] = []
     private var currentSearchText = ""
     private var allDocumentsGlobal: [(url: URL, relativePath: String)] = []
+    private var currentSortOption: SortOption = .title
+    private var currentSortAscending = true
+    
     
     init(repository: DocumentRepository? = nil) {
         self.repository = repository ?? DocumentRepository()
@@ -57,7 +71,6 @@ class DocumentListViewModel: ObservableObject {
         await Task.yield()
         
         allDocumentURLs = repository.documentURLs()
-            .sorted { $0.lastPathComponent < $1.lastPathComponent }
         
         allFolderURLs = repository.folderURLs()
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
@@ -70,7 +83,7 @@ class DocumentListViewModel: ObservableObject {
         print("DEBUG: Loaded \(allDocumentsGlobal.count) documents globally")
         print("DEBUG: Current folder: \(repository.currentFolderPath)")
         
-        // Apply current filter
+        // Apply current filter (which will internally apply sorting)
         applyFilter()
         
         isLoading = false
@@ -97,6 +110,70 @@ class DocumentListViewModel: ObservableObject {
     
     func refresh() async {
         await loadDocuments()
+    }
+
+    
+    // MARK: - Sorting
+    
+    func sortDocuments(by option: SortOption, ascending: Bool = true) async {
+        currentSortOption = option
+        currentSortAscending = ascending
+        
+        // Apply sort to the loaded documents
+        applySorting()
+    }
+    
+    private func applySorting() {
+        switch currentSortOption {
+        case .title:
+            documentURLs = allDocumentURLs.sorted { url1, url2 in
+                let title1 = url1.deletingPathExtension().lastPathComponent
+                let title2 = url2.deletingPathExtension().lastPathComponent
+                return currentSortAscending ? title1 < title2 : title1 > title2
+            }
+            
+        case .dateModified:
+            documentURLs = allDocumentURLs.sorted { url1, url2 in
+                do {
+                    let attr1 = try FileManager.default.attributesOfItem(atPath: url1.path)
+                    let attr2 = try FileManager.default.attributesOfItem(atPath: url2.path)
+                    let date1 = attr1[.modificationDate] as? Date ?? Date.distantPast
+                    let date2 = attr2[.modificationDate] as? Date ?? Date.distantPast
+                    // For dates, "ascending" means oldest first, but we want newest first by default
+                    return currentSortAscending ? date1 < date2 : date1 > date2
+                } catch {
+                    return true
+                }
+            }
+            
+        case .dateCreated:
+            documentURLs = allDocumentURLs.sorted { url1, url2 in
+                do {
+                    let attr1 = try FileManager.default.attributesOfItem(atPath: url1.path)
+                    let attr2 = try FileManager.default.attributesOfItem(atPath: url2.path)
+                    let date1 = attr1[.creationDate] as? Date ?? Date.distantPast
+                    let date2 = attr2[.creationDate] as? Date ?? Date.distantPast
+                    // For dates, "ascending" means oldest first, but we want newest first by default
+                    return currentSortAscending ? date1 < date2 : date1 > date2
+                } catch {
+                    return true
+                }
+            }
+            
+        case .size:
+            documentURLs = allDocumentURLs.sorted { url1, url2 in
+                do {
+                    let attr1 = try FileManager.default.attributesOfItem(atPath: url1.path)
+                    let attr2 = try FileManager.default.attributesOfItem(atPath: url2.path)
+                    let size1 = attr1[.size] as? Int64 ?? 0
+                    let size2 = attr2[.size] as? Int64 ?? 0
+                    // For size, "ascending" means smallest first, but we want largest first by default
+                    return currentSortAscending ? size1 < size2 : size1 > size2
+                } catch {
+                    return true
+                }
+            }
+        }
     }
     
     // MARK: - Folder Navigation
@@ -294,8 +371,8 @@ class DocumentListViewModel: ObservableObject {
     
     private func applyFilter() {
         if currentSearchText.isEmpty {
-            // No filter - show all in current folder
-            documentURLs = allDocumentURLs
+            // No filter - show all in current folder, then apply sorting
+            applySorting()
             folderURLs = allFolderURLs
             otherFolderResults = []
             searchResults = []
@@ -344,8 +421,13 @@ class DocumentListViewModel: ObservableObject {
                 }
             }
             
-            // Combine results - title matches first, then content matches
-            documentURLs = titleMatches + contentMatches
+            // Combine results and apply sorting
+            let filteredURLs = Array(Set(titleMatches + contentMatches))  // Remove duplicates
+            // Temporarily set allDocumentURLs to filtered results for sorting
+            let savedAllDocuments = allDocumentURLs
+            allDocumentURLs = filteredURLs
+            applySorting()
+            allDocumentURLs = savedAllDocuments  // Restore original
             
             // Filter current folder subdirectories
             folderURLs = allFolderURLs.filter { url in

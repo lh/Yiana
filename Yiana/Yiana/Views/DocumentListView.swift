@@ -29,6 +29,8 @@ struct DocumentListView: View {
     @State private var pdfImportData: PDFImportData? = nil
     @State private var isDraggingPDFs = false
     #endif
+    @State private var currentSortOption: SortOption = .title
+    @State private var isAscending = true
     
     // Build date string for version display
     private var buildDateString: String {
@@ -97,7 +99,88 @@ struct DocumentListView: View {
                         Label("Add", systemImage: "plus")
                     }
                 }
-                
+
+                // Sort menu
+                ToolbarItem(placement: .automatic) {
+                    Menu {
+                        Section("Sort By") {
+                            Button(action: {
+                                currentSortOption = .title
+                                Task {
+                                    await viewModel.sortDocuments(by: .title, ascending: isAscending)
+                                }
+                            }) {
+                                HStack {
+                                    Text("Title")
+                                    if currentSortOption == .title {
+                                        Spacer()
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+
+                            Button(action: {
+                                currentSortOption = .dateModified
+                                Task {
+                                    await viewModel.sortDocuments(by: .dateModified, ascending: false)
+                                }
+                            }) {
+                                HStack {
+                                    Text("Date Modified")
+                                    if currentSortOption == .dateModified {
+                                        Spacer()
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+
+                            Button(action: {
+                                currentSortOption = .dateCreated
+                                Task {
+                                    await viewModel.sortDocuments(by: .dateCreated, ascending: false)
+                                }
+                            }) {
+                                HStack {
+                                    Text("Date Created")
+                                    if currentSortOption == .dateCreated {
+                                        Spacer()
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+
+                            Button(action: {
+                                currentSortOption = .size
+                                Task {
+                                    await viewModel.sortDocuments(by: .size, ascending: false)
+                                }
+                            }) {
+                                HStack {
+                                    Text("Size")
+                                    if currentSortOption == .size {
+                                        Spacer()
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+
+                        Divider()
+
+                        Button(action: {
+                            isAscending.toggle()
+                            Task {
+                                await viewModel.sortDocuments(by: currentSortOption, ascending: isAscending)
+                            }
+                        }) {
+                            Label(isAscending ? "Ascending" : "Descending",
+                                  systemImage: isAscending ? "arrow.up" : "arrow.down")
+                        }
+                    } label: {
+                        Label("Sort", systemImage: "arrow.up.arrow.down")
+                    }
+                }
+
                 #if os(macOS)
                 // Search field for macOS in toolbar
                 ToolbarItem(placement: .automatic) {

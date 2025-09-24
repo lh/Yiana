@@ -5,6 +5,25 @@ import CoreGraphics
 
 /// A service class responsible for flattening PDF annotations into a page's content stream,
 /// making them a permanent part of the document.
+///
+/// ## Design Considerations
+/// This flattener uses Core Graphics to render PDF pages with annotations, which has the following implications:
+/// - **Visual fidelity is preserved**: The rendered output looks exactly as intended
+/// - **Annotations become permanent**: Once flattened, annotations cannot be edited or removed
+/// - **Text layers are not preserved**: The flattening process converts text to graphics
+///
+/// ## Search Functionality
+/// Since text layers are lost during flattening, the app uses a separate OCR-based approach for search:
+/// - Documents are processed by the YianaOCRService
+/// - OCR results are stored separately in `.ocr_results/`
+/// - Search functionality uses the OCR data, not PDF text layers
+/// - This allows search to work even after annotations are flattened
+///
+/// ## Usage Pattern
+/// The app follows a commit-based workflow:
+/// 1. Users add annotations which remain editable
+/// 2. When ready, users commit the annotations (making them permanent)
+/// 3. If significant edits are made, re-OCR can be triggered to update search data
 class PDFFlattener {
     struct FlattenConfig {
         var preserveLinksAndForms: Bool = true
@@ -23,18 +42,52 @@ class PDFFlattener {
         let box: PDFDisplayBox = .cropBox
         var mediaBox = page.bounds(for: box)
         guard mediaBox.width > 0 && mediaBox.height > 0 else { return nil }
+        
+        // Special case: If there are no annotations to flatten, just return a copy
+        // of the original page with any existing annotations removed.
+        // This avoids issues with re-rendering blank pages and is more efficient.
+        if annotations.isEmpty {
+            if let pageCopy = page.copy() as? PDFPage {
+                // Remove any existing annotations from the copy
+                for annotation in pageCopy.annotations {
+                    pageCopy.removeAnnotation(annotation)
+                }
+                return pageCopy
+            }
+            return nil
+        }
+        
+        // For pages with annotations, we need to re-render to flatten them
         let pdfData = NSMutableData()
         guard let consumer = CGDataConsumer(data: pdfData),
               let context = CGContext(consumer: consumer, mediaBox: &mediaBox, nil)
         else { return nil }
 
-        context.beginPDFPage(nil)
+        // Create PDF metadata dictionary
+        let pdfInfo: [String: Any] = [
+            kCGPDFContextCreator as String: "PDFFlattener"
+        ]
+        
+        context.beginPDFPage(pdfInfo as CFDictionary)
+        
+        // Save and restore graphics state to ensure clean rendering
+        context.saveGState()
         renderPage(page, box: box, into: context)
+        context.restoreGState()
+        
+        // Render the annotations
+        context.saveGState()
         renderAnnotations(annotations, box: box, into: context)
+        context.restoreGState()
+        
         context.endPDFPage()
         context.closePDF()
 
-        return PDFDocument(data: pdfData as Data)?.page(at: 0)
+        guard let newDocument = PDFDocument(data: pdfData as Data) else {
+            return nil
+        }
+        
+        return newDocument.page(at: 0)
     }
 
     // Overload to support existing call sites using argument labels in the opposite order

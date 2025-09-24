@@ -17,7 +17,7 @@ import PDFKit
 class DocumentViewModel: ObservableObject {
     @Published var title: String {
         didSet {
-            if title != document.metadata.title {
+            if title != oldValue && title != document.metadata.title {
                 hasChanges = true
                 scheduleAutoSave()
             }
@@ -30,9 +30,11 @@ class DocumentViewModel: ObservableObject {
     
     @Published var pdfData: Data? {
         didSet {
-            document.pdfData = pdfData
-            hasChanges = true
-            scheduleAutoSave()
+            if pdfData != oldValue {
+                document.pdfData = pdfData
+                hasChanges = true
+                scheduleAutoSave()
+            }
         }
     }
     

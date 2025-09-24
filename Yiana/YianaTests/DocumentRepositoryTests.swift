@@ -53,10 +53,21 @@ class DocumentRepositoryTests: XCTestCase {
     }
     
     func testGenerateNewDocumentURL() {
+        // Ensure we're at the root level (not in a subfolder)
+        repository.navigateToRoot()
+
         let url = repository.newDocumentURL(title: "Test Doc")
         XCTAssertEqual(url.pathExtension, "yianazip")
         XCTAssertTrue(url.lastPathComponent.contains("Test Doc"))
-        XCTAssertEqual(url.deletingLastPathComponent(), testDirectory)
+        
+        // Debug the paths
+        let parent = url.deletingLastPathComponent()
+        print("DEBUG: Generated URL: \(url.path)")
+        print("DEBUG: Parent: \(parent.path)")
+        print("DEBUG: Expected testDirectory: \(testDirectory.path)")
+        
+        // Use standardizedFileURL to handle any path differences
+        XCTAssertEqual(parent.standardizedFileURL.path, testDirectory.standardizedFileURL.path)
     }
     
     func testGenerateNewDocumentURLHandlesSpecialCharacters() {

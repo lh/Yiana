@@ -99,6 +99,9 @@ final class BackupManagerTests: XCTestCase {
         let oldBackupURL = backupManager.backupURL(in: backupDir, for: documentURL, date: oldDate)
         try fileManager.copyItem(at: documentURL, to: oldBackupURL)
 
+        // Set the modification date to match the old date
+        try fileManager.setAttributes([.modificationDate: oldDate], ofItemAtPath: oldBackupURL.path)
+
         XCTAssertEqual(try fileManager.contentsOfDirectory(atPath: backupDir.path).count, 2)
 
         // When: Pruning is performed
@@ -107,7 +110,10 @@ final class BackupManagerTests: XCTestCase {
         // Then: Only the recent backup should remain
         let remainingFiles = try fileManager.contentsOfDirectory(atPath: backupDir.path)
         XCTAssertEqual(remainingFiles.count, 1)
-        XCTAssertTrue(remainingFiles.first?.contains(ISO8601DateFormatter.string(from: today, timeZone: .current, formatOptions: .withFullDate)) ?? false)
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withFullDate]
+        let expectedDateString = dateFormatter.string(from: today)
+        XCTAssertTrue(remainingFiles.first?.contains(expectedDateString) ?? false)
     }
     
     func test_documentId_isStable() {
