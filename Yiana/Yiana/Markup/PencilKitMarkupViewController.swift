@@ -62,7 +62,7 @@ final class PencilKitMarkupViewController: UIViewController, PKCanvasViewDelegat
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .black  // Start with black to avoid white/gray flash
+        view.backgroundColor = .systemBackground
 
         guard setupPDF() else {
             completion(.failure(MarkupError.invalidPDF))
@@ -87,10 +87,6 @@ final class PencilKitMarkupViewController: UIViewController, PKCanvasViewDelegat
         if !didSetupToolPicker {
             setupToolPicker()
             didSetupToolPicker = true
-        }
-        // Fade to proper background color after content is loaded
-        UIView.animate(withDuration: 0.3) {
-            self.view.backgroundColor = .systemBackground
         }
     }
 
