@@ -70,7 +70,7 @@ final class PencilKitMarkupViewController: UIViewController, PKCanvasViewDelegat
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = .black  // Start with black to avoid white/gray flash
 
         guard setupPDF() else {
             completion(.failure(MarkupError.invalidPDF))
@@ -88,12 +88,14 @@ final class PencilKitMarkupViewController: UIViewController, PKCanvasViewDelegat
             didApplyInitialFit = true
             if !didSetToolbarItems && !cachedToolbarItems.isEmpty {
                 toolbar.setItems(cachedToolbarItems, animated: false)
+                toolbar.isHidden = false  // Show toolbar now that it has items
                 didSetToolbarItems = true
             }
         }
         // Ensure toolbar items are set once we have a width
         if !didSetToolbarItems && toolbar.bounds.width > 0 && !cachedToolbarItems.isEmpty {
             toolbar.setItems(cachedToolbarItems, animated: false)
+            toolbar.isHidden = false  // Show toolbar now that it has items
             didSetToolbarItems = true
         }
     }
@@ -104,6 +106,10 @@ final class PencilKitMarkupViewController: UIViewController, PKCanvasViewDelegat
         if !didSetupToolPicker {
             setupToolPicker()
             didSetupToolPicker = true
+        }
+        // Fade to proper background color after content is loaded
+        UIView.animate(withDuration: 0.3) {
+            self.view.backgroundColor = .systemBackground
         }
     }
 
@@ -174,7 +180,7 @@ final class PencilKitMarkupViewController: UIViewController, PKCanvasViewDelegat
         pdfView.displayMode = .singlePage
         pdfView.autoScales = false
         pdfView.isUserInteractionEnabled = false
-        pdfView.backgroundColor = .white
+        pdfView.backgroundColor = .clear
         pdfView.displaysPageBreaks = false
         pdfView.document = pdfDocument
         if let page = pdfDocument.page(at: pageIndex) {
@@ -367,6 +373,7 @@ final class PencilKitMarkupViewController: UIViewController, PKCanvasViewDelegat
     private func setupBottomToolbar() {
         toolbar = UIToolbar()
         toolbar.translatesAutoresizingMaskIntoConstraints = false
+        toolbar.isHidden = true  // Start hidden to avoid empty toolbar flash
         view.addSubview(toolbar)
 
         NSLayoutConstraint.activate([
