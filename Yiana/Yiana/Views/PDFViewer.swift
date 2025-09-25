@@ -269,82 +269,34 @@ struct PDFKitView: ViewRepresentable {
         @objc func swipeLeft(_ gesture: UISwipeGestureRecognizer) {
             guard let pdfView = gesture.view as? PDFView else { return }
             if pdfView.canGoToNextPage {
-                animatePageTransition(pdfView: pdfView, goingForward: true)
+                // Haptic feedback for premium feel
+                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                impactFeedback.impactOccurred()
+
+                // Simple fade transition
+                UIView.transition(with: pdfView,
+                                duration: 0.25,
+                                options: [.transitionCrossDissolve, .allowUserInteraction],
+                                animations: {
+                    pdfView.goToNextPage(nil)
+                }, completion: nil)
             }
         }
 
         @objc func swipeRight(_ gesture: UISwipeGestureRecognizer) {
             guard let pdfView = gesture.view as? PDFView else { return }
             if pdfView.canGoToPreviousPage {
-                animatePageTransition(pdfView: pdfView, goingForward: false)
-            }
-        }
+                // Haptic feedback for premium feel
+                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                impactFeedback.impactOccurred()
 
-        private func animatePageTransition(pdfView: PDFView, goingForward: Bool) {
-            // Haptic feedback for premium feel
-            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-            impactFeedback.impactOccurred()
-
-            // Disable interaction during animation
-            pdfView.isUserInteractionEnabled = false
-
-            // Verify we can transition
-            guard pdfView.currentPage != nil else {
-                // Fallback to default transition if we can't get the page
-                if goingForward {
-                    pdfView.goToNextPage(nil)
-                } else {
+                // Simple fade transition
+                UIView.transition(with: pdfView,
+                                duration: 0.25,
+                                options: [.transitionCrossDissolve, .allowUserInteraction],
+                                animations: {
                     pdfView.goToPreviousPage(nil)
-                }
-                pdfView.isUserInteractionEnabled = true
-                return
-            }
-
-            // Create snapshot of current view
-            let snapshotView = UIView(frame: pdfView.bounds)
-            snapshotView.backgroundColor = .clear
-
-            // Render current page to snapshot
-            UIGraphicsBeginImageContextWithOptions(pdfView.bounds.size, false, UIScreen.main.scale)
-            if let context = UIGraphicsGetCurrentContext() {
-                pdfView.layer.render(in: context)
-                if let image = UIGraphicsGetImageFromCurrentImageContext() {
-                    let imageView = UIImageView(image: image)
-                    imageView.frame = snapshotView.bounds
-                    imageView.contentMode = .scaleAspectFit
-                    snapshotView.addSubview(imageView)
-                }
-            }
-            UIGraphicsEndImageContext()
-
-            // Add snapshot over the PDF view
-            pdfView.superview?.addSubview(snapshotView)
-
-            // Navigate to new page (hidden behind snapshot)
-            if goingForward {
-                pdfView.goToNextPage(nil)
-            } else {
-                pdfView.goToPreviousPage(nil)
-            }
-
-            // Animate the slide transition
-            UIView.animate(withDuration: 0.35,
-                          delay: 0,
-                          usingSpringWithDamping: 1.0,
-                          initialSpringVelocity: 0.8,
-                          options: [.curveEaseInOut],
-                          animations: {
-                // Slide snapshot out
-                let slideDistance = pdfView.bounds.width
-                snapshotView.transform = CGAffineTransform(
-                    translationX: goingForward ? -slideDistance : slideDistance,
-                    y: 0
-                )
-                snapshotView.alpha = 0.3  // Fade out slightly as it slides
-            }) { _ in
-                // Clean up
-                snapshotView.removeFromSuperview()
-                pdfView.isUserInteractionEnabled = true
+                }, completion: nil)
             }
         }
 
