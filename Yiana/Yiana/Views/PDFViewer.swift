@@ -111,12 +111,15 @@ struct PDFKitView: ViewRepresentable {
         
         #if os(iOS)
         // Use white background to match typical PDF page color
-        pdfView.backgroundColor = UIColor.white
+        pdfView.backgroundColor = UIColor.systemBackground
         // Disable shadows for better performance
         pdfView.pageShadowsEnabled = false
-        // Use page view controller for smooth page transitions
-        pdfView.usePageViewController(true, withViewOptions: nil)
-        
+        // Don't use page view controller - it causes glitches
+        // pdfView.usePageViewController(true, withViewOptions: nil)
+        // Add rendering optimizations for smoother transitions
+        pdfView.interpolationQuality = .high
+        pdfView.displayBox = .cropBox
+
         // Add swipe gestures for page navigation
         let swipeLeft = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeLeft(_:)))
         swipeLeft.direction = .left
