@@ -25,14 +25,6 @@ final class PencilKitMarkupViewController: UIViewController, PKCanvasViewDelegat
     private var canvasView: PKCanvasView!
     private var toolPicker: PKToolPicker?
     private var didSetupToolPicker = false
-    private var toolbar: UIToolbar!
-    private var panButton: UIBarButtonItem!
-    private var textModeButton: UIBarButtonItem!
-    private var textColorButtons: [UIBarButtonItem] = [] // legacy chips (not used now)
-    private var colorButton: UIBarButtonItem!
-    private var toolsButton: UIBarButtonItem!
-    private var cachedToolbarItems: [UIBarButtonItem] = []
-    private var didSetToolbarItems = false
     // Pod UI constants
     private let podButtonHeight: CGFloat = 30
     private let podSpacing: CGFloat = 6
@@ -86,17 +78,6 @@ final class PencilKitMarkupViewController: UIViewController, PKCanvasViewDelegat
         if !didApplyInitialFit {
             fitAndCenter()
             didApplyInitialFit = true
-            if !didSetToolbarItems && !cachedToolbarItems.isEmpty {
-                toolbar.setItems(cachedToolbarItems, animated: false)
-                toolbar.isHidden = false  // Show toolbar now that it has items
-                didSetToolbarItems = true
-            }
-        }
-        // Ensure toolbar items are set once we have a width
-        if !didSetToolbarItems && toolbar.bounds.width > 0 && !cachedToolbarItems.isEmpty {
-            toolbar.setItems(cachedToolbarItems, animated: false)
-            toolbar.isHidden = false  // Show toolbar now that it has items
-            didSetToolbarItems = true
         }
     }
 
@@ -127,9 +108,6 @@ final class PencilKitMarkupViewController: UIViewController, PKCanvasViewDelegat
     private func setupUI() {
         setupNavigationBar()
 
-        // Bottom toolbar
-        setupBottomToolbar()
-
         // Scroll view to support pan/zoom when hand tool is active
         scrollView = UIScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -145,7 +123,7 @@ final class PencilKitMarkupViewController: UIViewController, PKCanvasViewDelegat
             scrollView.topAnchor.constraint(equalTo: navigationBar.bottomAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: toolbar.topAnchor)
+            scrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
 
         // Non-zooming overlay for floating controls
@@ -157,7 +135,7 @@ final class PencilKitMarkupViewController: UIViewController, PKCanvasViewDelegat
             controlsOverlay.topAnchor.constraint(equalTo: navigationBar.bottomAnchor),
             controlsOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             controlsOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            controlsOverlay.bottomAnchor.constraint(equalTo: toolbar.topAnchor)
+            controlsOverlay.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
 
         // Container sized exactly to page points inside scroll view
@@ -369,78 +347,17 @@ final class PencilKitMarkupViewController: UIViewController, PKCanvasViewDelegat
         return newDoc.dataRepresentation()
     }
 
-    // MARK: - Bottom toolbar and text mode
-    private func setupBottomToolbar() {
-        toolbar = UIToolbar()
-        toolbar.translatesAutoresizingMaskIntoConstraints = false
-        toolbar.isHidden = true  // Start hidden to avoid empty toolbar flash
-        view.addSubview(toolbar)
-
-        NSLayoutConstraint.activate([
-            toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            toolbar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            toolbar.heightAnchor.constraint(equalToConstant: 44)
-        ])
-
-        // Hand (pan/zoom) toggle
-        panButton = UIBarButtonItem(image: UIImage(systemName: "hand.raised"), style: .plain, target: self, action: #selector(togglePanZoom))
-
-        // Text mode (only in top-right nav; no bottom Aa)
-        textModeButton = UIBarButtonItem(title: "Aa", style: .plain, target: self, action: #selector(toggleTextMode))
-
-        // Single color swatch with UIMenu
-        colorButton = UIBarButtonItem(image: UIImage(systemName: "circle.fill"), style: .plain, target: nil, action: nil)
-        updateColorButtonAppearance()
-        updateColorMenu()
-
-        // Tools menu (Nudge + Font size + Delete) - fallback; primary nudges provided by floating pods
-        let nudgeLeftAction = UIAction(title: "Left", image: UIImage(systemName: "arrow.left")) { [weak self] _ in self?.nudge(dx: -1, dy: 0) }
-        let nudgeRightAction = UIAction(title: "Right", image: UIImage(systemName: "arrow.right")) { [weak self] _ in self?.nudge(dx: 1, dy: 0) }
-        let nudgeUpAction = UIAction(title: "Up", image: UIImage(systemName: "arrow.up")) { [weak self] _ in self?.nudge(dx: 0, dy: -1) }
-        let nudgeDownAction = UIAction(title: "Down", image: UIImage(systemName: "arrow.down")) { [weak self] _ in self?.nudge(dx: 0, dy: 1) }
-        let nudgeMenu = UIMenu(title: "Nudge", options: .displayInline, children: [nudgeLeftAction, nudgeRightAction, nudgeUpAction, nudgeDownAction])
-
-        let smallerAction = UIAction(title: "Smaller", image: UIImage(systemName: "textformat.size.smaller")) { [weak self] _ in self?.fontSmaller() }
-        let largerAction = UIAction(title: "Larger", image: UIImage(systemName: "textformat.size.larger")) { [weak self] _ in self?.fontLarger() }
-        let sizeMenu = UIMenu(title: "Font", options: .displayInline, children: [smallerAction, largerAction])
-
-        let deleteAction = UIAction(title: "Delete", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in self?.deleteSelected() }
-        let toolsMenu = UIMenu(title: "Text Tools", children: [nudgeMenu, sizeMenu, deleteAction])
-        toolsButton = UIBarButtonItem(title: "Tools", style: .plain, target: nil, action: nil)
-        toolsButton.menu = toolsMenu
-
-        let spacer = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        cachedToolbarItems = [
-            panButton, spacer,
-            colorButton, spacer,
-            toolsButton
-        ]
-        // Defer setting items until layout to avoid zero-width contentView constraint thrash
-    }
-
-    // Legacy color chip builder removed; single color swatch with UIMenu is used instead
+    // MARK: - Text mode
 
     @objc private func toggleTextMode() {
         isTextMode.toggle()
         tapOverlayView.isHidden = !isTextMode
-        textModeButton.tintColor = isTextMode ? .systemBlue : .label
         // While in text mode, disable drawing from finger to avoid stray dots
         canvasView.isUserInteractionEnabled = !isTextMode && !isPanZoomEnabled
         tapOverlayView.isUserInteractionEnabled = isTextMode && !isPanZoomEnabled
         updatePodsVisibility()
     }
 
-    @objc private func togglePanZoom() {
-        isPanZoomEnabled.toggle()
-        panButton.tintColor = isPanZoomEnabled ? .systemBlue : .label
-        scrollView.isScrollEnabled = isPanZoomEnabled
-        scrollView.pinchGestureRecognizer?.isEnabled = isPanZoomEnabled
-        // Disable input layers while panning/zooming
-        canvasView.isUserInteractionEnabled = !isPanZoomEnabled && !isTextMode
-        tapOverlayView.isUserInteractionEnabled = !isPanZoomEnabled && isTextMode
-        updatePodsVisibility()
-    }
 
     private func updateTextColorSelection(selectedTag: Int) {
         currentTextColorTag = selectedTag
@@ -451,31 +368,10 @@ final class PencilKitMarkupViewController: UIViewController, PKCanvasViewDelegat
         case 3: textColor = UIColor(red: 0.47, green: 0.36, blue: 0.98, alpha: 1.0)
         default: textColor = .systemBlue
         }
-        // Apply color to selected label and update swatch/menu
+        // Apply color to selected label
         selectedLabel?.textColor = textColor
-        updateColorButtonAppearance()
-        updateColorMenu()
     }
 
-    private func updateColorButtonAppearance() {
-        colorButton.tintColor = textColor
-    }
-
-    private func updateColorMenu() {
-        func action(name: String, tag: Int, color: UIColor) -> UIAction {
-            let state: UIMenuElement.State = (tag == currentTextColorTag) ? .on : .off
-            return UIAction(title: name, image: UIImage(systemName: "circle.fill")?.withTintColor(color, renderingMode: .alwaysOriginal), state: state) { [weak self] _ in
-                self?.updateTextColorSelection(selectedTag: tag)
-            }
-        }
-        let menu = UIMenu(title: "Color", children: [
-            action(name: "Blue", tag: 1, color: .systemBlue),
-            action(name: "Black", tag: 0, color: .black),
-            action(name: "Red", tag: 2, color: .systemRed),
-            action(name: "Purple", tag: 3, color: UIColor(red: 0.47, green: 0.36, blue: 0.98, alpha: 1.0))
-        ])
-        colorButton.menu = menu
-    }
 
     @objc private func handleTextTap(_ gr: UITapGestureRecognizer) {
         guard isTextMode else { return }
