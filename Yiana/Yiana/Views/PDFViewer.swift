@@ -15,15 +15,24 @@ struct PDFViewer: View {
     @Binding var navigateToPage: Int?
     @Binding var currentPage: Int
     @State private var totalPages = 0
+    let onRequestPageManagement: (() -> Void)?
     
-    init(pdfData: Data, navigateToPage: Binding<Int?> = .constant(nil), currentPage: Binding<Int> = .constant(0)) {
+    init(pdfData: Data, 
+         navigateToPage: Binding<Int?> = .constant(nil), 
+         currentPage: Binding<Int> = .constant(0),
+         onRequestPageManagement: (() -> Void)? = nil) {
         self.pdfData = pdfData
         self._navigateToPage = navigateToPage
         self._currentPage = currentPage
+        self.onRequestPageManagement = onRequestPageManagement
     }
     
     var body: some View {
-        PDFKitView(pdfData: pdfData, currentPage: $currentPage, totalPages: $totalPages, navigateToPage: $navigateToPage)
+        PDFKitView(pdfData: pdfData, 
+                   currentPage: $currentPage, 
+                   totalPages: $totalPages, 
+                   navigateToPage: $navigateToPage,
+                   onRequestPageManagement: onRequestPageManagement)
             .overlay(alignment: .bottom) {
                 if totalPages > 1 {
                     pageIndicator
@@ -51,6 +60,7 @@ struct PDFKitView: ViewRepresentable {
     @Binding var currentPage: Int
     @Binding var totalPages: Int
     @Binding var navigateToPage: Int?
+    let onRequestPageManagement: (() -> Void)?
     
     #if os(iOS)
     func makeUIView(context: Context) -> PDFView {
@@ -115,6 +125,11 @@ struct PDFKitView: ViewRepresentable {
         let swipeRight = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeRight(_:)))
         swipeRight.direction = .right
         pdfView.addGestureRecognizer(swipeRight)
+
+        // Add upward swipe for page management
+        let swipeUp = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeUp(_:)))
+        swipeUp.direction = .up
+        pdfView.addGestureRecognizer(swipeUp)
         #else
         // Use white background to match typical PDF page color
         pdfView.backgroundColor = NSColor.white
@@ -211,13 +226,15 @@ struct PDFKitView: ViewRepresentable {
         var parent: PDFKitView
         weak var pdfView: PDFView?
         var isInitialLoad = true
+        var onRequestPageManagement: (() -> Void)?
         #if os(macOS)
         var keyEventMonitor: Any?
         var scrollEventMonitor: Any?
         #endif
-        
+
         init(_ parent: PDFKitView) {
             self.parent = parent
+            self.onRequestPageManagement = parent.onRequestPageManagement
         }
         
         deinit {
@@ -257,6 +274,24 @@ struct PDFKitView: ViewRepresentable {
             guard let pdfView = gesture.view as? PDFView else { return }
             if pdfView.canGoToPreviousPage {
                 pdfView.goToPreviousPage(nil)
+            }
+        }
+
+        @objc func swipeUp(_ gesture: UISwipeGestureRecognizer) {
+            guard let pdfView = gesture.view as? PDFView else { return }
+
+            // Check if PDF is at fit-to-screen zoom level
+            // PDFView's autoScales property means double-tap automatically fits
+            // We can check if the scale is approximately the scaleFactorForSizeToFit
+            let currentScale = pdfView.scaleFactor
+            let fitScale = pdfView.scaleFactorForSizeToFit
+
+            // Allow some tolerance for floating point comparison
+            let isAtFitZoom = abs(currentScale - fitScale) < 0.01
+
+            if isAtFitZoom {
+                // Only trigger page management when at fit zoom
+                onRequestPageManagement?()
             }
         }
         #else

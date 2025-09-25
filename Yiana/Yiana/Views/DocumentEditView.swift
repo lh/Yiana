@@ -124,24 +124,12 @@ struct DocumentEditView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color(.systemGray6))
             } else if let pdfData = viewModel.pdfData {
-                PDFViewer(pdfData: pdfData, navigateToPage: $navigateToPage, currentPage: $currentViewedPage)
-                    .overlay(alignment: .bottomTrailing) {
-                        // Page management button
-                        if pdfData.count > 0 {
-                            Button(action: {
-                                activeSheet = .pageManagement
-                            }) {
-                                Label("Pages", systemImage: "rectangle.stack")
-                                    .font(.title3)
-                                    .padding(12)
-                                    .background(Color.secondary.opacity(0.8))
-                                    .foregroundColor(.white)
-                                    .clipShape(Circle())
-                                    .shadow(radius: 4)
-                            }
-                            .padding()
-                        }
-                    }
+                PDFViewer(pdfData: pdfData,
+                         navigateToPage: $navigateToPage,
+                         currentPage: $currentViewedPage,
+                         onRequestPageManagement: {
+                             activeSheet = .pageManagement
+                         })
                     .overlay(alignment: .bottom) {
                         scanButtonBar
                     }
