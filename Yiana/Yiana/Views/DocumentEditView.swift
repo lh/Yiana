@@ -12,13 +12,11 @@ import PDFKit
 enum ActiveSheet: Identifiable {
     case share(URL)
     case pageManagement
-    case markup
-    
+
     var id: String {
         switch self {
         case .share: return "share"
         case .pageManagement: return "pageManagement"
-        case .markup: return "markup"
         }
     }
 }
@@ -39,7 +37,6 @@ struct DocumentEditView: View {
     @State private var currentViewedPage: Int = 0
     @State private var exportedPDFURL: URL?
     @State private var activeSheet: ActiveSheet?
-    @State private var markupCoordinator: MarkupCoordinator?
     @State private var showingMarkupError = false
     @State private var markupErrorMessage = ""
     
@@ -86,7 +83,7 @@ struct DocumentEditView: View {
                         PageManagementView(
                         pdfData: Binding(
                             get: { viewModel.pdfData },
-                            set: { 
+                            set: {
                                 viewModel.pdfData = $0
                                 viewModel.hasChanges = true
                             }
@@ -98,15 +95,6 @@ struct DocumentEditView: View {
                             activeSheet = nil
                         }
                     )
-                }
-            case .markup:
-                if let coordinator = markupCoordinator {
-                    MarkupViewWrapper(coordinator: coordinator)
-                        .ignoresSafeArea()
-                        .onDisappear {
-                            markupCoordinator = nil
-                            activeSheet = nil
-                        }
                 }
             }
         }
@@ -381,66 +369,6 @@ struct DocumentEditView: View {
             return
         }
         
-        // Check which implementation to use
-        // Always use PencilKit for markup
-        presentPencilKitMarkup(pdfData: pdfData)
-    }
-    
-    private func presentQLPreviewMarkup(pdfData: Data) {
-        // Original QLPreviewController implementation (preserved for when Apple fixes the bug)
-        
-        // Check file size limit
-        if !MarkupCoordinator.canMarkup(pdfData: pdfData) {
-            markupErrorMessage = "This document is too large for markup (maximum 50MB). Current size: \(MarkupCoordinator.formattedFileSize(for: pdfData))"
-            showingMarkupError = true
-            return
-        }
-        
-        // Show warning if using broken implementation
-        if MarkupConfiguration.shouldShowImplementationWarning {
-            let alert = UIAlertController(
-                title: "Warning: Known iOS Bug",
-                message: "Using QLPreviewController which has a known bug in iOS 17+. The Done button may not work. Consider using PDFKit implementation instead.",
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "Continue Anyway", style: .destructive) { _ in
-                self.proceedWithQLMarkup(pdfData: pdfData)
-            })
-            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-            
-            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let rootVC = windowScene.windows.first?.rootViewController {
-                rootVC.present(alert, animated: true)
-            }
-        } else {
-            proceedWithQLMarkup(pdfData: pdfData)
-        }
-    }
-    
-    private func proceedWithQLMarkup(pdfData: Data) {
-        do {
-            // Create coordinator with current page
-            markupCoordinator = try MarkupCoordinator(
-                pdfData: pdfData,
-                currentPageIndex: currentViewedPage
-            ) { result in
-                Task { @MainActor in
-                    await handleMarkupResult(result)
-                }
-            }
-            
-            print("DEBUG Markup: Opening QLPreview markup for page \(currentViewedPage + 1)")
-            
-            // Present markup interface
-            activeSheet = .markup
-            
-        } catch {
-            markupErrorMessage = "Failed to prepare document for markup: \(error.localizedDescription)"
-            showingMarkupError = true
-        }
-    }
-
-    private func presentPencilKitMarkup(pdfData: Data) {
         print("DEBUG Markup: Using PencilKit implementation for page \(currentViewedPage + 1)")
         let markupVC = PencilKitMarkupViewController(
             pdfData: pdfData,
@@ -455,6 +383,7 @@ struct DocumentEditView: View {
             rootVC.present(markupVC, animated: true)
         }
     }
+    
     
     private func handleMarkupResult(_ result: Result<Data, Error>) async {
         switch result {
@@ -486,17 +415,10 @@ struct DocumentEditView: View {
                     showingMarkupError = true
                 }
             }
-            
-            // Dismiss markup interface
-            activeSheet = nil
-            markupCoordinator = nil
-            
         case .failure(let error):
             print("DEBUG Markup: Failed - \(error)")
             markupErrorMessage = error.localizedDescription
             showingMarkupError = true
-            activeSheet = nil
-            markupCoordinator = nil
         }
     }
     
@@ -596,40 +518,6 @@ struct ContentPlaceholderView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGray6))
-    }
-}
-
-// MARK: - MarkupViewWrapper
-
-struct MarkupViewWrapper: UIViewControllerRepresentable {
-    let coordinator: MarkupCoordinator
-    @Environment(\.dismiss) private var dismiss
-    
-    func makeUIViewController(context: Context) -> UIViewController {
-        let container = coordinator.createMarkupContainer()
-        container.modalPresentationStyle = .fullScreen
-        
-        return container
-    }
-    
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
-        // Nothing to update
-    }
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    class Coordinator: NSObject {
-        let parent: MarkupViewWrapper
-        
-        init(_ parent: MarkupViewWrapper) {
-            self.parent = parent
-        }
-        
-        @objc func cancelTapped() {
-            parent.dismiss()
-        }
     }
 }
 
