@@ -55,12 +55,6 @@ struct PageManagementView: View {
                             selectedPages.removeAll()
                             isEditMode = false
                         }
-                    } else {
-                        // Exit page management
-                        Button("Done") {
-                            isPresented = false
-                        }
-                        .keyboardShortcut(.escape)
                     }
                 }
                 
