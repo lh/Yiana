@@ -192,22 +192,22 @@ struct DocumentListView: View {
                         TextField("Search", text: $searchText)
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 200)
-                            .onSubmit {
-                                Task {
-                                    await viewModel.filterDocuments(searchText: searchText)
-                                }
-                            }
+                            // Remove onSubmit - we use onChange for all search triggers
                         if !searchText.isEmpty {
                             Button(action: {
                                 searchText = ""
-                                Task {
-                                    await viewModel.filterDocuments(searchText: "")
-                                }
+                                // Clearing will be handled by onChange
                             }) {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundColor(.secondary)
                             }
                             .buttonStyle(.plain)
+                        }
+                        // Show progress indicator during search
+                        if viewModel.isSearchInProgress {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                                .frame(width: 16, height: 16)
                         }
                     }
                 }
@@ -371,6 +371,20 @@ struct DocumentListView: View {
                     .padding(.vertical, 8)
                 Divider()
             }
+            
+            // Show search progress indicator for iOS
+            #if os(iOS)
+            if viewModel.isSearchInProgress {
+                HStack {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Searching...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 8)
+            }
+            #endif
             
             List {
 

@@ -119,7 +119,7 @@ class PDFFlattener {
         let tempURL = dir.appendingPathComponent(".yiana.tmp.\(UUID().uuidString)")
         try data.write(to: tempURL, options: .atomic)
         if FileManager.default.fileExists(atPath: destinationURL.path) {
-            try FileManager.default.replaceItemAt(destinationURL, withItemAt: tempURL)
+            _ = try FileManager.default.replaceItemAt(destinationURL, withItemAt: tempURL)
         } else {
             try FileManager.default.moveItem(at: tempURL, to: destinationURL)
         }

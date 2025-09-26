@@ -48,6 +48,7 @@ class DocumentListViewModel: ObservableObject {
     // Search results
     @Published var otherFolderResults: [(url: URL, path: String)] = []
     @Published var isSearching = false
+    @Published var isSearchInProgress = false  // New: indicates active search operation
     @Published var searchResults: [SearchResult] = []
     
     private let repository: DocumentRepository
@@ -57,6 +58,10 @@ class DocumentListViewModel: ObservableObject {
     private var allDocumentsGlobal: [(url: URL, relativePath: String)] = []
     private var currentSortOption: SortOption = .title
     private var currentSortAscending = true
+    
+    // Search debouncing and cancellation
+    private var searchTask: Task<Void, Never>?
+    private var searchDebounceTask: Task<Void, Never>?
     
     
     init(repository: DocumentRepository? = nil) {
@@ -84,7 +89,7 @@ class DocumentListViewModel: ObservableObject {
         print("DEBUG: Current folder: \(repository.currentFolderPath)")
         
         // Apply current filter (which will internally apply sorting)
-        applyFilter()
+        await applyFilter()
         
         isLoading = false
     }
@@ -110,7 +115,7 @@ class DocumentListViewModel: ObservableObject {
 
     func duplicateDocument(at url: URL) async throws {
         do {
-            let newURL = try repository.duplicateDocument(at: url)
+            _ = try repository.duplicateDocument(at: url)
             // Refresh to show the new document
             await loadDocuments()
         } catch {
@@ -233,7 +238,7 @@ class DocumentListViewModel: ObservableObject {
     
     // MARK: - Search
     
-    private func searchPDFContent(at url: URL, for searchText: String) -> (snippet: String, pageNumber: Int?)? {
+    nonisolated private func searchPDFContent(at url: URL, for searchText: String) async -> (snippet: String, pageNumber: Int?)? {
         // First try to use our OCR data with page info
         if let ocrResult = searchOCRContentWithPageInfo(at: url, for: searchText) {
             return (snippet: ocrResult.snippet, pageNumber: ocrResult.pageNumber)
@@ -270,14 +275,25 @@ class DocumentListViewModel: ObservableObject {
         return nil
     }
     
-    private func searchOCRContent(at documentURL: URL, for searchText: String) -> String? {
+    nonisolated private func searchOCRContent(at documentURL: URL, for searchText: String) async -> String? {
         let result = searchOCRContentWithPageInfo(at: documentURL, for: searchText)
         return result?.snippet
     }
     
-    private func searchOCRContentWithPageInfo(at documentURL: URL, for searchText: String) -> (snippet: String, pageNumber: Int)? {
+    nonisolated private func getDocumentsDirectory(from documentURL: URL) -> URL? {
+        // Find the Documents directory in the path
+        let pathComponents = documentURL.pathComponents
+        if let docsIndex = pathComponents.firstIndex(of: "Documents") {
+            let docsPath = "/" + pathComponents[0...docsIndex].dropFirst().joined(separator: "/")
+            return URL(fileURLWithPath: docsPath)
+        }
+        return nil
+    }
+    
+    nonisolated private func searchOCRContentWithPageInfo(at documentURL: URL, for searchText: String) -> (snippet: String, pageNumber: Int)? {
         // Build path to OCR JSON file
-        let documentsDir = repository.documentsDirectory
+        // Get documents directory from the document URL itself
+        guard let documentsDir = getDocumentsDirectory(from: documentURL) else { return nil }
         let relativePath = documentURL.deletingLastPathComponent().path.replacingOccurrences(of: documentsDir.path, with: "")
         let trimmedPath = relativePath.hasPrefix("/") ? String(relativePath.dropFirst()) : relativePath
         
@@ -324,7 +340,7 @@ class DocumentListViewModel: ObservableObject {
         return nil
     }
     
-    private func extractPDFData(from data: Data) -> Data? {
+    nonisolated private func extractPDFData(from data: Data) -> Data? {
         // Check if it's raw PDF
         let pdfHeader = "%PDF"
         if let string = String(data: data.prefix(4), encoding: .ascii), string == pdfHeader {
@@ -345,7 +361,7 @@ class DocumentListViewModel: ObservableObject {
         return nil
     }
     
-    private func extractSnippet(from text: String, around searchTerm: String, contextLength: Int = 50) -> String {
+    nonisolated private func extractSnippet(from text: String, around searchTerm: String, contextLength: Int = 50) -> String {
         let lowercaseText = text.lowercased()
         let lowercaseSearch = searchTerm.lowercased()
         
@@ -375,111 +391,206 @@ class DocumentListViewModel: ObservableObject {
     }
     
     func filterDocuments(searchText: String) async {
+        // Cancel any existing search tasks
+        searchDebounceTask?.cancel()
+        searchTask?.cancel()
+        
         currentSearchText = searchText
-        print("DEBUG: Searching for '\(searchText)' in folder '\(repository.currentFolderPath)'")
-        applyFilter()
+        
+        // If search is empty, apply immediately
+        if searchText.isEmpty {
+            await applyFilter()
+            return
+        }
+        
+        // Debounce search for non-empty queries
+        searchDebounceTask = Task {
+            do {
+                // Wait for 0.3 seconds before starting search
+                try await Task.sleep(nanoseconds: 300_000_000)
+                
+                // Check if task was cancelled during sleep
+                if Task.isCancelled { return }
+                
+                // Start the actual search
+                searchTask = Task {
+                    await performSearch(searchText: searchText)
+                }
+            } catch {
+                // Task was cancelled
+            }
+        }
     }
     
-    private func applyFilter() {
+    private func performSearch(searchText: String) async {
+        print("DEBUG: Searching for '\(searchText)' in folder '\(repository.currentFolderPath)'")
+        
+        // Set search in progress
+        await MainActor.run {
+            isSearchInProgress = true
+        }
+        
+        // Perform search with async operations
+        await applyFilter()
+        
+        // Clear search in progress
+        await MainActor.run {
+            isSearchInProgress = false
+        }
+    }
+    
+    private func applyFilter() async {
         if currentSearchText.isEmpty {
             // No filter - show all in current folder, then apply sorting
-            applySorting()
-            folderURLs = allFolderURLs
-            otherFolderResults = []
-            searchResults = []
-            isSearching = false
+            await MainActor.run {
+                applySorting()
+                folderURLs = allFolderURLs
+                otherFolderResults = []
+                searchResults = []
+                isSearching = false
+            }
         } else {
             // Filter by name and content
             let searchLower = currentSearchText.lowercased()
-            isSearching = true
-            searchResults = []
-            
+            await MainActor.run {
+                isSearching = true
+                searchResults = []
+            }
             
             // Filter current folder documents by title and content
             var titleMatches: [URL] = []
             var contentMatches: [URL] = []
+            var newSearchResults: [SearchResult] = []
             
-            for url in allDocumentURLs {
-                let titleMatch = url.deletingPathExtension().lastPathComponent.lowercased().contains(searchLower)
-                if titleMatch {
-                    titleMatches.append(url)
+            // Process documents in parallel
+            await withTaskGroup(of: (URL, Bool, (snippet: String, pageNumber: Int?)?)?.self) { group in
+                for url in allDocumentURLs {
+                    group.addTask {
+                        // Check for cancellation
+                        if Task.isCancelled { return nil }
+                        
+                        let titleMatch = url.deletingPathExtension().lastPathComponent.lowercased().contains(searchLower)
+                        
+                        // Search PDF content asynchronously
+                        let contentResult = await self.searchPDFContent(at: url, for: self.currentSearchText)
+                        
+                        return (url, titleMatch, contentResult)
+                    }
                 }
                 
-                // Also search PDF content
-                if let contentResult = searchPDFContent(at: url, for: currentSearchText) {
-                    if !titleMatch {
-                        contentMatches.append(url)
-                        searchResults.append(SearchResult(
-                            documentURL: url,
-                            matchType: .content,
-                            snippet: contentResult.snippet,
-                            pageNumber: contentResult.pageNumber,
-                            searchTerm: currentSearchText
-                        ))
-                    } else {
-                        // Both title and content match
-                        if let index = searchResults.firstIndex(where: { $0.documentURL == url }) {
-                            searchResults.remove(at: index)
+                // Collect results
+                for await result in group {
+                    if Task.isCancelled { break }
+                    
+                    guard let (url, titleMatch, contentResult) = result else { continue }
+                    
+                    if titleMatch {
+                        titleMatches.append(url)
+                    }
+                    
+                    if let contentResult = contentResult {
+                        if !titleMatch {
+                            contentMatches.append(url)
+                            newSearchResults.append(SearchResult(
+                                documentURL: url,
+                                matchType: .content,
+                                snippet: contentResult.snippet,
+                                pageNumber: contentResult.pageNumber,
+                                searchTerm: currentSearchText
+                            ))
+                        } else {
+                            // Both title and content match
+                            newSearchResults.append(SearchResult(
+                                documentURL: url,
+                                matchType: .both,
+                                snippet: contentResult.snippet,
+                                pageNumber: contentResult.pageNumber,
+                                searchTerm: currentSearchText
+                            ))
                         }
-                        searchResults.append(SearchResult(
-                            documentURL: url,
-                            matchType: .both,
-                            snippet: contentResult.snippet,
-                            pageNumber: contentResult.pageNumber,
-                            searchTerm: currentSearchText
-                        ))
                     }
                 }
             }
             
-            // Combine results and apply sorting
-            let filteredURLs = Array(Set(titleMatches + contentMatches))  // Remove duplicates
-            // Temporarily set allDocumentURLs to filtered results for sorting
-            let savedAllDocuments = allDocumentURLs
-            allDocumentURLs = filteredURLs
-            applySorting()
-            allDocumentURLs = savedAllDocuments  // Restore original
+            // Check for cancellation before updating UI
+            if Task.isCancelled { return }
             
-            // Filter current folder subdirectories
-            folderURLs = allFolderURLs.filter { url in
-                url.lastPathComponent.lowercased().contains(searchLower)
+            // Update UI on main thread
+            await MainActor.run {
+                searchResults = newSearchResults
+                
+                // Combine results and apply sorting
+                let filteredURLs = Array(Set(titleMatches + contentMatches))  // Remove duplicates
+                // Temporarily set allDocumentURLs to filtered results for sorting
+                let savedAllDocuments = allDocumentURLs
+                allDocumentURLs = filteredURLs
+                applySorting()
+                allDocumentURLs = savedAllDocuments  // Restore original
+                
+                // Filter current folder subdirectories
+                folderURLs = allFolderURLs.filter { url in
+                    url.lastPathComponent.lowercased().contains(searchLower)
+                }
             }
             
             // Search globally for documents NOT in current folder
             let currentPath = repository.currentFolderPath
             var globalResults: [(URL, String)] = []
+            var globalSearchResults: [SearchResult] = []
             
-            for item in allDocumentsGlobal {
-                // Skip documents in current folder (already searched above)
-                if item.relativePath == currentPath {
-                    continue
+            await withTaskGroup(of: (URL, String, Bool, (snippet: String, pageNumber: Int?)?)?.self) { group in
+                for item in allDocumentsGlobal {
+                    // Skip documents in current folder (already searched above)
+                    if item.relativePath == currentPath {
+                        continue
+                    }
+                    
+                    group.addTask {
+                        // Check for cancellation
+                        if Task.isCancelled { return nil }
+                        
+                        let titleMatch = item.url.deletingPathExtension().lastPathComponent.lowercased().contains(searchLower)
+                        let contentResult = await self.searchPDFContent(at: item.url, for: self.currentSearchText)
+                        let displayPath = item.relativePath.isEmpty ? "Documents" : item.relativePath.replacingOccurrences(of: "/", with: " > ")
+                        
+                        return (item.url, displayPath, titleMatch, contentResult)
+                    }
                 }
                 
-                let titleMatch = item.url.deletingPathExtension().lastPathComponent.lowercased().contains(searchLower)
-                let contentResult = searchPDFContent(at: item.url, for: currentSearchText)
-                
-                // Include if title matches OR content matches
-                if titleMatch || contentResult != nil {
-                    let displayPath = item.relativePath.isEmpty ? "Documents" : item.relativePath.replacingOccurrences(of: "/", with: " > ")
-                    globalResults.append((item.url, displayPath))
+                // Collect results
+                for await result in group {
+                    if Task.isCancelled { break }
                     
-                    // Add to search results if content matches
-                    if let result = contentResult {
-                        let matchType: SearchResult.MatchType = titleMatch ? .both : .content
-                        searchResults.append(SearchResult(
-                            documentURL: item.url,
-                            matchType: matchType,
-                            snippet: result.snippet,
-                            pageNumber: result.pageNumber,
-                            searchTerm: currentSearchText
-                        ))
+                    guard let (url, displayPath, titleMatch, contentResult) = result else { continue }
+                    
+                    // Include if title matches OR content matches
+                    if titleMatch || contentResult != nil {
+                        globalResults.append((url, displayPath))
+                        
+                        // Add to search results if content matches
+                        if let result = contentResult {
+                            let matchType: SearchResult.MatchType = titleMatch ? .both : .content
+                            globalSearchResults.append(SearchResult(
+                                documentURL: url,
+                                matchType: matchType,
+                                snippet: result.snippet,
+                                pageNumber: result.pageNumber,
+                                searchTerm: currentSearchText
+                            ))
+                        }
                     }
                 }
             }
             
-            otherFolderResults = globalResults.sorted { $0.0.lastPathComponent < $1.0.lastPathComponent }
+            // Check for cancellation before final UI update
+            if Task.isCancelled { return }
             
-            print("DEBUG: Found \(documentURLs.count) in current folder, \(otherFolderResults.count) in other folders")
+            await MainActor.run {
+                searchResults.append(contentsOf: globalSearchResults)
+                otherFolderResults = globalResults.sorted { $0.0.lastPathComponent < $1.0.lastPathComponent }
+                
+                print("DEBUG: Found \(documentURLs.count) in current folder, \(otherFolderResults.count) in other folders")
+            }
         }
     }
 }
