@@ -129,6 +129,10 @@ struct DocumentEditView: View {
                          currentPage: $currentViewedPage,
                          onRequestPageManagement: {
                              activeSheet = .pageManagement
+                         },
+                         onRequestMetadataView: {
+                             // TODO: Show metadata/address view when implemented
+                             print("DEBUG: Metadata view requested - coming soon!")
                          })
                     .overlay(alignment: .bottom) {
                         scanButtonBar

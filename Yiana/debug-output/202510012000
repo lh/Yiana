@@ -1,0 +1,623 @@
+✓ Search index database initialized at /var/mobile/Containers/Data/Application/30FA7A26-1380-4F7E-AC8F-32135830A866/Library/Caches/SearchIndex/search_index.db
+DEBUG: Loaded 511 documents globally
+DEBUG: Current folder:
+🔍 Starting background document indexing...
+📚 Found 511 documents to index
+📝 0 documents need indexing
+✅ Background indexing complete: 0 documents indexed
+Unable to simultaneously satisfy constraints.
+	Probably at least one of the constraints in the following list is one you don't want.
+	Try this:
+		(1) look at each constraint and try to figure out which you don't expect;
+		(2) find the code that added the unwanted constraint or constraints and fix it.
+	(Note: If you're seeing NSAutoresizingMaskLayoutConstraints that you don't understand, refer to the documentation for the UIView property translatesAutoresizingMaskIntoConstraints)
+(
+    "<NSAutoresizingMaskLayoutConstraint:0x111afca50 h=-&- v=-&- _TtC5UIKitP33_DDE14AA6B49FCAFC5A54255A118E1D8713ButtonWrapper:0x1131c8000.minX == 0   (active, names: '|':_TtGC5UIKit22UICorePlatformViewHostGVS_32PlatformViewRepresentableAdaptorVS_P10$19f2a05bc20ButtonRepresentation__:0x111afbc00 )>",
+    "<NSAutoresizingMaskLayoutConstraint:0x111afcb90 h=-&- v=-&- H:[_TtC5UIKitP33_DDE14AA6B49FCAFC5A54255A118E1D8713ButtonWrapper:0x1131c8000]-(0)-|   (active, names: '|':_TtGC5UIKit22UICorePlatformViewHostGVS_32PlatformViewRepresentableAdaptorVS_P10$19f2a05bc20ButtonRepresentation__:0x111afbc00 )>",
+    "<NSLayoutConstraint:0x111afc1e0 _TtC5UIKitP33_DDE14AA6B49FCAFC5A54255A118E1D8713ButtonWrapper:0x1131c8000.width == _UIButtonBarButton:0x11319fc00.width   (active)>",
+    "<NSLayoutConstraint:0x111afc870 '_UITemporaryLayoutWidth' _TtGC5UIKit22UICorePlatformViewHostGVS_32PlatformViewRepresentableAdaptorVS_P10$19f2a05bc20ButtonRepresentation__:0x111afbc00.width == 0   (active)>",
+    "<NSLayoutConstraint:0x111afc5a0 'IB_Leading_Leading' H:|-(1)-[_UIModernBarButton:0x111ab0a80]   (active, names: '|':_UIButtonBarButton:0x11319fc00 )>",
+    "<NSLayoutConstraint:0x111afc3c0 'IB_Trailing_Trailing' H:[_UIModernBarButton:0x111ab0a80]-(1)-|   (active, names: '|':_UIButtonBarButton:0x11319fc00 )>"
+)
+
+Will attempt to recover by breaking constraint
+<NSLayoutConstraint:0x111afc3c0 'IB_Trailing_Trailing' H:[_UIModernBarButton:0x111ab0a80]-(1)-|   (active, names: '|':_UIButtonBarButton:0x11319fc00 )>
+
+Make a symbolic breakpoint at UIViewAlertForUnsatisfiableConstraints to catch this in the debugger.
+The methods in the UIConstraintBasedLayoutDebugging category on UIView listed in <UIKitCore/UIView.h> may also be helpful.
+DEBUG: Searching for 'T' in folder ''
+DEBUG: FTS5 returned 100 results for query 'T'
+DEBUG: Processing result: Brown Laura 070681, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brown Laura 070681.yianazip
+DEBUG: Processing result: Bardsley Barbara 080149, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bardsley Barbara 080149.yianazip
+DEBUG: Processing result: Test2, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/OCR/Test2.yianazip
+DEBUG: Processing result: Brew Peter 020332, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brew Peter 020332.yianazip
+DEBUG: Processing result: Gatwick Park Dictation, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Gatwick Park Dictation.yianazip
+DEBUG: Processing result: Gatwick Park Clinic, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Gatwick Park Clinic 1.yianazip
+DEBUG: Processing result: Caswell Susan 300140, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Caswell Susan 300140.yianazip
+DEBUG: Processing result: Champion June 280850, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Champion June 280850.yianazip
+DEBUG: Processing result: Gatwick Park Clinic And List, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Gatwick Park Clinic And List.yianazip
+DEBUG: Processing result: Caustin Rosemary 180232, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Caustin Rosemary 180232.yianazip
+DEBUG: Processing result: Horley 2, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Horley 2.yianazip
+DEBUG: Processing result: Horley 2 (2) Copy, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Horley 2 (2) Copy.yianazip
+DEBUG: Processing result: Aspden Janet 230455, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Aspden Janet 230455.yianazip
+DEBUG: Processing result: Booker Teresa 130756, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Booker Teresa 130756.yianazip
+DEBUG: Processing result: Bradley Amanda 160748, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bradley Amanda 160748.yianazip
+DEBUG: Processing result: Barron Christine 101038, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Barron Christine 101038.yianazip
+DEBUG: Processing result: Chesson Keith 250937, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Chesson Keith 250937.yianazip
+DEBUG: Processing result: Abzarian Sanaz 301178, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Abzarian Sanaz 301178.yianazip
+DEBUG: Processing result: OCR-test, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/OCR/OCR-test.yianazip
+DEBUG: Processing result: Boxall Alfred 150727, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Boxall Alfred 150727.yianazip
+DEBUG: Processing result: Gatwick Park Clinic And Operating, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Gatwick Park Clinic And Operating.yianazip
+DEBUG: Processing result: Avery Isolde 060943, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Avery Isolde 060943.yianazip
+DEBUG: Processing result: Gatwick Park Clinic, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Gatwick Park Clinic.yianazip
+DEBUG: Processing result: Gatwick Park Hospital, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Gatwick Park Hospital.yianazip
+DEBUG: Processing result: Browne Frieda 300636, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Browne Frieda 300636.yianazip
+DEBUG: Processing result: Berry Peter 100645, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Berry Peter 100645.yianazip
+DEBUG: Processing result: Bond Monika 170543, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bond Monika 170543.yianazip
+DEBUG: Processing result: Alexander David 030942, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Alexander David 030942.yianazip
+DEBUG: Processing result: Bennet Gordon 090626, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bennet Gordon 090626.yianazip
+DEBUG: Processing result: Armer Anne 190739, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Armer Anne 190739.yianazip
+DEBUG: Processing result: Butt Victoria 120200, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Butt Victoria 120200.yianazip
+DEBUG: Processing result: Anstice Dee 270258, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Anstice Dee 270258.yianazip
+DEBUG: Processing result: Burgess Gloria 250844, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Burgess Gloria 250844.yianazip
+DEBUG: Processing result: Allen David 130826, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Allen David 130826.yianazip
+DEBUG: Processing result: Butters Janet 100447, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Butters Janet 100447.yianazip
+DEBUG: Processing result: Battersby Stephen 240456, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Battersby Stephen 240456.yianazip
+DEBUG: Processing result: Bailey Ruth 110639, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bailey Ruth 110639.yianazip
+DEBUG: Processing result: Bury Stella 171163, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bury Stella 171163.yianazip
+DEBUG: Processing result: Barakat Charles, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Barakat Charles.yianazip
+DEBUG: Processing result: Spire Gatwick Park Hospital, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Spire Gatwick Park Hospital.yianazip
+DEBUG: Processing result: Acton Gary 191158, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Acton Gary 191158.yianazip
+DEBUG: Processing result: Budd Pamela 130341, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Budd Pamela 130341.yianazip
+DEBUG: Processing result: Bowes David 300449, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bowes David 300449.yianazip
+DEBUG: Processing result: Biggart Margaret 280437, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Biggart Margaret 280437.yianazip
+DEBUG: Processing result: Byrne Patricia 250946, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Byrne Patricia 250946.yianazip
+DEBUG: Processing result: Beaven Anna 240153, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Beaven Anna 240153.yianazip
+DEBUG: Processing result: Brady Michael 280348, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brady Michael 280348.yianazip
+DEBUG: Processing result: Brown Imogen 290499, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brown Imogen 290499.yianazip
+DEBUG: Processing result: Barnes Kevin 300149, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Barnes Kevin 300149.yianazip
+DEBUG: Processing result: Bettin Christopher 160170, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bettin Christopher 160170.yianazip
+DEBUG: Processing result: Allaway Susan 090849, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Allaway Susan 090849.yianazip
+DEBUG: Processing result: Gatwick Park Clinic (2), url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Gatwick Park Clinic (2).yianazip
+DEBUG: Processing result: Blackwood Roger 210451, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Blackwood Roger 210451.yianazip
+DEBUG: Processing result: Clinic And Operating, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Clinic And Operating.yianazip
+DEBUG: Processing result: Burgess Joan 150331, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Burgess Joan 150331.yianazip
+DEBUG: Processing result: Benaziza Mohamed 160384, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Benaziza Mohamed 160384.yianazip
+DEBUG: Processing result: Carpenter Paul 020767, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Carpenter Paul 020767.yianazip
+DEBUG: Processing result: Brown Gillian 040551, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brown Gillian 040551.yianazip
+DEBUG: Processing result: Amor Diana 080357, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Amor Diana 080357.yianazip
+DEBUG: Processing result: Bailey Nigel 171042, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bailey Nigel 171042.yianazip
+DEBUG: Processing result: Carson Sue 161063, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Carson Sue 161063.yianazip
+DEBUG: Processing result: Brumwell Guy 010261, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brumwell Guy 010261.yianazip
+DEBUG: Processing result: Spire Gatwick Park Clinic, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Spire Gatwick Park Clinic.yianazip
+DEBUG: Processing result: Bloomer Patrick 240761, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bloomer Patrick 240761.yianazip
+DEBUG: Processing result: Annetts Maurice 040232, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Annetts Maurice 040232.yianazip
+DEBUG: Processing result: Burstow Katie 230373, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Burstow Katie 230373.yianazip
+DEBUG: Processing result: Baker John 260259, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Baker John 260259.yianazip
+DEBUG: Processing result: Blatch Nicola 020546, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Blatch Nicola 020546.yianazip
+DEBUG: Processing result: Ashworth Sally 290965, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Ashworth Sally 290965.yianazip
+DEBUG: Processing result: Brenchley Christopher 050676, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brenchley Christopher 050676.yianazip
+DEBUG: Processing result: Cangley Desmond 051046, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Cangley Desmond 051046.yianazip
+DEBUG: Processing result: Appleton Margaret 300649, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Appleton Margaret 300649.yianazip
+DEBUG: Processing result: Barrs Barbara 210440, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Barrs Barbara 210440.yianazip
+DEBUG: Processing result: Baker Richard 270649, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Baker Richard 270649.yianazip
+DEBUG: Processing result: Bennett Alexander 011139, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bennett Alexander 011139.yianazip
+DEBUG: Processing result: Chick Gerald 070555, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Chick Gerald 070555.yianazip
+DEBUG: Processing result: Brooke Webb Timothy 180375, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brooke Webb Timothy 180375.yianazip
+DEBUG: Processing result: Brown Frank 121042, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brown Frank 121042.yianazip
+DEBUG: Processing result: Brown Jennifer 070747, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brown Jennifer 070747.yianazip
+DEBUG: Processing result: Ballard Julie 041161, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Ballard Julie 041161.yianazip
+DEBUG: Processing result: Bluhm John 250968, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bluhm John 250968.yianazip
+DEBUG: Processing result: Barnes Shirley 120934, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Barnes Shirley 120934.yianazip
+DEBUG: Processing result: Brann Stephen 250964, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brann Stephen 250964.yianazip
+DEBUG: Processing result: Baird David 080345, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Baird David 080345.yianazip
+DEBUG: Processing result: Acomb Dale 210181, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Acomb Dale 210181.yianazip
+DEBUG: Processing result: Chowdhry Jeffrey 010760, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Chowdhry Jeffrey 010760.yianazip
+DEBUG: Processing result: Amin Amit 091076, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Amin Amit 091076.yianazip
+DEBUG: Processing result: Brand Stanley 090823, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brand Stanley 090823.yianazip
+DEBUG: Processing result: Alderton Julian 190230, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Alderton Julian 190230.yianazip
+DEBUG: Processing result: Blackgrove Betty 150732, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Blackgrove Betty 150732.yianazip
+DEBUG: Processing result: Bayly Christopher 050956, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bayly Christopher 050956.yianazip
+DEBUG: Processing result: Bracken Andrew 110664, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bracken Andrew 110664.yianazip
+DEBUG: Processing result: Barrett Donal 061252, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Barrett Donal 061252.yianazip
+DEBUG: Processing result: Beeton Mark 100158, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Beeton Mark 100158.yianazip
+DEBUG: Processing result: Abberley Julia 100566, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Abberley Julia 100566.yianazip
+DEBUG: Processing result: Carter Derek 170446, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Carter Derek 170446.yianazip
+DEBUG: Processing result: Apps Brian 100146, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Apps Brian 100146.yianazip
+DEBUG: Processing result: Abberley Julia 100566, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Abberley Julia 100566 1.yianazip
+DEBUG: Processing result: Brighton Stephen 280253, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brighton Stephen 280253.yianazip
+DEBUG: Processing result: Brown Sarah 230478, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brown Sarah 230478.yianazip
+DEBUG: Total matches before filtering: 100
+DEBUG: Current folder path: ''
+DEBUG: Checking Gatwick Park Clinic (2).yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Carpenter Paul 020767.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brighton Stephen 280253.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brooke Webb Timothy 180375.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brown Sarah 230478.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Caustin Rosemary 180232.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Clinic And Operating.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Blatch Nicola 020546.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brown Imogen 290499.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Gatwick Park Clinic 1.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brenchley Christopher 050676.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Amin Amit 091076.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bayly Christopher 050956.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bradley Amanda 160748.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Blackwood Roger 210451.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brown Gillian 040551.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Chesson Keith 250937.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Alexander David 030942.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Abzarian Sanaz 301178.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brumwell Guy 010261.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Carter Derek 170446.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bennett Alexander 011139.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brand Stanley 090823.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking OCR-test.yianazip - parentPath: 'OCR', matches: true
+DEBUG: Checking Barnes Shirley 120934.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Barron Christine 101038.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Blackgrove Betty 150732.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Boxall Alfred 150727.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Barnes Kevin 300149.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bailey Nigel 171042.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Carson Sue 161063.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Baird David 080345.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Gatwick Park Clinic And Operating.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Burgess Joan 150331.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bennet Gordon 090626.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brown Laura 070681.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Chowdhry Jeffrey 010760.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Gatwick Park Clinic.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bloomer Patrick 240761.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Armer Anne 190739.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Anstice Dee 270258.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Barrs Barbara 210440.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Cangley Desmond 051046.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Browne Frieda 300636.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bowes David 300449.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Beeton Mark 100158.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bury Stella 171163.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Burgess Gloria 250844.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Spire Gatwick Park Clinic.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bluhm John 250968.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Budd Pamela 130341.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Caswell Susan 300140.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Acton Gary 191158.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Benaziza Mohamed 160384.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Baker John 260259.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Acomb Dale 210181.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Abberley Julia 100566.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bailey Ruth 110639.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Chick Gerald 070555.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Ballard Julie 041161.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Allen David 130826.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brown Frank 121042.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bracken Andrew 110664.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Amor Diana 080357.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Butters Janet 100447.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Aspden Janet 230455.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Barakat Charles.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Alderton Julian 190230.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Gatwick Park Dictation.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Beaven Anna 240153.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Burstow Katie 230373.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Test2.yianazip - parentPath: 'OCR', matches: true
+DEBUG: Checking Brown Jennifer 070747.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Spire Gatwick Park Hospital.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Booker Teresa 130756.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Avery Isolde 060943.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Ashworth Sally 290965.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Horley 2.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Gatwick Park Hospital.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Baker Richard 270649.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bardsley Barbara 080149.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Biggart Margaret 280437.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Apps Brian 100146.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brew Peter 020332.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Barrett Donal 061252.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Byrne Patricia 250946.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Allaway Susan 090849.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Annetts Maurice 040232.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brady Michael 280348.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bond Monika 170543.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Horley 2 (2) Copy.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Abberley Julia 100566 1.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bettin Christopher 160170.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Gatwick Park Clinic And List.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Berry Peter 100645.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brann Stephen 250964.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Battersby Stephen 240456.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Butt Victoria 120200.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Appleton Margaret 300649.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Champion June 280850.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Matches after folder filter: 2
+DEBUG: Set documentURLs to 2 items, isSearching=true
+DEBUG: After sorting, documentURLs has 2 items
+✓ FTS5 index search found 100 results, displaying 2
+DEBUG: Searching for 'To' in folder ''
+DEBUG: FTS5 returned 100 results for query 'To'
+DEBUG: Processing result: Spire Gatwick Park Hospital, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Spire Gatwick Park Hospital.yianazip
+DEBUG: Processing result: Caustin Rosemary 180232, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Caustin Rosemary 180232.yianazip
+DEBUG: Processing result: Spire Clinic, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Spire Clinic.yianazip
+DEBUG: Processing result: Gatwick Park Dictation, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Gatwick Park Dictation.yianazip
+DEBUG: Processing result: Brown Laura 070681, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brown Laura 070681.yianazip
+DEBUG: Processing result: Abzarian Sanaz 301178, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Abzarian Sanaz 301178.yianazip
+DEBUG: Processing result: Avery Isolde 060943, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Avery Isolde 060943.yianazip
+DEBUG: Processing result: Clinic And Operating, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Clinic And Operating.yianazip
+DEBUG: Processing result: Booker Teresa 130756, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Booker Teresa 130756.yianazip
+DEBUG: Processing result: Spire Gatwick Park Hospital Clinic, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Spire Gatwick Park Hospital Clinic.yianazip
+DEBUG: Processing result: Barron Christine 101038, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Barron Christine 101038.yianazip
+DEBUG: Processing result: Gatwick Park Clinic, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Gatwick Park Clinic.yianazip
+DEBUG: Processing result: Gatwick Park Clinic, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Gatwick Park Clinic 1.yianazip
+DEBUG: Processing result: Bardsley Barbara 080149, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bardsley Barbara 080149.yianazip
+DEBUG: Processing result: Gatwick Park Clinic And List, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Gatwick Park Clinic And List.yianazip
+DEBUG: Processing result: Bailey Ruth 110639, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bailey Ruth 110639.yianazip
+DEBUG: Processing result: Bailey Sarah 100276, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bailey Sarah 100276.yianazip
+DEBUG: Processing result: Clinic, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Clinic.yianazip
+DEBUG: Processing result: Gatwick Park Clinic And Operating, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Gatwick Park Clinic And Operating.yianazip
+DEBUG: Processing result: Abberley Julia 100566, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Abberley Julia 100566.yianazip
+DEBUG: Processing result: Abberley Julia 100566, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Abberley Julia 100566 1.yianazip
+DEBUG: Processing result: Brown Jennifer 070747, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brown Jennifer 070747.yianazip
+DEBUG: Processing result: Spire Gatwick Park Clinic, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Spire Gatwick Park Clinic.yianazip
+DEBUG: Processing result: Burgess Gloria 250844, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Burgess Gloria 250844.yianazip
+DEBUG: Processing result: Gatwick Park Hospital, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Gatwick Park Hospital.yianazip
+DEBUG: Processing result: Horley 2, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Horley 2.yianazip
+DEBUG: Processing result: Horley 2 (2) Copy, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Horley 2 (2) Copy.yianazip
+DEBUG: Processing result: Bennett Alexander 011139, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bennett Alexander 011139.yianazip
+DEBUG: Processing result: Boxall Alfred 150727, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Boxall Alfred 150727.yianazip
+DEBUG: Processing result: Brew Peter 020332, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brew Peter 020332.yianazip
+DEBUG: Processing result: Alexander David 030942, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Alexander David 030942.yianazip
+DEBUG: Processing result: Calamassi Alexandra 031172, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Calamassi Alexandra 031172.yianazip
+DEBUG: Processing result: Champion June 280850, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Champion June 280850.yianazip
+DEBUG: Processing result: Burrows Caroline 290665, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Burrows Caroline 290665.yianazip
+DEBUG: Processing result: Barakat Charles, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Barakat Charles.yianazip
+DEBUG: Processing result: Butters Janet 100447, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Butters Janet 100447.yianazip
+DEBUG: Processing result: Browne Frieda 300636, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Browne Frieda 300636.yianazip
+DEBUG: Processing result: Bhumrah Kiran 250185, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bhumrah Kiran 250185.yianazip
+DEBUG: Processing result: Carson Sue 161063, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Carson Sue 161063.yianazip
+DEBUG: Processing result: Barrett Russell 170673, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Barrett Russell 170673.yianazip
+DEBUG: Processing result: Boast Michael 181166, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Boast Michael 181166.yianazip
+DEBUG: Processing result: Acton Gary 191158, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Acton Gary 191158.yianazip
+DEBUG: Processing result: Anstice Dee 270258, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Anstice Dee 270258.yianazip
+DEBUG: Processing result: Baker John 260259, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Baker John 260259.yianazip
+DEBUG: Processing result: Brenchley Christopher 050676, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brenchley Christopher 050676.yianazip
+DEBUG: Processing result: Buckley Kathleen 080652, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Buckley Kathleen 080652.yianazip
+DEBUG: Processing result: Baguley Pamela 250650, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Baguley Pamela 250650.yianazip
+DEBUG: Processing result: Anderson Dixon Anthony 200461, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Anderson Dixon Anthony 200461.yianazip
+DEBUG: Processing result: Benaziza Mohamed 160384, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Benaziza Mohamed 160384.yianazip
+DEBUG: Processing result: Byrne Patricia 250946, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Byrne Patricia 250946.yianazip
+DEBUG: Processing result: Beeton Mark 100158, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Beeton Mark 100158.yianazip
+DEBUG: Processing result: Baird David 080345, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Baird David 080345.yianazip
+DEBUG: Processing result: Amin Amit 091076, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Amin Amit 091076.yianazip
+DEBUG: Processing result: Amor Diana 080357, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Amor Diana 080357.yianazip
+DEBUG: Processing result: Brown Frank 121042, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brown Frank 121042.yianazip
+DEBUG: Processing result: Alderton Julian 190230, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Alderton Julian 190230.yianazip
+DEBUG: Processing result: Armer Anne 190739, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Armer Anne 190739.yianazip
+DEBUG: Processing result: Butler Philip 020357, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Butler Philip 020357.yianazip
+DEBUG: Processing result: Capon Greta 260134, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Capon Greta 260134.yianazip
+DEBUG: Processing result: Bracken Andrew 110664, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bracken Andrew 110664.yianazip
+DEBUG: Processing result: Blackwood Roger 210451, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Blackwood Roger 210451.yianazip
+DEBUG: Processing result: Bowes David 300449, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bowes David 300449.yianazip
+DEBUG: Processing result: Carpenter Paul 020767, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Carpenter Paul 020767.yianazip
+DEBUG: Processing result: OCR-test, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/OCR/OCR-test.yianazip
+DEBUG: Processing result: Bennett Harold 170931, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bennett Harold 170931.yianazip
+DEBUG: Processing result: Adams Lucy 080475, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Adams Lucy 080475.yianazip
+DEBUG: Processing result: Cheshire Pamela 010833, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Cheshire Pamela 010833.yianazip
+DEBUG: Processing result: Baynes Nick 120375, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Baynes Nick 120375.yianazip
+DEBUG: Processing result: Abdool Cecelia 030243, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Abdool Cecelia 030243.yianazip
+DEBUG: Processing result: Beswick Vera 290545, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Beswick Vera 290545.yianazip
+DEBUG: Processing result: Allen David 130826, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Allen David 130826.yianazip
+DEBUG: Processing result: Caswell Susan 300140, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Caswell Susan 300140.yianazip
+DEBUG: Processing result: Bojang Fatoumata 200502, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bojang Fatoumata 200502.yianazip
+DEBUG: Processing result: Butler Darren 130977, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Butler Darren 130977.yianazip
+DEBUG: Processing result: Burton Jane 151165, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Burton Jane 151165.yianazip
+DEBUG: Processing result: Bradshaw Janet 220844, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bradshaw Janet 220844.yianazip
+DEBUG: Processing result: Budd Pamela 130341, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Budd Pamela 130341.yianazip
+DEBUG: Processing result: Base Jeanette 071129, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Base Jeanette 071129.yianazip
+DEBUG: Processing result: Bennett Agnes 140740, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bennett Agnes 140740.yianazip
+DEBUG: Processing result: Brown Patching Deirdre 090754, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brown Patching Deirdre 090754.yianazip
+DEBUG: Processing result: Arthur Irene 300633, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Arthur Irene 300633.yianazip
+DEBUG: Processing result: Aspden Janet 230455, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Aspden Janet 230455.yianazip
+DEBUG: Processing result: Baker Germaine 270931, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Baker Germaine 270931.yianazip
+DEBUG: Processing result: Abery Carol 100362, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Abery Carol 100362.yianazip
+DEBUG: Processing result: Caddick Candace 030254, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Caddick Candace 030254.yianazip
+DEBUG: Processing result: Chesson Keith 250937, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Chesson Keith 250937.yianazip
+DEBUG: Processing result: Bettin Christopher 160170, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bettin Christopher 160170.yianazip
+DEBUG: Processing result: Beaton Susan 190663, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Beaton Susan 190663.yianazip
+DEBUG: Processing result: Bond Monika 170543, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bond Monika 170543.yianazip
+DEBUG: Processing result: Burstow Katie 230373, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Burstow Katie 230373.yianazip
+DEBUG: Processing result: Brown Gillian 040551, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brown Gillian 040551.yianazip
+DEBUG: Processing result: Buckland Deborah 291064, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Buckland Deborah 291064.yianazip
+DEBUG: Processing result: Acomb Dale 210181, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Acomb Dale 210181.yianazip
+DEBUG: Processing result: Baker Jonathan 081160, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Baker Jonathan 081160.yianazip
+DEBUG: Processing result: Cartney Danielle 241090, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Cartney Danielle 241090.yianazip
+DEBUG: Processing result: Al Bitar Maysam 140187, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Al Bitar Maysam 140187.yianazip
+DEBUG: Processing result: Aldridge Bridget 181248, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Aldridge Bridget 181248.yianazip
+DEBUG: Processing result: Bloomer Patrick 240761, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bloomer Patrick 240761.yianazip
+DEBUG: Processing result: Ashworth Sally 290965, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Ashworth Sally 290965.yianazip
+DEBUG: Processing result: Bignell Veronica 290836, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bignell Veronica 290836.yianazip
+DEBUG: Total matches before filtering: 100
+DEBUG: Current folder path: ''
+DEBUG: Checking Abdool Cecelia 030243.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Abberley Julia 100566.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Ashworth Sally 290965.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Avery Isolde 060943.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Benaziza Mohamed 160384.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bradshaw Janet 220844.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Spire Gatwick Park Clinic.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Baguley Pamela 250650.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Gatwick Park Clinic 1.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Alderton Julian 190230.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Clinic.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Adams Lucy 080475.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Beswick Vera 290545.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Spire Gatwick Park Hospital.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Boxall Alfred 150727.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Booker Teresa 130756.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brown Frank 121042.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Byrne Patricia 250946.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking OCR-test.yianazip - parentPath: 'OCR', matches: true
+DEBUG: Checking Allen David 130826.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Abberley Julia 100566 1.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Clinic And Operating.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Horley 2 (2) Copy.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Buckland Deborah 291064.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Cheshire Pamela 010833.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bardsley Barbara 080149.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Calamassi Alexandra 031172.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Burgess Gloria 250844.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Blackwood Roger 210451.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Al Bitar Maysam 140187.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Baynes Nick 120375.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Barron Christine 101038.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Caustin Rosemary 180232.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Abery Carol 100362.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Chesson Keith 250937.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Browne Frieda 300636.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Butler Philip 020357.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Barrett Russell 170673.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bennett Harold 170931.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Boast Michael 181166.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Baker John 260259.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bennett Alexander 011139.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Beeton Mark 100158.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bettin Christopher 160170.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Spire Gatwick Park Hospital Clinic.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Baird David 080345.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Caswell Susan 300140.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Base Jeanette 071129.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Aspden Janet 230455.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bond Monika 170543.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bloomer Patrick 240761.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Amin Amit 091076.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Anderson Dixon Anthony 200461.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Cartney Danielle 241090.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Butler Darren 130977.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Horley 2.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Caddick Candace 030254.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bowes David 300449.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bailey Ruth 110639.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Acomb Dale 210181.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Burrows Caroline 290665.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brenchley Christopher 050676.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Capon Greta 260134.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Gatwick Park Hospital.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Butters Janet 100447.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Burstow Katie 230373.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bignell Veronica 290836.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Alexander David 030942.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Spire Clinic.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Carson Sue 161063.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bailey Sarah 100276.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bhumrah Kiran 250185.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brew Peter 020332.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Beaton Susan 190663.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Buckley Kathleen 080652.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bennett Agnes 140740.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Gatwick Park Clinic And List.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brown Gillian 040551.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Armer Anne 190739.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Budd Pamela 130341.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Baker Germaine 270931.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Amor Diana 080357.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Champion June 280850.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Carpenter Paul 020767.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bracken Andrew 110664.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Burton Jane 151165.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Acton Gary 191158.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bojang Fatoumata 200502.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Gatwick Park Clinic.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brown Laura 070681.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Gatwick Park Clinic And Operating.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Abzarian Sanaz 301178.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brown Jennifer 070747.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Anstice Dee 270258.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Aldridge Bridget 181248.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Barakat Charles.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Baker Jonathan 081160.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Gatwick Park Dictation.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brown Patching Deirdre 090754.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Arthur Irene 300633.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Matches after folder filter: 1
+DEBUG: Set documentURLs to 1 items, isSearching=true
+DEBUG: After sorting, documentURLs has 1 items
+✓ FTS5 index search found 100 results, displaying 1
+DEBUG: Searching for 'Ton' in folder ''
+DEBUG: FTS5 returned 64 results for query 'Ton'
+DEBUG: Processing result: Abbott Tony 150654, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Abbott Tony 150654.yianazip
+DEBUG: Processing result: Beer Janet 230164, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Beer Janet 230164.yianazip
+DEBUG: Processing result: Bignell Veronica 290836, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bignell Veronica 290836.yianazip
+DEBUG: Processing result: Brand Stanley 090823, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brand Stanley 090823.yianazip
+DEBUG: Processing result: Bessant Rosemary 200155, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bessant Rosemary 200155.yianazip
+DEBUG: Processing result: Carnell Julie 260876, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Carnell Julie 260876.yianazip
+DEBUG: Processing result: Belshaw Doreen 150932, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Belshaw Doreen 150932.yianazip
+DEBUG: Processing result: Beare Marion 270239, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Beare Marion 270239.yianazip
+DEBUG: Processing result: Battersby Stephen 240456, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Battersby Stephen 240456.yianazip
+DEBUG: Processing result: Boast Michael 181166, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Boast Michael 181166.yianazip
+DEBUG: Processing result: Bates Rachel 090864, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bates Rachel 090864.yianazip
+DEBUG: Processing result: Carson Frank 151038, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Carson Frank 151038.yianazip
+DEBUG: Processing result: Bailey Sarah 100276, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bailey Sarah 100276.yianazip
+DEBUG: Processing result: Brinton Michael 060543, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brinton Michael 060543.yianazip
+DEBUG: Processing result: Brown Jennifer 070747, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brown Jennifer 070747.yianazip
+DEBUG: Processing result: Brady Lisa 280466, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brady Lisa 280466.yianazip
+DEBUG: Processing result: Allen Jennifer 290829, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Allen Jennifer 290829.yianazip
+DEBUG: Processing result: Base Jeanette 071129, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Base Jeanette 071129.yianazip
+DEBUG: Processing result: Barter Alan 040443, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Barter Alan 040443.yianazip
+DEBUG: Processing result: Campbell Josephine 231127, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Campbell Josephine 231127.yianazip
+DEBUG: Processing result: Capon Greta 260134, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Capon Greta 260134.yianazip
+DEBUG: Processing result: Buckley Kathleen 080652, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Buckley Kathleen 080652.yianazip
+DEBUG: Processing result: Brown Elizabeth 100567, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brown Elizabeth 100567.yianazip
+DEBUG: Processing result: Butler Philip 020357, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Butler Philip 020357.yianazip
+DEBUG: Processing result: Barton Lynn 060660, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Barton Lynn 060660.yianazip
+DEBUG: Processing result: Bailey Ruth 110639, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bailey Ruth 110639.yianazip
+DEBUG: Processing result: Chapman Linda 070650, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Chapman Linda 070650.yianazip
+DEBUG: Processing result: Brown Michael 040649, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brown Michael 040649.yianazip
+DEBUG: Processing result: Beckham Peter 091147, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Beckham Peter 091147.yianazip
+DEBUG: Processing result: Baker Richard 270649, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Baker Richard 270649.yianazip
+DEBUG: Processing result: Butcher Anthony 030837, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Butcher Anthony 030837.yianazip
+DEBUG: Processing result: Cashman Sally 041175, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Cashman Sally 041175.yianazip
+DEBUG: Processing result: Bees Robert 100444, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bees Robert 100444.yianazip
+DEBUG: Processing result: Budd Pamela 130341, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Budd Pamela 130341.yianazip
+DEBUG: Processing result: Bailey Monica 180647, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bailey Monica 180647.yianazip
+DEBUG: Processing result: Hogg David 240362, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Hogg David 240362.yianazip
+DEBUG: Processing result: Bowyer John 010738, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bowyer John 010738.yianazip
+DEBUG: Processing result: Booth John 301257, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Booth John 301257.yianazip
+DEBUG: Processing result: Chick Gerald 070555, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Chick Gerald 070555.yianazip
+DEBUG: Processing result: Agent Prunella 130746, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Agent Prunella 130746.yianazip
+DEBUG: Processing result: Bouhezila Ramdana 180943, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bouhezila Ramdana 180943.yianazip
+DEBUG: Processing result: Ashworth Sally 290965, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Ashworth Sally 290965.yianazip
+DEBUG: Processing result: Baldwin Jeanette 090860, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Baldwin Jeanette 090860.yianazip
+DEBUG: Processing result: Alexandre Gillian 120741, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Alexandre Gillian 120741.yianazip
+DEBUG: Processing result: Bower Jacqueline 010638, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bower Jacqueline 010638.yianazip
+DEBUG: Processing result: Araj Isabelle 150657, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Araj Isabelle 150657.yianazip
+DEBUG: Processing result: Abraham Julie 031155, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Abraham Julie 031155.yianazip
+DEBUG: Processing result: Carter George 110149, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Carter George 110149.yianazip
+DEBUG: Processing result: Butler Valerie 240946, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Butler Valerie 240946.yianazip
+DEBUG: Processing result: Brocking Julia 060849, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brocking Julia 060849.yianazip
+DEBUG: Processing result: Champness Sandra 161240, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Champness Sandra 161240.yianazip
+DEBUG: Processing result: Bailey Ronald 010834, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bailey Ronald 010834.yianazip
+DEBUG: Processing result: Branson Mary 290631, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Branson Mary 290631.yianazip
+DEBUG: Processing result: Brown Robert 290868, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brown Robert 290868.yianazip
+DEBUG: Processing result: Bessant Rose 200155, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bessant Rose 200155.yianazip
+DEBUG: Processing result: Horley 2, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Horley 2.yianazip
+DEBUG: Processing result: Brooks Clive 040748, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brooks Clive 040748.yianazip
+DEBUG: Processing result: Burbidge Brenda 291040, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Burbidge Brenda 291040.yianazip
+DEBUG: Processing result: Horley 2 (2) Copy, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Horley 2 (2) Copy.yianazip
+DEBUG: Processing result: Akehurst Wendy 260949, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Akehurst Wendy 260949.yianazip
+DEBUG: Processing result: Baguley Pamela 250650, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Baguley Pamela 250650.yianazip
+DEBUG: Processing result: Allin Jasmine 090671, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Allin Jasmine 090671.yianazip
+DEBUG: Processing result: Byrne Anne 010857, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Byrne Anne 010857.yianazip
+DEBUG: Processing result: Berry Peter 100645, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Berry Peter 100645.yianazip
+DEBUG: Total matches before filtering: 64
+DEBUG: Current folder path: ''
+DEBUG: Checking Brown Michael 040649.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brand Stanley 090823.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bowyer John 010738.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Burbidge Brenda 291040.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Butler Valerie 240946.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Barton Lynn 060660.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brown Robert 290868.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Horley 2.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Alexandre Gillian 120741.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bailey Sarah 100276.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bailey Ronald 010834.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brooks Clive 040748.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Chapman Linda 070650.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Butcher Anthony 030837.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Carson Frank 151038.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Beare Marion 270239.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brocking Julia 060849.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Boast Michael 181166.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Hogg David 240362.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brown Elizabeth 100567.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Carnell Julie 260876.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Budd Pamela 130341.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Akehurst Wendy 260949.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Belshaw Doreen 150932.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Beckham Peter 091147.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Allen Jennifer 290829.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Barter Alan 040443.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Buckley Kathleen 080652.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bouhezila Ramdana 180943.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Beer Janet 230164.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Abraham Julie 031155.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brown Jennifer 070747.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Carter George 110149.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Byrne Anne 010857.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Champness Sandra 161240.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Baker Richard 270649.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bessant Rosemary 200155.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bessant Rose 200155.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Araj Isabelle 150657.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Baldwin Jeanette 090860.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bailey Monica 180647.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Abbott Tony 150654.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bignell Veronica 290836.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bates Rachel 090864.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Campbell Josephine 231127.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Capon Greta 260134.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bees Robert 100444.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Chick Gerald 070555.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bailey Ruth 110639.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Agent Prunella 130746.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Allin Jasmine 090671.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brady Lisa 280466.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Cashman Sally 041175.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Ashworth Sally 290965.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Branson Mary 290631.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Berry Peter 100645.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bower Jacqueline 010638.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Horley 2 (2) Copy.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Battersby Stephen 240456.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Baguley Pamela 250650.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Base Jeanette 071129.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brinton Michael 060543.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Booth John 301257.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Butler Philip 020357.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Matches after folder filter: 0
+DEBUG: Set documentURLs to 0 items, isSearching=true
+DEBUG: After sorting, documentURLs has 0 items
+✓ FTS5 index search found 64 results, displaying 0
+DEBUG: Searching for 'Tony' in folder ''
+DEBUG: FTS5 returned 18 results for query 'Tony'
+DEBUG: Processing result: Abbott Tony 150654, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Abbott Tony 150654.yianazip
+DEBUG: Processing result: Battersby Stephen 240456, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Battersby Stephen 240456.yianazip
+DEBUG: Processing result: Bates Rachel 090864, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bates Rachel 090864.yianazip
+DEBUG: Processing result: Brady Lisa 280466, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brady Lisa 280466.yianazip
+DEBUG: Processing result: Bignell Veronica 290836, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bignell Veronica 290836.yianazip
+DEBUG: Processing result: Baker Richard 270649, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Baker Richard 270649.yianazip
+DEBUG: Processing result: Brand Stanley 090823, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brand Stanley 090823.yianazip
+DEBUG: Processing result: Butcher Anthony 030837, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Butcher Anthony 030837.yianazip
+DEBUG: Processing result: Cashman Sally 041175, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Cashman Sally 041175.yianazip
+DEBUG: Processing result: Agent Prunella 130746, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Agent Prunella 130746.yianazip
+DEBUG: Processing result: Bouhezila Ramdana 180943, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bouhezila Ramdana 180943.yianazip
+DEBUG: Processing result: Bower Jacqueline 010638, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Bower Jacqueline 010638.yianazip
+DEBUG: Processing result: Araj Isabelle 150657, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Araj Isabelle 150657.yianazip
+DEBUG: Processing result: Carter George 110149, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Carter George 110149.yianazip
+DEBUG: Processing result: Horley 2, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Horley 2.yianazip
+DEBUG: Processing result: Brooks Clive 040748, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Brooks Clive 040748.yianazip
+DEBUG: Processing result: Horley 2 (2) Copy, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Horley 2 (2) Copy.yianazip
+DEBUG: Processing result: Allin Jasmine 090671, url: /private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/Allin Jasmine 090671.yianazip
+DEBUG: Total matches before filtering: 18
+DEBUG: Current folder path: ''
+DEBUG: Checking Horley 2.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bignell Veronica 290836.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Abbott Tony 150654.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bouhezila Ramdana 180943.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Horley 2 (2) Copy.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Agent Prunella 130746.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brand Stanley 090823.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Butcher Anthony 030837.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bower Jacqueline 010638.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Battersby Stephen 240456.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brady Lisa 280466.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Cashman Sally 041175.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Bates Rachel 090864.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Baker Richard 270649.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Brooks Clive 040748.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Allin Jasmine 090671.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Carter George 110149.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Checking Araj Isabelle 150657.yianazip - parentPath: '/private/var/mobile/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents', matches: false
+DEBUG: Matches after folder filter: 0
+DEBUG: Set documentURLs to 0 items, isSearching=true
+DEBUG: After sorting, documentURLs has 0 items
+✓ FTS5 index search found 18 results, displaying 0

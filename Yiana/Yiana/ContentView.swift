@@ -10,10 +10,12 @@ import PDFKit
 
 struct ContentView: View {
     @EnvironmentObject var importHandler: DocumentImportHandler
+    @StateObject private var backgroundIndexer = BackgroundIndexer.shared
     @State private var showingImportSheet = false
     @State private var importTitle = ""
     @State private var selectedFolder = ""
-    
+    @State private var hasTriggeredIndexing = false
+
     var body: some View {
         DocumentListView()
             .sheet(isPresented: $importHandler.showingImportDialog) {
@@ -21,6 +23,15 @@ struct ContentView: View {
                     pdfURL: importHandler.pdfToImport,
                     isPresented: $importHandler.showingImportDialog
                 )
+            }
+            .task {
+                // Trigger background indexing once on app launch
+                if !hasTriggeredIndexing {
+                    hasTriggeredIndexing = true
+                    // Delay indexing slightly to avoid blocking UI startup
+                    try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                    backgroundIndexer.indexAllDocuments()
+                }
             }
     }
 }

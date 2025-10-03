@@ -1,40 +1,24 @@
 # Repository Guidelines
 
-## Project Structure & Modules
-- `Yiana/`: SwiftUI app for iOS/iPadOS/macOS. Sources in `Yiana/` (Views, ViewModels, Services, Extensions), assets in `Yiana/Assets.xcassets`.
-- `Yiana/YianaTests` and `Yiana/YianaUITests`: XCTest unit/UI tests.
-- `YianaOCRService/`: Swift Package executable (`yiana-ocr`) for OCR/server-side tasks.
-- `AddressExtractor/`: Python utilities for letter generation and data processing.
-- `Yiana/docs/`: Architecture and planning docs; see `PLAN.md` and `docs/*.md`.
+## Project Structure & Module Organization
+The SwiftUI app lives in `Yiana/`, with feature code organized under `Views`, `ViewModels`, `Services`, and `Extensions`. App assets reside in `Yiana/Assets.xcassets`, and architecture notes are in `Yiana/docs/` (see `PLAN.md`). XCTest targets sit under `Yiana/YianaTests` (unit) and `Yiana/YianaUITests` (UI). Server-side OCR utilities are bundled in the `YianaOCRService/` Swift Package (`yiana-ocr` executable). Supportive Python tooling for address processing is in `AddressExtractor/`.
 
-## Build, Test, and Dev Commands
-- App (Xcode): `open Yiana/Yiana.xcodeproj` then build/run (Cmd+R).
-- App tests (CLI):
-  - `xcodebuild test -scheme Yiana -destination 'platform=iOS Simulator,name=iPhone 16'`
-  - Run one test: `xcodebuild test -scheme Yiana -only-testing:YianaTests/DocumentMetadataTests`
-- Simulator tip: list available devices with `xcrun simctl list devices` and substitute an installed simulator (e.g., `iPhone 15`).
-- CI examples:
-  - iOS build (no simulator): `xcodebuild -scheme Yiana -destination 'generic/platform=iOS' -configuration Release build`
-  - Tests (headless runner): ensure a simulator is available, then `xcodebuild -scheme Yiana -destination 'platform=iOS Simulator,OS=latest,name=iPhone 15' -only-testing:YianaTests test`
-  - macOS build: `xcodebuild -scheme Yiana -destination 'platform=macOS' -configuration Release build`
-- OCR service: `cd YianaOCRService && swift build -c release` then `swift run yiana-ocr --help`.
-- Python tools: `cd AddressExtractor && python test_system.py` (integration test). Install deps: `python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`.
+## Build, Test, and Development Commands
+- `open Yiana/Yiana.xcodeproj` — launch the iOS/macOS workspace in Xcode for interactive builds.
+- `xcodebuild test -scheme Yiana -destination 'platform=iOS Simulator,name=iPhone 16'` — run the full XCTest suite locally.
+- `xcodebuild test -scheme Yiana -only-testing:YianaTests/DocumentMetadataTests` — target a focused test when iterating.
+- `xcodebuild -scheme Yiana -destination 'generic/platform=iOS' -configuration Release build` — produce a CI-style iOS archive build.
+- `cd YianaOCRService && swift run yiana-ocr --help` — validate the OCR executable.
+- `cd AddressExtractor && python test_system.py` — exercise the Python integration test after activating its virtualenv.
 
-## Coding Style & Naming
-- Swift: Follow `CODING_STYLE.md` (simplicity, 1-based page indexing, PDFKit wrapper extensions). Use Swift defaults (4‑space indent, UpperCamelCase types, lowerCamelCase members). Prefer platform-specific views over heavy abstractions.
-- Python: 4‑space indent, snake_case for functions/vars, descriptive module names (e.g., `clinic_notes_parser.py`). Keep scripts small and single‑purpose.
-- Formatting/Lint: No enforced linters; keep diffs clean and readable.
+## Coding Style & Naming Conventions
+Follow `CODING_STYLE.md` for Swift: four-space indentation, UpperCamelCase types, lowerCamelCase members, and 1-based page indexing in PDF helpers. Keep SwiftUI views platform-specific instead of abstracting. Python utilities also use four-space indentation with snake_case names. Default to ASCII unless a file already uses extended characters.
 
 ## Testing Guidelines
-- Swift (XCTest): Place unit tests in `Yiana/YianaTests` and UI tests in `Yiana/YianaUITests` with `*Tests.swift` suffix. Test 1‑based page boundaries and extension wrappers.
-- Swift Package: Add tests under `YianaOCRService/Tests/` if expanding.
-- Python: Primary check is `AddressExtractor/test_system.py`; additional focused tests welcome (name `test_*.py`). No coverage threshold enforced yet.
+Prefer XCTest for Swift targets; place new unit tests in `Yiana/YianaTests` and UI flows in `Yiana/YianaUITests` with a `*Tests.swift` suffix. Ensure PDF page bounds and extension wrappers stay covered. For the OCR package, add cases under `YianaOCRService/Tests` if functionality expands. Python scripts rely on `AddressExtractor/test_system.py`; add focused `test_*.py` files for new parsing rules.
 
-## Commit & Pull Requests
-- Commits: Small, focused, and verifiable. No emojis. Follow project plan (`PLAN.md`) and update docs when behavior changes.
-- Messages: Imperative, present tense (e.g., "Add DocumentRepository pagination"). Reference files/components (e.g., `Yiana/Services/...`).
-- PRs: Include clear description, linked issue/plan item, steps to test, and screenshots for UI changes. Note any DB/schema impacts (SQLite files in repo root or `AddressExtractor/`).
+## Commit & Pull Request Guidelines
+Write concise, imperative commits that describe the change (e.g., `Add DocumentRepository pagination`). Each PR should include a clear summary, linked plan item or issue, test steps, and screenshots for UI work. Call out any schema or SQLite file impacts and keep personal provisioning profiles or secrets out of the repo.
 
 ## Security & Configuration Tips
-- Do not commit personal signing profiles or secrets. Local SQLite databases (`*.db`) are development artifacts—clean before committing if generated.
-- Keep OCR on server-side; app remains read-only for PDFs.
+Treat OCR workloads as server-side only, keeping the app read-only for PDFs. Remove generated SQLite artifacts before committing and avoid storing credentials in source. When simulator availability changes, run `xcrun simctl list devices` to confirm a valid destination.

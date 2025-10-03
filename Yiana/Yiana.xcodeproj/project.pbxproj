@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		9ACDC8FB2E8D9ED300B0B27A /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 9ACDC8FA2E8D9ED300B0B27A /* GRDB */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		9A02D0632E26C134005DA5E5 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9ACDC8FB2E8D9ED300B0B27A /* GRDB in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,6 +130,7 @@
 			);
 			name = Yiana;
 			packageProductDependencies = (
+				9ACDC8FA2E8D9ED300B0B27A /* GRDB */,
 			);
 			productName = Yiana;
 			productReference = 9A02D04E2E26C133005DA5E5 /* Yiana.app */;
@@ -208,6 +214,9 @@
 			);
 			mainGroup = 9A02D0452E26C133005DA5E5;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				9ACDC8F92E8D9ED300B0B27A /* XCRemoteSwiftPackageReference "GRDB" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9A02D04F2E26C133005DA5E5 /* Products */;
 			projectDirPath = "";
@@ -290,7 +299,7 @@
 				CODE_SIGN_ENTITLEMENTS = Yiana/Yiana.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 15;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = GNC28XBQ2D;
 				ENABLE_APP_SANDBOX = YES;
@@ -338,7 +347,7 @@
 				CODE_SIGN_ENTITLEMENTS = Yiana/Yiana.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 15;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = GNC28XBQ2D;
 				ENABLE_APP_SANDBOX = YES;
@@ -439,6 +448,7 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -495,6 +505,7 @@
 				MTL_FAST_MATH = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};
@@ -503,7 +514,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 15;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = GNC28XBQ2D;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -526,7 +537,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 15;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = GNC28XBQ2D;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -548,7 +559,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 15;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = GNC28XBQ2D;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -570,7 +581,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 15;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = GNC28XBQ2D;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -628,6 +639,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		9ACDC8F92E8D9ED300B0B27A /* XCRemoteSwiftPackageReference "GRDB" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift";
+			requirement = {
+				kind = exactVersion;
+				version = 7.7.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		9ACDC8FA2E8D9ED300B0B27A /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9ACDC8F92E8D9ED300B0B27A /* XCRemoteSwiftPackageReference "GRDB" */;
+			productName = GRDB;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 9A02D0462E26C133005DA5E5 /* Project object */;
 }

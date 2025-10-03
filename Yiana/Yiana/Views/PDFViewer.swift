@@ -16,23 +16,27 @@ struct PDFViewer: View {
     @Binding var currentPage: Int
     @State private var totalPages = 0
     let onRequestPageManagement: (() -> Void)?
-    
-    init(pdfData: Data, 
-         navigateToPage: Binding<Int?> = .constant(nil), 
+    let onRequestMetadataView: (() -> Void)?
+
+    init(pdfData: Data,
+         navigateToPage: Binding<Int?> = .constant(nil),
          currentPage: Binding<Int> = .constant(0),
-         onRequestPageManagement: (() -> Void)? = nil) {
+         onRequestPageManagement: (() -> Void)? = nil,
+         onRequestMetadataView: (() -> Void)? = nil) {
         self.pdfData = pdfData
         self._navigateToPage = navigateToPage
         self._currentPage = currentPage
         self.onRequestPageManagement = onRequestPageManagement
+        self.onRequestMetadataView = onRequestMetadataView
     }
     
     var body: some View {
-        PDFKitView(pdfData: pdfData, 
-                   currentPage: $currentPage, 
-                   totalPages: $totalPages, 
+        PDFKitView(pdfData: pdfData,
+                   currentPage: $currentPage,
+                   totalPages: $totalPages,
                    navigateToPage: $navigateToPage,
-                   onRequestPageManagement: onRequestPageManagement)
+                   onRequestPageManagement: onRequestPageManagement,
+                   onRequestMetadataView: onRequestMetadataView)
             .overlay(alignment: .bottom) {
                 if totalPages > 1 {
                     pageIndicator
@@ -61,6 +65,7 @@ struct PDFKitView: ViewRepresentable {
     @Binding var totalPages: Int
     @Binding var navigateToPage: Int?
     let onRequestPageManagement: (() -> Void)?
+    let onRequestMetadataView: (() -> Void)?
     
     #if os(iOS)
     func makeUIView(context: Context) -> PDFView {
@@ -133,6 +138,11 @@ struct PDFKitView: ViewRepresentable {
         let swipeUp = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeUp(_:)))
         swipeUp.direction = .up
         pdfView.addGestureRecognizer(swipeUp)
+
+        // Add downward swipe for metadata/address view
+        let swipeDown = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeDown(_:)))
+        swipeDown.direction = .down
+        pdfView.addGestureRecognizer(swipeDown)
         #else
         // Use white background to match typical PDF page color
         pdfView.backgroundColor = NSColor.white
@@ -230,6 +240,7 @@ struct PDFKitView: ViewRepresentable {
         weak var pdfView: PDFView?
         var isInitialLoad = true
         var onRequestPageManagement: (() -> Void)?
+        var onRequestMetadataView: (() -> Void)?
         #if os(macOS)
         var keyEventMonitor: Any?
         var scrollEventMonitor: Any?
@@ -238,6 +249,7 @@ struct PDFKitView: ViewRepresentable {
         init(_ parent: PDFKitView) {
             self.parent = parent
             self.onRequestPageManagement = parent.onRequestPageManagement
+            self.onRequestMetadataView = parent.onRequestMetadataView
         }
         
         deinit {
@@ -315,6 +327,26 @@ struct PDFKitView: ViewRepresentable {
             if isAtFitZoom {
                 // Only trigger page management when at fit zoom
                 onRequestPageManagement?()
+            }
+        }
+
+        @objc func swipeDown(_ gesture: UISwipeGestureRecognizer) {
+            guard let pdfView = gesture.view as? PDFView else { return }
+
+            // Check if PDF is at fit-to-screen zoom level
+            let currentScale = pdfView.scaleFactor
+            let fitScale = pdfView.scaleFactorForSizeToFit
+
+            // Allow some tolerance for floating point comparison
+            let isAtFitZoom = abs(currentScale - fitScale) < 0.01
+
+            if isAtFitZoom {
+                // Only trigger metadata view when at fit zoom
+                // Haptic feedback for premium feel
+                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                impactFeedback.impactOccurred()
+
+                onRequestMetadataView?()
             }
         }
         #else

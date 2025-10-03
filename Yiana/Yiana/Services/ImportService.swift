@@ -85,6 +85,24 @@ class ImportService {
 
         do {
             try contents.write(to: targetURL, options: .atomic)
+
+            // Index the newly created document
+            Task {
+                do {
+                    try await SearchIndexService.shared.indexDocument(
+                        id: metadata.id,
+                        url: targetURL,
+                        title: metadata.title,
+                        fullText: "", // No OCR text yet
+                        tags: metadata.tags,
+                        metadata: metadata
+                    )
+                    print("✓ Indexed new document: \(metadata.title)")
+                } catch {
+                    print("⚠️ Failed to index new document: \(error)")
+                }
+            }
+
             return ImportResult(url: targetURL)
         } catch {
             throw ImportError.ioFailed
@@ -140,6 +158,24 @@ class ImportService {
 
         do {
             try newContents.write(to: documentURL, options: .atomic)
+
+            // Re-index the updated document (OCR will be stale until backend processes it)
+            Task {
+                do {
+                    try await SearchIndexService.shared.indexDocument(
+                        id: updatedMetadata.id,
+                        url: documentURL,
+                        title: updatedMetadata.title,
+                        fullText: "", // OCR text will be updated when backend reprocesses
+                        tags: updatedMetadata.tags,
+                        metadata: updatedMetadata
+                    )
+                    print("✓ Re-indexed appended document: \(updatedMetadata.title)")
+                } catch {
+                    print("⚠️ Failed to re-index appended document: \(error)")
+                }
+            }
+
             return ImportResult(url: documentURL)
         } catch {
             throw ImportError.ioFailed

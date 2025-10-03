@@ -79,6 +79,25 @@ class NoteDocument: UIDocument {
             self.pdfData = nil
         }
     }
+
+    // MARK: - Metadata Extraction
+
+    /// Extract metadata from a document file without loading the full PDF
+    /// This is useful for operations that need document ID or metadata without opening the entire document
+    static func extractMetadata(from url: URL) throws -> DocumentMetadata {
+        let data = try Data(contentsOf: url)
+
+        // Find the separator between metadata and PDF data
+        let separator = Data([0xFF, 0xFF, 0xFF, 0xFF])
+        guard let separatorRange = data.range(of: separator) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+
+        // Extract and decode just the metadata portion
+        let metadataData = data.subdata(in: 0..<separatorRange.lowerBound)
+        let decoder = JSONDecoder()
+        return try decoder.decode(DocumentMetadata.self, from: metadataData)
+    }
 }
 
 // MARK: - UTType Extension
@@ -172,6 +191,25 @@ class NoteDocument: NSDocument {
     func read(from url: URL) throws {
         let data = try Data(contentsOf: url)
         try read(from: data, ofType: "yianaDocument")
+    }
+
+    // MARK: - Metadata Extraction
+
+    /// Extract metadata from a document file without loading the full PDF
+    /// This is useful for operations that need document ID or metadata without opening the entire document
+    static func extractMetadata(from url: URL) throws -> DocumentMetadata {
+        let data = try Data(contentsOf: url)
+
+        // Find the separator between metadata and PDF data
+        let separator = Data([0xFF, 0xFF, 0xFF, 0xFF])
+        guard let separatorRange = data.range(of: separator) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+
+        // Extract and decode just the metadata portion
+        let metadataData = data.subdata(in: 0..<separatorRange.lowerBound)
+        let decoder = JSONDecoder()
+        return try decoder.decode(DocumentMetadata.self, from: metadataData)
     }
 }
 #endif

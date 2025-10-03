@@ -17,6 +17,7 @@ struct PDFImportData: Identifiable {
 
 struct DocumentListView: View {
     @StateObject private var viewModel = DocumentListViewModel()
+    @StateObject private var downloadManager = DownloadManager.shared
     @State private var showingCreateAlert = false
     @State private var newDocumentTitle = ""
     @State private var navigationPath = NavigationPath()
@@ -183,6 +184,30 @@ struct DocumentListView: View {
                     }
                 }
 
+                // Download All button
+                ToolbarItem(placement: .automatic) {
+                    Button(action: {
+                        Task {
+                            await downloadAllDocuments()
+                        }
+                    }) {
+                        if downloadManager.isDownloading {
+                            HStack(spacing: 6) {
+                                ProgressView(value: downloadManager.downloadProgress)
+                                    .progressViewStyle(.circular)
+                                    .scaleEffect(0.9)
+                                Text("\(downloadManager.downloadedCount)/\(downloadManager.totalCount)")
+                                    .font(.caption)
+                                    .monospacedDigit()
+                            }
+                            .frame(minWidth: 80)
+                        } else {
+                            Label("Download All", systemImage: "icloud.and.arrow.down")
+                        }
+                    }
+                    .disabled(downloadManager.isDownloading)
+                }
+
                 #if os(macOS)
                 // Search field for macOS in toolbar
                 ToolbarItem(placement: .automatic) {
@@ -212,9 +237,9 @@ struct DocumentListView: View {
                     }
                 }
                 #endif
-                
+
                 // Development menu (DEBUG only)
-                #if DEBUG && os(macOS)
+                #if DEBUG
                 ToolbarItem(placement: .automatic) {
                     DevelopmentMenu()
                 }
@@ -587,6 +612,16 @@ struct DocumentListView: View {
         }
     }
 
+    private func downloadAllDocuments() async {
+        // Get all document URLs recursively from the repository
+        let repository = DocumentRepository()
+        let allDocuments = repository.allDocumentsRecursive()
+        let urls = allDocuments.map { $0.url }
+
+        print("📥 Starting download of \(urls.count) documents from iCloud")
+        downloadManager.downloadAllDocuments(urls: urls)
+    }
+
     private func createFolder() {
         Task {
             guard !newFolderName.isEmpty else { return }
@@ -704,6 +739,8 @@ struct DocumentListView: View {
 struct DocumentRow: View {
     let url: URL
     let searchResult: SearchResult?
+    @State private var statusColor: Color = .gray
+    @State private var hasLoadedStatus = false
     
     init(url: URL, searchResult: SearchResult? = nil) {
         self.url = url
@@ -711,36 +748,50 @@ struct DocumentRow: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 4) {
-                // Search indicator
-                if let result = searchResult {
-                    Image(systemName: result.matchType == .content ? "doc.text.magnifyingglass" : "textformat")
-                        .font(.caption)
-                        .foregroundColor(.blue)
+        HStack(spacing: 0) {
+            // Status indicator line
+            Rectangle()
+                .fill(statusColor)
+                .frame(width: 1.5)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) {
+                    // Search indicator
+                    if let result = searchResult {
+                        Image(systemName: result.matchType == .content ? "doc.text.magnifyingglass" : "textformat")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    }
+                    
+                    Text(url.deletingPathExtension().lastPathComponent)
+                        .font(.headline)
+                        .lineLimit(1)
                 }
                 
-                Text(url.deletingPathExtension().lastPathComponent)
-                    .font(.headline)
-                    .lineLimit(1)
+                // Show snippet for content matches
+                if let result = searchResult,
+                   result.matchType == .content || result.matchType == .both,
+                   let snippet = result.snippet {
+                    Text(snippet)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                        .padding(.leading, 20)
+                } else {
+                    Text(formattedDate)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
-            
-            // Show snippet for content matches
-            if let result = searchResult,
-               result.matchType == .content || result.matchType == .both,
-               let snippet = result.snippet {
-                Text(snippet)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(2)
-                    .padding(.leading, 20)
-            } else {
-                Text(formattedDate)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+            .padding(.vertical, 4)
+            .padding(.leading, 12)
+        }
+        .task {
+            if !hasLoadedStatus {
+                await loadStatus()
+                hasLoadedStatus = true
             }
         }
-        .padding(.vertical, 4)
     }
     
     private var formattedDate: String {
@@ -753,6 +804,32 @@ struct DocumentRow: View {
             return formatter.string(from: modDate)
         }
         return url.lastPathComponent
+    }
+    
+    private func loadStatus() async {
+        // Extract metadata
+        guard let metadata = try? NoteDocument.extractMetadata(from: url) else {
+            statusColor = .red
+            return
+        }
+        
+        // Check if document is empty
+        if metadata.pageCount == 0 {
+            statusColor = .gray
+            return
+        }
+        
+        // Check if indexed
+        let isIndexed = (try? await SearchIndexService.shared.isDocumentIndexed(id: metadata.id)) ?? false
+        
+        // Determine color based on status
+        if metadata.ocrCompleted && isIndexed {
+            statusColor = .green  // ✅ Fully processed
+        } else if metadata.ocrCompleted && !isIndexed {
+            statusColor = .orange  // 🟡 OCR done, needs indexing
+        } else {
+            statusColor = .red     // 🔴 Needs OCR
+        }
     }
 }
 

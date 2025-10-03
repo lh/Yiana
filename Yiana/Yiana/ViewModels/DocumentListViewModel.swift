@@ -58,6 +58,8 @@ class DocumentListViewModel: ObservableObject {
     private var allDocumentsGlobal: [(url: URL, relativePath: String)] = []
     private var currentSortOption: SortOption = .title
     private var currentSortAscending = true
+    private let searchIndex = SearchIndexService.shared
+    private var useSearchIndex = true  // Enable FTS5 index, fallback to brute force if needed
     
     // Search debouncing and cancellation
     private var searchTask: Task<Void, Never>?
@@ -103,6 +105,13 @@ class DocumentListViewModel: ObservableObject {
     
     func deleteDocument(at url: URL) async throws {
         do {
+            // Extract metadata to get document ID before deleting
+            if let metadata = try? NoteDocument.extractMetadata(from: url) {
+                // Remove from search index
+                try? await searchIndex.removeDocument(id: metadata.id)
+                print("✓ Removed document from search index: \(metadata.title)")
+            }
+
             try repository.deleteDocument(at: url)
             // Remove from our lists
             allDocumentURLs.removeAll { $0 == url }
@@ -140,16 +149,19 @@ class DocumentListViewModel: ObservableObject {
     }
     
     private func applySorting() {
+        // When searching, sort the filtered results; otherwise sort all documents
+        let sourceURLs = isSearching ? documentURLs : allDocumentURLs
+
         switch currentSortOption {
         case .title:
-            documentURLs = allDocumentURLs.sorted { url1, url2 in
+            documentURLs = sourceURLs.sorted { url1, url2 in
                 let title1 = url1.deletingPathExtension().lastPathComponent
                 let title2 = url2.deletingPathExtension().lastPathComponent
                 return currentSortAscending ? title1 < title2 : title1 > title2
             }
-            
+
         case .dateModified:
-            documentURLs = allDocumentURLs.sorted { url1, url2 in
+            documentURLs = sourceURLs.sorted { url1, url2 in
                 do {
                     let attr1 = try FileManager.default.attributesOfItem(atPath: url1.path)
                     let attr2 = try FileManager.default.attributesOfItem(atPath: url2.path)
@@ -163,7 +175,7 @@ class DocumentListViewModel: ObservableObject {
             }
             
         case .dateCreated:
-            documentURLs = allDocumentURLs.sorted { url1, url2 in
+            documentURLs = sourceURLs.sorted { url1, url2 in
                 do {
                     let attr1 = try FileManager.default.attributesOfItem(atPath: url1.path)
                     let attr2 = try FileManager.default.attributesOfItem(atPath: url2.path)
@@ -389,29 +401,129 @@ class DocumentListViewModel: ObservableObject {
         
         return snippet
     }
-    
+
+    /// Search using FTS5 index (fast path)
+    private func searchUsingIndex(query: String) async -> Bool {
+        guard useSearchIndex, !query.isEmpty else {
+            return false
+        }
+
+        do {
+            // Clear stale results from previous search
+            searchResults = []
+            otherFolderResults = []
+
+            let results = try await searchIndex.search(query: query, limit: 100)
+            print("DEBUG: FTS5 returned \(results.count) results for query '\(query)'")
+
+            if results.isEmpty {
+                // No results - clear the display
+                documentURLs = []
+                folderURLs = []
+                searchResults = []
+                otherFolderResults = []
+                isSearching = true
+                print("✓ FTS5 index search found 0 results")
+                return true
+            }
+
+            // Convert index results to our format
+            var titleMatches: [URL] = []
+            var contentMatches: [URL] = []
+
+            for result in results {
+                print("DEBUG: Processing result: \(result.title), url: \(result.url.path)")
+                // Check if the file still exists
+                guard FileManager.default.fileExists(atPath: result.url.path) else {
+                    continue
+                }
+
+                // Determine match type based on snippet content
+                let title = result.url.deletingPathExtension().lastPathComponent
+                let titleContainsQuery = title.lowercased().contains(query.lowercased())
+
+                if titleContainsQuery {
+                    titleMatches.append(result.url)
+                    searchResults.append(SearchResult(
+                        documentURL: result.url,
+                        matchType: .both,  // Index found it, so content matches
+                        snippet: result.snippet,
+                        pageNumber: nil,  // Index doesn't track page numbers yet
+                        searchTerm: query
+                    ))
+                } else {
+                    contentMatches.append(result.url)
+                    searchResults.append(SearchResult(
+                        documentURL: result.url,
+                        matchType: .content,
+                        snippet: result.snippet,
+                        pageNumber: nil,
+                        searchTerm: query
+                    ))
+                }
+            }
+
+            // Update document URLs with search results
+            let allMatches = Array(Set(titleMatches + contentMatches))
+            print("DEBUG: Total matches before filtering: \(allMatches.count)")
+
+            // Filter to current folder only
+            let currentPath = repository.currentFolderPath
+            print("DEBUG: Current folder path: '\(currentPath)'")
+            let currentFolderMatches = allMatches.filter { url in
+                let parentPath = url.deletingLastPathComponent().path
+                    .replacingOccurrences(of: repository.documentsDirectory.path, with: "")
+                    .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                let matches = parentPath == currentPath || (currentPath.isEmpty && !parentPath.contains("/"))
+                print("DEBUG: Checking \(url.lastPathComponent) - parentPath: '\(parentPath)', matches: \(matches)")
+                return matches
+            }
+            print("DEBUG: Matches after folder filter: \(currentFolderMatches.count)")
+
+            // Apply sorting to search results
+            documentURLs = currentFolderMatches
+            isSearching = true
+            print("DEBUG: Set documentURLs to \(documentURLs.count) items, isSearching=\(isSearching)")
+            applySorting()
+            print("DEBUG: After sorting, documentURLs has \(documentURLs.count) items")
+
+            // Filter folders
+            let searchLower = query.lowercased()
+            folderURLs = allFolderURLs.filter { url in
+                url.lastPathComponent.lowercased().contains(searchLower)
+            }
+
+            print("✓ FTS5 index search found \(results.count) results, displaying \(documentURLs.count)")
+            return true
+
+        } catch {
+            print("⚠️ FTS5 index search failed: \(error), falling back to brute force")
+            return false
+        }
+    }
+
     func filterDocuments(searchText: String) async {
         // Cancel any existing search tasks
         searchDebounceTask?.cancel()
         searchTask?.cancel()
-        
+
         currentSearchText = searchText
-        
+
         // If search is empty, apply immediately
         if searchText.isEmpty {
             await applyFilter()
             return
         }
-        
+
         // Debounce search for non-empty queries
         searchDebounceTask = Task {
             do {
                 // Wait for 0.3 seconds before starting search
                 try await Task.sleep(nanoseconds: 300_000_000)
-                
+
                 // Check if task was cancelled during sleep
                 if Task.isCancelled { return }
-                
+
                 // Start the actual search
                 searchTask = Task {
                     await performSearch(searchText: searchText)

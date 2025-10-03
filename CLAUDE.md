@@ -6,13 +6,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 1. **ALWAYS USE SERENA MCP TOOLS for code exploration and editing** - Use mcp__serena__ tools instead of basic Read/Edit
 2. **Development must follow TDD (Test-Driven Development) methodology**
 3. **All implementation must strictly follow the steps outlined in PLAN.md**
-4. **Primary tech stack is [SwiftUI, UIDocument, PDFKit, VisionKit]. Do not introduce other libraries unless specified in the plan**
+4. **Primary tech stack is [SwiftUI, UIDocument, PDFKit, VisionKit]. Additional dependencies require justification (see Dependency Management below)**
 5. **Every code change must be small, focused, and verifiable**
 6. **Update memory-bank/activeContext.md after each significant change**
 7. **Commit to git regularly - after each significant feature or fix is completed and tested. Testing includes always asking for user feedback before claiming success**
 8. **Keep commits clean - no emojis, no attributions**
-9. **Do not introduce unnecessary dependencies**
+9. **Follow dependency management philosophy (see below)**
 10. **Keep code clean - remove any attributions you come accross and do not add any new attributions**
+
+## Dependency Management Philosophy
+
+### When TO Add Dependencies ✅
+- **Complex subsystems** - Databases, networking protocols, file format parsers
+- **Bug prevention** - Libraries that eliminate entire classes of errors (memory safety, type safety)
+- **Time savings** - When development/debugging time exceeds integration effort by 10x+
+- **Maturity** - Well-maintained projects with 5+ years of production use
+- **Safety-critical** - C interop, concurrency, cryptography where errors have serious consequences
+
+### When NOT to Add Dependencies ❌
+- **Trivial features** - Anything implementable in <50 lines of straightforward code
+- **Duplicate functionality** - Features already provided by Apple frameworks
+- **Unmaintained projects** - Libraries without updates in 2+ years or single-maintainer projects
+- **Vendor lock-in** - Libraries that make future migration difficult
+- **Feature bloat** - Heavy frameworks when only 10% of features are needed
+
+### Approved Dependencies
+- **GRDB.swift** (v7.7+) - Type-safe SQLite wrapper; prevents C interop bugs, ~10 years production use
 ## SERENA TOOLS USAGE (MANDATORY)
 **ALWAYS use Serena MCP tools for this project:**
 - `mcp__serena__get_symbols_overview` - First look at any code file
