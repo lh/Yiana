@@ -630,15 +630,12 @@ class DocumentListViewModel: ObservableObject {
             // Update UI on main thread
             await MainActor.run {
                 searchResults = newSearchResults
-                
-                // Combine results and apply sorting
+
+                // Set documentURLs to filtered results, then apply sorting
                 let filteredURLs = Array(Set(titleMatches + contentMatches))  // Remove duplicates
-                // Temporarily set allDocumentURLs to filtered results for sorting
-                let savedAllDocuments = allDocumentURLs
-                allDocumentURLs = filteredURLs
-                applySorting()
-                allDocumentURLs = savedAllDocuments  // Restore original
-                
+                documentURLs = filteredURLs
+                applySorting()  // This will now sort the filtered documentURLs
+
                 // Filter current folder subdirectories
                 folderURLs = allFolderURLs.filter { url in
                     url.lastPathComponent.lowercased().contains(searchLower)
