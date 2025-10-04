@@ -151,17 +151,21 @@ class DocumentListViewModel: ObservableObject {
     private func applySorting() {
         // When searching, sort the filtered results; otherwise sort all documents
         let sourceURLs = isSearching ? documentURLs : allDocumentURLs
+        documentURLs = sortURLs(sourceURLs)
+    }
 
+    /// Sort URLs based on current sort option and direction
+    private func sortURLs(_ urls: [URL]) -> [URL] {
         switch currentSortOption {
         case .title:
-            documentURLs = sourceURLs.sorted { url1, url2 in
+            return urls.sorted { url1, url2 in
                 let title1 = url1.deletingPathExtension().lastPathComponent
                 let title2 = url2.deletingPathExtension().lastPathComponent
                 return currentSortAscending ? title1 < title2 : title1 > title2
             }
 
         case .dateModified:
-            documentURLs = sourceURLs.sorted { url1, url2 in
+            return urls.sorted { url1, url2 in
                 do {
                     let attr1 = try FileManager.default.attributesOfItem(atPath: url1.path)
                     let attr2 = try FileManager.default.attributesOfItem(atPath: url2.path)
@@ -173,9 +177,9 @@ class DocumentListViewModel: ObservableObject {
                     return true
                 }
             }
-            
+
         case .dateCreated:
-            documentURLs = sourceURLs.sorted { url1, url2 in
+            return urls.sorted { url1, url2 in
                 do {
                     let attr1 = try FileManager.default.attributesOfItem(atPath: url1.path)
                     let attr2 = try FileManager.default.attributesOfItem(atPath: url2.path)
@@ -187,9 +191,9 @@ class DocumentListViewModel: ObservableObject {
                     return true
                 }
             }
-            
+
         case .size:
-            documentURLs = allDocumentURLs.sorted { url1, url2 in
+            return urls.sorted { url1, url2 in
                 do {
                     let attr1 = try FileManager.default.attributesOfItem(atPath: url1.path)
                     let attr2 = try FileManager.default.attributesOfItem(atPath: url2.path)
@@ -463,29 +467,33 @@ class DocumentListViewModel: ObservableObject {
                 }
             }
 
-            // Update document URLs with search results
-            let allMatches = Array(Set(titleMatches + contentMatches))
-            print("DEBUG: Total matches before filtering: \(allMatches.count)")
-
             // Filter to current folder only
             let currentPath = repository.currentFolderPath
             print("DEBUG: Current folder path: '\(currentPath)'")
-            let currentFolderMatches = allMatches.filter { url in
+
+            let currentFolderTitleMatches = titleMatches.filter { url in
                 let parentPath = url.deletingLastPathComponent().path
                     .replacingOccurrences(of: repository.documentsDirectory.path, with: "")
                     .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                let matches = parentPath == currentPath || (currentPath.isEmpty && !parentPath.contains("/"))
-                print("DEBUG: Checking \(url.lastPathComponent) - parentPath: '\(parentPath)', matches: \(matches)")
-                return matches
+                return parentPath == currentPath || (currentPath.isEmpty && !parentPath.contains("/"))
             }
-            print("DEBUG: Matches after folder filter: \(currentFolderMatches.count)")
 
-            // Apply sorting to search results
-            documentURLs = currentFolderMatches
+            let currentFolderContentMatches = contentMatches.filter { url in
+                let parentPath = url.deletingLastPathComponent().path
+                    .replacingOccurrences(of: repository.documentsDirectory.path, with: "")
+                    .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                return parentPath == currentPath || (currentPath.isEmpty && !parentPath.contains("/"))
+            }
+
+            print("DEBUG: Title matches in folder: \(currentFolderTitleMatches.count), Content matches: \(currentFolderContentMatches.count)")
+
+            // Two-tier sorting: title matches first, then content matches
+            let sortedTitleMatches = sortURLs(currentFolderTitleMatches)
+            let contentOnlyMatches = currentFolderContentMatches.filter { !currentFolderTitleMatches.contains($0) }
+            let sortedContentMatches = sortURLs(contentOnlyMatches)
+            documentURLs = sortedTitleMatches + sortedContentMatches
             isSearching = true
-            print("DEBUG: Set documentURLs to \(documentURLs.count) items, isSearching=\(isSearching)")
-            applySorting()
-            print("DEBUG: After sorting, documentURLs has \(documentURLs.count) items")
+            print("DEBUG: Set documentURLs to \(documentURLs.count) items (title: \(sortedTitleMatches.count), content: \(sortedContentMatches.count))")
 
             // Filter folders
             let searchLower = query.lowercased()
@@ -631,10 +639,11 @@ class DocumentListViewModel: ObservableObject {
             await MainActor.run {
                 searchResults = newSearchResults
 
-                // Set documentURLs to filtered results, then apply sorting
-                let filteredURLs = Array(Set(titleMatches + contentMatches))  // Remove duplicates
-                documentURLs = filteredURLs
-                applySorting()  // This will now sort the filtered documentURLs
+                // Two-tier sorting: title matches first, then content matches
+                let sortedTitleMatches = sortURLs(titleMatches)
+                let contentOnlyMatches = contentMatches.filter { !titleMatches.contains($0) }
+                let sortedContentMatches = sortURLs(contentOnlyMatches)
+                documentURLs = sortedTitleMatches + sortedContentMatches
 
                 // Filter current folder subdirectories
                 folderURLs = allFolderURLs.filter { url in
