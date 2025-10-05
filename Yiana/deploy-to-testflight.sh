@@ -52,15 +52,23 @@ fi
 # Step 4: Export and Upload IPA
 echo -e "${YELLOW}Step 4: Exporting and uploading IPA to App Store Connect...${NC}"
 echo -e "${YELLOW}Note: This uses automatic upload via -exportOptionsPlist destination:upload${NC}"
-xcodebuild -exportArchive \
+
+# When using destination:upload, xcodebuild uploads directly without creating local IPA
+# The command may return exit code 1 even on successful upload, so we capture and check output
+OUTPUT=$(xcodebuild -exportArchive \
     -archivePath "$ARCHIVE_PATH" \
     -exportOptionsPlist "$PLIST_PATH" \
     -exportPath "$EXPORT_PATH" \
-    -allowProvisioningUpdates
+    -allowProvisioningUpdates 2>&1)
 
-# Check if export succeeded (xcodebuild with destination:upload doesn't create local IPA)
-if [ $? -eq 0 ]; then
+EXIT_CODE=$?
+echo "$OUTPUT"
+
+# Check if upload succeeded by looking for success message in output
+if echo "$OUTPUT" | grep -q "Upload succeeded"; then
     echo -e "${GREEN}✓ Export and upload succeeded${NC}"
+elif [ $EXIT_CODE -eq 0 ]; then
+    echo -e "${GREEN}✓ Export completed successfully${NC}"
 else
     echo -e "${RED}✗ Export/upload failed${NC}"
     exit 1
