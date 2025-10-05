@@ -8,6 +8,7 @@
 #if os(iOS)
 import UIKit
 import UniformTypeIdentifiers
+import PDFKit
 
 /// A document containing a PDF and associated metadata
 class NoteDocument: UIDocument {
@@ -43,15 +44,18 @@ class NoteDocument: UIDocument {
     }
     
     override func contents(forType typeName: String) throws -> Any {
+        // Check for pending text draft and render if exists
+        processPendingTextDraft()
+
         // Create a simple data structure combining metadata and PDF
         let encoder = JSONEncoder()
         let metadataData = try encoder.encode(metadata)
-        
+
         var contents = Data()
         contents.append(metadataData)
         contents.append(Data([0xFF, 0xFF, 0xFF, 0xFF])) // Separator
         contents.append(pdfData ?? Data())
-        
+
         return contents
     }
     
@@ -77,6 +81,53 @@ class NoteDocument: UIDocument {
             self.pdfData = data.subdata(in: pdfDataStart..<data.count)
         } else {
             self.pdfData = nil
+        }
+    }
+
+    // MARK: - Text Page Handling
+
+    /// Process any pending text draft and render to PDF
+    private func processPendingTextDraft() {
+        let fileURL = self.fileURL
+
+        let sidecarManager = SidecarManager.shared
+        if sidecarManager.hasDraft(for: fileURL),
+           let draftText = sidecarManager.loadDraft(for: fileURL) {
+
+            let renderer = MarkdownToPDFService()
+            if let renderedPDFData = renderer.renderToPDF(markdown: draftText) {
+                // Append to existing PDF
+                if let existingPDFData = self.pdfData,
+                   let existingPDF = PDFDocument(data: existingPDFData),
+                   let newPDF = PDFDocument(data: renderedPDFData) {
+
+                    // Append all pages from rendered text
+                    for pageIndex in 0..<newPDF.pageCount {
+                        if let page = newPDF.page(at: pageIndex) {
+                            existingPDF.insert(page, at: existingPDF.pageCount)
+                        }
+                    }
+
+                    // Update with combined PDF
+                    self.pdfData = existingPDF.dataRepresentation()
+
+                } else {
+                    // No existing PDF, use rendered one
+                    self.pdfData = renderedPDFData
+                }
+
+                // Update metadata
+                metadata.hasPendingTextPage = false
+                metadata.modified = Date()
+                if let fullText = metadata.fullText {
+                    metadata.fullText = fullText + "\n\n" + draftText
+                } else {
+                    metadata.fullText = draftText
+                }
+
+                // Clear the draft after successful render
+                try? sidecarManager.deleteDraft(for: fileURL)
+            }
         }
     }
 

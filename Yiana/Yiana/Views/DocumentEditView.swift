@@ -39,9 +39,14 @@ struct DocumentEditView: View {
     @State private var activeSheet: ActiveSheet?
     @State private var showingMarkupError = false
     @State private var markupErrorMessage = ""
-    
+    @State private var showingTextEditor = false
+    @State private var textPageDraft = ""
+    @State private var isProcessingTextPage = false
+
     private let scanningService = ScanningService()
     private let exportService = ExportService()
+    private let sidecarManager = SidecarManager.shared
+    private let markdownRenderer = MarkdownToPDFService()
     
     var body: some View {
         Group {
@@ -103,6 +108,21 @@ struct DocumentEditView: View {
             Button("OK") { }
         } message: {
             Text(markupErrorMessage)
+        }
+        .sheet(isPresented: $showingTextEditor) {
+            MarkdownEditorView(
+                isPresented: $showingTextEditor,
+                draftText: $textPageDraft,
+                documentURL: documentURL,
+                onSave: { markdown in
+                    Task {
+                        await handleTextPageSave(markdown)
+                    }
+                }
+            )
+        }
+        .onAppear {
+            checkForExistingDraft()
         }
     }
     
@@ -296,6 +316,26 @@ struct DocumentEditView: View {
                 }
             }
             .disabled(!scanningService.isScanningAvailable())
+
+            // Add Text button
+            Button(action: {
+                showingTextEditor = true
+            }) {
+                VStack(spacing: 4) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.blue.opacity(0.3))
+                            .frame(width: 60, height: 60)
+
+                        Image(systemName: "text.cursor")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                    }
+                    Text("Text")
+                        .font(.caption)
+                        .foregroundColor(.primary)
+                }
+            }
         }
         .padding(.bottom, 20)
     }
@@ -445,6 +485,72 @@ struct DocumentEditView: View {
         } catch {
             print("DEBUG Export: Failed to write PDF - \(error)")
         }
+    }
+
+    // MARK: - Text Page Functions
+
+    private func checkForExistingDraft() {
+        if sidecarManager.hasDraft(for: documentURL) {
+            if let draft = sidecarManager.loadDraft(for: documentURL) {
+                textPageDraft = draft
+                // Could show a banner that draft was recovered
+            }
+        }
+    }
+
+    private func handleTextPageSave(_ markdown: String) async {
+        guard let viewModel = viewModel else { return }
+
+        isProcessingTextPage = true
+
+        // Render markdown to PDF
+        if let renderedPDFData = markdownRenderer.renderToPDF(markdown: markdown) {
+            // Append to existing document
+            if let existingPDFData = viewModel.pdfData,
+               let existingPDF = PDFDocument(data: existingPDFData),
+               let newPDF = PDFDocument(data: renderedPDFData) {
+
+                // Append all pages from rendered text
+                for pageIndex in 0..<newPDF.pageCount {
+                    if let page = newPDF.page(at: pageIndex) {
+                        existingPDF.insert(page, at: existingPDF.pageCount)
+                    }
+                }
+
+                // Update with combined PDF
+                viewModel.pdfData = existingPDF.dataRepresentation()
+
+                // Update metadata in document
+                if let document = document {
+                    document.metadata.hasPendingTextPage = false
+                    document.metadata.modified = Date()
+                    if let fullText = document.metadata.fullText {
+                        document.metadata.fullText = fullText + "\n\n" + markdown
+                    } else {
+                        document.metadata.fullText = markdown
+                    }
+                }
+
+            } else {
+                // No existing PDF, create new one
+                viewModel.pdfData = renderedPDFData
+                if let document = document {
+                    document.metadata.fullText = markdown
+                    document.metadata.hasPendingTextPage = false
+                }
+            }
+
+            viewModel.hasChanges = true
+
+            // Clear the draft after successful render
+            try? sidecarManager.deleteDraft(for: documentURL)
+            textPageDraft = ""
+
+            // Save the document
+            _ = await viewModel.save()
+        }
+
+        isProcessingTextPage = false
     }
 }
 
