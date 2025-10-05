@@ -481,30 +481,13 @@ struct DocumentListView: View {
             if viewModel.isSearching && !viewModel.otherFolderResults.isEmpty {
                 Section("In Other Folders") {
                     ForEach(viewModel.otherFolderResults, id: \.url) { result in
-                        // Find the corresponding search result
                         let searchResult = viewModel.searchResults.first { $0.documentURL == result.url }
                         NavigationLink(value: DocumentNavigationData(url: result.url, searchResult: searchResult)) {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(result.url.deletingPathExtension().lastPathComponent)
-                                        .font(.headline)
-                                        .lineLimit(1)
-                                    Text(result.path)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(1)
-                                    
-                                    // Show snippet if available
-                                    if let snippet = searchResult?.snippet {
-                                        Text(snippet)
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                            .lineLimit(2)
-                                    }
-                                }
-                                Spacer()
-                            }
-                            .padding(.vertical, 2)
+                            DocumentRow(
+                                url: result.url,
+                                searchResult: searchResult,
+                                secondaryText: result.path
+                            )
                         }
                     }
                 }
@@ -739,12 +722,14 @@ struct DocumentListView: View {
 struct DocumentRow: View {
     let url: URL
     let searchResult: SearchResult?
+    let secondaryText: String?
     @State private var statusColor: Color = .gray
     @State private var hasLoadedStatus = false
     
-    init(url: URL, searchResult: SearchResult? = nil) {
+    init(url: URL, searchResult: SearchResult? = nil, secondaryText: String? = nil) {
         self.url = url
         self.searchResult = searchResult
+        self.secondaryText = secondaryText
     }
     
     var body: some View {
@@ -772,15 +757,26 @@ struct DocumentRow: View {
                 if let result = searchResult,
                    result.matchType == .content || result.matchType == .both,
                    let snippet = result.snippet {
-                    Text(snippet)
+                    Text(highlightedSnippet(snippet, searchTerm: result.searchTerm))
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
                         .padding(.leading, 20)
+                }
+
+                if let secondary = secondaryText {
+                    Text(secondary)
+                        .font(.caption2)
+                        .foregroundColor(.accentColor)
+                        .fontWeight(.semibold)
+                        .lineLimit(1)
+                        .padding(.leading, searchResult == nil ? 0 : 20)
                 } else {
                     Text(formattedDate)
                         .font(.caption)
                         .foregroundColor(.secondary)
+                        .lineLimit(2)
+                        .padding(.leading, searchResult == nil ? 0 : 20)
                 }
             }
             .padding(.vertical, 4)
@@ -804,6 +800,41 @@ struct DocumentRow: View {
             return formatter.string(from: modDate)
         }
         return url.lastPathComponent
+    }
+    private func highlightedSnippet(_ snippet: String, searchTerm: String?) -> AttributedString {
+        var attributed = AttributedString(snippet)
+
+        guard let searchTerm = searchTerm, !searchTerm.isEmpty else {
+            return attributed
+        }
+
+        // Case-insensitive search for all occurrences
+        let lowercasedSnippet = snippet.lowercased()
+        let lowercasedTerm = searchTerm.lowercased()
+        var searchStartIndex = lowercasedSnippet.startIndex
+
+        while searchStartIndex < lowercasedSnippet.endIndex {
+            // Find next occurrence from current position
+            guard let range = lowercasedSnippet.range(
+                of: lowercasedTerm,
+                options: [],
+                range: searchStartIndex..<lowercasedSnippet.endIndex
+            ) else {
+                break
+            }
+
+            // Convert String.Index to AttributedString.Index
+            if let attrRange = Range(range, in: attributed) {
+                attributed[attrRange].foregroundColor = .blue
+                attributed[attrRange].backgroundColor = .blue.opacity(0.1)
+                attributed[attrRange].font = .caption.bold()
+            }
+
+            // Move search position forward
+            searchStartIndex = range.upperBound
+        }
+
+        return attributed
     }
     
     private func loadStatus() async {
