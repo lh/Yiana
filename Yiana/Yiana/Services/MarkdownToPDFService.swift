@@ -96,7 +96,7 @@ class MarkdownToPDFService {
                 attributes[.paragraphStyle] = listParagraph
             }
             // Ordered lists (simple detection)
-            else if let match = processedLine.range(of: #"^\d+\.\s"#, options: .regularExpression) {
+            else if processedLine.range(of: #"^\d+\.\s"#, options: .regularExpression) != nil {
                 let listParagraph = paragraphStyle.mutableCopy() as! NSMutableParagraphStyle
                 listParagraph.firstLineHeadIndent = 0
                 listParagraph.headIndent = 20

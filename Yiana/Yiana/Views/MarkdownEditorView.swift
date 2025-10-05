@@ -268,7 +268,7 @@ struct MarkdownPreviewView: View {
     }
 
     private func renderInlineMarkdown(_ text: String) -> AttributedString {
-        var result = AttributedString(text)
+        let result = AttributedString(text)
 
         // For now, just return the text as-is without inline formatting
         // This is a simplified version that doesn't process bold/italic
