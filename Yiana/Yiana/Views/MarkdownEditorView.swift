@@ -55,7 +55,9 @@ struct MarkdownEditorView: View {
             }
             .toolbar {
                 ToolbarItemGroup(placement: .bottomBar) {
-                    formattingToolbar
+                    if !showPreview {  // Only show formatting toolbar in edit mode
+                        formattingToolbar
+                    }
                 }
             }
         }
@@ -268,12 +270,55 @@ struct MarkdownPreviewView: View {
     }
 
     private func renderInlineMarkdown(_ text: String) -> AttributedString {
-        let result = AttributedString(text)
+        var attributedString = AttributedString(text)
 
-        // For now, just return the text as-is without inline formatting
-        // This is a simplified version that doesn't process bold/italic
-        // TODO: Implement proper regex-based markdown parsing
+        // Process bold text: **text**
+        if let boldRegex = try? NSRegularExpression(pattern: #"\*\*(.*?)\*\*"#) {
+            let nsString = text as NSString
+            let matches = boldRegex.matches(in: text, range: NSRange(location: 0, length: nsString.length))
 
-        return result
+            // Process in reverse order to maintain string indices
+            for match in matches.reversed() {
+                let fullRange = match.range(at: 0)
+                let contentRange = match.range(at: 1)
+
+                if contentRange.location != NSNotFound {
+                    let content = nsString.substring(with: contentRange)
+                    let fullMatch = nsString.substring(with: fullRange)
+
+                    if let range = attributedString.range(of: fullMatch) {
+                        var boldText = AttributedString(content)
+                        boldText.font = .boldSystemFont(ofSize: 17)
+                        attributedString.replaceSubrange(range, with: boldText)
+                    }
+                }
+            }
+        }
+
+        // Process italic text: *text*
+        // Use a pattern that doesn't match bold markers
+        if let italicRegex = try? NSRegularExpression(pattern: #"(?<!\*)\*([^\*]+)\*(?!\*)"#) {
+            let currentText = String(attributedString.characters)
+            let nsString = currentText as NSString
+            let matches = italicRegex.matches(in: currentText, range: NSRange(location: 0, length: nsString.length))
+
+            for match in matches.reversed() {
+                let fullRange = match.range(at: 0)
+                let contentRange = match.range(at: 1)
+
+                if contentRange.location != NSNotFound {
+                    let content = nsString.substring(with: contentRange)
+                    let fullMatch = nsString.substring(with: fullRange)
+
+                    if let range = attributedString.range(of: fullMatch) {
+                        var italicText = AttributedString(content)
+                        italicText.font = .italicSystemFont(ofSize: 17)
+                        attributedString.replaceSubrange(range, with: italicText)
+                    }
+                }
+            }
+        }
+
+        return attributedString
     }
 }
