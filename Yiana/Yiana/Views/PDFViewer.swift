@@ -74,12 +74,54 @@ struct PDFKitView: ViewRepresentable {
         configurePDFView(pdfView, context: context)
         return pdfView
     }
-    
+
     func updateUIView(_ pdfView: PDFView, context: Context) {
-        if !context.coordinator.isInitialLoad {
-            updatePDFView(pdfView)
+        context.coordinator.pdfView = pdfView
+        let signature = pdfData.count
+        if context.coordinator.pdfDataSignature != signature {
+            context.coordinator.pdfDataSignature = signature
+            context.coordinator.lastReportedPageIndex = nil
+            if let document = PDFDocument(data: pdfData) {
+                context.coordinator.isReloadingDocument = true
+                DispatchQueue.main.async {
+                    let pageCount = document.pageCount
+                    let clamped = max(0, min(self.currentPage, pageCount - 1))
+                    pdfView.document = nil
+                    pdfView.document = document
+                    if let page = document.page(at: clamped) {
+                        pdfView.go(to: page)
+                        context.coordinator.lastReportedPageIndex = clamped
+                    }
+                    pdfView.documentView?.setNeedsDisplay()
+                    pdfView.layoutDocumentView()
+                    self.totalPages = pageCount
+                    if self.currentPage != clamped {
+                        self.currentPage = clamped
+                    }
+                    context.coordinator.isReloadingDocument = false
+                }
+            } else {
+                pdfView.document = nil
+                DispatchQueue.main.async {
+                    self.totalPages = 0
+                    self.currentPage = 0
+                    context.coordinator.isReloadingDocument = false
+                }
+            }
+        } else if let document = pdfView.document {
+            let pageCount = document.pageCount
+            if totalPages != pageCount {
+                DispatchQueue.main.async {
+                    self.totalPages = pageCount
+                    let clamped = max(0, min(self.currentPage, pageCount - 1))
+                    if self.currentPage != clamped {
+                        self.currentPage = clamped
+                    }
+                }
+            }
+            context.coordinator.isReloadingDocument = false
         }
-        handleNavigation(pdfView)
+        handleNavigation(pdfView, coordinator: context.coordinator)
         context.coordinator.isInitialLoad = false
     }
     #else
@@ -89,12 +131,54 @@ struct PDFKitView: ViewRepresentable {
         configurePDFView(pdfView, context: context)
         return pdfView
     }
-    
+
     func updateNSView(_ pdfView: PDFView, context: Context) {
-        if !context.coordinator.isInitialLoad {
-            updatePDFView(pdfView)
+        context.coordinator.pdfView = pdfView
+        let signature = pdfData.count
+        if context.coordinator.pdfDataSignature != signature {
+            context.coordinator.pdfDataSignature = signature
+            context.coordinator.lastReportedPageIndex = nil
+            if let document = PDFDocument(data: pdfData) {
+                context.coordinator.isReloadingDocument = true
+                DispatchQueue.main.async {
+                    let pageCount = document.pageCount
+                    let clamped = max(0, min(self.currentPage, pageCount - 1))
+                    pdfView.document = nil
+                    pdfView.document = document
+                    if let page = document.page(at: clamped) {
+                        pdfView.go(to: page)
+                        context.coordinator.lastReportedPageIndex = clamped
+                    }
+                    pdfView.documentView?.setNeedsDisplay()
+                    pdfView.layoutDocumentView()
+                    self.totalPages = pageCount
+                    if self.currentPage != clamped {
+                        self.currentPage = clamped
+                    }
+                    context.coordinator.isReloadingDocument = false
+                }
+            } else {
+                pdfView.document = nil
+                DispatchQueue.main.async {
+                    self.totalPages = 0
+                    self.currentPage = 0
+                    context.coordinator.isReloadingDocument = false
+                }
+            }
+        } else if let document = pdfView.document {
+            let pageCount = document.pageCount
+            if totalPages != pageCount {
+                DispatchQueue.main.async {
+                    self.totalPages = pageCount
+                    let clamped = max(0, min(self.currentPage, pageCount - 1))
+                    if self.currentPage != clamped {
+                        self.currentPage = clamped
+                    }
+                }
+            }
+            context.coordinator.isReloadingDocument = false
         }
-        handleNavigation(pdfView)
+        handleNavigation(pdfView, coordinator: context.coordinator)
         context.coordinator.isInitialLoad = false
     }
     #endif
@@ -189,6 +273,7 @@ struct PDFKitView: ViewRepresentable {
             
             // Set the document
             pdfView.document = document
+            context.coordinator.pdfDataSignature = pdfData.hashValue
         }
     }
     
@@ -222,14 +307,25 @@ struct PDFKitView: ViewRepresentable {
         }
     }
     
-    private func handleNavigation(_ pdfView: PDFView) {
+    private func handleNavigation(_ pdfView: PDFView, coordinator: Coordinator) {
+        if coordinator.isReloadingDocument { return }
         if let pageIndex = navigateToPage,
            let document = pdfView.document,
            pageIndex >= 0 && pageIndex < document.pageCount,
            let page = document.page(at: pageIndex) {
+            if let current = pdfView.currentPage,
+               document.index(for: current) == pageIndex {
+                DispatchQueue.main.async {
+                    self.navigateToPage = nil
+                }
+                return
+            }
             pdfView.go(to: page)
             DispatchQueue.main.async {
-                self.currentPage = pageIndex
+                if self.currentPage != pageIndex {
+                    self.currentPage = pageIndex
+                }
+                coordinator.lastReportedPageIndex = pageIndex
                 self.navigateToPage = nil  // Clear navigation request
             }
         }
@@ -241,6 +337,9 @@ struct PDFKitView: ViewRepresentable {
         var isInitialLoad = true
         var onRequestPageManagement: (() -> Void)?
         var onRequestMetadataView: (() -> Void)?
+        var pdfDataSignature: Int?
+        var lastReportedPageIndex: Int?
+        var isReloadingDocument = false
         #if os(macOS)
         var keyEventMonitor: Any?
         var scrollEventMonitor: Any?
@@ -270,10 +369,15 @@ struct PDFKitView: ViewRepresentable {
                 return
             }
             
+            if isReloadingDocument { return }
             let pageIndex = document.index(for: currentPage)
-            
+            if lastReportedPageIndex == pageIndex { return }
+            lastReportedPageIndex = pageIndex
+
             DispatchQueue.main.async {
-                self.parent.currentPage = pageIndex
+                if self.parent.currentPage != pageIndex {
+                    self.parent.currentPage = pageIndex
+                }
             }
         }
         

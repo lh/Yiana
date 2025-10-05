@@ -25,11 +25,9 @@ struct ContentView: View {
                 )
             }
             .task {
-                // Trigger background indexing once on app launch
                 if !hasTriggeredIndexing {
                     hasTriggeredIndexing = true
-                    // Delay indexing slightly to avoid blocking UI startup
-                    try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
                     backgroundIndexer.indexAllDocuments()
                 }
             }

@@ -376,15 +376,29 @@ final class PencilKitMarkupViewController: UIViewController, PKCanvasViewDelegat
     }
 
     private func presentTextEntry(at point: CGPoint) {
+        // Release PencilKit's text input session before presenting UIKit alert text field.
+        // Without this the system keyboard sometimes complains about invalid sessions
+        // (see repeated RTIInputSystemClient warnings in logs).
+        canvasView.resignFirstResponder()
+
         let alert = UIAlertController(title: "Add Text", message: nil, preferredStyle: .alert)
         alert.addTextField { tf in
             tf.placeholder = "Note"
         }
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Add", style: .default, handler: { [weak self] _ in
-            guard let self = self, let text = alert.textFields?.first?.text, !text.isEmpty else { return }
+        let cancel = UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
+            // Restore PencilKit as first responder so the tool picker reappears.
+            self?.canvasView.becomeFirstResponder()
+        }
+        alert.addAction(cancel)
+
+        let add = UIAlertAction(title: "Add", style: .default) { [weak self] _ in
+            guard let self = self else { return }
+            defer { self.canvasView.becomeFirstResponder() }
+            guard let text = alert.textFields?.first?.text, !text.isEmpty else { return }
             self.addTextAnnotation(text: text, atViewPoint: point)
-        }))
+        }
+        alert.addAction(add)
+
         present(alert, animated: true)
     }
 

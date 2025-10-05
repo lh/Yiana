@@ -91,6 +91,7 @@ struct DocumentEditView: View {
                         isPresented: .constant(true),
                         currentPageIndex: currentViewedPage,
                         onPageSelected: { pageIndex in
+                            guard currentViewedPage != pageIndex else { return }
                             navigateToPage = pageIndex
                             activeSheet = nil
                         }
@@ -111,40 +112,40 @@ struct DocumentEditView: View {
             VStack(spacing: 0) {
                 // Spacer for collapsible title area
                 Color.clear.frame(height: showTitleField ? 60 : 44)
-            
-            // PDF content area with scan button
-            if isProcessingScans {
-                VStack {
-                    ProgressView("Processing scanned documents...")
-                        .progressViewStyle(CircularProgressViewStyle())
-                        .padding()
-                    Text("Please wait...")
-                        .foregroundColor(.secondary)
+
+                // PDF content area with scan button
+                if isProcessingScans {
+                    VStack {
+                        ProgressView("Processing scanned documents...")
+                            .progressViewStyle(CircularProgressViewStyle())
+                            .padding()
+                        Text("Please wait...")
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color(.systemGray6))
+                } else if let pdfData = viewModel.pdfData {
+                    PDFViewer(pdfData: pdfData,
+                              navigateToPage: $navigateToPage,
+                              currentPage: $currentViewedPage,
+                              onRequestPageManagement: {
+                                  activeSheet = .pageManagement
+                              },
+                              onRequestMetadataView: {
+                                  // TODO: Show metadata/address view when implemented
+                                  print("DEBUG: Metadata view requested - coming soon!")
+                              })
+                        .overlay(alignment: .bottom) {
+                            scanButtonBar
+                        }
+                } else {
+                    ContentPlaceholderView()
+                        .overlay(alignment: .bottom) {
+                            scanButtonBar
+                        }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(.systemGray6))
-            } else if let pdfData = viewModel.pdfData {
-                PDFViewer(pdfData: pdfData,
-                         navigateToPage: $navigateToPage,
-                         currentPage: $currentViewedPage,
-                         onRequestPageManagement: {
-                             activeSheet = .pageManagement
-                         },
-                         onRequestMetadataView: {
-                             // TODO: Show metadata/address view when implemented
-                             print("DEBUG: Metadata view requested - coming soon!")
-                         })
-                    .overlay(alignment: .bottom) {
-                        scanButtonBar
-                    }
-            } else {
-                ContentPlaceholderView()
-                    .overlay(alignment: .bottom) {
-                        scanButtonBar
-                    }
             }
-            }
-            
+
             // Overlay title field at top
             VStack {
                 if showTitleField {
@@ -160,7 +161,7 @@ struct DocumentEditView: View {
                         })
                         .textFieldStyle(.roundedBorder)
                         .focused($titleFieldFocused)
-                        
+
                         Button("Done") {
                             showTitleField = false
                             titleFieldFocused = false
@@ -188,7 +189,7 @@ struct DocumentEditView: View {
                         }
                         .padding(.leading, 4)
                         .padding(.trailing, 16)  // More space between button and title
-                        
+
                         Text(viewModel.title.isEmpty ? "Untitled" : viewModel.title)
                             .font(.headline)
                             .foregroundColor(.primary)
@@ -199,9 +200,9 @@ struct DocumentEditView: View {
                                 showTitleField = true
                                 titleFieldFocused = true
                             }
-                        
+
                         Spacer()
-                        
+
                         // Markup button
                         if viewModel.pdfData != nil {
                             Button(action: {
@@ -215,7 +216,7 @@ struct DocumentEditView: View {
                             }
                             .padding(.trailing, 4)
                         }
-                        
+
                         // Export button
                         if viewModel.pdfData != nil {
                             Button(action: {
