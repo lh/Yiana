@@ -543,6 +543,7 @@ class DocumentListViewModel: ObservableObject {
     }
     
     private func performSearch(searchText: String) async {
+        guard !Task.isCancelled else { return }
         print("DEBUG: Searching for '\(searchText)' in folder '\(repository.currentFolderPath)'")
         
         // Set search in progress
@@ -563,13 +564,14 @@ class DocumentListViewModel: ObservableObject {
         if currentSearchText.isEmpty {
             // No filter - show all in current folder, then apply sorting
             await MainActor.run {
+                isSearching = false
                 applySorting()
                 folderURLs = allFolderURLs
                 otherFolderResults = []
                 searchResults = []
-                isSearching = false
             }
         } else {
+            guard !Task.isCancelled else { return }
             // Filter by name and content
             let searchLower = currentSearchText.lowercased()
             await MainActor.run {

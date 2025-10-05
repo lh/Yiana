@@ -49,7 +49,17 @@ struct DocumentListView: View {
                 if viewModel.isLoading && viewModel.documentURLs.isEmpty && viewModel.folderURLs.isEmpty {
                     ProgressView("Loading documents...")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if viewModel.documentURLs.isEmpty && viewModel.folderURLs.isEmpty && viewModel.otherFolderResults.isEmpty {
+                } else if viewModel.isSearchInProgress && viewModel.documentURLs.isEmpty && viewModel.folderURLs.isEmpty && viewModel.otherFolderResults.isEmpty {
+                    // Show searching indicator when no results yet but still searching
+                    VStack(spacing: 20) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                        Text("Searching...")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if viewModel.documentURLs.isEmpty && viewModel.folderURLs.isEmpty && viewModel.otherFolderResults.isEmpty && !viewModel.isSearchInProgress {
                     emptyStateView
                 } else {
                     documentList
