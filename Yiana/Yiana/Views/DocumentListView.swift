@@ -734,10 +734,16 @@ struct DocumentRow: View {
     
     var body: some View {
         HStack(spacing: 0) {
-            // Status indicator line
-            Rectangle()
-                .fill(statusColor)
-                .frame(width: 1.5)
+            // Status indicator line (hidden during search)
+            if searchResult == nil {
+                Rectangle()
+                    .fill(statusColor)
+                    .frame(width: 1.5)
+            } else {
+                // No status indicator during search
+                Color.clear
+                    .frame(width: 1.5)
+            }
             
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 4) {
@@ -783,7 +789,8 @@ struct DocumentRow: View {
             .padding(.leading, 12)
         }
         .task {
-            if !hasLoadedStatus {
+            // Skip status loading during search for better performance
+            if !hasLoadedStatus && searchResult == nil {
                 await loadStatus()
                 hasLoadedStatus = true
             }
