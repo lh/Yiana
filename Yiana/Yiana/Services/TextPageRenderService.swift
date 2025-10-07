@@ -23,15 +23,15 @@ final class TextPageRenderService {
 
     init() {
         let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
+        formatter.locale = Locale(identifier: "en_GB")
+        formatter.dateFormat = "dd-MM-yyyy HH:mm"
         headerFormatter = formatter
     }
 
     func render(markdown: String, on date: Date = Date()) async throws -> TextPageRenderOutput {
         let paperSize = await layoutSettings.preferredPaperSize()
         let options = TextPageRenderOptions.default(for: paperSize)
-        let headerText = "Inserted note — \(headerFormatter.string(from: date))"
+        let headerText = "Page added \(headerFormatter.string(from: date))"
         return try renderer.render(markdown: markdown, headerText: headerText, options: options)
     }
 

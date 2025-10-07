@@ -14,7 +14,7 @@ final class TextPageRenderServiceTests: XCTestCase {
         let output = try await service.render(markdown: "# Heading\n\nThis is **bold** text.", on: fixedDate)
 
         XCTAssertFalse(output.pdfData.isEmpty)
-        XCTAssertTrue(output.plainText.contains("Inserted note"))
+        XCTAssertTrue(output.plainText.contains("Page added"))
         XCTAssertTrue(output.plainText.contains("Heading"))
     }
 
@@ -29,6 +29,7 @@ final class TextPageRenderServiceTests: XCTestCase {
 
         let pdfDocument = PDFDocument(data: combined.combinedPDF)
         XCTAssertEqual(pdfDocument?.pageCount, 2)
+        XCTAssertTrue(combined.plainText.contains("Page added"))
         XCTAssertTrue(combined.plainText.contains("Second note body"))
         let lastPageText = pdfDocument?.page(at: 1)?.string ?? ""
         XCTAssertTrue(lastPageText.contains("Second note body"))

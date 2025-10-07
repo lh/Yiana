@@ -20,7 +20,10 @@ struct PageManagementView: View {
     @Binding var pdfData: Data?
     @Binding var isPresented: Bool
     var currentPageIndex: Int = 0  // The page currently being viewed
+    var displayPDFData: Data? = nil
+    var provisionalPageRange: Range<Int>? = nil
     var onPageSelected: ((Int) -> Void)? = nil  // Callback for navigation
+    var onProvisionalPageSelected: (() -> Void)? = nil
     @State private var pages: [PDFPage] = []
     @State private var selectedPages: Set<Int> = []
     @State private var isEditMode = false  // Start in navigation mode
@@ -117,6 +120,12 @@ struct PageManagementView: View {
         .onAppear {
             loadPages()
         }
+        .onChange(of: displayPDFData) { _, _ in
+            loadPages()
+        }
+        .onChange(of: pdfData) { _, _ in
+            loadPages()
+        }
     }
     
     private var pageGrid: some View {
@@ -125,42 +134,49 @@ struct PageManagementView: View {
                 GridItem(.adaptive(minimum: 120, maximum: 200), spacing: 16)
             ], spacing: 16) {
                 ForEach(Array(pages.enumerated()), id: \.offset) { index, page in
+                    let isProvisional = provisionalPageRange?.contains(index) ?? false
                     PageThumbnailView(
                         page: page,
                         pageNumber: index + 1,
                         isSelected: selectedPages.contains(index),
                         isCurrentPage: pendingNavigationIndex == index ? true : (pendingNavigationIndex == nil && index == currentPageIndex),
-                        isEditMode: isEditMode
+                        isEditMode: isEditMode,
+                        isProvisional: isProvisional
                     )
                     .onTapGesture {
-                        if isEditMode {
-                            toggleSelection(for: index)
-                        } else {
-                            // Navigate to page
-                            if let callback = onPageSelected {
-                                // Show the navigation immediately
-                                pendingNavigationIndex = index
-                                callback(index)
-                                // Small delay before dismissing to show the transition
+                        if isProvisional {
+                            if !isEditMode {
+                                onProvisionalPageSelected?()
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                                     isPresented = false
                                 }
                             }
+                            return
+                        }
+                        if isEditMode {
+                            toggleSelection(for: index)
+                        } else if let callback = onPageSelected {
+                            pendingNavigationIndex = index
+                            callback(index)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                isPresented = false
+                            }
                         }
                     }
                     .onTapGesture(count: 2) {
-                        // Double-tap enters selection mode with this item selected
-                        if !isEditMode {
+                        if !isEditMode && !isProvisional {
                             isEditMode = true
                             selectedPages.insert(index)
                         }
                     }
                     #if os(iOS)
                     .onDrag {
+                        guard !isProvisional else { return NSItemProvider() }
                         self.draggedPage = index
                         return NSItemProvider(object: "\(index)" as NSString)
                     }
                     .onDrop(of: [.text], isTargeted: nil) { providers, location in
+                        guard !isProvisional else { return false }
                         guard let draggedPage = self.draggedPage,
                               draggedPage != index else { return false }
                         
@@ -175,15 +191,20 @@ struct PageManagementView: View {
     }
     
     private func loadPages() {
-        guard let pdfData = pdfData,
-              let document = PDFDocument(data: pdfData) else { return }
-        
-        pages = []
+        let sourceData = displayPDFData ?? pdfData
+        guard let pdfData = sourceData,
+              let document = PDFDocument(data: pdfData) else {
+            pages = []
+            return
+        }
+
+        var loadedPages: [PDFPage] = []
         for i in 0..<document.pageCount {
             if let page = document.page(at: i) {
-                pages.append(page)
+                loadedPages.append(page)
             }
         }
+        pages = loadedPages
     }
     
     private func toggleSelection(for index: Int) {
@@ -238,12 +259,22 @@ struct PageManagementView: View {
     private func saveChanges() {
         // Create new PDF document with reordered pages
         let newDocument = PDFDocument()
+        var insertionIndex = 0
         
         for (index, page) in pages.enumerated() {
-            newDocument.insert(page, at: index)
+            if provisionalPageRange?.contains(index) == true {
+                continue
+            }
+            if let copiedPage = page.copy() as? PDFPage {
+                newDocument.insert(copiedPage, at: insertionIndex)
+            } else {
+                newDocument.insert(page, at: insertionIndex)
+            }
+            insertionIndex += 1
         }
         
         pdfData = newDocument.dataRepresentation()
+        loadPages()
         // Don't dismiss - let user continue working
     }
 }
@@ -254,7 +285,8 @@ struct PageThumbnailView: View {
     let isSelected: Bool
     let isCurrentPage: Bool
     let isEditMode: Bool
-    
+    let isProvisional: Bool
+
     var body: some View {
         VStack(spacing: 8) {
             ZStack(alignment: .topTrailing) {
@@ -267,10 +299,26 @@ struct PageThumbnailView: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(
-                                isCurrentPage ? Color.blue : (isSelected ? Color.accentColor : Color.gray.opacity(0.3)),
-                                lineWidth: isCurrentPage ? 4 : (isSelected ? 3 : 1)
+                                isProvisional ? Color.yellow.opacity(0.9) : (isCurrentPage ? Color.blue : (isSelected ? Color.accentColor : Color.gray.opacity(0.3))),
+                                lineWidth: isProvisional ? 3 : (isCurrentPage ? 4 : (isSelected ? 3 : 1))
                             )
                     )
+                    .overlay(alignment: .topLeading) {
+                        if isProvisional {
+                            HStack(spacing: 4) {
+                                Image(systemName: "pencil.circle.fill")
+                                Text("Draft")
+                                    .fontWeight(.semibold)
+                            }
+                            .font(.caption2)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.yellow.opacity(0.9))
+                            .foregroundColor(.black)
+                            .clipShape(Capsule())
+                            .padding(8)
+                        }
+                    }
                 
                 // Selection indicator (only show in edit mode)
                 if isEditMode {
@@ -282,7 +330,7 @@ struct PageThumbnailView: View {
             }
             
             // Page number
-            Text("Page \(pageNumber)")
+            Text(isProvisional ? "Page \(pageNumber) (Draft)" : "Page \(pageNumber)")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }

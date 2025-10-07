@@ -167,8 +167,8 @@ private func applyHorizontalRuleStyle(in attributedString: NSMutableAttributedSt
 #else
         var combined = font.fontDescriptor.symbolicTraits
         combined.formUnion(traits)
-        if let descriptor = font.fontDescriptor.withSymbolicTraits(combined),
-           let newFont = MarkdownFont(descriptor: descriptor, size: font.pointSize) {
+        let descriptor = font.fontDescriptor.withSymbolicTraits(combined)
+        if let newFont = MarkdownFont(descriptor: descriptor, size: font.pointSize) {
             return newFont
         }
         return font

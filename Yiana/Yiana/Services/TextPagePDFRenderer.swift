@@ -177,25 +177,54 @@ final class TextPagePDFRenderer {
     }
 
     private func drawHeader(_ header: String, in context: CGContext, options: TextPageRenderOptions, headerHeight: CGFloat) {
-        let headerRect = CGRect(
+        let headerRectTop = CGRect(
             x: options.insets.left,
-            y: options.paperSize.height - options.insets.top - headerHeight,
+            y: options.insets.top,
             width: options.paperSize.width - options.insets.left - options.insets.right,
             height: headerHeight
         )
 
         #if os(iOS)
+        let headerRect = CGRect(
+            x: options.insets.left,
+            y: options.insets.top,
+            width: options.paperSize.width - options.insets.left - options.insets.right,
+            height: headerHeight
+        )
+
         let attributes: [NSAttributedString.Key: Any] = [
             .font: options.headerFont,
             .foregroundColor: options.headerColor
         ]
         (header as NSString).draw(in: headerRect, withAttributes: attributes)
+
+        let separatorY = headerRect.maxY + 6
+        let path = UIBezierPath()
+        path.move(to: CGPoint(x: options.insets.left, y: separatorY))
+        path.addLine(to: CGPoint(x: options.paperSize.width - options.insets.right, y: separatorY))
+        path.lineWidth = 0.5
+        options.secondaryColor.withAlphaComponent(0.35).setStroke()
+        path.stroke()
         #else
+        context.saveGState()
+        context.textMatrix = .identity
+        context.translateBy(x: 0, y: options.paperSize.height)
+        context.scaleBy(x: 1, y: -1)
+
         let attributes: [NSAttributedString.Key: Any] = [
             .font: options.headerFont,
             .foregroundColor: options.headerColor
         ]
-        (header as NSString).draw(in: headerRect, withAttributes: attributes)
+        (header as NSString).draw(in: headerRectTop, withAttributes: attributes)
+
+        let separatorY = headerRectTop.maxY + 6
+        context.setStrokeColor(options.secondaryColor.withAlphaComponent(0.35).cgColor)
+        context.setLineWidth(0.5)
+        context.move(to: CGPoint(x: options.insets.left, y: separatorY))
+        context.addLine(to: CGPoint(x: options.paperSize.width - options.insets.right, y: separatorY))
+        context.strokePath()
+
+        context.restoreGState()
         #endif
     }
 

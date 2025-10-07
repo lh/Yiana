@@ -131,7 +131,9 @@ struct DocumentReadView: View {
             PageManagementView(
                 pdfData: $pdfData,
                 isPresented: $showingPageManagement,
-                currentPageIndex: 0  // macOS version doesn't track current page yet
+                currentPageIndex: 0,  // macOS version doesn't track current page yet
+                displayPDFData: pdfData,
+                provisionalPageRange: nil
             )
         }
         .alert("Export Error", isPresented: $showingExportError) {

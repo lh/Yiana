@@ -57,18 +57,25 @@ struct MarkdownTextEditor: UIViewRepresentable {
         }
 
         if let action = pendingAction {
-            context.coordinator.apply(action: action, to: uiView)
+            context.coordinator.handle(action: action, on: uiView)
             DispatchQueue.main.async {
-                self.pendingAction = nil
+                if self.pendingAction == action {
+                    self.pendingAction = nil
+                }
             }
         }
     }
 
+    /// Coordinator bridges SwiftUI intent (`pendingAction`) with UIKit execution.
+    /// It serializes toolbar actions to avoid re-entrant updates that previously
+    /// caused "Publishing changes from within view updates" crashes.
     final class Coordinator: NSObject, UITextViewDelegate {
         private(set) var highlighter = MarkdownSyntaxHighlighter()
         var parent: MarkdownTextEditor
         var isUpdatingFromParent = false
         var isUpdatingFromCoordinator = false
+        private var isProcessingToolbarAction = false
+        private var toolbarActionQueue: [TextPageEditorAction] = []
 
         var baseTypingAttributes: [NSAttributedString.Key: Any] {
             highlighter.baseTextAttributes()
@@ -114,7 +121,46 @@ struct MarkdownTextEditor: UIViewRepresentable {
             textView.typingAttributes = baseTypingAttributes
         }
 
-        func apply(action: TextPageEditorAction, to textView: UITextView) {
+        func handle(action: TextPageEditorAction, on textView: UITextView) {
+            dispatchPrecondition(condition: .onQueue(.main))
+
+            toolbarActionQueue.append(action)
+            #if DEBUG
+            if toolbarActionQueue.count > 8 {
+                print("⚠️ MarkdownTextEditor queue depth (\(toolbarActionQueue.count)) exceeds expected bounds")
+            }
+            #endif
+            guard !isProcessingToolbarAction else { return }
+            processNextToolbarAction(on: textView)
+        }
+
+        private func processNextToolbarAction(on textView: UITextView) {
+            dispatchPrecondition(condition: .onQueue(.main))
+            guard !toolbarActionQueue.isEmpty else { return }
+            guard textView.window != nil else {
+                toolbarActionQueue.removeAll()
+                isProcessingToolbarAction = false
+                return
+            }
+
+            isProcessingToolbarAction = true
+            let next = toolbarActionQueue.removeFirst()
+
+            DispatchQueue.main.async { [weak self, weak textView] in
+                guard let self else { return }
+                guard let textView, textView.window != nil else {
+                    self.toolbarActionQueue.removeAll()
+                    self.isProcessingToolbarAction = false
+                    return
+                }
+
+                defer { self.isProcessingToolbarAction = false }
+                self.apply(action: next, to: textView)
+                self.processNextToolbarAction(on: textView)
+            }
+        }
+
+        private func apply(action: TextPageEditorAction, to textView: UITextView) {
             isUpdatingFromCoordinator = true
             defer { isUpdatingFromCoordinator = false }
 

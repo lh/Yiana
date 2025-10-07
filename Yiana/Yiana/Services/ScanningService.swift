@@ -10,6 +10,7 @@ import Foundation
 import UIKit
 import VisionKit
 import CoreImage
+import AVFoundation
 
 /// Color mode options for scanning
 enum ScanColorMode: String, CaseIterable {
@@ -43,6 +44,11 @@ class MockScanningService: ScanningServiceProtocol {
     
     func convertImagesToPDF(_ images: [UIImage], colorMode: ScanColorMode) async -> Data? {
         guard !images.isEmpty else { return nil }
+
+        let preferredPaper = await TextPageLayoutSettings.shared.preferredPaperSize()
+        let targetSize = preferredPaper.size
+        let targetRect = CGRect(origin: .zero, size: targetSize)
+        let contentRect = targetRect.insetBy(dx: 24, dy: 24)
         
         // Process images based on color mode
         let processedImages = colorMode == .blackAndWhite ? 
@@ -50,12 +56,12 @@ class MockScanningService: ScanningServiceProtocol {
         
         // Create a PDF from the images
         let pdfData = NSMutableData()
-        UIGraphicsBeginPDFContextToData(pdfData, .zero, nil)
+        UIGraphicsBeginPDFContextToData(pdfData, targetRect, nil)
         
         for image in processedImages {
-            let pageRect = CGRect(origin: .zero, size: image.size)
-            UIGraphicsBeginPDFPageWithInfo(pageRect, nil)
-            image.draw(in: pageRect)
+            UIGraphicsBeginPDFPageWithInfo(targetRect, nil)
+            let drawRect = AVMakeRect(aspectRatio: image.size, insideRect: contentRect)
+            image.draw(in: drawRect)
         }
         
         UIGraphicsEndPDFContext()
@@ -100,6 +106,11 @@ class ScanningService: ScanningServiceProtocol {
     func convertImagesToPDF(_ images: [UIImage], colorMode: ScanColorMode) async -> Data? {
         guard !images.isEmpty else { return nil }
         
+        let preferredPaper = await TextPageLayoutSettings.shared.preferredPaperSize()
+        let targetSize = preferredPaper.size
+        let targetRect = CGRect(origin: .zero, size: targetSize)
+        let contentRect = targetRect.insetBy(dx: 24, dy: 24)
+        
         return await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 // Process images based on color mode
@@ -107,27 +118,12 @@ class ScanningService: ScanningServiceProtocol {
                     images.compactMap { ScanningService.convertToBlackAndWhite($0) } : images
                 
                 let pdfData = NSMutableData()
-                UIGraphicsBeginPDFContextToData(pdfData, .zero, nil)
+                UIGraphicsBeginPDFContextToData(pdfData, targetRect, nil)
                 
                 for image in processedImages {
-                    // Calculate page size to fit A4 aspect ratio
-                    let a4AspectRatio: CGFloat = 297.0 / 210.0
-                    let imageAspectRatio = image.size.height / image.size.width
-                    
-                    let pageSize: CGSize
-                    if imageAspectRatio > a4AspectRatio {
-                        // Image is taller than A4
-                        pageSize = CGSize(width: 612, height: 612 * imageAspectRatio)
-                    } else {
-                        // Image is wider than A4
-                        pageSize = CGSize(width: 792 / imageAspectRatio, height: 792)
-                    }
-                    
-                    let pageRect = CGRect(origin: .zero, size: pageSize)
-                    UIGraphicsBeginPDFPageWithInfo(pageRect, nil)
-                    
-                    // Draw image to fill the page
-                    image.draw(in: pageRect)
+                    UIGraphicsBeginPDFPageWithInfo(targetRect, nil)
+                    let drawRect = AVMakeRect(aspectRatio: image.size, insideRect: contentRect)
+                    image.draw(in: drawRect)
                 }
                 
                 UIGraphicsEndPDFContext()

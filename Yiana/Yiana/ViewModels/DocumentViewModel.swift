@@ -34,9 +34,14 @@ class DocumentViewModel: ObservableObject {
                 document.pdfData = pdfData
                 hasChanges = true
                 scheduleAutoSave()
+                Task {
+                    await refreshDisplayPDF()
+                }
             }
         }
     }
+    @Published private(set) var displayPDFData: Data?
+    @Published private(set) var provisionalPageRange: Range<Int>?
 
     var autoSaveEnabled = false {
         didSet {
@@ -49,11 +54,17 @@ class DocumentViewModel: ObservableObject {
     private let document: NoteDocument
     private var autoSaveTask: Task<Void, Never>?
     private let textRenderService = TextPageRenderService.shared
+    private let provisionalManager = ProvisionalPageManager()
     
     init(document: NoteDocument) {
         self.document = document
         self.title = document.metadata.title
         self.pdfData = document.pdfData
+        self.displayPDFData = document.pdfData
+        self.provisionalPageRange = nil
+        Task {
+            await refreshDisplayPDF()
+        }
     }
     
     func save() async -> Bool {
@@ -185,6 +196,24 @@ class DocumentViewModel: ObservableObject {
         document.metadata.hasPendingTextPage = hasDraft
         hasChanges = true
         scheduleAutoSave()
+    }
+    
+    func setProvisionalPreviewData(_ data: Data?) async {
+        await provisionalManager.updateProvisionalData(data)
+        await refreshDisplayPDF()
+    }
+    
+    private func refreshDisplayPDF() async {
+        let savedData = pdfData
+        let result = await provisionalManager.combinedData(using: savedData)
+        await MainActor.run {
+            if let combined = result.data {
+                self.displayPDFData = combined
+            } else {
+                self.displayPDFData = savedData
+            }
+            self.provisionalPageRange = result.provisionalRange
+        }
     }
 
     /// Renders the provided Markdown into a PDF page, appends it to the current document,

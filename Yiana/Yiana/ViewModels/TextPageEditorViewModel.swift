@@ -60,7 +60,13 @@ final class TextPageEditorViewModel: ObservableObject {
     }
     @Published var showPreview: Bool = false
     @Published var recoveredDraftTimestamp: Date?
-    @Published private(set) var latestRenderedPageData: Data?
+    @Published private(set) var latestRenderedPageData: Data? {
+        didSet {
+            if latestRenderedPageData != oldValue {
+                onPreviewRenderUpdated?(latestRenderedPageData)
+            }
+        }
+    }
     @Published private(set) var latestRenderedPlainText: String?
     @Published private(set) var liveRenderError: String?
 
@@ -68,6 +74,7 @@ final class TextPageEditorViewModel: ObservableObject {
     private(set) var metadata: DocumentMetadata
 
     var onDraftStateChange: ((Bool) -> Void)?
+    var onPreviewRenderUpdated: ((Data?) -> Void)?
 
     private let draftManager: TextPageDraftManager
     private let autosaveInterval: TimeInterval
@@ -149,6 +156,11 @@ final class TextPageEditorViewModel: ObservableObject {
     func flushDraftNow() async {
         autosaveTask?.cancel()
         await performSave()
+    }
+
+    func refreshRenderForPaperSizeChange() {
+        liveRenderTask?.cancel()
+        scheduleLiveRender(immediate: true)
     }
 
     func discardDraft() async {

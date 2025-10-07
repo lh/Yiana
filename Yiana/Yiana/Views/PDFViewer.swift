@@ -434,7 +434,8 @@ struct PDFKitView: ViewRepresentable {
             let fitScale = pdfView.scaleFactorForSizeToFit
 
             // Allow some tolerance for floating point comparison
-            let isAtFitZoom = abs(currentScale - fitScale) < 0.01
+            let tolerance: CGFloat = 0.10
+            let isAtFitZoom = abs(currentScale - fitScale) < tolerance
 
             if isAtFitZoom {
                 // Only trigger page management when at fit zoom
@@ -450,7 +451,8 @@ struct PDFKitView: ViewRepresentable {
             let fitScale = pdfView.scaleFactorForSizeToFit
 
             // Allow some tolerance for floating point comparison
-            let isAtFitZoom = abs(currentScale - fitScale) < 0.01
+            let tolerance: CGFloat = 0.10
+            let isAtFitZoom = abs(currentScale - fitScale) < tolerance
 
             if isAtFitZoom {
                 // Only trigger metadata view when at fit zoom

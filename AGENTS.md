@@ -1,24 +1,35 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-The SwiftUI app lives in `Yiana/`, with feature code organized under `Views`, `ViewModels`, `Services`, and `Extensions`. App assets reside in `Yiana/Assets.xcassets`, and architecture notes are in `Yiana/docs/` (see `PLAN.md`). XCTest targets sit under `Yiana/YianaTests` (unit) and `Yiana/YianaUITests` (UI). Server-side OCR utilities are bundled in the `YianaOCRService/` Swift Package (`yiana-ocr` executable). Supportive Python tooling for address processing is in `AddressExtractor/`.
+- `Yiana/` hosts the SwiftUI app: `Views/`, `ViewModels/`, `Services/`, and `Extensions/` hold feature code, while `Assets.xcassets/` stores shared media and colors.
+- Architecture notes and long-form plans live in `Yiana/docs/`; start with `PLAN.md` before major refactors.
+- Unit tests sit in `Yiana/YianaTests`, UI automation in `Yiana/YianaUITests`, and Swift Package OCR utilities live under `YianaOCRService/` (`yiana-ocr` executable).
+- Python-based address helpers are in `AddressExtractor/`; treat it as a supporting toolchain rather than app runtime code.
 
 ## Build, Test, and Development Commands
-- `open Yiana/Yiana.xcodeproj` — launch the iOS/macOS workspace in Xcode for interactive builds.
+- `open Yiana/Yiana.xcodeproj` — launch the workspace in Xcode for iterative builds and previews.
 - `xcodebuild test -scheme Yiana -destination 'platform=iOS Simulator,name=iPhone 16'` — run the full XCTest suite locally.
-- `xcodebuild test -scheme Yiana -only-testing:YianaTests/DocumentMetadataTests` — target a focused test when iterating.
-- `xcodebuild -scheme Yiana -destination 'generic/platform=iOS' -configuration Release build` — produce a CI-style iOS archive build.
-- `cd YianaOCRService && swift run yiana-ocr --help` — validate the OCR executable.
-- `cd AddressExtractor && python test_system.py` — exercise the Python integration test after activating its virtualenv.
+- `xcodebuild test -scheme Yiana -only-testing:YianaTests/DocumentMetadataTests` — focus on metadata regressions while iterating.
+- `xcodebuild -scheme Yiana -destination 'generic/platform=iOS' -configuration Release build` — produce CI-quality archives.
+- `cd YianaOCRService && swift run yiana-ocr --help` — verify the OCR CLI remains callable.
+- `cd AddressExtractor && python test_system.py` — exercise the Python integration path after activating the virtualenv.
 
 ## Coding Style & Naming Conventions
-Follow `CODING_STYLE.md` for Swift: four-space indentation, UpperCamelCase types, lowerCamelCase members, and 1-based page indexing in PDF helpers. Keep SwiftUI views platform-specific instead of abstracting. Python utilities also use four-space indentation with snake_case names. Default to ASCII unless a file already uses extended characters.
+- Swift follows `CODING_STYLE.md`: four-space indentation, UpperCamelCase for types, lowerCamelCase members, and 1-based PDF page indices.
+- SwiftUI views stay platform-specific; extract logic into ViewModels rather than cross-platform wrappers.
+- Python scripts use four-space indentation, snake_case, and standard library formatting tools (black is optional, but keep output ASCII).
 
 ## Testing Guidelines
-Prefer XCTest for Swift targets; place new unit tests in `Yiana/YianaTests` and UI flows in `Yiana/YianaUITests` with a `*Tests.swift` suffix. Ensure PDF page bounds and extension wrappers stay covered. For the OCR package, add cases under `YianaOCRService/Tests` if functionality expands. Python scripts rely on `AddressExtractor/test_system.py`; add focused `test_*.py` files for new parsing rules.
+- Prefer XCTest for Swift targets; place new cases in `Yiana/YianaTests` or UI flows in `Yiana/YianaUITests` with a `*Tests.swift` suffix.
+- For OCR package changes, add coverage under `YianaOCRService/Tests`; use `swift test` before publishing.
+- Python parsers rely on `AddressExtractor/test_system.py`; introduce targeted `test_*.py` files for new rules.
+- Keep edge cases for PDF page bounds and extension wrappers under test before merging.
 
 ## Commit & Pull Request Guidelines
-Write concise, imperative commits that describe the change (e.g., `Add DocumentRepository pagination`). Each PR should include a clear summary, linked plan item or issue, test steps, and screenshots for UI work. Call out any schema or SQLite file impacts and keep personal provisioning profiles or secrets out of the repo.
+- Write concise, imperative commit messages (e.g., `Add DocumentRepository pagination`); avoid bundling unrelated changes.
+- PRs should summarize intent, link the relevant plan or issue, list validation steps, and include screenshots for UI-visible changes.
+- Call out schema or SQLite impacts explicitly, and remove generated artifacts or personal provisioning profiles prior to review.
 
 ## Security & Configuration Tips
-Treat OCR workloads as server-side only, keeping the app read-only for PDFs. Remove generated SQLite artifacts before committing and avoid storing credentials in source. When simulator availability changes, run `xcrun simctl list devices` to confirm a valid destination.
+- Treat OCR workloads as server-side; keep the client read-only for PDF content.
+- Exclude credentials and generated SQLite files from source control, and confirm simulator destinations with `xcrun simctl list devices` when configs shift.

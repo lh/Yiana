@@ -9,7 +9,7 @@ import SwiftUI
 import PDFKit
 
 #if os(iOS)
-enum ActiveSheet: Identifiable {
+enum ActiveSheet: Identifiable, Equatable {
     case share(URL)
     case pageManagement
 
@@ -85,7 +85,7 @@ struct DocumentEditView: View {
                     }
             case .pageManagement:
                 if let viewModel = viewModel {
-                        PageManagementView(
+                    PageManagementView(
                         pdfData: Binding(
                             get: { viewModel.pdfData },
                             set: {
@@ -93,12 +93,25 @@ struct DocumentEditView: View {
                                 viewModel.hasChanges = true
                             }
                         ),
-                        isPresented: .constant(true),
+                        isPresented: Binding(
+                            get: { activeSheet == .pageManagement },
+                            set: { newValue in
+                                if !newValue {
+                                    activeSheet = nil
+                                }
+                            }
+                        ),
                         currentPageIndex: currentViewedPage,
+                        displayPDFData: viewModel.displayPDFData,
+                        provisionalPageRange: viewModel.provisionalPageRange,
                         onPageSelected: { pageIndex in
                             guard currentViewedPage != pageIndex else { return }
                             navigateToPage = pageIndex
                             activeSheet = nil
+                        },
+                        onProvisionalPageSelected: {
+                            activeSheet = nil
+                            showTextEditor = true
                         }
                     )
                 }
@@ -106,6 +119,16 @@ struct DocumentEditView: View {
         }
         .sheet(isPresented: $showTextEditor) {
             textEditorSheet
+        }
+        .onChange(of: showTextEditor) { _, newValue in
+            if !newValue,
+               let preview = textEditorViewModel?.latestRenderedPageData {
+                Task {
+                    if let viewModel = self.viewModel {
+                        await viewModel.setProvisionalPreviewData(preview)
+                    }
+                }
+            }
         }
         .alert("Markup Error", isPresented: $showingMarkupError) {
             Button("OK") { }
@@ -137,7 +160,8 @@ struct DocumentEditView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color(.systemGray6))
-                } else if let pdfData = viewModel.pdfData {
+                } else if let pdfData = viewModel.displayPDFData ?? viewModel.pdfData {
+                    let isShowingProvisional = viewModel.provisionalPageRange?.contains(currentViewedPage) ?? false
                     PDFViewer(pdfData: pdfData,
                               navigateToPage: $navigateToPage,
                               currentPage: $currentViewedPage,
@@ -148,8 +172,22 @@ struct DocumentEditView: View {
                                   // TODO: Show metadata/address view when implemented
                                   print("DEBUG: Metadata view requested - coming soon!")
                               })
+                        .overlay(alignment: .topTrailing) {
+                            if isShowingProvisional {
+                                DraftBadge()
+                            }
+                        }
                         .overlay(alignment: .bottom) {
                             scanButtonBar
+                        }
+                        .overlay {
+                            if isShowingProvisional {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.yellow.opacity(0.85), lineWidth: 3)
+                                    .padding(.horizontal, 2)
+                                    .padding(.vertical, 4)
+                                    .allowsHitTesting(false)
+                            }
                         }
                 } else {
                     ContentPlaceholderView()
@@ -466,6 +504,20 @@ struct DocumentEditView: View {
                                 self.viewModel?.updatePendingTextPageFlag(hasDraft)
                             }
                         }
+                        textVM.onPreviewRenderUpdated = { data in
+                            Task { @MainActor in
+                                if let viewModel = self.viewModel {
+                                    await viewModel.setProvisionalPreviewData(data)
+                                }
+                            }
+                        }
+                        if let previewData = textVM.latestRenderedPageData {
+                            Task { @MainActor in
+                                if let viewModel = self.viewModel {
+                                    await viewModel.setProvisionalPreviewData(previewData)
+                                }
+                            }
+                        }
                         self.textEditorViewModel = textVM
 
                         Task {
@@ -619,6 +671,24 @@ struct DocumentEditView: View {
         } catch {
             print("DEBUG Export: Failed to write PDF - \(error)")
         }
+    }
+}
+
+private struct DraftBadge: View {
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "pencil.circle.fill")
+            Text("Draft")
+                .fontWeight(.semibold)
+        }
+        .font(.caption)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Color.yellow.opacity(0.9))
+        .foregroundColor(.black)
+        .clipShape(Capsule())
+        .padding(12)
+        .accessibilityLabel("Draft preview page")
     }
 }
 
