@@ -1,0 +1,37 @@
+═══════════════════════════════════════════════════════════
+  DEBUG PDF AUTO-SYNC - QUICK START
+═══════════════════════════════════════════════════════════
+
+RECOMMENDED: Use launchd (native macOS, automatic, reliable)
+
+START SERVICE:
+  cd /Users/rose/Code/Yiana
+  ./scripts/setup-debug-pdf-sync.sh start
+
+CHECK STATUS:
+  ./scripts/setup-debug-pdf-sync.sh status
+
+VIEW LOGS:
+  ./scripts/setup-debug-pdf-sync.sh logs
+
+STOP SERVICE:
+  ./scripts/setup-debug-pdf-sync.sh stop
+
+MANUAL SYNC (one-time):
+  ./scripts/sync-debug-pdf.sh
+
+───────────────────────────────────────────────────────────
+
+WHAT IT DOES:
+Automatically copies this file when it changes:
+  FROM: iCloud/Documents/_Debug-Rendered-Text-Page.pdf
+  TO:   temp-debug-files/_Debug-Rendered-Text-Page.pdf
+
+───────────────────────────────────────────────────────────
+
+TROUBLESHOOTING:
+  - Run setup-debug-pdf-sync.sh status
+  - Check logs: tail temp-debug-files/debug-pdf-sync.log
+  - Test manual: ./scripts/sync-debug-pdf.sh
+
+See DEBUG-PDF-SYNC-README.md for full documentation

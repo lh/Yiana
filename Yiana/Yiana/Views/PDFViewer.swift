@@ -92,7 +92,11 @@ struct PDFKitView: ViewRepresentable {
                         pdfView.go(to: page)
                         context.coordinator.lastReportedPageIndex = clamped
                     }
+                    #if os(iOS)
                     pdfView.documentView?.setNeedsDisplay()
+                    #else
+                    pdfView.documentView?.needsDisplay = true
+                    #endif
                     pdfView.layoutDocumentView()
                     self.totalPages = pageCount
                     if self.currentPage != clamped {
@@ -149,7 +153,11 @@ struct PDFKitView: ViewRepresentable {
                         pdfView.go(to: page)
                         context.coordinator.lastReportedPageIndex = clamped
                     }
+                    #if os(iOS)
                     pdfView.documentView?.setNeedsDisplay()
+                    #else
+                    pdfView.documentView?.needsDisplay = true
+                    #endif
                     pdfView.layoutDocumentView()
                     self.totalPages = pageCount
                     if self.currentPage != clamped {

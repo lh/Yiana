@@ -7,6 +7,9 @@
 
 import SwiftUI
 import PDFKit
+#if os(macOS)
+import AppKit
+#endif
 
 struct ContentView: View {
     @EnvironmentObject var importHandler: DocumentImportHandler
@@ -18,6 +21,7 @@ struct ContentView: View {
 
     var body: some View {
         DocumentListView()
+            .tint(Color("AccentColor"))
             .sheet(isPresented: $importHandler.showingImportDialog) {
                 ImportPDFView(
                     pdfURL: importHandler.pdfToImport,

@@ -303,16 +303,44 @@ class DocumentListViewModel: ObservableObject {
             let docsPath = "/" + pathComponents[0...docsIndex].dropFirst().joined(separator: "/")
             return URL(fileURLWithPath: docsPath)
         }
-        return nil
+
+        // Fallback: walk up the hierarchy looking for an `.ocr_results` sibling
+        let fileManager = FileManager.default
+        var current = documentURL.deletingLastPathComponent()
+
+        while current.path != "/" {
+            var isDir: ObjCBool = false
+            let ocrPath = current.appendingPathComponent(".ocr_results").path
+            if fileManager.fileExists(atPath: ocrPath, isDirectory: &isDir), isDir.boolValue {
+                return current
+            }
+
+            let parent = current.deletingLastPathComponent()
+            if parent == current { break }
+            current = parent
+        }
+
+        // As a last resort, return the document's immediate parent directory
+        return documentURL.deletingLastPathComponent()
     }
     
     nonisolated private func searchOCRContentWithPageInfo(at documentURL: URL, for searchText: String) -> (snippet: String, pageNumber: Int)? {
         // Build path to OCR JSON file
         // Get documents directory from the document URL itself
         guard let documentsDir = getDocumentsDirectory(from: documentURL) else { return nil }
-        let relativePath = documentURL.deletingLastPathComponent().path.replacingOccurrences(of: documentsDir.path, with: "")
-        let trimmedPath = relativePath.hasPrefix("/") ? String(relativePath.dropFirst()) : relativePath
-        
+        let docParent = documentURL.deletingLastPathComponent().standardizedFileURL
+        let baseComponents = documentsDir.standardizedFileURL.pathComponents
+        let parentComponents = docParent.pathComponents
+
+        let trimmedComponents: [String]
+        if parentComponents.starts(with: baseComponents) {
+            trimmedComponents = Array(parentComponents.dropFirst(baseComponents.count))
+        } else {
+            trimmedComponents = parentComponents
+        }
+
+        let trimmedPath = trimmedComponents.joined(separator: "/")
+
         let ocrResultsDir = documentsDir
             .appendingPathComponent(".ocr_results")
             .appendingPathComponent(trimmedPath)
@@ -520,6 +548,12 @@ class DocumentListViewModel: ObservableObject {
         // If search is empty, apply immediately
         if searchText.isEmpty {
             await applyFilter()
+            return
+        }
+
+        // If running under XCTest, bypass debounce so tests can await completion synchronously
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            await performSearch(searchText: searchText)
             return
         }
 

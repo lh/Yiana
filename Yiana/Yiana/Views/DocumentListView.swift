@@ -45,330 +45,31 @@ struct DocumentListView: View {
     
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            Group {
-                if viewModel.isLoading && viewModel.documentURLs.isEmpty && viewModel.folderURLs.isEmpty {
-                    ProgressView("Loading documents...")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if viewModel.isSearchInProgress && viewModel.documentURLs.isEmpty && viewModel.folderURLs.isEmpty && viewModel.otherFolderResults.isEmpty {
-                    // Show searching indicator when no results yet but still searching
-                    VStack(spacing: 20) {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                        Text("Searching...")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if viewModel.documentURLs.isEmpty && viewModel.folderURLs.isEmpty && viewModel.otherFolderResults.isEmpty && !viewModel.isSearchInProgress {
-                    emptyStateView
-                } else {
-                    documentList
-                }
-            }
-            .navigationTitle(viewModel.currentFolderName)
-            .toolbar {
-                // Back button for subfolder navigation
-                if !viewModel.folderPath.isEmpty {
-                    #if os(iOS)
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button(action: {
-                            Task {
-                                await viewModel.navigateToParent()
-                            }
-                        }) {
-                            Label("Back", systemImage: "chevron.left")
-                        }
-                    }
-                    #else
-                    ToolbarItem(placement: .navigation) {
-                        Button(action: {
-                            Task {
-                                await viewModel.navigateToParent()
-                            }
-                        }) {
-                            Label("Back", systemImage: "chevron.left")
-                        }
-                    }
-                    #endif
-                }
-                
-                // Create menu
-                ToolbarItem(placement: .primaryAction) {
-                    Menu {
-                        Button(action: { showingCreateAlert = true }) {
-                            Label("New Document", systemImage: "doc")
-                        }
-                        Button(action: { showingFolderAlert = true }) {
-                            Label("New Folder", systemImage: "folder.badge.plus")
-                        }
-                        #if os(macOS)
-                        Divider()
-                        Button(action: { selectPDFsForImport() }) {
-                            Label("Import PDFs...", systemImage: "square.and.arrow.down.on.square")
-                        }
-                        .keyboardShortcut("I", modifiers: [.command, .shift])
-                        #endif
-                    } label: {
-                        Label("Add", systemImage: "plus")
-                    }
-                }
-
-                // Sort menu
-                ToolbarItem(placement: .automatic) {
-                    Menu {
-                        Section("Sort By") {
-                            Button(action: {
-                                currentSortOption = .title
-                                Task {
-                                    await viewModel.sortDocuments(by: .title, ascending: isAscending)
-                                }
-                            }) {
-                                HStack {
-                                    Text("Title")
-                                    if currentSortOption == .title {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-
-                            Button(action: {
-                                currentSortOption = .dateModified
-                                Task {
-                                    await viewModel.sortDocuments(by: .dateModified, ascending: isAscending)
-                                }
-                            }) {
-                                HStack {
-                                    Text("Date Modified")
-                                    if currentSortOption == .dateModified {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-
-                            Button(action: {
-                                currentSortOption = .dateCreated
-                                Task {
-                                    await viewModel.sortDocuments(by: .dateCreated, ascending: isAscending)
-                                }
-                            }) {
-                                HStack {
-                                    Text("Date Created")
-                                    if currentSortOption == .dateCreated {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-
-                            Button(action: {
-                                currentSortOption = .size
-                                Task {
-                                    await viewModel.sortDocuments(by: .size, ascending: isAscending)
-                                }
-                            }) {
-                                HStack {
-                                    Text("Size")
-                                    if currentSortOption == .size {
-                                        Spacer()
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-
-                        Divider()
-
-                        Button(action: {
-                            isAscending.toggle()
-                            Task {
-                                await viewModel.sortDocuments(by: currentSortOption, ascending: isAscending)
-                            }
-                        }) {
-                            Label(isAscending ? "Ascending" : "Descending",
-                                  systemImage: isAscending ? "arrow.up" : "arrow.down")
-                        }
-                    } label: {
-                        Label("Sort", systemImage: "arrow.up.arrow.down")
-                    }
-                }
-
-                // Download All button
-                ToolbarItem(placement: .automatic) {
-                    Button(action: {
-                        Task {
-                            await downloadAllDocuments()
-                        }
-                    }) {
-                        if downloadManager.isDownloading {
-                            HStack(spacing: 6) {
-                                ProgressView(value: downloadManager.downloadProgress)
-                                    .progressViewStyle(.circular)
-                                    .scaleEffect(0.9)
-                                Text("\(downloadManager.downloadedCount)/\(downloadManager.totalCount)")
-                                    .font(.caption)
-                                    .monospacedDigit()
-                            }
-                            .frame(minWidth: 80)
-                        } else {
-                            Label("Download All", systemImage: "icloud.and.arrow.down")
-                        }
-                    }
-                    .disabled(downloadManager.isDownloading)
-                }
-
-                #if os(macOS)
-                // Search field for macOS in toolbar
-                ToolbarItem(placement: .automatic) {
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.secondary)
-                        TextField("Search", text: $searchText)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 200)
-                            // Remove onSubmit - we use onChange for all search triggers
-                        if !searchText.isEmpty {
-                            Button(action: {
-                                searchText = ""
-                                // Clearing will be handled by onChange
-                            }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        // Show progress indicator during search
-                        if viewModel.isSearchInProgress {
-                            ProgressView()
-                                .scaleEffect(0.7)
-                                .frame(width: 16, height: 16)
-                        }
-                    }
-                }
-                #endif
-
-                // Development menu (DEBUG only)
-                #if DEBUG
-                ToolbarItem(placement: .automatic) {
-                    DevelopmentMenu()
-                }
-                #endif
-            }
-            .alert("New Document", isPresented: $showingCreateAlert) {
-                TextField("Document Title", text: $newDocumentTitle)
-                Button("Cancel", role: .cancel) {
-                    newDocumentTitle = ""
-                }
-                Button("Create") {
-                    createDocument()
-                }
-            }
-            .alert("Error", isPresented: $showingError) {
-                Button("OK") { }
-            } message: {
-                Text(viewModel.errorMessage ?? "An error occurred")
-            }
-            .alert("New Folder", isPresented: $showingFolderAlert) {
-                TextField("Folder Name", text: $newFolderName)
-                Button("Cancel", role: .cancel) {
-                    newFolderName = ""
-                }
-                Button("Create") {
-                    createFolder()
-                }
-            }
-            .alert("Delete Document", isPresented: $showingDeleteConfirmation) {
-                Button("Cancel", role: .cancel) {
-                    documentToDelete = nil
-                }
-                Button("Delete", role: .destructive) {
-                    if let url = documentToDelete {
-                        Task {
-                            do {
-                                try await viewModel.deleteDocument(at: url)
-                            } catch {
-                                viewModel.errorMessage = error.localizedDescription
-                                showingError = true
-                            }
-                        }
-                    }
-                    documentToDelete = nil
-                }
-            } message: {
-                Text("Are you sure you want to delete this document? This action cannot be undone.")
-            }
-            .navigationDestination(for: URL.self) { url in
-                #if os(iOS)
-                DocumentEditView(documentURL: url)
-                #else
-                DocumentReadView(documentURL: url)
-                #endif
-            }
-            .navigationDestination(for: DocumentNavigationData.self) { navData in
-                #if os(iOS)
-                DocumentEditView(documentURL: navData.url)
-                #else
-                DocumentReadView(
-                    documentURL: navData.url,
-                    searchResult: navData.searchResult
-                )
-                #endif
-            }
+            mainContent
+                .navigationTitle(viewModel.currentFolderName)
+                .toolbar { toolbarContent }
+                .alert("New Document", isPresented: $showingCreateAlert, actions: newDocumentAlertActions)
+                .alert("Error", isPresented: $showingError, actions: errorAlertActions, message: errorAlertMessage)
+                .alert("New Folder", isPresented: $showingFolderAlert, actions: newFolderAlertActions)
+                .alert("Delete Document", isPresented: $showingDeleteConfirmation, actions: deleteDocumentAlertActions, message: deleteDocumentAlertMessage)
+                .navigationDestination(for: URL.self, destination: navigationDestination)
+                .navigationDestination(for: DocumentNavigationData.self, destination: navigationDestinationForDocument)
         }
-        .task {
-            await viewModel.loadDocuments()
-        }
+        .task { await loadDocuments() }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name.yianaDocumentsChanged)) { _ in
             Task { await viewModel.refresh() }
         }
-        .refreshable {
-            await viewModel.refresh()
-        }
-        #if os(iOS)
+        .refreshable { await refreshDocuments() }
+#if os(iOS)
         .searchable(text: $searchText, prompt: "Search documents")
-        #endif
+#endif
         .onChange(of: searchText) { _, newValue in
-            Task {
-                await viewModel.filterDocuments(searchText: newValue)
-            }
+            handleSearchChange(newValue)
         }
-        #if os(macOS)
-        .sheet(item: $pdfImportData) { data in
-            BulkImportView(
-                pdfURLs: data.urls,
-                folderPath: viewModel.folderPath.joined(separator: "/"),
-                isPresented: .constant(false),
-                onDismiss: {
-                    pdfImportData = nil
-                }
-            )
-        }
-        .onDrop(of: [.pdf], isTargeted: $isDraggingPDFs) { providers in
-            handleDrop(providers: providers)
-        }
-        .overlay(
-            Group {
-                if isDraggingPDFs {
-                    ZStack {
-                        Color.accentColor.opacity(0.1)
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.accentColor, lineWidth: 3)
-                            .padding(20)
-                        VStack(spacing: 12) {
-                            Image(systemName: "arrow.down.doc.fill")
-                                .font(.system(size: 48))
-                                .foregroundColor(.accentColor)
-                            Text("Drop PDFs to import")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.accentColor)
-                        }
-                    }
-                    .ignoresSafeArea()
-                }
-            }
-        )
+#if os(macOS)
+        .sheet(item: $pdfImportData, content: bulkImportSheet)
+        .onDrop(of: [.pdf], isTargeted: $isDraggingPDFs, perform: handleDrop)
+        .overlay(macDragOverlay)
         #endif
     }
     
@@ -396,136 +97,25 @@ struct DocumentListView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
-    private var documentList: some View {
-        VStack(spacing: 0) {
-            // Breadcrumb navigation
-            if !viewModel.folderPath.isEmpty {
-                breadcrumbView
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                Divider()
-            }
-            
-            // Show search progress indicator for iOS
-            #if os(iOS)
-            if viewModel.isSearchInProgress {
-                HStack {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                    Text("Searching...")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .padding(.vertical, 8)
-            }
-            #endif
-            
-            List {
 
-                // Folders section
-                if !viewModel.folderURLs.isEmpty {
-                Section("Folders") {
-                    ForEach(viewModel.folderURLs, id: \.self) { folderURL in
-                        Button(action: {
-                            Task {
-                                await viewModel.navigateToFolder(folderURL.lastPathComponent)
-                            }
-                        }) {
-                            HStack {
-                                Image(systemName: "folder.fill")
-                                    .foregroundColor(.accentColor)
-                                    .font(.title3)
-                                Text(folderURL.lastPathComponent)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.secondary)
-                                    .font(.caption)
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
+    @ViewBuilder
+    private var mainContent: some View {
+        if viewModel.isLoading && viewModel.documentURLs.isEmpty && viewModel.folderURLs.isEmpty {
+            ProgressView("Loading documents...")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if viewModel.isSearchInProgress && viewModel.documentURLs.isEmpty && viewModel.folderURLs.isEmpty && viewModel.otherFolderResults.isEmpty {
+            VStack(spacing: 20) {
+                ProgressView()
+                    .scaleEffect(1.5)
+                Text("Searching...")
+                    .font(.headline)
+                    .foregroundColor(.secondary)
             }
-            
-            // Documents section
-            if !viewModel.documentURLs.isEmpty {
-                Section(viewModel.isSearching ? "In This Folder" : "Documents") {
-                    ForEach(viewModel.documentURLs, id: \.self) { url in
-                        let searchResult = viewModel.searchResults.first { $0.documentURL == url }
-                        Group {
-                            if let result = searchResult {
-                                NavigationLink(value: DocumentNavigationData(url: url, searchResult: result)) {
-                                    DocumentRow(url: url, searchResult: result)
-                                }
-                            } else {
-                                NavigationLink(value: url) {
-                                    DocumentRow(url: url, searchResult: nil)
-                                }
-                            }
-                        }
-                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            Button {
-                                duplicateDocument(url)
-                            } label: {
-                                Label("Duplicate", systemImage: "doc.on.doc")
-                            }
-                            .tint(.indigo)
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                documentToDelete = url
-                                showingDeleteConfirmation = true
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                    }
-                    .onDelete(perform: deleteDocuments)
-                }
-            }
-            
-            // Other folders section (only when searching)
-            if viewModel.isSearching && !viewModel.otherFolderResults.isEmpty {
-                Section("In Other Folders") {
-                    ForEach(viewModel.otherFolderResults, id: \.url) { result in
-                        let searchResult = viewModel.searchResults.first { $0.documentURL == result.url }
-                        NavigationLink(value: DocumentNavigationData(url: result.url, searchResult: searchResult)) {
-                            DocumentRow(
-                                url: result.url,
-                                searchResult: searchResult,
-                                secondaryText: result.path
-                            )
-                        }
-                    }
-                }
-            }
-            
-            // Version info section at the bottom
-            Section {
-                HStack {
-                    Spacer()
-                    VStack(spacing: 4) {
-                        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
-                           let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
-                            Text("Version \(version) (\(build))")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                        Text("Build Date: \(buildDateString)")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                    Spacer()
-                }
-                .listRowBackground(Color.clear)
-            }
-            }
-            #if os(iOS)
-            .listStyle(.insetGrouped)
-            #endif
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if viewModel.documentURLs.isEmpty && viewModel.folderURLs.isEmpty && viewModel.otherFolderResults.isEmpty && !viewModel.isSearchInProgress {
+            emptyStateView
+        } else {
+            documentList
         }
     }
     
@@ -537,16 +127,15 @@ struct DocumentListView: View {
                 #if os(iOS)
                 // Create the actual document
                 let document = NoteDocument(fileURL: url)
-                document.save(to: url, for: .forCreating) { success in
-                    Task { @MainActor in
-                        if success {
-                            await viewModel.refresh()
-                            navigationPath.append(url)
-                        } else {
-                            viewModel.errorMessage = "Failed to create document"
-                            showingError = true
-                        }
+                let success = await document.save(to: url, for: .forCreating)
+                if success {
+                    await viewModel.refresh()
+                    await MainActor.run {
+                        navigationPath.append(url)
                     }
+                } else {
+                    viewModel.errorMessage = "Failed to create document"
+                    showingError = true
                 }
                 #else
                 // macOS: Create a valid NoteDocument structure
@@ -615,6 +204,423 @@ struct DocumentListView: View {
         downloadManager.downloadAllDocuments(urls: urls)
     }
 
+    @ViewBuilder
+    private func newDocumentAlertActions() -> some View {
+        TextField("Document Title", text: $newDocumentTitle)
+        Button("Cancel", role: .cancel) {
+            newDocumentTitle = ""
+        }
+        Button("Create") {
+            createDocument()
+        }
+    }
+
+    @ViewBuilder
+    private func errorAlertActions() -> some View {
+        Button("OK") { }
+    }
+
+    @ViewBuilder
+    private func errorAlertMessage() -> some View {
+        Text(viewModel.errorMessage ?? "An error occurred")
+    }
+
+    @ViewBuilder
+    private func newFolderAlertActions() -> some View {
+        TextField("Folder Name", text: $newFolderName)
+        Button("Cancel", role: .cancel) {
+            newFolderName = ""
+        }
+        Button("Create") {
+            createFolder()
+        }
+    }
+
+    @ViewBuilder
+    private func deleteDocumentAlertActions() -> some View {
+        Button("Cancel", role: .cancel) {
+            documentToDelete = nil
+        }
+        Button("Delete", role: .destructive) {
+            if let url = documentToDelete {
+                Task {
+                    do {
+                        try await viewModel.deleteDocument(at: url)
+                    } catch {
+                        viewModel.errorMessage = error.localizedDescription
+                        showingError = true
+                    }
+                }
+            }
+            documentToDelete = nil
+        }
+    }
+
+    @ViewBuilder
+    private func deleteDocumentAlertMessage() -> some View {
+        Text("Are you sure you want to delete this document? This action cannot be undone.")
+    }
+
+    @ViewBuilder
+    private func navigationDestination(_ url: URL) -> some View {
+        #if os(iOS)
+        DocumentEditView(documentURL: url)
+        #else
+        DocumentReadView(documentURL: url)
+        #endif
+    }
+
+    @ViewBuilder
+    private func navigationDestinationForDocument(_ data: DocumentNavigationData) -> some View {
+        #if os(iOS)
+        DocumentEditView(documentURL: data.url)
+        #else
+        DocumentReadView(documentURL: data.url, searchResult: data.searchResult)
+        #endif
+    }
+
+    private func loadDocuments() async {
+        await viewModel.loadDocuments()
+    }
+
+    private func refreshDocuments() async {
+        await viewModel.refresh()
+    }
+
+    private func handleSearchChange(_ newValue: String) {
+        Task {
+            await viewModel.filterDocuments(searchText: newValue)
+        }
+    }
+
+    #if os(macOS)
+    private func bulkImportSheet(data: PDFImportData) -> some View {
+        BulkImportView(
+            pdfURLs: data.urls,
+            folderPath: viewModel.folderPath.joined(separator: "/"),
+            isPresented: .constant(false),
+            onDismiss: { pdfImportData = nil }
+        )
+    }
+
+    private var macDragOverlay: some View {
+        Group {
+            if isDraggingPDFs {
+                ZStack {
+                    Color.accentColor.opacity(0.1)
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.accentColor, lineWidth: 3)
+                        .padding(20)
+                    VStack(spacing: 12) {
+                        Image(systemName: "arrow.down.doc.fill")
+                            .font(.system(size: 48))
+                            .foregroundColor(.accentColor)
+                        Text("Drop PDFs to import")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.accentColor)
+                    }
+                }
+                .ignoresSafeArea()
+            }
+        }
+    }
+
+    #endif
+
+    @ViewBuilder
+    private var documentList: some View {
+        VStack(spacing: 0) {
+            if !viewModel.folderPath.isEmpty {
+                breadcrumbView
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                Divider()
+            }
+
+            #if os(iOS)
+            if viewModel.isSearchInProgress {
+                iosSearchProgress
+            }
+            #endif
+
+            List {
+                foldersSection
+                documentsSection
+                otherFoldersSection
+                versionSection
+            }
+            #if os(iOS)
+            .listStyle(.insetGrouped)
+            #endif
+        }
+    }
+
+    #if os(iOS)
+    private var iosSearchProgress: some View {
+        HStack {
+            ProgressView()
+                .scaleEffect(0.8)
+            Text("Searching...")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(.vertical, 8)
+    }
+    #endif
+
+    @ViewBuilder
+    private var foldersSection: some View {
+        if !viewModel.folderURLs.isEmpty {
+            Section("Folders") {
+                ForEach(viewModel.folderURLs, id: \.self) { folderURL in
+                    folderRow(for: folderURL)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var documentsSection: some View {
+        if !viewModel.documentURLs.isEmpty {
+            Section(viewModel.isSearching ? "In This Folder" : "Documents") {
+                ForEach(viewModel.documentURLs, id: \.self) { url in
+                    documentNavigationRow(for: url)
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            Button {
+                                duplicateDocument(url)
+                            } label: {
+                                Label("Duplicate", systemImage: "doc.on.doc")
+                            }
+                            .tint(.indigo)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                documentToDelete = url
+                                showingDeleteConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                }
+                .onDelete(perform: deleteDocuments)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var otherFoldersSection: some View {
+        if viewModel.isSearching && !viewModel.otherFolderResults.isEmpty {
+            Section("In Other Folders") {
+                ForEach(viewModel.otherFolderResults, id: \.url) { result in
+                    let searchResult = viewModel.searchResults.first { $0.documentURL == result.url }
+                    NavigationLink(value: DocumentNavigationData(url: result.url, searchResult: searchResult)) {
+                        DocumentRow(
+                            url: result.url,
+                            searchResult: searchResult,
+                            secondaryText: result.path
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private var versionSection: some View {
+        Section {
+            HStack {
+                Spacer()
+                VStack(spacing: 4) {
+                    if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+                       let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
+                        Text("Version \(version) (\(build))")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    Text("Build Date: \(buildDateString)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+            .listRowBackground(Color.clear)
+        }
+    }
+
+    @ViewBuilder
+    private func folderRow(for folderURL: URL) -> some View {
+        Button(action: {
+            Task {
+                await viewModel.navigateToFolder(folderURL.lastPathComponent)
+            }
+        }) {
+            HStack {
+                Image(systemName: "folder.fill")
+                    .foregroundColor(.accentColor)
+                    .font(.title3)
+                Text(folderURL.lastPathComponent)
+                    .foregroundColor(.primary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func documentNavigationRow(for url: URL) -> some View {
+        let searchResult = viewModel.searchResults.first { $0.documentURL == url }
+        if let result = searchResult {
+            NavigationLink(value: DocumentNavigationData(url: url, searchResult: result)) {
+                DocumentRow(url: url, searchResult: result)
+            }
+        } else {
+            NavigationLink(value: url) {
+                DocumentRow(url: url, searchResult: nil)
+            }
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        if !viewModel.folderPath.isEmpty {
+            #if os(iOS)
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: navigateToParent) {
+                    Label("Back", systemImage: "chevron.left")
+                }
+            }
+            #else
+            ToolbarItem(placement: .navigation) {
+                Button(action: navigateToParent) {
+                    Label("Back", systemImage: "chevron.left")
+                }
+            }
+            #endif
+        }
+
+        ToolbarItem(placement: .primaryAction) {
+            Menu {
+                Button(action: { showingCreateAlert = true }) {
+                    Label("New Document", systemImage: "doc")
+                }
+                Button(action: { showingFolderAlert = true }) {
+                    Label("New Folder", systemImage: "folder.badge.plus")
+                }
+                #if os(macOS)
+                Divider()
+                Button(action: selectPDFsForImport) {
+                    Label("Import PDFs...", systemImage: "square.and.arrow.down.on.square")
+                }
+                .keyboardShortcut("I", modifiers: [.command, .shift])
+                #endif
+            } label: {
+                Label("Add", systemImage: "plus")
+            }
+        }
+
+        ToolbarItem(placement: .automatic) {
+            Menu {
+                Section("Sort By") {
+                    sortButton(label: "Title", option: .title)
+                    sortButton(label: "Date Modified", option: .dateModified)
+                    sortButton(label: "Date Created", option: .dateCreated)
+                    sortButton(label: "Size", option: .size)
+                }
+
+                Divider()
+
+                Button(action: toggleSortOrder) {
+                    Label(
+                        isAscending ? "Ascending" : "Descending",
+                        systemImage: isAscending ? "arrow.up" : "arrow.down"
+                    )
+                }
+            } label: {
+                Label("Sort", systemImage: "arrow.up.arrow.down")
+            }
+        }
+
+        ToolbarItem(placement: .automatic) {
+            Button(action: startDownloadAll) {
+                if downloadManager.isDownloading {
+                    HStack(spacing: 6) {
+                        ProgressView(value: downloadManager.downloadProgress)
+                            .progressViewStyle(.circular)
+                            .scaleEffect(0.9)
+                        Text("\(downloadManager.downloadedCount)/\(downloadManager.totalCount)")
+                            .font(.caption)
+                            .monospacedDigit()
+                    }
+                    .frame(minWidth: 80)
+                } else {
+                    Label("Download All", systemImage: "icloud.and.arrow.down")
+                }
+            }
+            .disabled(downloadManager.isDownloading)
+        }
+
+        #if os(macOS)
+        ToolbarItem(placement: .automatic) {
+            macSearchToolbar
+        }
+        #endif
+
+        #if DEBUG
+        ToolbarItem(placement: .automatic) {
+            DevelopmentMenu()
+        }
+        #endif
+    }
+
+    private func sortButton(label: String, option: SortOption) -> some View {
+        Button(action: { updateSort(option: option) }) {
+            HStack {
+                Text(label)
+                if currentSortOption == option {
+                    Spacer()
+                    Image(systemName: "checkmark")
+                }
+            }
+        }
+    }
+
+    private func updateSort(option: SortOption) {
+        currentSortOption = option
+        Task {
+            await viewModel.sortDocuments(by: option, ascending: isAscending)
+        }
+    }
+
+    private func toggleSortOrder() {
+        isAscending.toggle()
+        Task {
+            await viewModel.sortDocuments(by: currentSortOption, ascending: isAscending)
+        }
+    }
+
+    private func navigateToParent() {
+        Task {
+            await viewModel.navigateToParent()
+        }
+    }
+
+    private func startDownloadAll() {
+        Task {
+            await downloadAllDocuments()
+        }
+    }
+
+    private func clearSearch() {
+        searchText = ""
+        Task {
+            await viewModel.filterDocuments(searchText: "")
+        }
+    }
+
     private func createFolder() {
         Task {
             guard !newFolderName.isEmpty else { return }
@@ -663,6 +669,28 @@ struct DocumentListView: View {
     }
     
     #if os(macOS)
+    private var macSearchToolbar: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.secondary)
+            TextField("Search", text: $searchText)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 200)
+            if !searchText.isEmpty {
+                Button(action: clearSearch) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            if viewModel.isSearchInProgress {
+                ProgressView()
+                    .scaleEffect(0.7)
+                    .frame(width: 16, height: 16)
+            }
+        }
+    }
+
     private func selectPDFsForImport() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.pdf]

@@ -87,7 +87,8 @@ struct TestDataHelper {
             
             Provider: Dr. Jane Smith, MD
             Date: \(DateFormatter.localizedString(from: Date(), dateStyle: .long, timeStyle: .none))
-            """
+            """,
+            hasPendingTextPage: false
         )
         
         // Encode metadata
@@ -135,7 +136,8 @@ struct TestDataHelper {
             pageCount: 1,
             tags: ["test", "pending"],
             ocrCompleted: false,
-            fullText: nil
+            fullText: nil,
+            hasPendingTextPage: false
         )
         
         // Encode metadata

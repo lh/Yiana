@@ -20,6 +20,7 @@ final class DocumentMetadataTests: XCTestCase {
         let tags = ["important", "work"]
         let ocrCompleted = true
         let fullText = "This is the OCR text content"
+        let hasPendingTextPage = true
         
         // When
         let metadata = DocumentMetadata(
@@ -30,7 +31,8 @@ final class DocumentMetadataTests: XCTestCase {
             pageCount: pageCount,
             tags: tags,
             ocrCompleted: ocrCompleted,
-            fullText: fullText
+            fullText: fullText,
+            hasPendingTextPage: hasPendingTextPage
         )
         
         // Then
@@ -42,6 +44,7 @@ final class DocumentMetadataTests: XCTestCase {
         XCTAssertEqual(metadata.tags, tags)
         XCTAssertEqual(metadata.ocrCompleted, ocrCompleted)
         XCTAssertEqual(metadata.fullText, fullText)
+        XCTAssertTrue(metadata.hasPendingTextPage)
     }
     
     func testDocumentMetadataInitializationWithNilFullText() {
@@ -69,6 +72,7 @@ final class DocumentMetadataTests: XCTestCase {
         // Then
         XCTAssertNil(metadata.fullText)
         XCTAssertFalse(metadata.ocrCompleted)
+        XCTAssertFalse(metadata.hasPendingTextPage)
     }
     
     func testDocumentMetadataEquatable() {
@@ -145,6 +149,7 @@ final class DocumentMetadataTests: XCTestCase {
         XCTAssertEqual(metadata.tags, decodedMetadata.tags)
         XCTAssertEqual(metadata.ocrCompleted, decodedMetadata.ocrCompleted)
         XCTAssertEqual(metadata.fullText, decodedMetadata.fullText)
+        XCTAssertEqual(metadata.hasPendingTextPage, decodedMetadata.hasPendingTextPage)
         
         // Date comparison with tolerance due to encoding/decoding
         XCTAssertEqual(metadata.created.timeIntervalSince1970, decodedMetadata.created.timeIntervalSince1970, accuracy: 1.0)
@@ -166,5 +171,6 @@ final class DocumentMetadataTests: XCTestCase {
         
         // Then
         XCTAssertTrue(metadata.tags.isEmpty)
+        XCTAssertFalse(metadata.hasPendingTextPage)
     }
 }

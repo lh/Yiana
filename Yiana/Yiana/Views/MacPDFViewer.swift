@@ -41,7 +41,7 @@ struct MacPDFViewer: View {
                     }
                     .frame(width: 200)
                     .background(Color(NSColor.controlBackgroundColor))
-                    .onChange(of: currentPage) { newPage in
+                    .onChange(of: currentPage) { _, newPage in
                         withAnimation {
                             scrollProxy.scrollTo(newPage, anchor: .center)
                         }

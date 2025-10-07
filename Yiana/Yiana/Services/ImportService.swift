@@ -72,7 +72,8 @@ class ImportService {
             pageCount: pageCount,
             tags: [],
             ocrCompleted: false,
-            fullText: nil
+            fullText: nil,
+            hasPendingTextPage: false
         )
 
         let encoder = JSONEncoder()
@@ -146,7 +147,8 @@ class ImportService {
             pageCount: metadata.pageCount,
             tags: metadata.tags,
             ocrCompleted: false,
-            fullText: metadata.fullText
+            fullText: metadata.fullText,
+            hasPendingTextPage: metadata.hasPendingTextPage
         )
 
         let newMetadataData = try JSONEncoder().encode(updatedMetadata)
@@ -182,4 +184,3 @@ class ImportService {
         }
     }
 }
-

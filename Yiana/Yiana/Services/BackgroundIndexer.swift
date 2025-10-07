@@ -48,118 +48,106 @@ class BackgroundIndexer: ObservableObject {
 
         print("🔍 Starting background document indexing...")
 
-        do {
-            // Get all documents recursively
-            let repository = DocumentRepository()
-            let allDocuments = repository.allDocumentsRecursive()
+        // Get all documents recursively
+        let repository = DocumentRepository()
+        let allDocuments = repository.allDocumentsRecursive()
 
-            totalCount = allDocuments.count
-            print("📚 Found \(totalCount) documents to index")
+        totalCount = allDocuments.count
+        print("📚 Found \(totalCount) documents to index")
 
-            // Check which documents are already indexed
-            var documentsToIndex: [(url: URL, metadata: DocumentMetadata)] = []
+        // Check which documents are already indexed
+        var documentsToIndex: [(url: URL, metadata: DocumentMetadata)] = []
 
-            for item in allDocuments {
-                // Check if task was cancelled
-                if Task.isCancelled {
-                    print("⚠️ Indexing cancelled by user")
-                    isIndexing = false
-                    return
-                }
-
-                // Extract metadata
-                guard let metadata = try? NoteDocument.extractMetadata(from: item.url) else {
-                    continue
-                }
-
-                // Check if already indexed
-                let isIndexed = (try? await searchIndex.isDocumentIndexed(id: metadata.id)) ?? false
-
-                if !isIndexed {
-                    documentsToIndex.append((url: item.url, metadata: metadata))
-                }
+        for item in allDocuments {
+            // Check if task was cancelled
+            if Task.isCancelled {
+                print("⚠️ Indexing cancelled by user")
+                isIndexing = false
+                return
             }
 
-            print("📝 \(documentsToIndex.count) documents need indexing")
+            // Extract metadata
+            guard let metadata = try? NoteDocument.extractMetadata(from: item.url) else {
+                continue
+            }
 
-            // Index documents in batches to avoid overwhelming the system
-            let batchSize = 10
-            var corruptionDetected = false
+            // Check if already indexed
+            let isIndexed = (try? await searchIndex.isDocumentIndexed(id: metadata.id)) ?? false
 
-            for (index, item) in documentsToIndex.enumerated() {
-                // Check if task was cancelled
-                if Task.isCancelled {
-                    print("⚠️ Indexing cancelled by user")
-                    isIndexing = false
-                    return
+            if !isIndexed {
+                documentsToIndex.append((url: item.url, metadata: metadata))
+            }
+        }
+
+        print("📝 \(documentsToIndex.count) documents need indexing")
+
+        // Index documents in batches to avoid overwhelming the system
+        let batchSize = 10
+        var corruptionDetected = false
+
+        for (index, item) in documentsToIndex.enumerated() {
+            // Check if task was cancelled
+            if Task.isCancelled {
+                print("⚠️ Indexing cancelled by user")
+                isIndexing = false
+                return
+            }
+
+            // Use fullText from metadata (already embedded in .yianazip file)
+            let fullText = item.metadata.fullText ?? ""
+
+            // Index the document
+            do {
+                try await searchIndex.indexDocument(
+                    id: item.metadata.id,
+                    url: item.url,
+                    title: item.metadata.title,
+                    fullText: fullText,
+                    tags: item.metadata.tags,
+                    metadata: item.metadata
+                )
+
+                indexedCount += 1
+                indexProgress = Double(indexedCount) / Double(documentsToIndex.count)
+
+                if indexedCount % 10 == 0 {
+                    print("✓ Indexed \(indexedCount)/\(documentsToIndex.count) documents")
                 }
-
-                // Use fullText from metadata (already embedded in .yianazip file)
-                let fullText = item.metadata.fullText ?? ""
-
-                // Index the document
-                do {
-                    try await searchIndex.indexDocument(
-                        id: item.metadata.id,
-                        url: item.url,
-                        title: item.metadata.title,
-                        fullText: fullText,
-                        tags: item.metadata.tags,
-                        metadata: item.metadata
-                    )
-
-                    indexedCount += 1
-                    indexProgress = Double(indexedCount) / Double(documentsToIndex.count)
-
-                    if indexedCount % 10 == 0 {
-                        print("✓ Indexed \(indexedCount)/\(documentsToIndex.count) documents")
-                    }
-                } catch {
-                    let errorString = String(describing: error)
-                    if errorString.contains("index corruption") || errorString.contains("database disk image is malformed") {
-                        print("🔴 Database corruption detected!")
-                        corruptionDetected = true
-                        break
-                    }
-                    print("⚠️ Failed to index \(item.metadata.title): \(error)")
-                }
-
-                // If corruption detected, stop indexing
-                if corruptionDetected {
+            } catch {
+                let errorString = String(describing: error)
+                if errorString.contains("index corruption") || errorString.contains("database disk image is malformed") {
+                    print("🔴 Database corruption detected!")
+                    corruptionDetected = true
                     break
                 }
-
-                // Small delay every batch to avoid blocking main thread
-                if (index + 1) % batchSize == 0 {
-                    try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 second
-                }
+                print("⚠️ Failed to index \(item.metadata.title): \(error)")
             }
 
-            // Handle database corruption
-            if corruptionDetected {
-                print("🔧 Attempting to recover from database corruption...")
-                do {
-                    try await searchIndex.resetDatabase()
-                    print("✓ Database reset successful - restarting indexing")
-                    // Restart indexing after reset
-                    indexAllDocuments()
-                    return
-                } catch {
-                    print("❌ Failed to reset database: \(error)")
-                }
+            // Small delay every batch to avoid blocking main thread
+            if (index + 1) % batchSize == 0 {
+                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 second
             }
-
-            // Optimize the index after bulk indexing
-            if documentsToIndex.count > 0 {
-                print("🔧 Optimizing search index...")
-                try? await searchIndex.optimize()
-            }
-
-            print("✅ Background indexing complete: \(indexedCount) documents indexed")
-
-        } catch {
-            print("❌ Background indexing failed: \(error)")
         }
+
+        // Handle database corruption
+        if corruptionDetected {
+            print("🔧 Attempting to recover from database corruption...")
+            if (try? await searchIndex.resetDatabase()) != nil {
+                print("✓ Database reset successful - restarting indexing")
+                indexAllDocuments()
+                return
+            } else {
+                print("❌ Failed to reset database")
+            }
+        }
+
+        // Optimize the index after bulk indexing
+        if documentsToIndex.count > 0 {
+            print("🔧 Optimizing search index...")
+            try? await searchIndex.optimize()
+        }
+
+        print("✅ Background indexing complete: \(indexedCount) documents indexed")
 
         isIndexing = false
         indexProgress = 1.0

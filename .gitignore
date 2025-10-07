@@ -91,3 +91,7 @@ iOSInjectionProject/
 
 # macOS
 .DS_Store
+
+# Debug PDF sync logs
+temp-debug-files/debug-pdf-sync.log
+temp-debug-files/debug-pdf-sync.error.log

@@ -37,7 +37,7 @@ class DocumentViewModel: ObservableObject {
             }
         }
     }
-    
+
     var autoSaveEnabled = false {
         didSet {
             if autoSaveEnabled && hasChanges {
@@ -45,9 +45,10 @@ class DocumentViewModel: ObservableObject {
             }
         }
     }
-    
+
     private let document: NoteDocument
     private var autoSaveTask: Task<Void, Never>?
+    private let textRenderService = TextPageRenderService.shared
     
     init(document: NoteDocument) {
         self.document = document
@@ -161,18 +162,123 @@ class DocumentViewModel: ObservableObject {
             return ""
         }
     }
-    
+
     private func scheduleAutoSave() {
         autoSaveTask?.cancel()
-        
+
         guard autoSaveEnabled && hasChanges else { return }
-        
+
         autoSaveTask = Task {
             try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
             if !Task.isCancelled {
                 _ = await save()
             }
         }
+    }
+
+    var metadataSnapshot: DocumentMetadata {
+        document.metadata
+    }
+
+    func updatePendingTextPageFlag(_ hasDraft: Bool) {
+        guard document.metadata.hasPendingTextPage != hasDraft else { return }
+        document.metadata.hasPendingTextPage = hasDraft
+        hasChanges = true
+        scheduleAutoSave()
+    }
+
+    /// Renders the provided Markdown into a PDF page, appends it to the current document,
+    /// and updates metadata/search fields accordingly.
+    @discardableResult
+    func appendTextPage(
+        markdown: String,
+        appendPlainTextToMetadata: Bool,
+        cachedRenderedPage: Data? = nil,
+        cachedPlainText: String? = nil
+    ) async throws -> (plainText: String, addedPages: Int) {
+        let existingData = pdfData
+
+        let combinedData: Data
+        let plainText: String
+        let addedPages: Int
+        let renderedPageData: Data
+
+        if let cachedRenderedPage,
+           let appendedDocument = PDFDocument(data: cachedRenderedPage),
+           appendedDocument.pageCount > 0 {
+            let baseDocument: PDFDocument
+            if let existingData, let existing = PDFDocument(data: existingData) {
+                baseDocument = existing
+            } else {
+                baseDocument = PDFDocument()
+            }
+
+            addedPages = appendedDocument.pageCount
+            for index in 0..<addedPages {
+                guard let page = appendedDocument.page(at: index) else { continue }
+                if let copiedPage = page.copy() as? PDFPage {
+                    baseDocument.insert(copiedPage, at: baseDocument.pageCount)
+                } else {
+                    baseDocument.insert(page, at: baseDocument.pageCount)
+                }
+            }
+
+            guard let mergedData = baseDocument.dataRepresentation() else {
+                throw NSError(domain: "TextPageRender", code: 6, userInfo: [NSLocalizedDescriptionKey: "Failed to merge cached rendered page"])
+            }
+
+            combinedData = mergedData
+            plainText = cachedPlainText ?? markdown
+            renderedPageData = cachedRenderedPage
+        } else {
+            let result = try await textRenderService.renderAndAppend(markdown: markdown, existingPDFData: existingData)
+            combinedData = result.combinedPDF
+            plainText = result.plainText
+            addedPages = result.addedPages
+            renderedPageData = result.renderedPagePDF
+        }
+
+        pdfData = combinedData
+
+        if let updatedPDF = PDFDocument(data: combinedData) {
+            document.metadata.pageCount = updatedPDF.pageCount
+        }
+
+        document.metadata.modified = Date()
+        document.metadata.hasPendingTextPage = false
+
+        if appendPlainTextToMetadata {
+            let trimmed = plainText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                if var existing = document.metadata.fullText, !existing.isEmpty {
+                    existing.append("\n\n")
+                    existing.append(trimmed)
+                    document.metadata.fullText = existing
+                } else {
+                    document.metadata.fullText = trimmed
+                }
+            }
+        }
+
+#if DEBUG
+        if let combinedDoc = PDFDocument(data: combinedData) {
+            let lastIndex = combinedDoc.pageCount - 1
+            let pageString = combinedDoc.page(at: lastIndex)?.string ?? "<nil>"
+            print("DEBUG DocumentViewModel: Combined PDF last page string length = \(pageString.count)")
+            print("DEBUG DocumentViewModel: Combined PDF last page string = \n\(pageString)")
+        } else {
+            print("DEBUG DocumentViewModel: Failed to load combined PDF for logging")
+        }
+#endif
+
+        hasChanges = true
+        scheduleAutoSave()
+
+        #if DEBUG
+        DebugRenderedPageStore.shared.store(data: renderedPageData, near: document.fileURL)
+        #endif
+
+        return (plainText: plainText, addedPages: addedPages)
     }
 }
 

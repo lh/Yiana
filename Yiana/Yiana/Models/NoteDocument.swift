@@ -31,7 +31,8 @@ class NoteDocument: UIDocument {
             pageCount: 0,
             tags: [],
             ocrCompleted: false,
-            fullText: nil
+            fullText: nil,
+            hasPendingTextPage: false
         )
         super.init(fileURL: url)
     }
@@ -133,7 +134,8 @@ class NoteDocument: NSDocument {
             pageCount: 0,
             tags: [],
             ocrCompleted: false,
-            fullText: nil
+            fullText: nil,
+            hasPendingTextPage: false
         )
         super.init()
     }

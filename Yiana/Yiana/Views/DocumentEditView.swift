@@ -39,6 +39,11 @@ struct DocumentEditView: View {
     @State private var activeSheet: ActiveSheet?
     @State private var showingMarkupError = false
     @State private var markupErrorMessage = ""
+    @State private var textEditorViewModel: TextPageEditorViewModel?
+    @State private var showTextEditor = false
+    @State private var isRenderingTextPage = false
+    @State private var textAppendErrorMessage: String?
+    @State private var showingTextAppendError = false
     
     private let scanningService = ScanningService()
     private let exportService = ExportService()
@@ -99,10 +104,18 @@ struct DocumentEditView: View {
                 }
             }
         }
+        .sheet(isPresented: $showTextEditor) {
+            textEditorSheet
+        }
         .alert("Markup Error", isPresented: $showingMarkupError) {
             Button("OK") { }
         } message: {
             Text(markupErrorMessage)
+        }
+        .alert("Text Page Error", isPresented: $showingTextAppendError) {
+            Button("OK") { }
+        } message: {
+            Text(textAppendErrorMessage ?? "Failed to append text page.")
         }
     }
     
@@ -146,6 +159,15 @@ struct DocumentEditView: View {
                 }
             }
 
+            if isRenderingTextPage {
+                Color.black.opacity(0.35)
+                    .ignoresSafeArea()
+                ProgressView("Rendering text page…")
+                    .padding(24)
+                    .background(Color(.systemBackground))
+                    .cornerRadius(16)
+            }
+
             // Overlay title field at top
             VStack {
                 if showTitleField {
@@ -177,7 +199,7 @@ struct DocumentEditView: View {
                     // Minimal title display with back button
                     HStack(spacing: 0) {
                         Button(action: {
-                            dismiss()
+                            handleDismiss()
                         }) {
                             HStack {
                                 Image(systemName: "chevron.left")
@@ -242,7 +264,7 @@ struct DocumentEditView: View {
     }
     
     private var scanButtonBar: some View {
-        HStack(spacing: 40) {
+        HStack(spacing: 32) {
             // Color scan button - "Scan"
             Button(action: {
                 if scanningService.isScanningAvailable() {
@@ -272,7 +294,7 @@ struct DocumentEditView: View {
                 }
             }
             .disabled(!scanningService.isScanningAvailable())
-            
+
             // B&W document scan button - "Doc"
             Button(action: {
                 if scanningService.isScanningAvailable() {
@@ -285,7 +307,7 @@ struct DocumentEditView: View {
                         Circle()
                             .fill(Color.gray.opacity(0.3))
                             .frame(width: 60, height: 60)
-                        
+
                         Image(systemName: "doc.text.viewfinder")
                             .font(.title2)
                             .foregroundColor(.white)
@@ -296,8 +318,135 @@ struct DocumentEditView: View {
                 }
             }
             .disabled(!scanningService.isScanningAvailable())
+
+            if textEditorViewModel != nil {
+                textPageButton
+            }
         }
         .padding(.bottom, 20)
+    }
+
+    private var textPageButton: some View {
+        let hasDraft = (textEditorViewModel?.state ?? .empty) != .empty
+
+        return Button(action: {
+            showTextEditor = true
+        }) {
+            VStack(spacing: 4) {
+                ZStack {
+                    Circle()
+                        .fill(Color("AccentColor").opacity(0.3))
+                        .frame(width: 60, height: 60)
+
+                    Image(systemName: hasDraft ? "doc.badge.plus" : "doc.text")
+                        .font(.title2)
+                        .foregroundColor(.white)
+
+                    if hasDraft {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 12, height: 12)
+                            .offset(x: 22, y: -22)
+                    }
+                }
+                Text(hasDraft ? "Resume" : "Text")
+                    .font(.caption)
+                    .foregroundColor(.primary)
+            }
+        }
+    }
+
+    private func handleDismiss() {
+        if isRenderingTextPage { return }
+        Task {
+            if showTextEditor {
+                await MainActor.run { showTextEditor = false }
+            }
+
+            let canDismiss = await finalizeTextPageIfNeeded()
+            if canDismiss {
+                if let viewModel = viewModel {
+                    _ = await viewModel.save()
+                }
+                await MainActor.run {
+                    dismiss()
+                }
+            }
+        }
+    }
+
+    private func finalizeTextPageIfNeeded() async -> Bool {
+        guard let textEditorViewModel, let viewModel = viewModel else { return true }
+
+        let trimmed = textEditorViewModel.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            await textEditorViewModel.discardDraft()
+            viewModel.updatePendingTextPageFlag(false)
+            return true
+        }
+
+        await MainActor.run { isRenderingTextPage = true }
+
+        do {
+            await textEditorViewModel.flushDraftNow()
+            let markdown = textEditorViewModel.content
+            let cachedRender = textEditorViewModel.latestRenderedPageData
+            let cachedPlain = textEditorViewModel.latestRenderedPlainText ?? trimmed
+            _ = try await viewModel.appendTextPage(
+                markdown: markdown,
+                appendPlainTextToMetadata: true,
+                cachedRenderedPage: cachedRender,
+                cachedPlainText: cachedPlain
+            )
+            await textEditorViewModel.discardDraft()
+            self.textEditorViewModel?.refreshMetadata(viewModel.metadataSnapshot)
+            await MainActor.run { isRenderingTextPage = false }
+            return true
+        } catch {
+            await MainActor.run {
+                isRenderingTextPage = false
+                textAppendErrorMessage = error.localizedDescription
+                showingTextAppendError = true
+            }
+            return false
+        }
+    }
+
+    @ViewBuilder
+    private var textEditorSheet: some View {
+        if let textEditorViewModel {
+            NavigationStack {
+                TextPageEditorView(viewModel: textEditorViewModel)
+                    .navigationTitle("Text Page")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            let canDiscard = (textEditorViewModel.state != .empty)
+                            Button("Discard") {
+                                Task {
+                                    await textEditorViewModel.discardDraft()
+                                    showTextEditor = false
+                                }
+                            }
+                            .disabled(!canDiscard)
+                        }
+
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") {
+                                showTextEditor = false
+                            }
+                        }
+                    }
+            }
+        } else {
+            VStack {
+                ProgressView()
+                Text("Preparing editor…")
+                    .foregroundColor(.secondary)
+                    .padding(.top, 8)
+            }
+            .padding()
+        }
     }
     
     private func loadDocument() async {
@@ -309,6 +458,31 @@ struct DocumentEditView: View {
                     if success {
                         self.document = loadedDocument
                         self.viewModel = DocumentViewModel(document: loadedDocument)
+
+                        let metadata = loadedDocument.metadata
+                        let textVM = TextPageEditorViewModel(documentURL: documentURL, metadata: metadata)
+                        textVM.onDraftStateChange = { hasDraft in
+                            Task { @MainActor in
+                                self.viewModel?.updatePendingTextPageFlag(hasDraft)
+                            }
+                        }
+                        self.textEditorViewModel = textVM
+
+                        Task {
+                            await textVM.loadDraftIfAvailable()
+                            let manager = TextPageDraftManager.shared
+                            let draftExists = await manager.hasDraft(for: documentURL, metadata: metadata)
+                            if draftExists {
+                                await MainActor.run {
+                                    self.viewModel?.updatePendingTextPageFlag(true)
+                                    self.showTextEditor = true
+                                }
+                            } else if metadata.hasPendingTextPage {
+                                await MainActor.run {
+                                    self.showTextEditor = true
+                                }
+                            }
+                        }
                     }
                     self.isLoading = false
                     continuation.resume()
