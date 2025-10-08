@@ -21,7 +21,6 @@ struct TextPageEditorView: View {
     @ObservedObject var viewModel: TextPageEditorViewModel
     @State private var pendingAction: TextPageEditorAction?
     @State private var isEditing = false
-    @State private var selectedPaperSize: TextPagePaperSize = .a4
 
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -55,10 +54,6 @@ struct TextPageEditorView: View {
         #endif
         .task {
             await viewModel.loadDraftIfAvailable()
-            let preferredPaper = await TextPageLayoutSettings.shared.preferredPaperSize()
-            await MainActor.run {
-                selectedPaperSize = preferredPaper
-            }
         }
     }
 
@@ -167,37 +162,12 @@ struct TextPageEditorView: View {
                 }
                 #endif
 
-                Divider().frame(height: 16)
-                paperSizeMenu
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
         }
         .background(toolbarStripColor)
     }
-    private var paperSizeMenu: some View {
-        Menu {
-            ForEach(TextPagePaperSize.allCases) { size in
-                Button {
-                    selectedPaperSize = size
-                    Task {
-                        await TextPageLayoutSettings.shared.setPreferredPaperSize(size)
-                        viewModel.refreshRenderForPaperSizeChange()
-                    }
-                } label: {
-                    if size == selectedPaperSize {
-                        Label(size.displayName, systemImage: "checkmark")
-                    } else {
-                        Text(size.displayName)
-                    }
-                }
-            }
-        } label: {
-            Label("Paper: \(selectedPaperSize.displayName)", systemImage: "doc.plaintext")
-        }
-        .accessibilityLabel("Paper size")
-    }
-
     private var headingMenu: some View {
         Menu {
             Button("Heading 1") { pendingAction = .heading(level: 1) }

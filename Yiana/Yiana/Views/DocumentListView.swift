@@ -34,6 +34,8 @@ struct DocumentListView: View {
     #endif
     @State private var currentSortOption: SortOption = .title
     @State private var isAscending = true
+    @State private var hasLoadedAnyContent = false
+    @State private var showingSettings = false
     
     // Build date string for version display
     private var buildDateString: String {
@@ -55,7 +57,14 @@ struct DocumentListView: View {
                 .navigationDestination(for: URL.self, destination: navigationDestination)
                 .navigationDestination(for: DocumentNavigationData.self, destination: navigationDestinationForDocument)
         }
-        .task { await loadDocuments() }
+        .task {
+            await loadDocuments()
+            await MainActor.run {
+                if contentCountKey > 0 {
+                    hasLoadedAnyContent = true
+                }
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name.yianaDocumentsChanged)) { _ in
             Task { await viewModel.refresh() }
         }
@@ -66,11 +75,19 @@ struct DocumentListView: View {
         .onChange(of: searchText) { _, newValue in
             handleSearchChange(newValue)
         }
+        .onChange(of: contentCountKey) { _, newValue in
+            if newValue > 0 {
+                hasLoadedAnyContent = true
+            }
+        }
 #if os(macOS)
         .sheet(item: $pdfImportData, content: bulkImportSheet)
         .onDrop(of: [.pdf], isTargeted: $isDraggingPDFs, perform: handleDrop)
         .overlay(macDragOverlay)
         #endif
+        .sheet(isPresented: $showingSettings) {
+            SettingsView()
+        }
     }
     
     private var emptyStateView: some View {
@@ -79,10 +96,24 @@ struct DocumentListView: View {
                 Image(systemName: "doc.text")
                     .font(.system(size: 60))
                     .foregroundColor(.secondary)
-                Text("No Documents")
-                    .font(.title2)
-                Text("Tap + to create your first document")
+                if !hasLoadedAnyContent {
+                    Text("Checking iCloud…")
+                        .font(.title2)
+                    VStack(spacing: 6) {
+                        Text("We’re looking for your existing documents.")
+                        Text("Even with a good connection this can take a minute or two after installing or updating.")
+                        Text("New here? Tap + to create your first folder or document.")
+                    }
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                } else {
+                    Text("No Documents")
+                        .font(.title2)
+                    Text("Tap + to create your first document")
+                        .foregroundColor(.secondary)
+                }
             } else {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 60))
@@ -100,9 +131,13 @@ struct DocumentListView: View {
 
     @ViewBuilder
     private var mainContent: some View {
-        if viewModel.isLoading && viewModel.documentURLs.isEmpty && viewModel.folderURLs.isEmpty {
-            ProgressView("Loading documents...")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        if downloadManager.isDownloading &&
+            viewModel.documentURLs.isEmpty &&
+            viewModel.folderURLs.isEmpty &&
+            viewModel.otherFolderResults.isEmpty {
+            downloadingStateView
+        } else if viewModel.isLoading && viewModel.documentURLs.isEmpty && viewModel.folderURLs.isEmpty {
+            downloadingStateView
         } else if viewModel.isSearchInProgress && viewModel.documentURLs.isEmpty && viewModel.folderURLs.isEmpty && viewModel.otherFolderResults.isEmpty {
             VStack(spacing: 20) {
                 ProgressView()
@@ -117,6 +152,25 @@ struct DocumentListView: View {
         } else {
             documentList
         }
+    }
+
+    private var contentCountKey: Int {
+        viewModel.documentURLs.count + viewModel.folderURLs.count + viewModel.otherFolderResults.count
+    }
+
+    private var downloadingStateView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.5)
+            Text("Preparing your documents…")
+                .font(.headline)
+            Text("Downloading from iCloud. This may take a moment.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     private func createDocument() {
@@ -574,6 +628,26 @@ struct DocumentListView: View {
             DevelopmentMenu()
         }
         #endif
+
+#if os(iOS)
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Button {
+                showingSettings = true
+            } label: {
+                Image(systemName: "gearshape")
+            }
+            .accessibilityLabel("Settings")
+        }
+#else
+        ToolbarItem(placement: .automatic) {
+            Button {
+                showingSettings = true
+            } label: {
+                Image(systemName: "gearshape")
+            }
+            .accessibilityLabel("Settings")
+        }
+#endif
     }
 
     private func sortButton(label: String, option: SortOption) -> some View {
@@ -586,6 +660,7 @@ struct DocumentListView: View {
                 }
             }
         }
+
     }
 
     private func updateSort(option: SortOption) {
