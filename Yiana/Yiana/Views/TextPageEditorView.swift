@@ -141,29 +141,11 @@ struct TextPageEditorView: View {
     private var editorToolbar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 16) {
-                toolbarButton(systemName: "bold", label: "Bold") {
-                    pendingAction = .bold
-                }
+                styleMenu
 
-                toolbarButton(systemName: "italic", label: "Italic") {
-                    pendingAction = .italic
-                }
+                headingMenu
 
-                Menu {
-                    Button("Heading 1") { pendingAction = .heading(level: 1) }
-                    Button("Heading 2") { pendingAction = .heading(level: 2) }
-                    Button("Heading 3") { pendingAction = .heading(level: 3) }
-                } label: {
-                    Label("Heading", systemImage: "textformat.size")
-                }
-
-                toolbarButton(systemName: "list.bullet", label: "Bulleted list") {
-                    pendingAction = .unorderedList
-                }
-
-                toolbarButton(systemName: "list.number", label: "Numbered list") {
-                    pendingAction = .orderedList
-                }
+                listMenu
 
                 toolbarButton(systemName: "text.quote", label: "Quote") {
                     pendingAction = .blockquote
@@ -216,6 +198,53 @@ struct TextPageEditorView: View {
         .accessibilityLabel("Paper size")
     }
 
+    private var headingMenu: some View {
+        Menu {
+            Button("Heading 1") { pendingAction = .heading(level: 1) }
+            Button("Heading 2") { pendingAction = .heading(level: 2) }
+            Button("Heading 3") { pendingAction = .heading(level: 3) }
+        } label: {
+            menuLabel {
+                Text("H1")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.accentColor)
+            }
+        }
+        .accessibilityLabel("Heading level")
+    }
+
+    private var styleMenu: some View {
+        Menu {
+            Button("Bold") { pendingAction = .bold }
+            Button("Italic") { pendingAction = .italic }
+        } label: {
+            menuLabel {
+                Text("T")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(.primary)
+                +
+                Text("t")
+                    .font(.system(size: 15))
+                    .italic()
+                    .foregroundColor(.primary)
+            }
+        }
+        .accessibilityLabel("Text style")
+    }
+
+    private var listMenu: some View {
+        Menu {
+            Button("Bulleted list") { pendingAction = .unorderedList }
+            Button("Numbered list") { pendingAction = .orderedList }
+        } label: {
+            menuLabel {
+                Image(systemName: "list.bullet.rectangle")
+                    .font(.system(size: 15, weight: .medium))
+            }
+        }
+        .accessibilityLabel("List style")
+    }
+
     private func toolbarButton(systemName: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(label, systemImage: systemName)
@@ -224,6 +253,12 @@ struct TextPageEditorView: View {
         }
         .buttonStyle(.plain)
         .help(label)
+    }
+
+    private func menuLabel<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .frame(width: 32, height: 32)
+            .contentShape(Rectangle())
     }
 
     private func recoveredBanner(date: Date) -> some View {
