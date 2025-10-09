@@ -53,6 +53,8 @@ struct DocumentEditView: View {
     @State private var sidebarDocument: PDFDocument?
     @State private var selectedSidebarPages: Set<Int> = []
     @State private var isSidebarSelectionMode = false
+    @State private var showSidebarDeleteAlert = false
+    @State private var pendingDeleteIndices: [Int] = []
     
     private let scanningService = ScanningService()
     private let exportService = ExportService()
@@ -147,6 +149,17 @@ struct DocumentEditView: View {
             if viewModel?.displayPDFData == nil {
                 updateSidebarDocument(with: newValue)
             }
+        }
+        .alert("Delete Pages?", isPresented: $showSidebarDeleteAlert) {
+            Button("Cancel", role: .cancel) {
+                pendingDeleteIndices.removeAll()
+            }
+            Button("Delete", role: .destructive) {
+                deleteSelectedSidebarPages(indices: pendingDeleteIndices)
+                pendingDeleteIndices.removeAll()
+            }
+        } message: {
+            Text("Are you sure you want to delete \(pendingDeleteIndices.count) page\(pendingDeleteIndices.count == 1 ? "" : "s")? This action cannot be undone.")
         }
         .alert("Markup Error", isPresented: $showingMarkupError) {
             Button("OK") { }
@@ -652,7 +665,7 @@ struct DocumentEditView: View {
                             enterSidebarSelection()
                         }
                     },
-                    onDeleteSelection: selectedSidebarPages.isEmpty ? nil : { deleteSelectedSidebarPages() },
+                    onDeleteSelection: selectedSidebarPages.isEmpty ? nil : { promptDeleteSidebarPages() },
                     onDuplicateSelection: selectedSidebarPages.isEmpty ? nil : { duplicateSelectedSidebarPages() }
                 )
                 .transition(.move(edge: sidebarPosition == .left ? .leading : .trailing))
@@ -702,11 +715,18 @@ struct DocumentEditView: View {
         selectedSidebarPages.removeAll()
     }
 
-    private func deleteSelectedSidebarPages() {
+    private func promptDeleteSidebarPages() {
+        pendingDeleteIndices = Array(selectedSidebarPages)
+        if !pendingDeleteIndices.isEmpty {
+            showSidebarDeleteAlert = true
+        }
+    }
+
+    private func deleteSelectedSidebarPages(indices: [Int]? = nil) {
         guard let viewModel else { return }
-        let indices = Array(selectedSidebarPages)
+        let deletionIndices = indices ?? Array(selectedSidebarPages)
         Task {
-            await viewModel.removePages(at: indices)
+            await viewModel.removePages(at: deletionIndices)
             await MainActor.run {
                 exitSidebarSelection()
                 let maxIndex = self.currentDocumentPageCount(from: viewModel)
