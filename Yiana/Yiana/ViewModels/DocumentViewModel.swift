@@ -222,6 +222,10 @@ class DocumentViewModel: ObservableObject {
 
         let sortedIndices = indices.sorted()
         var insertedCount = 0
+        #if DEBUG
+        print("DEBUG Sidebar: duplicating pages", sortedIndices)
+        print("DEBUG Sidebar: initial page count", document.pageCount)
+        #endif
 
         for index in sortedIndices {
             let adjustedIndex = index + insertedCount
@@ -232,10 +236,17 @@ class DocumentViewModel: ObservableObject {
             if let copy = original.copy() as? PDFPage {
                 document.insert(copy, at: insertIndex)
                 insertedCount += 1
+                #if DEBUG
+                print("DEBUG Sidebar: inserted copy of page", adjustedIndex, "at", insertIndex)
+                #endif
             }
         }
 
         guard let updatedData = document.dataRepresentation() else { return }
+
+        #if DEBUG
+        print("DEBUG Sidebar: new page count", document.pageCount)
+        #endif
 
         pdfData = updatedData
         await refreshDisplayPDF()
