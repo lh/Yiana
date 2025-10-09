@@ -61,17 +61,6 @@ struct PageManagementView: View {
                     }
                 }
                 
-                ToolbarItem(placement: .primaryAction) {
-                    if isEditMode && !selectedPages.isEmpty {
-                        // Save changes when in edit mode with selections
-                        Button("Save") {
-                            saveChanges()
-                        }
-                        .keyboardShortcut("s", modifiers: .command)
-                    }
-                }
-                
-                
                 #if os(iOS)
                 if !selectedPages.isEmpty {
                     ToolbarItem(placement: .bottomBar) {
