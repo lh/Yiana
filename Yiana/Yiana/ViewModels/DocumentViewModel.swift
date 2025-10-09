@@ -252,6 +252,29 @@ class DocumentViewModel: ObservableObject {
         await refreshDisplayPDF()
     }
     
+    #if DEBUG
+    func logDocumentSnapshot(context: String) {
+        if let data = pdfData, let doc = PDFDocument(data: data) {
+            print("DEBUG DocSnapshot[", context, "]: pdfData pages =", doc.pageCount)
+            for i in 0..<doc.pageCount {
+                let text = doc.page(at: i)?.string ?? "<no text>"
+                print("  pdfData page", i, ":", text.prefix(40))
+            }
+        } else {
+            print("DEBUG DocSnapshot[", context, "]: pdfData is nil")
+        }
+        if let data = displayPDFData, let doc = PDFDocument(data: data) {
+            print("DEBUG DocSnapshot[", context, "]: displayPDFData pages =", doc.pageCount)
+            for i in 0..<doc.pageCount {
+                let text = doc.page(at: i)?.string ?? "<no text>"
+                print("  display page", i, ":", text.prefix(40))
+            }
+        } else {
+            print("DEBUG DocSnapshot[", context, "]: displayPDFData is nil")
+        }
+    }
+    #endif
+
     private func refreshDisplayPDF() async {
         let savedData = pdfData
         let result = await provisionalManager.combinedData(using: savedData)

@@ -29,6 +29,7 @@ struct PageManagementView: View {
     @State private var isEditMode = false  // Start in navigation mode
     @State private var navigateToPage: Int? = nil  // Track navigation request
     @State private var pendingNavigationIndex: Int? = nil  // Show where we're about to navigate
+    @State private var showProvisionalReorderAlert = false
     #if os(iOS)
     @State private var draggedPage: Int?
     #endif
@@ -108,6 +109,11 @@ struct PageManagementView: View {
         }
         .onAppear {
             loadPages()
+        }
+        .alert("Finish Editing", isPresented: $showProvisionalReorderAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Save or discard the draft text page before reordering.")
         }
         .onChange(of: displayPDFData) { _, _ in
             loadPages()
@@ -221,7 +227,13 @@ struct PageManagementView: View {
     
     private func reorderPages(from sourceIndex: Int, to destinationIndex: Int) {
         guard sourceIndex != destinationIndex else { return }
-        
+
+        if let range = provisionalPageRange,
+           range.contains(sourceIndex) || range.contains(destinationIndex) {
+            showProvisionalReorderAlert = true
+            return
+        }
+
         let page = pages.remove(at: sourceIndex)
         pages.insert(page, at: destinationIndex)
         

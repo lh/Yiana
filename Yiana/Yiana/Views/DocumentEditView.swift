@@ -768,8 +768,14 @@ struct DocumentEditView: View {
         guard let viewModel else { return }
         guard !indices.isEmpty else { return }
         Task {
+            #if DEBUG
+            viewModel.logDocumentSnapshot(context: "pre-duplicate")
+            #endif
             await viewModel.duplicatePages(at: indices)
             await MainActor.run {
+                #if DEBUG
+                viewModel.logDocumentSnapshot(context: "post-duplicate")
+                #endif
                 exitSidebarSelection()
                 updateSidebarDocument(with: viewModel.displayPDFData ?? viewModel.pdfData)
                 if let target = indices.sorted().first.map({ min($0 + indices.count, currentDocumentPageCount(from: viewModel) - 1) }) {
