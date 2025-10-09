@@ -256,9 +256,17 @@ struct PageManagementView: View {
             }
             if let copiedPage = page.copy() as? PDFPage {
                 newDocument.insert(copiedPage, at: insertionIndex)
-            } else {
-                newDocument.insert(page, at: insertionIndex)
+                insertionIndex += 1
+                continue
             }
+            if let pageData = page.dataRepresentation(),
+               let singleDoc = PDFDocument(data: pageData),
+               let singlePage = singleDoc.page(at: 0) {
+                newDocument.insert(singlePage, at: insertionIndex)
+                insertionIndex += 1
+                continue
+            }
+            newDocument.insert(page, at: insertionIndex)
             insertionIndex += 1
         }
         
