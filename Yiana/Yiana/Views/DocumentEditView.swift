@@ -695,7 +695,7 @@ struct DocumentEditView: View {
         if let index {
             selectedSidebarPages = [index]
         } else {
-            selectedSidebarPages = [currentViewedPage]
+            selectedSidebarPages.removeAll()
         }
     }
 
