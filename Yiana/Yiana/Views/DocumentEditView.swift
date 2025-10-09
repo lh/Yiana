@@ -746,6 +746,10 @@ struct DocumentEditView: View {
             await MainActor.run {
                 exitSidebarSelection()
                 updateSidebarDocument(with: viewModel.displayPDFData ?? viewModel.pdfData)
+                if let target = indices.sorted().first.map({ min($0 + 1, currentDocumentPageCount(from: viewModel) - 1) }) {
+                    currentViewedPage = target
+                    navigateToPage = target
+                }
             }
         }
     }
