@@ -14,6 +14,7 @@ struct ThumbnailSidebarView: View {
     var onDoubleTap: (Int) -> Void
     var onClearSelection: (() -> Void)? = nil
     var onToggleSelectionMode: (() -> Void)? = nil
+    var onDeleteSelection: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 8) {
@@ -62,6 +63,23 @@ struct ThumbnailSidebarView: View {
                 }
                 .padding(.vertical, 16)
                 .padding(.horizontal, 8)
+            }
+            if isSelecting, let onDeleteSelection {
+                HStack {
+                    Button(role: .destructive) {
+                        onDeleteSelection()
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                            .font(.subheadline)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.red)
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 12)
+            } else {
+                Spacer(minLength: 12)
             }
         }
         .frame(width: thumbnailSize.sidebarWidth)

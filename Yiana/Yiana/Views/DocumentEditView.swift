@@ -635,25 +635,26 @@ struct DocumentEditView: View {
     @ViewBuilder
     private func sidebar(for viewModel: DocumentViewModel) -> some View {
         if let document = sidebarDocument {
-            ThumbnailSidebarView(
-                document: document,
-                currentPage: currentViewedPage,
-                provisionalPageRange: viewModel.provisionalPageRange,
-                thumbnailSize: thumbnailSize,
-                isSelecting: isSidebarSelectionMode,
-                selectedPages: selectedSidebarPages,
-                onTap: { handleSidebarTap($0) },
-                onDoubleTap: { handleSidebarDoubleTap($0) },
-                onClearSelection: exitSidebarSelection,
-                onToggleSelectionMode: {
-                    if isSidebarSelectionMode {
-                        exitSidebarSelection()
-                    } else {
-                        enterSidebarSelection()
-                    }
-                }
-            )
-            .transition(.move(edge: sidebarPosition == .left ? .leading : .trailing))
+                ThumbnailSidebarView(
+                    document: document,
+                    currentPage: currentViewedPage,
+                    provisionalPageRange: viewModel.provisionalPageRange,
+                    thumbnailSize: thumbnailSize,
+                    isSelecting: isSidebarSelectionMode,
+                    selectedPages: selectedSidebarPages,
+                    onTap: { handleSidebarTap($0) },
+                    onDoubleTap: { handleSidebarDoubleTap($0) },
+                    onClearSelection: exitSidebarSelection,
+                    onToggleSelectionMode: {
+                        if isSidebarSelectionMode {
+                            exitSidebarSelection()
+                        } else {
+                            enterSidebarSelection()
+                        }
+                    },
+                    onDeleteSelection: selectedSidebarPages.isEmpty ? nil : { deleteSelectedSidebarPages() }
+                )
+                .transition(.move(edge: sidebarPosition == .left ? .leading : .trailing))
         } else {
             Color.clear.frame(width: thumbnailSize.sidebarWidth)
         }
@@ -699,12 +700,40 @@ struct DocumentEditView: View {
         isSidebarSelectionMode = false
         selectedSidebarPages.removeAll()
     }
+
+    private func deleteSelectedSidebarPages() {
+        guard let viewModel else { return }
+        let indices = Array(selectedSidebarPages)
+        Task {
+            await viewModel.removePages(at: indices)
+            await MainActor.run {
+                exitSidebarSelection()
+                let maxIndex = self.currentDocumentPageCount(from: viewModel)
+                if currentViewedPage >= maxIndex {
+                    currentViewedPage = max(0, maxIndex - 1)
+                    navigateToPage = currentViewedPage
+                }
+            }
+        }
+    }
+
+    private func currentDocumentPageCount(from viewModel: DocumentViewModel) -> Int {
+        if let data = viewModel.displayPDFData ?? viewModel.pdfData,
+           let doc = PDFDocument(data: data) {
+            return doc.pageCount
+        }
+        return 0
+    }
 #else
     private func loadSidebarPreferences() async { }
     private func updateSidebarDocument(with data: Data?) { }
     private func handleSidebarTap(_ index: Int) { }
     private func handleSidebarDoubleTap(_ index: Int) { }
     private func exitSidebarSelection() { }
+    private func currentDocumentPageCount(from viewModel: DocumentViewModel) -> Int { 0 }
+#endif
+#if !os(iOS)
+    private func deleteSelectedSidebarPages() { }
 #endif
     
 

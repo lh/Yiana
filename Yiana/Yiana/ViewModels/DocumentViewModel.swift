@@ -202,6 +202,20 @@ class DocumentViewModel: ObservableObject {
         await provisionalManager.updateProvisionalData(data)
         await refreshDisplayPDF()
     }
+
+    func removePages(at indices: [Int]) async {
+        guard let currentData = pdfData, let document = PDFDocument(data: currentData) else { return }
+
+        let sortedIndices = indices.sorted(by: >)
+        for index in sortedIndices where index >= 0 && index < document.pageCount {
+            document.removePage(at: index)
+        }
+
+        guard let updatedData = document.dataRepresentation() else { return }
+
+        pdfData = updatedData
+        await refreshDisplayPDF()
+    }
     
     private func refreshDisplayPDF() async {
         let savedData = pdfData
