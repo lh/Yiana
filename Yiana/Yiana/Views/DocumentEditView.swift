@@ -51,6 +51,7 @@ struct DocumentEditView: View {
     @State private var sidebarPosition: SidebarPosition = .right
     @State private var thumbnailSize: SidebarThumbnailSize = .medium
     @State private var sidebarDocument: PDFDocument?
+    @State private var sidebarDocumentVersion = UUID()
     @State private var selectedSidebarPages: Set<Int> = []
     @State private var isSidebarSelectionMode = false
     @State private var showSidebarDeleteAlert = false
@@ -654,6 +655,7 @@ struct DocumentEditView: View {
             }
 #endif
             sidebarDocument = pdf
+            sidebarDocumentVersion = UUID()
         } else {
             sidebarDocument = nil
         }
@@ -662,13 +664,14 @@ struct DocumentEditView: View {
     @ViewBuilder
     private func sidebar(for viewModel: DocumentViewModel) -> some View {
         if let document = sidebarDocument {
-                ThumbnailSidebarView(
-                    document: document,
-                    currentPage: currentViewedPage,
-                    provisionalPageRange: viewModel.provisionalPageRange,
-                    thumbnailSize: thumbnailSize,
-                    isSelecting: isSidebarSelectionMode,
-                    selectedPages: selectedSidebarPages,
+            ThumbnailSidebarView(
+                document: document,
+                currentPage: currentViewedPage,
+                provisionalPageRange: viewModel.provisionalPageRange,
+                thumbnailSize: thumbnailSize,
+                refreshID: sidebarDocumentVersion,
+                isSelecting: isSidebarSelectionMode,
+                selectedPages: selectedSidebarPages,
                     onTap: { handleSidebarTap($0) },
                     onDoubleTap: { handleSidebarDoubleTap($0) },
                     onClearSelection: exitSidebarSelection,

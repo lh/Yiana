@@ -8,6 +8,7 @@ struct ThumbnailSidebarView: View {
     let currentPage: Int
     let provisionalPageRange: Range<Int>?
     let thumbnailSize: SidebarThumbnailSize
+    let refreshID: UUID
     let isSelecting: Bool
     let selectedPages: Set<Int>
     var onTap: (Int) -> Void
@@ -65,6 +66,7 @@ struct ThumbnailSidebarView: View {
                 .padding(.vertical, 16)
                 .padding(.horizontal, 8)
             }
+            .id(refreshID)
             if isSelecting {
                 HStack(spacing: 12) {
                     if let onDuplicateSelection {
