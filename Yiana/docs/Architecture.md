@@ -2,6 +2,14 @@
 
 This doc explains how Yiana is structured across app(s), services, and files, and how data moves through the system.
 
+## Quick Reference
+
+For detailed diagrams and flows, see:
+- [System Architecture](diagrams/system-architecture.md) - Component relationships and responsibilities
+- [Data Flow](diagrams/data-flow.md) - Sequence diagrams for major operations
+- [PDF Rendering Pipeline](diagrams/pdf-rendering-pipeline.md) - PDF viewing, scanning, and text page rendering
+- [OCR Processing Flow](diagrams/ocr-processing-flow.md) - Backend OCR service architecture
+
 ## System Overview
 ```mermaid
 flowchart LR
