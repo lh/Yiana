@@ -333,6 +333,20 @@ struct DocumentEditView: View {
                             }
                             .padding(.trailing, 8)
                             .accessibilityLabel(isSidebarVisible ? "Hide thumbnails" : "Show thumbnails")
+                            if isSidebarVisible {
+                                Button(action: {
+                                    if isSidebarSelectionMode {
+                                        exitSidebarSelection()
+                                    } else {
+                                        isSidebarSelectionMode = true
+                                        selectedSidebarPages = [currentViewedPage]
+                                    }
+                                }) {
+                                    Text(isSidebarSelectionMode ? "Done" : "Select")
+                                        .font(.subheadline)
+                                }
+                                .padding(.trailing, 4)
+                            }
                         }
 #endif
                     }
