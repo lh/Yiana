@@ -216,6 +216,30 @@ class DocumentViewModel: ObservableObject {
         pdfData = updatedData
         await refreshDisplayPDF()
     }
+
+    func duplicatePages(at indices: [Int]) async {
+        guard let currentData = pdfData, let document = PDFDocument(data: currentData) else { return }
+
+        let sortedIndices = indices.sorted()
+        var insertedCount = 0
+
+        for index in sortedIndices {
+            let adjustedIndex = index + insertedCount
+            guard adjustedIndex >= 0 && adjustedIndex < document.pageCount,
+                  let original = document.page(at: adjustedIndex) else { continue }
+
+            let insertIndex = min(adjustedIndex + 1, document.pageCount)
+            if let copy = original.copy() as? PDFPage {
+                document.insert(copy, at: insertIndex)
+                insertedCount += 1
+            }
+        }
+
+        guard let updatedData = document.dataRepresentation() else { return }
+
+        pdfData = updatedData
+        await refreshDisplayPDF()
+    }
     
     private func refreshDisplayPDF() async {
         let savedData = pdfData

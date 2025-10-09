@@ -652,7 +652,8 @@ struct DocumentEditView: View {
                             enterSidebarSelection()
                         }
                     },
-                    onDeleteSelection: selectedSidebarPages.isEmpty ? nil : { deleteSelectedSidebarPages() }
+                    onDeleteSelection: selectedSidebarPages.isEmpty ? nil : { deleteSelectedSidebarPages() },
+                    onDuplicateSelection: selectedSidebarPages.isEmpty ? nil : { duplicateSelectedSidebarPages() }
                 )
                 .transition(.move(edge: sidebarPosition == .left ? .leading : .trailing))
         } else {
@@ -717,6 +718,18 @@ struct DocumentEditView: View {
         }
     }
 
+    private func duplicateSelectedSidebarPages() {
+        guard let viewModel else { return }
+        let indices = Array(selectedSidebarPages)
+        Task {
+            await viewModel.duplicatePages(at: indices)
+            await MainActor.run {
+                exitSidebarSelection()
+                updateSidebarDocument(with: viewModel.displayPDFData ?? viewModel.pdfData)
+            }
+        }
+    }
+
     private func currentDocumentPageCount(from viewModel: DocumentViewModel) -> Int {
         if let data = viewModel.displayPDFData ?? viewModel.pdfData,
            let doc = PDFDocument(data: data) {
@@ -734,6 +747,7 @@ struct DocumentEditView: View {
 #endif
 #if !os(iOS)
     private func deleteSelectedSidebarPages() { }
+    private func duplicateSelectedSidebarPages() { }
 #endif
     
 
