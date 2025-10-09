@@ -7,6 +7,9 @@
 
 import SwiftUI
 import PDFKit
+#if os(iOS)
+import UIKit
+#endif
 
 #if os(iOS)
 enum ActiveSheet: Identifiable, Equatable {
@@ -44,6 +47,10 @@ struct DocumentEditView: View {
     @State private var isRenderingTextPage = false
     @State private var textAppendErrorMessage: String?
     @State private var showingTextAppendError = false
+    @State private var isSidebarVisible = false
+    @State private var sidebarPosition: SidebarPosition = .right
+    @State private var thumbnailSize: SidebarThumbnailSize = .medium
+    @State private var sidebarDocument: PDFDocument?
     
     private let scanningService = ScanningService()
     private let exportService = ExportService()
@@ -69,6 +76,7 @@ struct DocumentEditView: View {
         }
         .task {
             await loadDocument()
+            await loadSidebarPreferences()
         }
         .documentScanner(isPresented: $showingScanner) { scannedImages in
             handleScannedImages(scannedImages)
@@ -130,6 +138,14 @@ struct DocumentEditView: View {
                 }
             }
         }
+        .onChange(of: viewModel?.displayPDFData) { _, newValue in
+            updateSidebarDocument(with: newValue ?? viewModel?.pdfData)
+        }
+        .onChange(of: viewModel?.pdfData) { _, newValue in
+            if viewModel?.displayPDFData == nil {
+                updateSidebarDocument(with: newValue)
+            }
+        }
         .alert("Markup Error", isPresented: $showingMarkupError) {
             Button("OK") { }
         } message: {
@@ -144,8 +160,15 @@ struct DocumentEditView: View {
     
     @ViewBuilder
     private func documentContent(viewModel: DocumentViewModel) -> some View {
-        ZStack {
-            VStack(spacing: 0) {
+        HStack(spacing: 0) {
+#if os(iOS)
+            if shouldShowSidebar && sidebarPosition == .left {
+                sidebar(for: viewModel)
+            }
+#endif
+
+            ZStack {
+                VStack(spacing: 0) {
                 // Spacer for collapsible title area
                 Color.clear.frame(height: showTitleField ? 60 : 44)
 
@@ -290,6 +313,23 @@ struct DocumentEditView: View {
                             }
                             .padding(.trailing, 8)
                         }
+#if os(iOS)
+                        if UIDevice.current.userInterfaceIdiom == .pad {
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    isSidebarVisible.toggle()
+                                }
+                            }) {
+                                Image(systemName: sidebarPosition == .left ? "sidebar.leading" : "sidebar.trailing")
+                                    .font(.title3)
+                                    .foregroundColor(isSidebarVisible ? .accentColor : .secondary)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .padding(.trailing, 8)
+                            .accessibilityLabel(isSidebarVisible ? "Hide thumbnails" : "Show thumbnails")
+                        }
+#endif
                     }
                     .frame(height: 44)
                     .padding(.horizontal, 8)
@@ -298,7 +338,17 @@ struct DocumentEditView: View {
                 }
                 Spacer()
             }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+#if os(iOS)
+            if shouldShowSidebar && sidebarPosition == .right {
+                sidebar(for: viewModel)
+            }
+#endif
         }
+        .animation(.easeInOut(duration: 0.2), value: isSidebarVisible)
+        .animation(.easeInOut(duration: 0.2), value: sidebarPosition)
     }
     
     private var scanButtonBar: some View {
@@ -542,6 +592,52 @@ struct DocumentEditView: View {
             }
         }
     }
+
+#if os(iOS)
+    private var shouldShowSidebar: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad && isSidebarVisible && sidebarDocument != nil
+    }
+
+    private func loadSidebarPreferences() async {
+        guard UIDevice.current.userInterfaceIdiom == .pad else { return }
+        let position = await TextPageLayoutSettings.shared.preferredSidebarPosition()
+        let size = await TextPageLayoutSettings.shared.preferredThumbnailSize()
+        await MainActor.run {
+            sidebarPosition = position
+            thumbnailSize = size
+        }
+    }
+
+    private func updateSidebarDocument(with data: Data?) {
+        guard UIDevice.current.userInterfaceIdiom == .pad else { return }
+        if let data, let pdf = PDFDocument(data: data) {
+            sidebarDocument = pdf
+        } else {
+            sidebarDocument = nil
+        }
+    }
+
+    @ViewBuilder
+    private func sidebar(for viewModel: DocumentViewModel) -> some View {
+        if let document = sidebarDocument {
+            ThumbnailSidebarView(
+                document: document,
+                currentPage: currentViewedPage,
+                provisionalPageRange: viewModel.provisionalPageRange,
+                thumbnailSize: thumbnailSize,
+                onSelect: { index in
+                    navigateToPage = index
+                }
+            )
+            .transition(.move(edge: sidebarPosition == .left ? .leading : .trailing))
+        } else {
+            Color.clear.frame(width: thumbnailSize.sidebarWidth)
+        }
+    }
+#else
+    private func loadSidebarPreferences() async { }
+    private func updateSidebarDocument(with data: Data?) { }
+#endif
     
 
     
