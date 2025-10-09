@@ -17,6 +17,9 @@ struct ThumbnailSidebarView: View {
     var onToggleSelectionMode: (() -> Void)? = nil
     var onDeleteSelection: (() -> Void)? = nil
     var onDuplicateSelection: (() -> Void)? = nil
+    var onContextSelect: ((Int) -> Void)? = nil
+    var onContextDuplicate: ((Int) -> Void)? = nil
+    var onContextDelete: ((Int) -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 8) {
@@ -58,7 +61,10 @@ struct ThumbnailSidebarView: View {
                                 isProvisional: provisionalPageRange?.contains(index) ?? false,
                                 thumbnailSize: thumbnailSize,
                                 onTap: { onTap(index) },
-                                onDoubleTap: { onDoubleTap(index) }
+                                onDoubleTap: { onDoubleTap(index) },
+                                onContextSelect: onContextSelect,
+                                onContextDuplicate: onContextDuplicate,
+                                onContextDelete: onContextDelete
                             )
                         }
                     }
@@ -115,6 +121,9 @@ private struct ThumbnailCell: View {
     let thumbnailSize: SidebarThumbnailSize
     let onTap: () -> Void
     let onDoubleTap: () -> Void
+    let onContextSelect: ((Int) -> Void)?
+    let onContextDuplicate: ((Int) -> Void)?
+    let onContextDelete: ((Int) -> Void)?
 
     @State private var image: UIImage?
 
@@ -150,6 +159,23 @@ private struct ThumbnailCell: View {
         .contentShape(Rectangle())
         .gesture(TapGesture(count: 2).onEnded { onDoubleTap() })
         .highPriorityGesture(TapGesture().onEnded { onTap() })
+        .contextMenu {
+            if let onContextSelect {
+                Button(isSelected ? "Deselect" : "Select", systemImage: isSelected ? "minus.circle" : "checkmark.circle") {
+                    onContextSelect(index)
+                }
+            }
+            if let onContextDuplicate {
+                Button("Duplicate", systemImage: "plus.square.on.square") {
+                    onContextDuplicate(index)
+                }
+            }
+            if let onContextDelete {
+                Button("Delete", systemImage: "trash", role: .destructive) {
+                    onContextDelete(index)
+                }
+            }
+        }
         .onAppear(perform: renderThumbnail)
     }
 

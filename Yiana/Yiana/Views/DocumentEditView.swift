@@ -684,7 +684,10 @@ struct DocumentEditView: View {
                         }
                     },
                     onDeleteSelection: selectedSidebarPages.isEmpty ? nil : { promptDeleteSidebarPages() },
-                    onDuplicateSelection: selectedSidebarPages.isEmpty ? nil : { duplicateSelectedSidebarPages() }
+                    onDuplicateSelection: selectedSidebarPages.isEmpty ? nil : { duplicateSelectedSidebarPages() },
+                    onContextSelect: { handleContextSelection(at: $0) },
+                    onContextDuplicate: { performDuplicate(for: [$0]) },
+                    onContextDelete: { promptDeleteSidebarPages(indices: [$0]) }
                 )
                 .transition(.move(edge: sidebarPosition == .left ? .leading : .trailing))
         } else {
@@ -701,6 +704,14 @@ struct DocumentEditView: View {
     }
 
     private func handleSidebarDoubleTap(_ index: Int) {
+        if isSidebarSelectionMode {
+            toggleSidebarSelection(index)
+        } else {
+            enterSidebarSelection(with: index)
+        }
+    }
+
+    private func handleContextSelection(at index: Int) {
         if isSidebarSelectionMode {
             toggleSidebarSelection(index)
         } else {
@@ -733,8 +744,8 @@ struct DocumentEditView: View {
         selectedSidebarPages.removeAll()
     }
 
-    private func promptDeleteSidebarPages() {
-        pendingDeleteIndices = Array(selectedSidebarPages)
+    private func promptDeleteSidebarPages(indices: [Int]? = nil) {
+        pendingDeleteIndices = indices ?? Array(selectedSidebarPages)
         if !pendingDeleteIndices.isEmpty {
             showSidebarDeleteAlert = true
         }
@@ -761,14 +772,18 @@ struct DocumentEditView: View {
     }
 
     private func duplicateSelectedSidebarPages() {
+        performDuplicate(for: Array(selectedSidebarPages))
+    }
+
+    private func performDuplicate(for indices: [Int]) {
         guard let viewModel else { return }
-        let indices = Array(selectedSidebarPages)
+        guard !indices.isEmpty else { return }
         Task {
             await viewModel.duplicatePages(at: indices)
             await MainActor.run {
                 exitSidebarSelection()
                 updateSidebarDocument(with: viewModel.displayPDFData ?? viewModel.pdfData)
-                if let target = indices.sorted().first.map({ min($0 + 1, currentDocumentPageCount(from: viewModel) - 1) }) {
+                if let target = indices.sorted().first.map({ min($0 + indices.count, currentDocumentPageCount(from: viewModel) - 1) }) {
                     currentViewedPage = target
                     navigateToPage = target
                 }
@@ -788,12 +803,15 @@ struct DocumentEditView: View {
     private func updateSidebarDocument(with data: Data?) { }
     private func handleSidebarTap(_ index: Int) { }
     private func handleSidebarDoubleTap(_ index: Int) { }
+    private func handleContextSelection(at index: Int) { }
     private func exitSidebarSelection() { }
     private func currentDocumentPageCount(from viewModel: DocumentViewModel) -> Int { 0 }
 #endif
 #if !os(iOS)
     private func deleteSelectedSidebarPages() { }
     private func duplicateSelectedSidebarPages() { }
+    private func promptDeleteSidebarPages(indices: [Int]? = nil) { }
+    private func performDuplicate(for indices: [Int]) { }
 #endif
     
 
