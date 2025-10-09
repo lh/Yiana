@@ -13,23 +13,30 @@ struct ThumbnailSidebarView: View {
     var onTap: (Int) -> Void
     var onDoubleTap: (Int) -> Void
     var onClearSelection: (() -> Void)? = nil
+    var onToggleSelectionMode: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 8) {
-            if isSelecting {
-                HStack {
+            HStack {
+                if let onToggleSelectionMode {
+                    Button(isSelecting ? "Done" : "Select") {
+                        onToggleSelectionMode()
+                    }
+                    .font(.caption)
+                }
+                Spacer()
+                if isSelecting {
                     Text("\(selectedPages.count) selected")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Spacer()
                     if let onClearSelection {
                         Button("Clear") { onClearSelection() }
                             .font(.caption)
                     }
                 }
-                .padding(.horizontal, 8)
-                .padding(.top, 12)
             }
+            .padding(.horizontal, 8)
+            .padding(.top, 12)
 
             ScrollView {
                 LazyVStack(spacing: 16) {

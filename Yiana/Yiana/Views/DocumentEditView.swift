@@ -333,20 +333,6 @@ struct DocumentEditView: View {
                             }
                             .padding(.trailing, 8)
                             .accessibilityLabel(isSidebarVisible ? "Hide thumbnails" : "Show thumbnails")
-                            if isSidebarVisible {
-                                Button(action: {
-                                    if isSidebarSelectionMode {
-                                        exitSidebarSelection()
-                                    } else {
-                                        isSidebarSelectionMode = true
-                                        selectedSidebarPages = [currentViewedPage]
-                                    }
-                                }) {
-                                    Text(isSidebarSelectionMode ? "Done" : "Select")
-                                        .font(.subheadline)
-                                }
-                                .padding(.trailing, 4)
-                            }
                         }
 #endif
                     }
@@ -658,7 +644,14 @@ struct DocumentEditView: View {
                 selectedPages: selectedSidebarPages,
                 onTap: { handleSidebarTap($0) },
                 onDoubleTap: { handleSidebarDoubleTap($0) },
-                onClearSelection: exitSidebarSelection
+                onClearSelection: exitSidebarSelection,
+                onToggleSelectionMode: {
+                    if isSidebarSelectionMode {
+                        exitSidebarSelection()
+                    } else {
+                        enterSidebarSelection()
+                    }
+                }
             )
             .transition(.move(edge: sidebarPosition == .left ? .leading : .trailing))
         } else {
@@ -678,8 +671,16 @@ struct DocumentEditView: View {
         if isSidebarSelectionMode {
             toggleSidebarSelection(index)
         } else {
-            isSidebarSelectionMode = true
+            enterSidebarSelection(with: index)
+        }
+    }
+
+    private func enterSidebarSelection(with index: Int? = nil) {
+        isSidebarSelectionMode = true
+        if let index {
             selectedSidebarPages = [index]
+        } else {
+            selectedSidebarPages = [currentViewedPage]
         }
     }
 
