@@ -658,6 +658,7 @@ struct DocumentEditView: View {
             sidebarDocumentVersion = UUID()
         } else {
             sidebarDocument = nil
+            sidebarDocumentVersion = UUID()
         }
     }
 
@@ -747,10 +748,14 @@ struct DocumentEditView: View {
             await MainActor.run {
                 exitSidebarSelection()
                 let maxIndex = self.currentDocumentPageCount(from: viewModel)
+                let shift = deletionIndices.filter { $0 < currentViewedPage }.count
+                if shift > 0 {
+                    currentViewedPage = max(0, currentViewedPage - shift)
+                }
                 if currentViewedPage >= maxIndex {
                     currentViewedPage = max(0, maxIndex - 1)
-                    navigateToPage = currentViewedPage
                 }
+                navigateToPage = currentViewedPage
             }
         }
     }
