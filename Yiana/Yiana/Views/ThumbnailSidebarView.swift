@@ -26,8 +26,8 @@ struct ThumbnailSidebarView: View {
                 }
                 Spacer()
                 if isSelecting {
-                    Text("\(selectedPages.count) selected")
-                        .font(.footnote)
+                    Text("\(selectedPages.count)")
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.secondary)
                     if let onClearSelection {
                         Button("Clear") { onClearSelection() }
