@@ -639,6 +639,13 @@ struct DocumentEditView: View {
     private func updateSidebarDocument(with data: Data?) {
         guard UIDevice.current.userInterfaceIdiom == .pad else { return }
         if let data, let pdf = PDFDocument(data: data) {
+#if DEBUG
+            print("DEBUG Sidebar: sidebarDocument updated with", pdf.pageCount, "pages")
+            for i in 0..<pdf.pageCount {
+                let text = pdf.page(at: i)?.string ?? "<no text>"
+                print("DEBUG Sidebar: page", i, "preview text:", text.prefix(80))
+            }
+#endif
             sidebarDocument = pdf
         } else {
             sidebarDocument = nil
