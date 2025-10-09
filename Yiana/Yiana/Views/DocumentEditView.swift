@@ -345,6 +345,13 @@ struct DocumentEditView: View {
             }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .simultaneousGesture(TapGesture().onEnded {
+                #if os(iOS)
+                if isSidebarSelectionMode {
+                    exitSidebarSelection()
+                }
+                #endif
+            })
 
 #if os(iOS)
             if shouldShowSidebar && sidebarPosition == .right {
