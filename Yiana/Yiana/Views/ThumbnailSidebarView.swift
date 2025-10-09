@@ -17,29 +17,29 @@ struct ThumbnailSidebarView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            HStack {
+            HStack(alignment: .center, spacing: 8) {
                 if let onToggleSelectionMode {
                     Button(isSelecting ? "Done" : "Select") {
                         onToggleSelectionMode()
                     }
-                    .font(.caption)
+                    .font(.subheadline.weight(.semibold))
                 }
                 Spacer()
                 if isSelecting {
                     Text("\(selectedPages.count) selected")
-                        .font(.caption)
+                        .font(.footnote)
                         .foregroundColor(.secondary)
                     if let onClearSelection {
                         Button("Clear") { onClearSelection() }
-                            .font(.caption)
+                            .font(.footnote)
                     }
                 }
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 12)
             .padding(.top, 12)
 
             ScrollView {
-                LazyVStack(spacing: 16) {
+                LazyVStack(spacing: 18) {
                     ForEach(0..<document.pageCount, id: \.self) { index in
                         if let page = document.page(at: index) {
                             ThumbnailCell(
