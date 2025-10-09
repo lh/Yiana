@@ -51,6 +51,8 @@ struct DocumentEditView: View {
     @State private var sidebarPosition: SidebarPosition = .right
     @State private var thumbnailSize: SidebarThumbnailSize = .medium
     @State private var sidebarDocument: PDFDocument?
+    @State private var selectedSidebarPages: Set<Int> = []
+    @State private var isSidebarSelectionMode = false
     
     private let scanningService = ScanningService()
     private let exportService = ExportService()
@@ -318,6 +320,9 @@ struct DocumentEditView: View {
                             Button(action: {
                                 withAnimation(.easeInOut(duration: 0.2)) {
                                     isSidebarVisible.toggle()
+                                    if !isSidebarVisible {
+                                        exitSidebarSelection()
+                                    }
                                 }
                             }) {
                                 Image(systemName: sidebarPosition == .left ? "sidebar.leading" : "sidebar.trailing")
@@ -569,6 +574,9 @@ struct DocumentEditView: View {
                             }
                         }
                         self.textEditorViewModel = textVM
+#if os(iOS)
+                        self.exitSidebarSelection()
+#endif
 
                         Task {
                             await textVM.loadDraftIfAvailable()
@@ -625,18 +633,56 @@ struct DocumentEditView: View {
                 currentPage: currentViewedPage,
                 provisionalPageRange: viewModel.provisionalPageRange,
                 thumbnailSize: thumbnailSize,
-                onSelect: { index in
-                    navigateToPage = index
-                }
+                isSelecting: isSidebarSelectionMode,
+                selectedPages: selectedSidebarPages,
+                onTap: { handleSidebarTap($0) },
+                onDoubleTap: { handleSidebarDoubleTap($0) },
+                onClearSelection: exitSidebarSelection
             )
             .transition(.move(edge: sidebarPosition == .left ? .leading : .trailing))
         } else {
             Color.clear.frame(width: thumbnailSize.sidebarWidth)
         }
     }
+
+    private func handleSidebarTap(_ index: Int) {
+        if isSidebarSelectionMode {
+            toggleSidebarSelection(index)
+        } else {
+            navigateToPage = index
+        }
+    }
+
+    private func handleSidebarDoubleTap(_ index: Int) {
+        if isSidebarSelectionMode {
+            toggleSidebarSelection(index)
+        } else {
+            isSidebarSelectionMode = true
+            selectedSidebarPages = [index]
+        }
+    }
+
+    private func toggleSidebarSelection(_ index: Int) {
+        if selectedSidebarPages.contains(index) {
+            selectedSidebarPages.remove(index)
+        } else {
+            selectedSidebarPages.insert(index)
+        }
+        if selectedSidebarPages.isEmpty {
+            isSidebarSelectionMode = false
+        }
+    }
+
+    private func exitSidebarSelection() {
+        isSidebarSelectionMode = false
+        selectedSidebarPages.removeAll()
+    }
 #else
     private func loadSidebarPreferences() async { }
     private func updateSidebarDocument(with data: Data?) { }
+    private func handleSidebarTap(_ index: Int) { }
+    private func handleSidebarDoubleTap(_ index: Int) { }
+    private func exitSidebarSelection() { }
 #endif
     
 

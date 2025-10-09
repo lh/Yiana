@@ -8,28 +8,50 @@ struct ThumbnailSidebarView: View {
     let currentPage: Int
     let provisionalPageRange: Range<Int>?
     let thumbnailSize: SidebarThumbnailSize
-    var onSelect: (Int) -> Void
-    var onDoubleTap: ((Int) -> Void)? = nil
+    let isSelecting: Bool
+    let selectedPages: Set<Int>
+    var onTap: (Int) -> Void
+    var onDoubleTap: (Int) -> Void
+    var onClearSelection: (() -> Void)? = nil
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                ForEach(0..<document.pageCount, id: \.self) { index in
-                    if let page = document.page(at: index) {
-                        ThumbnailCell(
-                            page: page,
-                            index: index,
-                            isCurrent: index == currentPage,
-                            isProvisional: provisionalPageRange?.contains(index) ?? false,
-                            thumbnailSize: thumbnailSize,
-                            onTap: { onSelect(index) },
-                            onDoubleTap: { onDoubleTap?(index) }
-                        )
+        VStack(spacing: 8) {
+            if isSelecting {
+                HStack {
+                    Text("\(selectedPages.count) selected")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    if let onClearSelection {
+                        Button("Clear") { onClearSelection() }
+                            .font(.caption)
                     }
                 }
+                .padding(.horizontal, 8)
+                .padding(.top, 12)
             }
-            .padding(.vertical, 16)
-            .padding(.horizontal, 8)
+
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    ForEach(0..<document.pageCount, id: \.self) { index in
+                        if let page = document.page(at: index) {
+                            ThumbnailCell(
+                                page: page,
+                                index: index,
+                                isCurrent: index == currentPage,
+                                isSelected: selectedPages.contains(index),
+                                isSelecting: isSelecting,
+                                isProvisional: provisionalPageRange?.contains(index) ?? false,
+                                thumbnailSize: thumbnailSize,
+                                onTap: { onTap(index) },
+                                onDoubleTap: { onDoubleTap(index) }
+                            )
+                        }
+                    }
+                }
+                .padding(.vertical, 16)
+                .padding(.horizontal, 8)
+            }
         }
         .frame(width: thumbnailSize.sidebarWidth)
         .background(Color(.secondarySystemBackground))
@@ -41,6 +63,8 @@ private struct ThumbnailCell: View {
     let page: PDFPage
     let index: Int
     let isCurrent: Bool
+    let isSelected: Bool
+    let isSelecting: Bool
     let isProvisional: Bool
     let thumbnailSize: SidebarThumbnailSize
     let onTap: () -> Void
@@ -64,6 +88,12 @@ private struct ThumbnailCell: View {
                     DraftTag()
                         .padding(6)
                 }
+
+                if isSelecting {
+                    SelectionBadge(isSelected: isSelected)
+                        .padding(6)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
             }
 
             Text("Page \(index + 1)")
@@ -72,8 +102,8 @@ private struct ThumbnailCell: View {
         }
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
-        .onTapGesture(perform: onTap)
-        .onTapGesture(count: 2, perform: onDoubleTap)
+        .gesture(TapGesture(count: 2).onEnded { onDoubleTap() })
+        .highPriorityGesture(TapGesture().onEnded { onTap() })
         .onAppear(perform: renderThumbnail)
     }
 
@@ -92,8 +122,10 @@ private struct ThumbnailCell: View {
             return 3
         } else if isProvisional {
             return 2
-        } else {
+        } else if isSelecting {
             return 1
+        } else {
+            return 0
         }
     }
 
@@ -135,6 +167,27 @@ private struct DraftTag: View {
             .foregroundColor(.black)
             .clipShape(Capsule())
             .accessibilityLabel("Draft page")
+    }
+}
+
+private struct SelectionBadge: View {
+    let isSelected: Bool
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color(.systemBackground))
+                .frame(width: 20, height: 20)
+                .shadow(radius: 1)
+            Circle()
+                .stroke(Color.accentColor, lineWidth: 1)
+                .frame(width: 18, height: 18)
+            if isSelected {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.accentColor)
+                    .font(.system(size: 18))
+            }
+        }
     }
 }
 
