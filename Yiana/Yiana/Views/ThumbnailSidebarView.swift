@@ -71,21 +71,23 @@ struct ThumbnailSidebarView: View {
                         Button {
                             onDuplicateSelection()
                         } label: {
-                            Label("Duplicate", systemImage: "plus.square.on.square")
-                                .font(.subheadline)
+                            Image(systemName: "plus.square.on.square")
+                                .font(.system(size: 18, weight: .semibold))
                         }
                         .buttonStyle(.bordered)
+                        .labelStyle(.iconOnly)
                     }
 
                     if let onDeleteSelection {
                         Button(role: .destructive) {
                             onDeleteSelection()
                         } label: {
-                            Label("Delete", systemImage: "trash")
-                                .font(.subheadline)
+                            Image(systemName: "trash")
+                                .font(.system(size: 18, weight: .semibold))
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.red)
+                        .labelStyle(.iconOnly)
                     }
                     Spacer()
                 }
