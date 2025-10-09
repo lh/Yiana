@@ -17,9 +17,6 @@ struct ThumbnailSidebarView: View {
     var onToggleSelectionMode: (() -> Void)? = nil
     var onDeleteSelection: (() -> Void)? = nil
     var onDuplicateSelection: (() -> Void)? = nil
-    var onContextSelect: ((Int) -> Void)? = nil
-    var onContextDuplicate: ((Int) -> Void)? = nil
-    var onContextDelete: ((Int) -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 8) {
@@ -52,22 +49,19 @@ struct ThumbnailSidebarView: View {
                 LazyVStack(spacing: 18) {
                     ForEach(0..<document.pageCount, id: \.self) { index in
                         if let page = document.page(at: index) {
-                            ThumbnailCell(
-                                page: page,
-                                index: index,
-                                isCurrent: index == currentPage,
-                                isSelected: selectedPages.contains(index),
-                                isSelecting: isSelecting,
-                                isProvisional: provisionalPageRange?.contains(index) ?? false,
-                                thumbnailSize: thumbnailSize,
-                                onTap: { onTap(index) },
-                                onDoubleTap: { onDoubleTap(index) },
-                                onContextSelect: onContextSelect,
-                                onContextDuplicate: onContextDuplicate,
-                                onContextDelete: onContextDelete
-                            )
-                        }
+                        ThumbnailCell(
+                            page: page,
+                            index: index,
+                            isCurrent: index == currentPage,
+                            isSelected: selectedPages.contains(index),
+                            isSelecting: isSelecting,
+                            isProvisional: provisionalPageRange?.contains(index) ?? false,
+                            thumbnailSize: thumbnailSize,
+                            onTap: { onTap(index) },
+                            onDoubleTap: { onDoubleTap(index) }
+                        )
                     }
+                }
                 }
                 .padding(.vertical, 16)
                 .padding(.horizontal, 8)
@@ -121,9 +115,6 @@ private struct ThumbnailCell: View {
     let thumbnailSize: SidebarThumbnailSize
     let onTap: () -> Void
     let onDoubleTap: () -> Void
-    let onContextSelect: ((Int) -> Void)?
-    let onContextDuplicate: ((Int) -> Void)?
-    let onContextDelete: ((Int) -> Void)?
 
     @State private var image: UIImage?
 
@@ -159,23 +150,6 @@ private struct ThumbnailCell: View {
         .contentShape(Rectangle())
         .gesture(TapGesture(count: 2).onEnded { onDoubleTap() })
         .highPriorityGesture(TapGesture().onEnded { onTap() })
-        .contextMenu {
-            if let onContextSelect {
-                Button(isSelected ? "Deselect" : "Select", systemImage: isSelected ? "minus.circle" : "checkmark.circle") {
-                    onContextSelect(index)
-                }
-            }
-            if let onContextDuplicate {
-                Button("Duplicate", systemImage: "plus.square.on.square") {
-                    onContextDuplicate(index)
-                }
-            }
-            if let onContextDelete {
-                Button("Delete", systemImage: "trash", role: .destructive) {
-                    onContextDelete(index)
-                }
-            }
-        }
         .onAppear(perform: renderThumbnail)
     }
 

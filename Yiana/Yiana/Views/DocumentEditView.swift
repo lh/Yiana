@@ -684,10 +684,7 @@ struct DocumentEditView: View {
                         }
                     },
                     onDeleteSelection: selectedSidebarPages.isEmpty ? nil : { promptDeleteSidebarPages() },
-                    onDuplicateSelection: selectedSidebarPages.isEmpty ? nil : { duplicateSelectedSidebarPages() },
-                    onContextSelect: { handleContextSelection(at: $0) },
-                    onContextDuplicate: { performDuplicate(for: [$0]) },
-                    onContextDelete: { promptDeleteSidebarPages(indices: [$0]) }
+                    onDuplicateSelection: selectedSidebarPages.isEmpty ? nil : { duplicateSelectedSidebarPages() }
                 )
                 .transition(.move(edge: sidebarPosition == .left ? .leading : .trailing))
         } else {
@@ -704,14 +701,6 @@ struct DocumentEditView: View {
     }
 
     private func handleSidebarDoubleTap(_ index: Int) {
-        if isSidebarSelectionMode {
-            toggleSidebarSelection(index)
-        } else {
-            enterSidebarSelection(with: index)
-        }
-    }
-
-    private func handleContextSelection(at index: Int) {
         if isSidebarSelectionMode {
             toggleSidebarSelection(index)
         } else {
@@ -803,7 +792,6 @@ struct DocumentEditView: View {
     private func updateSidebarDocument(with data: Data?) { }
     private func handleSidebarTap(_ index: Int) { }
     private func handleSidebarDoubleTap(_ index: Int) { }
-    private func handleContextSelection(at index: Int) { }
     private func exitSidebarSelection() { }
     private func currentDocumentPageCount(from viewModel: DocumentViewModel) -> Int { 0 }
 #endif
