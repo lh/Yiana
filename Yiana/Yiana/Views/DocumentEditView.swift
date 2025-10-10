@@ -56,6 +56,7 @@ struct DocumentEditView: View {
     @State private var isSidebarSelectionMode = false
     @State private var showSidebarDeleteAlert = false
     @State private var pendingDeleteIndices: [Int] = []
+    @State private var shouldRestoreSidebarAfterPageManagement = false
     
     private let scanningService = ScanningService()
     private let exportService = ExportService()
@@ -151,6 +152,16 @@ struct DocumentEditView: View {
                 updateSidebarDocument(with: newValue)
             }
         }
+#if os(iOS)
+        .onChange(of: activeSheet) { _, newValue in
+            if newValue == nil && shouldRestoreSidebarAfterPageManagement {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isSidebarVisible = true
+                }
+                shouldRestoreSidebarAfterPageManagement = false
+            }
+        }
+#endif
         .alert("Delete Pages?", isPresented: $showSidebarDeleteAlert) {
             Button("Cancel", role: .cancel) {
                 pendingDeleteIndices.removeAll()
@@ -205,6 +216,17 @@ struct DocumentEditView: View {
                               navigateToPage: $navigateToPage,
                               currentPage: $currentViewedPage,
                               onRequestPageManagement: {
+                                  #if os(iOS)
+                                  if UIDevice.current.userInterfaceIdiom == .pad && isSidebarVisible {
+                                      withAnimation(.easeInOut(duration: 0.2)) {
+                                          isSidebarVisible = false
+                                          exitSidebarSelection()
+                                      }
+                                      shouldRestoreSidebarAfterPageManagement = true
+                                  } else {
+                                      shouldRestoreSidebarAfterPageManagement = false
+                                  }
+                                  #endif
                                   activeSheet = .pageManagement
                               },
                               onRequestMetadataView: {
