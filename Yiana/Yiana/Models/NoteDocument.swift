@@ -8,6 +8,7 @@
 #if os(iOS)
 import UIKit
 import UniformTypeIdentifiers
+import YianaDocumentArchive
 
 /// A document containing a PDF and associated metadata
 class NoteDocument: UIDocument {
@@ -44,41 +45,35 @@ class NoteDocument: UIDocument {
     }
     
     override func contents(forType typeName: String) throws -> Any {
-        // Create a simple data structure combining metadata and PDF
         let encoder = JSONEncoder()
         let metadataData = try encoder.encode(metadata)
-        
-        var contents = Data()
-        contents.append(metadataData)
-        contents.append(Data([0xFF, 0xFF, 0xFF, 0xFF])) // Separator
-        contents.append(pdfData ?? Data())
-        
-        return contents
+
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("yiana")
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        let pdfSource: ArchiveDataSource? = pdfData.map { .data($0) }
+        try DocumentArchive.write(
+            metadata: metadataData,
+            pdf: pdfSource,
+            to: tempURL,
+            formatVersion: DocumentArchive.currentFormatVersion
+        )
+
+        return try Data(contentsOf: tempURL)
     }
     
     override func load(fromContents contents: Any, ofType typeName: String?) throws {
         guard let data = contents as? Data else {
             throw CocoaError(.fileReadCorruptFile)
         }
-        
-        // Find the separator
-        let separator = Data([0xFF, 0xFF, 0xFF, 0xFF])
-        guard let separatorRange = data.range(of: separator) else {
-            throw CocoaError(.fileReadCorruptFile)
-        }
-        
-        // Extract metadata and PDF data
-        let metadataData = data.subdata(in: 0..<separatorRange.lowerBound)
-        let pdfDataStart = separatorRange.upperBound
-        
+
+        let payload = try DocumentArchive.read(from: data)
+
         let decoder = JSONDecoder()
-        self.metadata = try decoder.decode(DocumentMetadata.self, from: metadataData)
-        
-        if pdfDataStart < data.count {
-            self.pdfData = data.subdata(in: pdfDataStart..<data.count)
-        } else {
-            self.pdfData = nil
-        }
+        self.metadata = try decoder.decode(DocumentMetadata.self, from: payload.metadata)
+        self.pdfData = payload.pdfData
     }
 
     // MARK: - Metadata Extraction
@@ -86,16 +81,7 @@ class NoteDocument: UIDocument {
     /// Extract metadata from a document file without loading the full PDF
     /// This is useful for operations that need document ID or metadata without opening the entire document
     static func extractMetadata(from url: URL) throws -> DocumentMetadata {
-        let data = try Data(contentsOf: url)
-
-        // Find the separator between metadata and PDF data
-        let separator = Data([0xFF, 0xFF, 0xFF, 0xFF])
-        guard let separatorRange = data.range(of: separator) else {
-            throw CocoaError(.fileReadCorruptFile)
-        }
-
-        // Extract and decode just the metadata portion
-        let metadataData = data.subdata(in: 0..<separatorRange.lowerBound)
+        let (metadataData, _) = try DocumentArchive.readMetadata(from: url)
         let decoder = JSONDecoder()
         return try decoder.decode(DocumentMetadata.self, from: metadataData)
     }
@@ -111,6 +97,7 @@ extension UTType {
 #if os(macOS)
 import AppKit
 import UniformTypeIdentifiers
+import YianaDocumentArchive
 
 /// A document containing a PDF and associated metadata (macOS version)
 class NoteDocument: NSDocument {
@@ -157,37 +144,31 @@ class NoteDocument: NSDocument {
     }
     
     override func data(ofType typeName: String) throws -> Data {
-        // Create a simple data structure combining metadata and PDF
         let encoder = JSONEncoder()
         let metadataData = try encoder.encode(metadata)
-        
-        var contents = Data()
-        contents.append(metadataData)
-        contents.append(Data([0xFF, 0xFF, 0xFF, 0xFF])) // Separator
-        contents.append(pdfData ?? Data())
-        
-        return contents
+
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("yiana")
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        let pdfSource: ArchiveDataSource? = pdfData.map { .data($0) }
+        try DocumentArchive.write(
+            metadata: metadataData,
+            pdf: pdfSource,
+            to: tempURL,
+            formatVersion: DocumentArchive.currentFormatVersion
+        )
+
+        return try Data(contentsOf: tempURL)
     }
     
     override func read(from data: Data, ofType typeName: String) throws {
-        // Find the separator
-        let separator = Data([0xFF, 0xFF, 0xFF, 0xFF])
-        guard let separatorRange = data.range(of: separator) else {
-            throw CocoaError(.fileReadCorruptFile)
-        }
-        
-        // Extract metadata and PDF data
-        let metadataData = data.subdata(in: 0..<separatorRange.lowerBound)
-        let pdfDataStart = separatorRange.upperBound
-        
+        let payload = try DocumentArchive.read(from: data)
+
         let decoder = JSONDecoder()
-        self.metadata = try decoder.decode(DocumentMetadata.self, from: metadataData)
-        
-        if pdfDataStart < data.count {
-            self.pdfData = data.subdata(in: pdfDataStart..<data.count)
-        } else {
-            self.pdfData = nil
-        }
+        self.metadata = try decoder.decode(DocumentMetadata.self, from: payload.metadata)
+        self.pdfData = payload.pdfData
     }
     
     func read(from url: URL) throws {
@@ -200,16 +181,7 @@ class NoteDocument: NSDocument {
     /// Extract metadata from a document file without loading the full PDF
     /// This is useful for operations that need document ID or metadata without opening the entire document
     static func extractMetadata(from url: URL) throws -> DocumentMetadata {
-        let data = try Data(contentsOf: url)
-
-        // Find the separator between metadata and PDF data
-        let separator = Data([0xFF, 0xFF, 0xFF, 0xFF])
-        guard let separatorRange = data.range(of: separator) else {
-            throw CocoaError(.fileReadCorruptFile)
-        }
-
-        // Extract and decode just the metadata portion
-        let metadataData = data.subdata(in: 0..<separatorRange.lowerBound)
+        let (metadataData, _) = try DocumentArchive.readMetadata(from: url)
         let decoder = JSONDecoder()
         return try decoder.decode(DocumentMetadata.self, from: metadataData)
     }

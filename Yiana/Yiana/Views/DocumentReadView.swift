@@ -7,6 +7,7 @@
 
 import SwiftUI
 import PDFKit
+import YianaDocumentArchive
 
 #if os(macOS)
 struct DocumentReadView: View {
@@ -229,27 +230,14 @@ struct DocumentReadView: View {
     }
     
     private func extractDocumentData(from data: Data) throws -> (title: String, pdfData: Data?) {
-        // Parse the NoteDocument format: metadata + separator + PDF data
-        let separator = Data([0xFF, 0xFF, 0xFF, 0xFF])
+        let payload = try DocumentArchive.read(from: data)
         
-        guard let separatorRange = data.range(of: separator) else {
-            throw YianaError.invalidFormat
-        }
-        
-        // Extract metadata JSON
-        let metadataData = data[..<separatorRange.lowerBound]
-        let pdfDataStart = separatorRange.upperBound
-        
-        // Decode metadata
         let decoder = JSONDecoder()
-        let metadata = try decoder.decode(DocumentMetadata.self, from: metadataData)
-        
-        // Extract PDF data (if any)
-        let pdfData = pdfDataStart < data.count ? data[pdfDataStart...] : nil
+        let metadata = try decoder.decode(DocumentMetadata.self, from: payload.metadata)
         
         return (
             title: metadata.title,
-            pdfData: pdfData?.isEmpty == false ? Data(pdfData!) : nil
+            pdfData: payload.pdfData
         )
     }
 }

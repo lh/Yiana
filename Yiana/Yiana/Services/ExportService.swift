@@ -12,6 +12,7 @@ import UIKit
 #elseif os(macOS)
 import AppKit
 #endif
+import YianaDocumentArchive
 
 enum ExportError: LocalizedError {
     case noPDFData
@@ -31,32 +32,21 @@ enum ExportError: LocalizedError {
 }
 
 class ExportService {
-    private let separator = Data([0xFF, 0xFF, 0xFF, 0xFF])
-    
     /// Export a single Yiana document to PDF
     func exportToPDF(from documentURL: URL, to destinationURL: URL) throws {
-        // Read the Yiana document
-        let data = try Data(contentsOf: documentURL)
-        
-        // Find the separator
-        guard let separatorRange = data.range(of: separator) else {
+        let payload: DocumentArchivePayload
+        do {
+            payload = try DocumentArchive.read(from: documentURL)
+        } catch {
             throw ExportError.invalidDocument
         }
-        
-        // Extract PDF data (everything after the separator)
-        let pdfStart = separatorRange.upperBound
-        guard pdfStart < data.count else {
+        guard let pdfData = payload.pdfData, !pdfData.isEmpty else {
             throw ExportError.noPDFData
         }
-        
-        let pdfData = data.subdata(in: pdfStart..<data.count)
-        
-        // Verify it's valid PDF data
         guard PDFDocument(data: pdfData) != nil else {
             throw ExportError.invalidDocument
         }
-        
-        // Write to destination
+
         do {
             try pdfData.write(to: destinationURL)
         } catch {

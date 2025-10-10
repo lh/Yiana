@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import YianaDocumentArchive
 #if os(macOS)
 import UniformTypeIdentifiers
 
@@ -207,12 +208,12 @@ struct DocumentListView: View {
                 // Create the document in NoteDocument format
                 let encoder = JSONEncoder()
                 if let metadataData = try? encoder.encode(metadata) {
-                    var contents = Data()
-                    contents.append(metadataData)
-                    contents.append(Data([0xFF, 0xFF, 0xFF, 0xFF])) // Separator
-                    // No PDF data yet
-                    
-                    try? contents.write(to: url)
+                    try? DocumentArchive.write(
+                        metadata: metadataData,
+                        pdf: nil,
+                        to: url,
+                        formatVersion: DocumentArchive.currentFormatVersion
+                    )
                 }
                 
                 await viewModel.refresh()

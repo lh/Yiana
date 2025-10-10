@@ -1,4 +1,5 @@
 import Foundation
+import YianaDocumentArchive
 
 /// Represents a Yiana document with metadata and optional PDF data
 public struct YianaDocument {
@@ -7,12 +8,6 @@ public struct YianaDocument {
     
     /// Initialize from raw document data (for reading .yianazip files)
     public init(data: Data) throws {
-        // Parse the document format
-        // The document can be in two formats:
-        // 1. Pure JSON (when saved after OCR processing or without PDF)
-        // 2. Binary format: [metadata JSON][separator: 0xFF 0xFF 0xFF 0xFF][PDF data]
-        
-        // Use default decoder (same as iOS app - numeric dates as TimeInterval since 2001)
         let decoder = JSONDecoder()
         
         // Try to parse as pure JSON first
@@ -23,24 +18,19 @@ public struct YianaDocument {
             return
         }
         
-        // If not pure JSON, try the binary format with separator
-        let separator = Data([0xFF, 0xFF, 0xFF, 0xFF])
-        guard let separatorRange = data.range(of: separator) else {
-            // No separator found - might be corrupted or unknown format
+        let payload: DocumentArchivePayload
+        do {
+            payload = try DocumentArchive.read(from: data)
+        } catch {
             throw DocumentError.invalidFormat
         }
-        
-        // Extract metadata
-        let metadataData = data.subdata(in: 0..<separatorRange.lowerBound)
-        self.metadata = try decoder.decode(DocumentMetadata.self, from: metadataData)
-        
-        // Extract PDF data if present
-        let pdfDataStart = separatorRange.upperBound
-        if pdfDataStart < data.count {
-            self.pdfData = data.subdata(in: pdfDataStart..<data.count)
-        } else {
-            self.pdfData = nil
+
+        do {
+            self.metadata = try decoder.decode(DocumentMetadata.self, from: payload.metadata)
+        } catch {
+            throw DocumentError.metadataDecodingFailed
         }
+        self.pdfData = payload.pdfData
     }
     
     /// Initialize with known metadata and PDF data
@@ -51,42 +41,46 @@ public struct YianaDocument {
     
     /// Save document to a file
     public func save(to url: URL) throws {
-        // Use default encoder (same as iOS app - numeric dates as TimeInterval since 2001)
         let encoder = JSONEncoder()
-        
-        // If there's no PDF data, save as pure JSON (matches iOS app after OCR)
-        if pdfData == nil || pdfData?.isEmpty == true {
-            let metadataData = try encoder.encode(metadata)
-            try metadataData.write(to: url)
+        let metadataData = try encoder.encode(metadata)
+        let pdfSource: ArchiveDataSource?
+        if let pdfData, !pdfData.isEmpty {
+            pdfSource = .data(pdfData)
         } else {
-            // Save in binary format with separator
-            let metadataData = try encoder.encode(metadata)
-            
-            var documentData = Data()
-            documentData.append(metadataData)
-            documentData.append(Data([0xFF, 0xFF, 0xFF, 0xFF])) // Separator
-            if let pdfData = pdfData {
-                documentData.append(pdfData)
-            }
-            
-            try documentData.write(to: url)
+            pdfSource = nil
         }
+        try DocumentArchive.write(
+            metadata: metadataData,
+            pdf: pdfSource,
+            to: url,
+            formatVersion: DocumentArchive.currentFormatVersion
+        )
     }
     
     /// Export document data for saving
     public func exportData() throws -> Data {
-        // Use default encoder (same as iOS app - numeric dates as TimeInterval since 2001)
         let encoder = JSONEncoder()
         let metadataData = try encoder.encode(metadata)
-        
-        var documentData = Data()
-        documentData.append(metadataData)
-        documentData.append(Data([0xFF, 0xFF, 0xFF, 0xFF])) // Separator
-        if let pdfData = pdfData {
-            documentData.append(pdfData)
+        let pdfSource: ArchiveDataSource?
+        if let pdfData, !pdfData.isEmpty {
+            pdfSource = .data(pdfData)
+        } else {
+            pdfSource = nil
         }
-        
-        return documentData
+
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("yiana")
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        try DocumentArchive.write(
+            metadata: metadataData,
+            pdf: pdfSource,
+            to: tempURL,
+            formatVersion: DocumentArchive.currentFormatVersion
+        )
+
+        return try Data(contentsOf: tempURL)
     }
 }
 
@@ -145,7 +139,7 @@ public enum DocumentError: Error, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .invalidFormat:
-            return "Invalid document format - missing separator"
+            return "Invalid document format"
         case .metadataDecodingFailed:
             return "Failed to decode document metadata"
         case .pdfExtractionFailed:
