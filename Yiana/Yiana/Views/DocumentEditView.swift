@@ -7,6 +7,9 @@
 
 import SwiftUI
 import PDFKit
+#if os(iOS)
+import UIKit
+#endif
 
 #if os(iOS)
 enum ActiveSheet: Identifiable, Equatable {
@@ -44,6 +47,16 @@ struct DocumentEditView: View {
     @State private var isRenderingTextPage = false
     @State private var textAppendErrorMessage: String?
     @State private var showingTextAppendError = false
+    @State private var isSidebarVisible = false
+    @State private var sidebarPosition: SidebarPosition = .right
+    @State private var thumbnailSize: SidebarThumbnailSize = .medium
+    @State private var sidebarDocument: PDFDocument?
+    @State private var sidebarDocumentVersion = UUID()
+    @State private var selectedSidebarPages: Set<Int> = []
+    @State private var isSidebarSelectionMode = false
+    @State private var showSidebarDeleteAlert = false
+    @State private var pendingDeleteIndices: [Int] = []
+    @State private var shouldRestoreSidebarAfterPageManagement = false
     
     private let scanningService = ScanningService()
     private let exportService = ExportService()
@@ -69,6 +82,7 @@ struct DocumentEditView: View {
         }
         .task {
             await loadDocument()
+            await loadSidebarPreferences()
         }
         .documentScanner(isPresented: $showingScanner) { scannedImages in
             handleScannedImages(scannedImages)
@@ -130,6 +144,35 @@ struct DocumentEditView: View {
                 }
             }
         }
+        .onChange(of: viewModel?.displayPDFData) { _, newValue in
+            updateSidebarDocument(with: newValue ?? viewModel?.pdfData)
+        }
+        .onChange(of: viewModel?.pdfData) { _, newValue in
+            if viewModel?.displayPDFData == nil {
+                updateSidebarDocument(with: newValue)
+            }
+        }
+#if os(iOS)
+        .onChange(of: activeSheet) { _, newValue in
+            if newValue == nil && shouldRestoreSidebarAfterPageManagement {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isSidebarVisible = true
+                }
+                shouldRestoreSidebarAfterPageManagement = false
+            }
+        }
+#endif
+        .alert("Delete Pages?", isPresented: $showSidebarDeleteAlert) {
+            Button("Cancel", role: .cancel) {
+                pendingDeleteIndices.removeAll()
+            }
+            Button("Delete", role: .destructive) {
+                deleteSelectedSidebarPages(indices: pendingDeleteIndices)
+                pendingDeleteIndices.removeAll()
+            }
+        } message: {
+            Text("Are you sure you want to delete \(pendingDeleteIndices.count) page\(pendingDeleteIndices.count == 1 ? "" : "s")? This action cannot be undone.")
+        }
         .alert("Markup Error", isPresented: $showingMarkupError) {
             Button("OK") { }
         } message: {
@@ -144,8 +187,15 @@ struct DocumentEditView: View {
     
     @ViewBuilder
     private func documentContent(viewModel: DocumentViewModel) -> some View {
-        ZStack {
-            VStack(spacing: 0) {
+        HStack(spacing: 0) {
+#if os(iOS)
+            if shouldShowSidebar && sidebarPosition == .left {
+                sidebar(for: viewModel)
+            }
+#endif
+
+            ZStack {
+                VStack(spacing: 0) {
                 // Spacer for collapsible title area
                 Color.clear.frame(height: showTitleField ? 60 : 44)
 
@@ -166,6 +216,17 @@ struct DocumentEditView: View {
                               navigateToPage: $navigateToPage,
                               currentPage: $currentViewedPage,
                               onRequestPageManagement: {
+                                  #if os(iOS)
+                                  if UIDevice.current.userInterfaceIdiom == .pad && isSidebarVisible {
+                                      withAnimation(.easeInOut(duration: 0.2)) {
+                                          isSidebarVisible = false
+                                          exitSidebarSelection()
+                                      }
+                                      shouldRestoreSidebarAfterPageManagement = true
+                                  } else {
+                                      shouldRestoreSidebarAfterPageManagement = false
+                                  }
+                                  #endif
                                   activeSheet = .pageManagement
                               },
                               onRequestMetadataView: {
@@ -290,6 +351,26 @@ struct DocumentEditView: View {
                             }
                             .padding(.trailing, 8)
                         }
+#if os(iOS)
+                        if UIDevice.current.userInterfaceIdiom == .pad {
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    isSidebarVisible.toggle()
+                                    if !isSidebarVisible {
+                                        exitSidebarSelection()
+                                    }
+                                }
+                            }) {
+                                Image(systemName: sidebarPosition == .left ? "sidebar.leading" : "sidebar.trailing")
+                                    .font(.title3)
+                                    .foregroundColor(isSidebarVisible ? .accentColor : .secondary)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .padding(.trailing, 8)
+                            .accessibilityLabel(isSidebarVisible ? "Hide thumbnails" : "Show thumbnails")
+                        }
+#endif
                     }
                     .frame(height: 44)
                     .padding(.horizontal, 8)
@@ -298,7 +379,24 @@ struct DocumentEditView: View {
                 }
                 Spacer()
             }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .simultaneousGesture(TapGesture().onEnded {
+                #if os(iOS)
+                if isSidebarSelectionMode {
+                    exitSidebarSelection()
+                }
+                #endif
+            })
+
+#if os(iOS)
+            if shouldShowSidebar && sidebarPosition == .right {
+                sidebar(for: viewModel)
+            }
+#endif
         }
+        .animation(.easeInOut(duration: 0.2), value: isSidebarVisible)
+        .animation(.easeInOut(duration: 0.2), value: sidebarPosition)
     }
     
     private var scanButtonBar: some View {
@@ -519,6 +617,9 @@ struct DocumentEditView: View {
                             }
                         }
                         self.textEditorViewModel = textVM
+#if os(iOS)
+                        self.exitSidebarSelection()
+#endif
 
                         Task {
                             await textVM.loadDraftIfAvailable()
@@ -542,6 +643,192 @@ struct DocumentEditView: View {
             }
         }
     }
+
+#if os(iOS)
+    private var shouldShowSidebar: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad && isSidebarVisible && sidebarDocument != nil
+    }
+
+    private func loadSidebarPreferences() async {
+        guard UIDevice.current.userInterfaceIdiom == .pad else { return }
+        let position = await TextPageLayoutSettings.shared.preferredSidebarPosition()
+        let size = await TextPageLayoutSettings.shared.preferredThumbnailSize()
+        await MainActor.run {
+            sidebarPosition = position
+            thumbnailSize = size
+        }
+    }
+
+    private func updateSidebarDocument(with data: Data?) {
+        guard UIDevice.current.userInterfaceIdiom == .pad else { return }
+        sidebarDocument = nil
+        let newDocument = data.flatMap { PDFDocument(data: $0) }
+        if let newDocument {
+            selectedSidebarPages = selectedSidebarPages.filter { $0 < newDocument.pageCount }
+        } else {
+            selectedSidebarPages.removeAll()
+        }
+        if let pdf = newDocument {
+#if DEBUG
+            print("DEBUG Sidebar: sidebarDocument updated with", pdf.pageCount, "pages")
+            for i in 0..<pdf.pageCount {
+                let text = pdf.page(at: i)?.string ?? "<no text>"
+                print("DEBUG Sidebar: page", i, "preview text:", text.prefix(80))
+            }
+#endif
+            sidebarDocument = pdf
+            sidebarDocumentVersion = UUID()
+        } else {
+            sidebarDocument = nil
+            sidebarDocumentVersion = UUID()
+        }
+    }
+
+    @ViewBuilder
+    private func sidebar(for viewModel: DocumentViewModel) -> some View {
+        if let document = sidebarDocument {
+            ThumbnailSidebarView(
+                document: document,
+                currentPage: currentViewedPage,
+                provisionalPageRange: viewModel.provisionalPageRange,
+                thumbnailSize: thumbnailSize,
+                refreshID: sidebarDocumentVersion,
+                isSelecting: isSidebarSelectionMode,
+                selectedPages: selectedSidebarPages,
+                    onTap: { handleSidebarTap($0) },
+                    onDoubleTap: { handleSidebarDoubleTap($0) },
+                    onClearSelection: exitSidebarSelection,
+                    onToggleSelectionMode: {
+                        if isSidebarSelectionMode {
+                            exitSidebarSelection()
+                        } else {
+                            enterSidebarSelection()
+                        }
+                    },
+                    onDeleteSelection: selectedSidebarPages.isEmpty ? nil : { promptDeleteSidebarPages() },
+                    onDuplicateSelection: selectedSidebarPages.isEmpty ? nil : { duplicateSelectedSidebarPages() }
+                )
+                .transition(.move(edge: sidebarPosition == .left ? .leading : .trailing))
+        } else {
+            Color.clear.frame(width: thumbnailSize.sidebarWidth)
+        }
+    }
+
+    private func handleSidebarTap(_ index: Int) {
+        if isSidebarSelectionMode {
+            toggleSidebarSelection(index)
+        } else {
+            navigateToPage = index
+        }
+    }
+
+    private func handleSidebarDoubleTap(_ index: Int) {
+        if isSidebarSelectionMode {
+            toggleSidebarSelection(index)
+        } else {
+            enterSidebarSelection(with: index)
+        }
+    }
+
+    private func enterSidebarSelection(with index: Int? = nil) {
+        isSidebarSelectionMode = true
+        if let index {
+            selectedSidebarPages = [index]
+        } else {
+            selectedSidebarPages.removeAll()
+        }
+    }
+
+    private func toggleSidebarSelection(_ index: Int) {
+        if selectedSidebarPages.contains(index) {
+            selectedSidebarPages.remove(index)
+        } else {
+            selectedSidebarPages.insert(index)
+        }
+        if selectedSidebarPages.isEmpty {
+            isSidebarSelectionMode = false
+        }
+    }
+
+    private func exitSidebarSelection() {
+        isSidebarSelectionMode = false
+        selectedSidebarPages.removeAll()
+    }
+
+    private func promptDeleteSidebarPages(indices: [Int]? = nil) {
+        pendingDeleteIndices = indices ?? Array(selectedSidebarPages)
+        if !pendingDeleteIndices.isEmpty {
+            showSidebarDeleteAlert = true
+        }
+    }
+
+    private func deleteSelectedSidebarPages(indices: [Int]? = nil) {
+        guard let viewModel else { return }
+        let deletionIndices = indices ?? Array(selectedSidebarPages)
+        Task {
+            await viewModel.removePages(at: deletionIndices)
+            await MainActor.run {
+                exitSidebarSelection()
+                let maxIndex = self.currentDocumentPageCount(from: viewModel)
+                let shift = deletionIndices.filter { $0 < currentViewedPage }.count
+                if shift > 0 {
+                    currentViewedPage = max(0, currentViewedPage - shift)
+                }
+                if currentViewedPage >= maxIndex {
+                    currentViewedPage = max(0, maxIndex - 1)
+                }
+                navigateToPage = currentViewedPage
+            }
+        }
+    }
+
+    private func duplicateSelectedSidebarPages() {
+        performDuplicate(for: Array(selectedSidebarPages))
+    }
+
+    private func performDuplicate(for indices: [Int]) {
+        guard let viewModel else { return }
+        guard !indices.isEmpty else { return }
+        Task {
+            #if DEBUG
+            viewModel.logDocumentSnapshot(context: "pre-duplicate")
+            #endif
+            await viewModel.duplicatePages(at: indices)
+            await MainActor.run {
+                #if DEBUG
+                viewModel.logDocumentSnapshot(context: "post-duplicate")
+                #endif
+                exitSidebarSelection()
+                updateSidebarDocument(with: viewModel.displayPDFData ?? viewModel.pdfData)
+                if let target = indices.sorted().first.map({ min($0 + indices.count, currentDocumentPageCount(from: viewModel) - 1) }) {
+                    currentViewedPage = target
+                    navigateToPage = target
+                }
+            }
+        }
+    }
+
+    private func currentDocumentPageCount(from viewModel: DocumentViewModel) -> Int {
+        if let data = viewModel.displayPDFData ?? viewModel.pdfData,
+           let doc = PDFDocument(data: data) {
+            return doc.pageCount
+        }
+        return 0
+    }
+#else
+    private func loadSidebarPreferences() async { }
+    private func updateSidebarDocument(with data: Data?) { }
+    private func handleSidebarTap(_ index: Int) { }
+    private func handleSidebarDoubleTap(_ index: Int) { }
+    private func exitSidebarSelection() { }
+    private func currentDocumentPageCount(from viewModel: DocumentViewModel) -> Int { 0 }
+#endif
+#if !os(iOS)
+    private func deleteSelectedSidebarPages() { }
+    private func duplicateSelectedSidebarPages() { }
+    private func promptDeleteSidebarPages(indices: [Int]? = nil) { }
+    private func performDuplicate(for indices: [Int]) { }
+#endif
     
 
     

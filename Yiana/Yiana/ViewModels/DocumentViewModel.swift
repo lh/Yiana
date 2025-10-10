@@ -202,7 +202,79 @@ class DocumentViewModel: ObservableObject {
         await provisionalManager.updateProvisionalData(data)
         await refreshDisplayPDF()
     }
+
+    func removePages(at indices: [Int]) async {
+        guard let currentData = pdfData, let document = PDFDocument(data: currentData) else { return }
+
+        let sortedIndices = indices.sorted(by: >)
+        for index in sortedIndices where index >= 0 && index < document.pageCount {
+            document.removePage(at: index)
+        }
+
+        guard let updatedData = document.dataRepresentation() else { return }
+
+        pdfData = updatedData
+        await refreshDisplayPDF()
+    }
+
+    func duplicatePages(at indices: [Int]) async {
+        guard let currentData = pdfData, let document = PDFDocument(data: currentData) else { return }
+
+        let sortedIndices = indices.sorted()
+        var insertedCount = 0
+        #if DEBUG
+        print("DEBUG Sidebar: duplicating pages", sortedIndices)
+        print("DEBUG Sidebar: initial page count", document.pageCount)
+        #endif
+
+        for index in sortedIndices {
+            let adjustedIndex = index + insertedCount
+            guard adjustedIndex >= 0 && adjustedIndex < document.pageCount,
+                  let original = document.page(at: adjustedIndex) else { continue }
+
+            let insertIndex = min(adjustedIndex + 1, document.pageCount)
+            if let copy = original.copy() as? PDFPage {
+                document.insert(copy, at: insertIndex)
+                insertedCount += 1
+                #if DEBUG
+                print("DEBUG Sidebar: inserted copy of page", adjustedIndex, "at", insertIndex)
+                #endif
+            }
+        }
+
+        guard let updatedData = document.dataRepresentation() else { return }
+
+        #if DEBUG
+        print("DEBUG Sidebar: new page count", document.pageCount)
+        #endif
+
+        pdfData = updatedData
+        await refreshDisplayPDF()
+    }
     
+    #if DEBUG
+    func logDocumentSnapshot(context: String) {
+        if let data = pdfData, let doc = PDFDocument(data: data) {
+            print("DEBUG DocSnapshot[", context, "]: pdfData pages =", doc.pageCount)
+            for i in 0..<doc.pageCount {
+                let text = doc.page(at: i)?.string ?? "<no text>"
+                print("  pdfData page", i, ":", text.prefix(40))
+            }
+        } else {
+            print("DEBUG DocSnapshot[", context, "]: pdfData is nil")
+        }
+        if let data = displayPDFData, let doc = PDFDocument(data: data) {
+            print("DEBUG DocSnapshot[", context, "]: displayPDFData pages =", doc.pageCount)
+            for i in 0..<doc.pageCount {
+                let text = doc.page(at: i)?.string ?? "<no text>"
+                print("  display page", i, ":", text.prefix(40))
+            }
+        } else {
+            print("DEBUG DocSnapshot[", context, "]: displayPDFData is nil")
+        }
+    }
+    #endif
+
     private func refreshDisplayPDF() async {
         let savedData = pdfData
         let result = await provisionalManager.combinedData(using: savedData)

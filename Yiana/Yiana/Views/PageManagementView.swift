@@ -29,6 +29,8 @@ struct PageManagementView: View {
     @State private var isEditMode = false  // Start in navigation mode
     @State private var navigateToPage: Int? = nil  // Track navigation request
     @State private var pendingNavigationIndex: Int? = nil  // Show where we're about to navigate
+    @State private var showProvisionalReorderAlert = false
+    @State private var workingDocument: PDFDocument?
     #if os(iOS)
     @State private var draggedPage: Int?
     #endif
@@ -109,6 +111,11 @@ struct PageManagementView: View {
         .onAppear {
             loadPages()
         }
+        .alert("Finish Editing", isPresented: $showProvisionalReorderAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Save or discard the draft text page before reordering.")
+        }
         .onChange(of: displayPDFData) { _, _ in
             loadPages()
         }
@@ -180,10 +187,20 @@ struct PageManagementView: View {
     }
     
     private func loadPages() {
-        let sourceData = displayPDFData ?? pdfData
-        guard let pdfData = sourceData,
-              let document = PDFDocument(data: pdfData) else {
+        let hasProvisional = provisionalPageRange.map { !$0.isEmpty } ?? false
+        let sourceData: Data?
+        if hasProvisional, let displayData = displayPDFData {
+            sourceData = displayData
+        } else if let baseData = pdfData {
+            sourceData = baseData
+        } else {
+            sourceData = displayPDFData
+        }
+
+        guard let selectedData = sourceData,
+              let document = PDFDocument(data: selectedData) else {
             pages = []
+            workingDocument = nil
             return
         }
 
@@ -194,6 +211,7 @@ struct PageManagementView: View {
             }
         }
         pages = loadedPages
+        workingDocument = document
     }
     
     private func toggleSelection(for index: Int) {
@@ -221,7 +239,13 @@ struct PageManagementView: View {
     
     private func reorderPages(from sourceIndex: Int, to destinationIndex: Int) {
         guard sourceIndex != destinationIndex else { return }
-        
+
+        if let range = provisionalPageRange,
+           range.contains(sourceIndex) || range.contains(destinationIndex) {
+            showProvisionalReorderAlert = true
+            return
+        }
+
         let page = pages.remove(at: sourceIndex)
         pages.insert(page, at: destinationIndex)
         
@@ -246,24 +270,68 @@ struct PageManagementView: View {
     #endif
     
     private func saveChanges() {
-        // Create new PDF document with reordered pages
-        let newDocument = PDFDocument()
-        var insertionIndex = 0
-        
-        for (index, page) in pages.enumerated() {
-            if provisionalPageRange?.contains(index) == true {
+        guard !pages.isEmpty else {
+            let emptyDocument = PDFDocument()
+            pdfData = emptyDocument.dataRepresentation()
+            loadPages()
+            return
+        }
+
+        guard let document = workingDocument else {
+            // Fallback to reloading if we somehow lost the reference
+            loadPages()
+            return
+        }
+
+        let targetOrder: [Int] = pages.compactMap { page in
+            document.index(for: page)
+        }
+
+        guard targetOrder.count == pages.count else {
+            // If any mapping failed, reload to avoid corrupting data
+            loadPages()
+            return
+        }
+
+        var currentOrder = Array(0..<document.pageCount)
+
+        for targetIndex in 0..<targetOrder.count {
+            let desiredOriginalIndex = targetOrder[targetIndex]
+            guard let currentIndex = currentOrder.firstIndex(of: desiredOriginalIndex) else {
                 continue
             }
-            if let copiedPage = page.copy() as? PDFPage {
-                newDocument.insert(copiedPage, at: insertionIndex)
-            } else {
-                newDocument.insert(page, at: insertionIndex)
+            if currentIndex == targetIndex {
+                continue
             }
-            insertionIndex += 1
+            document.exchangePage(at: targetIndex, withPageAt: currentIndex)
+            currentOrder.swapAt(targetIndex, currentIndex)
         }
-        
-        pdfData = newDocument.dataRepresentation()
-        loadPages()
+
+        if document.pageCount > pages.count {
+            for index in stride(from: document.pageCount - 1, through: pages.count, by: -1) {
+                document.removePage(at: index)
+            }
+        }
+
+        guard let fullData = document.dataRepresentation(),
+              let persistedDocument = PDFDocument(data: fullData) else {
+            loadPages()
+            return
+        }
+
+        if let range = provisionalPageRange {
+            for index in range.reversed() where index < persistedDocument.pageCount {
+                persistedDocument.removePage(at: index)
+            }
+        }
+
+        guard let updatedData = persistedDocument.dataRepresentation() else {
+            loadPages()
+            return
+        }
+
+        pdfData = updatedData
+        workingDocument = persistedDocument
         // Don't dismiss - let user continue working
     }
 }
