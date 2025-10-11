@@ -105,14 +105,15 @@ struct DocumentReadView: View {
                 }
             } else {
                 VStack(spacing: 20) {
-                    Image(systemName: "doc")
-                        .font(.system(size: 50))
-                        .foregroundColor(.secondary)
-                    Text("No content available")
+                    ProgressView()
+                        .scaleEffect(1.4)
+                    Text("Document not downloaded yet")
                         .font(.title2)
+                        .fontWeight(.semibold)
+                    Text("This document is still downloading from iCloud. It will open automatically once the download finishes.")
+                        .multilineTextAlignment(.center)
                         .foregroundColor(.secondary)
-                    Text("This document was created on iOS")
-                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }

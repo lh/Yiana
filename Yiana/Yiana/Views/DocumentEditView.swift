@@ -57,6 +57,7 @@ struct DocumentEditView: View {
     @State private var showSidebarDeleteAlert = false
     @State private var pendingDeleteIndices: [Int] = []
     @State private var shouldRestoreSidebarAfterPageManagement = false
+    @State private var awaitingDownload = false
     
     private let scanningService = ScanningService()
     private let exportService = ExportService()
@@ -183,6 +184,10 @@ struct DocumentEditView: View {
         } message: {
             Text(textAppendErrorMessage ?? "Failed to append text page.")
         }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name.yianaDocumentsChanged)) { _ in
+            guard awaitingDownload else { return }
+            Task { await loadDocument() }
+        }
     }
     
     @ViewBuilder
@@ -233,6 +238,7 @@ struct DocumentEditView: View {
                                   // TODO: Show metadata/address view when implemented
                                   print("DEBUG: Metadata view requested - coming soon!")
                               })
+                        .onAppear { awaitingDownload = false }
                         .overlay(alignment: .topTrailing) {
                             if isShowingProvisional {
                                 DraftBadge()
@@ -251,7 +257,9 @@ struct DocumentEditView: View {
                             }
                         }
                 } else {
-                    ContentPlaceholderView()
+                    let placeholderState: ContentPlaceholderView.State = shouldShowDownloadPlaceholder(for: viewModel) ? .downloading : .empty
+                    ContentPlaceholderView(state: placeholderState)
+                        .onAppear { awaitingDownload = (placeholderState == .downloading) }
                         .overlay(alignment: .bottom) {
                             scanButtonBar
                         }
@@ -815,6 +823,40 @@ struct DocumentEditView: View {
         }
         return 0
     }
+
+    private func shouldShowDownloadPlaceholder(for viewModel: DocumentViewModel) -> Bool {
+        if viewModel.displayPDFData ?? viewModel.pdfData != nil {
+            return false
+        }
+
+        do {
+            let values = try documentURL.resourceValues(forKeys: [
+                .isUbiquitousItemKey,
+                .ubiquitousItemDownloadingStatusKey,
+                .ubiquitousItemIsDownloadingKey
+            ])
+
+            if values.isUbiquitousItem == true {
+                if let status = values.ubiquitousItemDownloadingStatus {
+                    switch status {
+                    case URLUbiquitousItemDownloadingStatus.notDownloaded:
+                        return true
+                    default:
+                        break
+                    }
+                }
+                if values.ubiquitousItemIsDownloading == true {
+                    return true
+                }
+            }
+        } catch {
+            #if DEBUG
+            print("DEBUG DocumentEditView: Failed to read download status - \(error)")
+            #endif
+        }
+
+        return viewModel.metadataSnapshot.pageCount > 0
+    }
 #else
     private func loadSidebarPreferences() async { }
     private func updateSidebarDocument(with data: Data?) { }
@@ -1029,16 +1071,36 @@ struct PDFPlaceholderView: View {
 
 // Placeholder for empty documents
 struct ContentPlaceholderView: View {
+    enum State {
+        case empty
+        case downloading
+    }
+
+    let state: State
+
     var body: some View {
         VStack(spacing: 20) {
-            Image(systemName: "doc.text")
-                .font(.system(size: 80))
-                .foregroundColor(.secondary)
-            Text("No Content")
-                .font(.title2)
-                .foregroundColor(.secondary)
-            Text("Add content by scanning documents")
-                .foregroundColor(.secondary)
+            switch state {
+            case .empty:
+                Image(systemName: "doc.text")
+                    .font(.system(size: 80))
+                    .foregroundColor(.secondary)
+                Text("No Content")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+                Text("Add content by scanning documents")
+                    .foregroundColor(.secondary)
+            case .downloading:
+                ProgressView()
+                    .scaleEffect(1.4)
+                Text("Document not downloaded yet")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                Text("This document is still downloading from iCloud. It will open automatically once the download finishes.")
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGray6))

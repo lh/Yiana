@@ -837,8 +837,7 @@ struct DocumentRow: View {
     let url: URL
     let searchResult: SearchResult?
     let secondaryText: String?
-    @State private var statusColor: Color = .gray
-    @State private var hasLoadedStatus = false
+    @State private var statusColor: Color = Color.gray.opacity(0.5)
     
     init(url: URL, searchResult: SearchResult? = nil, secondaryText: String? = nil) {
         self.url = url
@@ -903,10 +902,8 @@ struct DocumentRow: View {
             .padding(.leading, 12)
         }
         .task {
-            // Skip status loading during search for better performance
-            if !hasLoadedStatus && searchResult == nil {
+            if searchResult == nil {
                 await loadStatus()
-                hasLoadedStatus = true
             }
         }
     }
@@ -958,30 +955,83 @@ struct DocumentRow: View {
         return attributed
     }
     
+    @MainActor
     private func loadStatus() async {
-        // Extract metadata
+        let state = downloadState(for: url)
+        switch state {
+        case .pending, .downloading:
+            statusColor = Color.gray.opacity(0.5)
+            return
+        case .error:
+            statusColor = .gray
+            return
+        case .available:
+            break
+        }
+
         guard let metadata = try? NoteDocument.extractMetadata(from: url) else {
             statusColor = .red
             return
         }
-        
-        // Check if document is empty
+
         if metadata.pageCount == 0 {
             statusColor = .gray
             return
         }
-        
-        // Check if indexed
+
         let isIndexed = (try? await SearchIndexService.shared.isDocumentIndexed(id: metadata.id)) ?? false
-        
-        // Determine color based on status
+
         if metadata.ocrCompleted && isIndexed {
-            statusColor = .green  // ✅ Fully processed
+            statusColor = .green
         } else if metadata.ocrCompleted && !isIndexed {
-            statusColor = .orange  // 🟡 OCR done, needs indexing
+            statusColor = .orange
         } else {
-            statusColor = .red     // 🔴 Needs OCR
+            statusColor = .red
         }
+    }
+
+    private enum DownloadState {
+        case available
+        case pending
+        case downloading
+        case error
+    }
+
+    private func downloadState(for url: URL) -> DownloadState {
+        do {
+            let values = try url.resourceValues(forKeys: [
+                .isUbiquitousItemKey,
+                .ubiquitousItemDownloadingStatusKey,
+                .ubiquitousItemIsDownloadingKey
+            ])
+
+            guard values.isUbiquitousItem == true else {
+                return .available
+            }
+
+            if let status = values.ubiquitousItemDownloadingStatus {
+                switch status {
+                case URLUbiquitousItemDownloadingStatus.current,
+                     URLUbiquitousItemDownloadingStatus.downloaded:
+                    return .available
+                case URLUbiquitousItemDownloadingStatus.notDownloaded:
+                    return .pending
+                default:
+                    return .pending
+                }
+            }
+
+            if values.ubiquitousItemIsDownloading == true {
+                return .downloading
+            }
+        } catch {
+            #if DEBUG
+            print("DEBUG DocumentRow: Failed to read download state for \(url.lastPathComponent): \(error)")
+            #endif
+            return .error
+        }
+
+        return .available
     }
 }
 
