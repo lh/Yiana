@@ -95,8 +95,8 @@ class BulkImportService: ObservableObject {
                 
                 await MainActor.run {
                     self.currentProgress = progress
+                    self.progressSubject.send(progress)
                 }
-                progressSubject.send(progress)
                 
                 // Import the PDF
                 do {
@@ -127,7 +127,9 @@ class BulkImportService: ObservableObject {
         }
         
         // Notify that documents have changed
-        NotificationCenter.default.post(name: .yianaDocumentsChanged, object: nil)
+        await MainActor.run {
+            NotificationCenter.default.post(name: .yianaDocumentsChanged, object: nil)
+        }
         
         return BulkImportResult(successful: successful, failed: failed)
     }
