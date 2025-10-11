@@ -1,8 +1,9 @@
 # Test Status - ZIP Format Refactor
 
-**Last Updated**: 2025-10-10 18:10
+**Last Updated**: 2025-10-11 00:16
 **Branch**: refactor/zip
-**Status**: Refactor in progress – awaiting local test reruns (sandbox blocked swift build)
+**Commit**: 0ec2e2f
+**Status**: ✅ ZIP Refactor Complete - All unit tests passing
 
 ---
 
@@ -11,19 +12,21 @@
 ### Core Document Tests
 | Test File | Status | Last Run | Notes |
 |-----------|--------|----------|-------|
-| NoteDocumentTests.swift | 🔵 Pending | - | Needs rerun after ZIP refactor |
-| NoteDocumentRoundtripTests.swift | 🔵 Pending | - | Needs rerun after ZIP refactor |
+| NoteDocumentTests.swift | ✅ Passing | 2025-10-11 00:16 | macOS tests passing |
+| NoteDocumentRoundtripTests.swift | ✅ Passing | 2025-10-11 00:16 | All 5 tests passing on macOS |
 
 ### Service Tests
 | Test File | Status | Last Run | Notes |
 |-----------|--------|----------|-------|
-| ImportServiceTests.swift | 🔵 Pending | - | Updated for ZIP archive – rerun required |
-| ExportServiceTests.swift | 🔵 Pending | - | Updated for ZIP archive – rerun required |
+| ImportServiceTests.swift | ✅ Passing | 2025-10-11 00:16 | All 6 tests passing on macOS |
+| ExportServiceTests.swift | ✅ Passing | 2025-10-11 00:16 | All 2 tests passing on macOS |
 
-### OCR Service Tests
+### Swift Package Tests
 | Test File | Status | Last Run | Notes |
 |-----------|--------|----------|-------|
-| YianaDocumentTests.swift (OCR) | 🔵 Pending | - | Updated for ZIP archive – rerun required |
+| YianaDocumentArchive Tests | ✅ Passing | 2025-10-10 18:15 | New package - 3 tests passing |
+| YianaDocumentTests.swift (OCR) | ✅ Passing | 2025-10-10 18:15 | Updated for ZIP - 4 tests passing |
+| ExporterTests (OCR) | ✅ Passing | 2025-10-10 18:15 | 3 tests passing |
 
 ### ViewModel Tests
 | Test File | Status | Last Run | Notes |
@@ -53,24 +56,24 @@
 ### Phase 1: Foundation
 - [x] Add ZipFoundation dependency
 - [x] Create DocumentArchive helper
-- [ ] Run baseline tests (sandbox blocked)
+- [x] Run baseline tests (local rerun complete)
 
 ### Phase 2: Core Model
-- [ ] Refactor NoteDocument
-- [ ] Update TestDataHelper
-- [ ] Fix NoteDocumentTests
+- [x] Refactor NoteDocument (iOS & macOS)
+- [x] Update TestDataHelper
+- [x] Fix NoteDocumentTests / Roundtrip tests
 
 ### Phase 3: Services
-- [ ] Refactor ImportService
-- [ ] Refactor ExportService
-- [ ] Refactor OCR YianaDocument
-- [ ] Fix service tests
+- [x] Refactor ImportService
+- [x] Refactor ExportService
+- [x] Refactor OCR YianaDocument
+- [x] Fix service tests (Import/Export/OCR)
 
 ### Phase 4: ViewModels and Views
-- [ ] Update ViewModels
-- [ ] Update Views
-- [ ] Fix remaining tests
+- [x] Update ViewModels (DocumentListViewModel)
+- [x] Update Views (DocumentListView, DocumentReadView)
+- [x] Fix associated tests (OCRSearchTests)
 
 ### Phase 5: Integration
-- [ ] All tests passing
+- [x] All unit tests passing (see `2025-10-10-22-00-zip-refactor-complete.md`)
 - [ ] Manual testing complete

@@ -6,13 +6,31 @@ This directory contains test execution results for the ZIP format refactor proje
 
 ## Quick Status
 
-**Current State**: ✅ Expanded Baseline Complete
-**Last Updated**: 2025-10-10 17:47
+**Current State**: ✅ ZIP Refactor Complete - All Unit Tests Passing
+**Last Updated**: 2025-10-11 00:16
 **Branch**: refactor/zip
+**Commit**: 0ec2e2f
 
 ---
 
 ## Recent Test Runs
+
+### ZIP Refactor Complete (2025-10-11 00:16)
+- **macOS Unit Tests**: ✅ ALL PASSED (24+ tests)
+- **macOS App Build**: ✅ BUILD SUCCEEDED
+- **Swift Packages**: ✅ ALL PASSING (10 tests)
+
+**Total**: 34+ tests, 0 failures (100% pass rate)
+
+See: [`2025-10-10-22-00-zip-refactor-complete.md`](./2025-10-10-22-00-zip-refactor-complete.md)
+
+### Swift Package Tests - ZIP Refactor (2025-10-10 18:15)
+- **YianaDocumentArchive**: ✅ PASSED (3 tests, new package)
+- **YianaOCRService**: ✅ PASSED (7 tests, 4 document + 3 exporter)
+
+**Total**: 10 tests, 0 failures
+
+See: [`2025-10-10-18-15-swift-package-tests.md`](./2025-10-10-18-15-swift-package-tests.md)
 
 ### Expanded Baseline (2025-10-10 17:47)
 - **ImportServiceTests**: ✅ PASSED (6 tests, expanded from 2)
