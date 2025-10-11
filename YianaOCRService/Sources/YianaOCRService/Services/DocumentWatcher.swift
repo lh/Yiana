@@ -10,6 +10,8 @@ public class DocumentWatcher {
     private var processedDocuments = Set<String>()
     private let processedDocumentsFile: URL
     private let health: HealthMonitor
+    private var lastCleanupTime: Date = .distantPast
+    private let cleanupInterval: TimeInterval = 60 * 60
     
     public init(logger: Logger, customPath: String? = nil) {
         self.logger = logger
@@ -101,62 +103,57 @@ public class DocumentWatcher {
     private func scanExistingDocuments() async {
         logger.info("Scanning existing documents")
         health.touchHeartbeat(note: "scan")
-        
-        do {
-            // Use enumerator to recursively find all files
-            let enumerator = FileManager.default.enumerator(
-                at: documentsURL,
-                includingPropertiesForKeys: [.nameKey, .isDirectoryKey, .contentModificationDateKey],
-                options: [.skipsHiddenFiles, .skipsPackageDescendants]
-            )
-            
-            var documentCount = 0
-            var allFiles: [URL] = []
-            
-            // Collect all files from the enumerator
-            while let fileURL = enumerator?.nextObject() as? URL {
-                allFiles.append(fileURL)
-            }
-            
-            logger.info("Found items in directory tree", metadata: [
-                "count": .stringConvertible(allFiles.count),
+
+        guard let enumerator = FileManager.default.enumerator(
+            at: documentsURL,
+            includingPropertiesForKeys: [.nameKey, .isDirectoryKey, .contentModificationDateKey],
+            options: [.skipsHiddenFiles, .skipsPackageDescendants]
+        )?.allObjects as? [URL] else {
+            logger.error("Failed to enumerate documents", metadata: [
                 "path": .string(documentsURL.path)
             ])
-            
-            for fileURL in allFiles {
-                logger.debug("Checking file", metadata: [
-                    "file": .string(fileURL.lastPathComponent),
-                    "path": .string(fileURL.path),
-                    "extension": .string(fileURL.pathExtension)
-                ])
-                
-                if fileURL.pathExtension == "yianazip" {
-                    documentCount += 1
-                    logger.info("Found document to process", metadata: [
-                        "file": .string(fileURL.lastPathComponent),
-                        "folder": .string(fileURL.deletingLastPathComponent().lastPathComponent)
-                    ])
-                    await checkAndProcessDocument(at: fileURL)
-                }
-            }
-            
-            if documentCount == 0 {
-                logger.warning("No Yiana documents found in directory tree!", metadata: [
-                    "path": .string(documentsURL.path),
-                    "totalFilesScanned": .stringConvertible(allFiles.count)
-                ])
-            } else {
-                logger.info("Found Yiana documents", metadata: [
-                    "count": .stringConvertible(documentCount)
-                ])
-            }
-        } catch {
-            logger.error("Error scanning documents", metadata: [
-                "error": .string(error.localizedDescription),
-                "path": .string(documentsURL.path)
-            ])
-            health.recordError("scanExistingDocuments: \(error.localizedDescription)")
+            health.recordError("scanExistingDocuments: failed to enumerate directory")
+            return
         }
+
+        var documentCount = 0
+        var documentURLs: [URL] = []
+
+        for fileURL in enumerator {
+            logger.debug("Checking file", metadata: [
+                "file": .string(fileURL.lastPathComponent),
+                "path": .string(fileURL.path),
+                "extension": .string(fileURL.pathExtension)
+            ])
+
+            if fileURL.pathExtension == "yianazip" {
+                documentCount += 1
+                documentURLs.append(fileURL)
+                logger.info("Found document to process", metadata: [
+                    "file": .string(fileURL.lastPathComponent),
+                    "folder": .string(fileURL.deletingLastPathComponent().lastPathComponent)
+                ])
+                await checkAndProcessDocument(at: fileURL)
+            }
+        }
+
+        logger.info("Found items in directory tree", metadata: [
+            "count": .stringConvertible(enumerator.count),
+            "path": .string(documentsURL.path)
+        ])
+
+        if documentCount == 0 {
+            logger.warning("No Yiana documents found in directory tree!", metadata: [
+                "path": .string(documentsURL.path),
+                "totalFilesScanned": .stringConvertible(enumerator.count)
+            ])
+        } else {
+            logger.info("Found Yiana documents", metadata: [
+                "count": .stringConvertible(documentCount)
+            ])
+        }
+
+        performCleanupIfNeeded(existingDocuments: documentURLs)
     }
     
     private func setupDirectoryMonitor() {
@@ -368,7 +365,7 @@ public class DocumentWatcher {
             "formats": .array([.string("json"), .string("xml"), .string("hocr")])
         ])
     }
-    
+
     private func getFileIdentifier(for url: URL) -> String {
         // Use file name and modification date as identifier
         let fileName = url.lastPathComponent
@@ -377,6 +374,136 @@ public class DocumentWatcher {
             return "\(fileName)_\(modDate.timeIntervalSince1970)"
         }
         return fileName
+    }
+
+    private func performCleanupIfNeeded(existingDocuments: [URL]? = nil) {
+        performCleanup(existingDocuments: existingDocuments, force: false)
+    }
+
+    private func performCleanup(existingDocuments: [URL]? = nil, force: Bool) {
+        let now = Date()
+        if !force && now.timeIntervalSince(lastCleanupTime) < cleanupInterval {
+            return
+        }
+
+        let documents = existingDocuments ?? collectDocumentURLs()
+        let removedProcessed = cleanupProcessedEntries(using: documents)
+        let removedResults = cleanupOrphanedOCRResults(using: documents)
+
+        lastCleanupTime = now
+
+        if removedProcessed > 0 || removedResults > 0 {
+            logger.info("OCR cleanup removed stale data", metadata: [
+                "processedEntriesRemoved": .stringConvertible(removedProcessed),
+                "orphanResultsRemoved": .stringConvertible(removedResults)
+            ])
+        } else {
+            logger.debug("OCR cleanup found no stale data")
+        }
+    }
+
+    public func cleanupNow() async {
+        logger.info("Running manual cleanup")
+        performCleanup(existingDocuments: collectDocumentURLs(), force: true)
+    }
+
+    private func collectDocumentURLs() -> [URL] {
+        guard let enumerator = FileManager.default.enumerator(
+            at: documentsURL,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles, .skipsPackageDescendants]
+        ) else {
+            return []
+        }
+
+        var documents: [URL] = []
+        for case let fileURL as URL in enumerator {
+            if fileURL.pathExtension == "yianazip" {
+                documents.append(fileURL)
+            }
+        }
+        return documents
+    }
+
+    private func cleanupProcessedEntries(using documents: [URL]) -> Int {
+        let existingIdentifiers = Set(documents.map(getFileIdentifier))
+        let before = processedDocuments.count
+        processedDocuments.formIntersection(existingIdentifiers)
+        let removed = before - processedDocuments.count
+        if removed > 0 {
+            saveProcessedDocuments()
+        }
+        return removed
+    }
+
+    private func cleanupOrphanedOCRResults(using documents: [URL]) -> Int {
+        let fileManager = FileManager.default
+        let ocrRoot = documentsURL.appendingPathComponent(".ocr_results")
+        guard fileManager.fileExists(atPath: ocrRoot.path) else { return 0 }
+
+        let existingBases = Set(documents.map(relativeDocumentBasePath))
+        var removedCount = 0
+        var candidateDirectories = Set<URL>()
+
+        if let enumerator = fileManager.enumerator(
+            at: ocrRoot,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) {
+            for case let itemURL as URL in enumerator {
+                var isDirectory: ObjCBool = false
+                if fileManager.fileExists(atPath: itemURL.path, isDirectory: &isDirectory), isDirectory.boolValue {
+                    candidateDirectories.insert(itemURL)
+                    continue
+                }
+
+                let relative = relativeOCRBasePath(for: itemURL, root: ocrRoot)
+                if !existingBases.contains(relative) {
+                    do {
+                        try fileManager.removeItem(at: itemURL)
+                        removedCount += 1
+                        logger.debug("Removed orphaned OCR result", metadata: [
+                            "file": .string(relative)
+                        ])
+                    } catch {
+                        logger.error("Failed to remove orphaned OCR result", metadata: [
+                            "path": .string(itemURL.path),
+                            "error": .string(error.localizedDescription)
+                        ])
+                    }
+                }
+            }
+        }
+
+        let sortedDirectories = candidateDirectories.sorted { $0.path.count > $1.path.count }
+        for directory in sortedDirectories {
+            if let contents = try? fileManager.contentsOfDirectory(atPath: directory.path),
+               contents.isEmpty {
+                try? fileManager.removeItem(at: directory)
+            }
+        }
+
+        return removedCount
+    }
+
+    private func relativeDocumentBasePath(for documentURL: URL) -> String {
+        return trimmedRelativePath(for: documentURL.deletingPathExtension(), base: documentsURL)
+    }
+
+    private func relativeOCRBasePath(for resultURL: URL, root: URL) -> String {
+        return trimmedRelativePath(for: resultURL.deletingPathExtension(), base: root)
+    }
+
+    private func trimmedRelativePath(for url: URL, base: URL) -> String {
+        var path = url.path
+        let basePath = base.path
+        if path.hasPrefix(basePath) {
+            path.removeFirst(basePath.count)
+        }
+        if path.hasPrefix("/") {
+            path.removeFirst()
+        }
+        return path
     }
     
     private func loadProcessedDocuments() {

@@ -110,7 +110,20 @@ struct DevelopmentNuke {
             }
         }
         
-        // 4. Delete any caches
+        // 4. Remove OCR service state (Application Support/YianaOCR)
+        if let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            let ocrSupportURL = appSupportURL.appendingPathComponent("YianaOCR", isDirectory: true)
+            if fileManager.fileExists(atPath: ocrSupportURL.path) {
+                do {
+                    try fileManager.removeItem(at: ocrSupportURL)
+                    deletedItems.append("Application Support/YianaOCR")
+                } catch {
+                    errors.append("Application Support/YianaOCR: \(error.localizedDescription)")
+                }
+            }
+        }
+        
+        // 5. Delete any caches
         if let cacheURL = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first {
             let yianaCacheURL = cacheURL.appendingPathComponent("com.vitygas.Yiana")
             if fileManager.fileExists(atPath: yianaCacheURL.path) {
@@ -123,14 +136,14 @@ struct DevelopmentNuke {
             }
         }
         
-        // 5. Clear UserDefaults
+        // 6. Clear UserDefaults
         if let bundleID = Bundle.main.bundleIdentifier {
             UserDefaults.standard.removePersistentDomain(forName: bundleID)
             UserDefaults.standard.synchronize()
             deletedItems.append("UserDefaults")
         }
         
-        // 6. Reset any in-memory state (if app is running)
+        // 7. Reset any in-memory state (if app is running)
         NotificationCenter.default.post(name: .developmentDataNuked, object: nil)
         
         // Report results

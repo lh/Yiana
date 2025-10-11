@@ -8,7 +8,7 @@ struct YianaOCR: AsyncParsableCommand {
         commandName: "yiana-ocr",
         abstract: "OCR service for Yiana documents",
         version: "1.0.0",
-        subcommands: [Watch.self, Process.self, Batch.self],
+        subcommands: [Watch.self, Process.self, Batch.self, Cleanup.self],
         defaultSubcommand: Watch.self
     )
 }
@@ -219,5 +219,28 @@ extension YianaOCR {
             }
         }
     }
-}
 
+    struct Cleanup: AsyncParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "Remove stale OCR tracking data and orphaned OCR results"
+        )
+
+        @Option(name: .shortAndLong, help: "Path containing Yiana documents (defaults to iCloud container)")
+        var path: String?
+
+        mutating func run() async throws {
+            let logger = Logger(label: "com.vitygas.yiana.ocr")
+            logger.info("Starting cleanup")
+
+            let watcher: DocumentWatcher
+            if let customPath = path {
+                watcher = DocumentWatcher(logger: logger, customPath: customPath)
+            } else {
+                watcher = DocumentWatcher(logger: logger)
+            }
+
+            await watcher.cleanupNow()
+            logger.info("Cleanup complete")
+        }
+    }
+}

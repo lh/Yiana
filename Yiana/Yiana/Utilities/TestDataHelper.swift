@@ -96,12 +96,16 @@ struct TestDataHelper {
         let encoder = JSONEncoder()
         let metadataData = try! encoder.encode(metadata)
         
-        try? DocumentArchive.write(
+        do {
+            try DocumentArchive.write(
             metadata: metadataData,
             pdf: .data(pdfData),
             to: testDocURL,
             formatVersion: DocumentArchive.currentFormatVersion
-        )
+            )
+        } catch {
+            print("⚠️ Failed to write test document with OCR: \(error)")
+        }
         
         print("✅ Created test document with OCR at: \(testDocURL.path)")
         
@@ -115,7 +119,11 @@ struct TestDataHelper {
             .appendingPathComponent("Documents", isDirectory: true)
         
         // Ensure directory exists
-        try? FileManager.default.createDirectory(at: documentsPath, withIntermediateDirectories: true)
+        do {
+            try FileManager.default.createDirectory(at: documentsPath, withIntermediateDirectories: true)
+        } catch {
+            print("⚠️ Failed to create documents directory: \(error)")
+        }
         
         // Create test document
         let testDocURL = documentsPath.appendingPathComponent("No-OCR-Test-\(UUID().uuidString.prefix(8)).yianazip")
@@ -143,12 +151,16 @@ struct TestDataHelper {
         let encoder = JSONEncoder()
         let metadataData = try! encoder.encode(metadata)
         
-        try? DocumentArchive.write(
+        do {
+            try DocumentArchive.write(
             metadata: metadataData,
             pdf: .data(pdfData),
             to: testDocURL,
             formatVersion: DocumentArchive.currentFormatVersion
-        )
+            )
+        } catch {
+            print("⚠️ Failed to write test document without OCR: \(error)")
+        }
         
         print("✅ Created test document without OCR at: \(testDocURL.path)")
         
