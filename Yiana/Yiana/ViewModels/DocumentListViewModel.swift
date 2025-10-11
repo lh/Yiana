@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import PDFKit
+import YianaDocumentArchive
 
 // Search result type to track what matched
 import Foundation
@@ -390,18 +391,11 @@ class DocumentListViewModel: ObservableObject {
         if let string = String(data: data.prefix(4), encoding: .ascii), string == pdfHeader {
             return data
         }
-        
-        // Try to parse as our document format
-        let separator = Data([0xFF, 0xFF, 0xFF, 0xFF])
-        guard let separatorRange = data.range(of: separator) else { 
-            return nil 
+
+        if let payload = try? DocumentArchive.read(from: data) {
+            return payload.pdfData
         }
-        
-        let pdfDataStart = separatorRange.upperBound
-        if pdfDataStart < data.count {
-            return Data(data[pdfDataStart...])
-        }
-        
+
         return nil
     }
     

@@ -223,33 +223,14 @@ struct ThumbnailView: View {
     }
     
     private func generateThumbnail() -> NSImage? {
-        guard let page = page else { return nil }
-        
-        let pageRect = page.bounds(for: .mediaBox)
+        guard let page else { return nil }
         let scale: CGFloat = 2.0
         let thumbnailWidth: CGFloat = 150 * scale
+        let pageRect = page.bounds(for: .mediaBox)
         let aspectRatio = pageRect.height / pageRect.width
         let thumbnailHeight = thumbnailWidth * aspectRatio
-        let thumbnailSize = CGSize(width: thumbnailWidth, height: thumbnailHeight)
-        
-        let image = NSImage(size: thumbnailSize)
-        image.lockFocus()
-        
-        NSColor.white.setFill()
-        NSRect(origin: .zero, size: thumbnailSize).fill()
-        
-        if let context = NSGraphicsContext.current?.cgContext {
-            context.translateBy(x: 0, y: thumbnailSize.height)
-            context.scaleBy(x: 1, y: -1)
-            
-            let scaleFactor = thumbnailWidth / pageRect.width
-            context.scaleBy(x: scaleFactor, y: scaleFactor)
-            
-            page.draw(with: .mediaBox, to: context)
-        }
-        
-        image.unlockFocus()
-        return image
+        let size = CGSize(width: thumbnailWidth, height: thumbnailHeight)
+        return page.thumbnail(of: size, for: .mediaBox)
     }
 }
 #endif

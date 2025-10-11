@@ -7,6 +7,7 @@
 
 import Foundation
 import PDFKit
+import YianaDocumentArchive
 
 struct ImportResult {
     let url: URL
@@ -27,7 +28,6 @@ enum ImportError: Error {
 /// - Creates new documents from a PDF
 /// - Appends PDF pages to an existing .yianazip
 class ImportService {
-    private let separator = Data([0xFF, 0xFF, 0xFF, 0xFF])
     private let folderPath: String
     
     init(folderPath: String = "") {
@@ -79,13 +79,13 @@ class ImportService {
         let encoder = JSONEncoder()
         let metadataData = try encoder.encode(metadata)
 
-        var contents = Data()
-        contents.append(metadataData)
-        contents.append(separator)
-        contents.append(pdfData)
-
         do {
-            try contents.write(to: targetURL, options: .atomic)
+            try DocumentArchive.write(
+                metadata: metadataData,
+                pdf: .data(pdfData),
+                to: targetURL,
+                formatVersion: DocumentArchive.currentFormatVersion
+            )
 
             // Index the newly created document
             Task {
@@ -111,33 +111,41 @@ class ImportService {
     }
 
     private func append(to documentURL: URL, importedPDFData: Data) throws -> ImportResult {
-        // Load existing file
-        let data = try Data(contentsOf: documentURL)
-
-        guard let separatorRange = data.range(of: separator) else { throw ImportError.corruptDocument }
-
-        let metadataData = data.subdata(in: 0..<separatorRange.lowerBound)
-        let pdfStart = separatorRange.upperBound
-        let existingPDFData = pdfStart < data.count ? data.subdata(in: pdfStart..<data.count) : Data()
+        let payload: DocumentArchivePayload
+        do {
+            payload = try DocumentArchive.read(from: documentURL)
+        } catch {
+            throw ImportError.corruptDocument
+        }
+        let metadataData = payload.metadata
+        let existingPDFData = payload.pdfData ?? Data()
 
         // Merge PDFs
-        guard let existingPDF = PDFDocument(data: existingPDFData),
-              let importedPDF = PDFDocument(data: importedPDFData) else {
+        let basePDF: PDFDocument
+        if existingPDFData.isEmpty {
+            basePDF = PDFDocument()
+        } else if let doc = PDFDocument(data: existingPDFData) {
+            basePDF = doc
+        } else {
+            throw ImportError.invalidPDF
+        }
+
+        guard let importedPDF = PDFDocument(data: importedPDFData) else {
             throw ImportError.invalidPDF
         }
 
         for index in 0..<importedPDF.pageCount {
             if let page = importedPDF.page(at: index) {
-                existingPDF.insert(page, at: existingPDF.pageCount)
+                basePDF.insert(page, at: basePDF.pageCount)
             }
         }
 
-        guard let mergedData = existingPDF.dataRepresentation() else { throw ImportError.ioFailed }
+        guard let mergedData = basePDF.dataRepresentation() else { throw ImportError.ioFailed }
 
         // Update metadata
         var metadata = try JSONDecoder().decode(DocumentMetadata.self, from: metadataData)
         metadata.modified = Date()
-        metadata.pageCount = existingPDF.pageCount
+        metadata.pageCount = basePDF.pageCount
         // Mark OCR as stale so backend will reprocess/augment if needed
         let updatedMetadata = DocumentMetadata(
             id: metadata.id,
@@ -153,13 +161,13 @@ class ImportService {
 
         let newMetadataData = try JSONEncoder().encode(updatedMetadata)
 
-        var newContents = Data()
-        newContents.append(newMetadataData)
-        newContents.append(separator)
-        newContents.append(mergedData)
-
         do {
-            try newContents.write(to: documentURL, options: .atomic)
+            try DocumentArchive.write(
+                metadata: newMetadataData,
+                pdf: .data(mergedData),
+                to: documentURL,
+                formatVersion: DocumentArchive.currentFormatVersion
+            )
 
             // Re-index the updated document (OCR will be stale until backend processes it)
             Task {

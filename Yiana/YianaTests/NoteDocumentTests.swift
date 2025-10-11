@@ -10,6 +10,7 @@ import XCTest
 import UIKit
 import UniformTypeIdentifiers
 #endif
+import YianaDocumentArchive
 @testable import Yiana
 
 #if os(iOS)
@@ -104,8 +105,18 @@ final class NoteDocumentTests: XCTestCase {
         let contents = try document.contents(forType: UTType.yianaDocument.identifier)
         
         // Then
-        XCTAssertNotNil(contents)
-        XCTAssertTrue(contents is Data)
+        let archiveData = try XCTUnwrap(contents as? Data)
+        let tempArchiveURL = tempDirectory.appendingPathComponent("contents.yianazip")
+        try archiveData.write(to: tempArchiveURL)
+        defer { try? FileManager.default.removeItem(at: tempArchiveURL) }
+
+        let payload = try DocumentArchive.read(from: tempArchiveURL)
+        XCTAssertEqual(payload.formatVersion, DocumentArchive.currentFormatVersion)
+
+        let decodedMetadata = try JSONDecoder().decode(DocumentMetadata.self, from: payload.metadata)
+        XCTAssertEqual(decodedMetadata.title, metadata.title)
+        XCTAssertEqual(decodedMetadata.pageCount, metadata.pageCount)
+        XCTAssertEqual(payload.pdfData, pdfData)
     }
     
     func testNoteDocumentLoadFromContents() throws {
@@ -125,18 +136,18 @@ final class NoteDocumentTests: XCTestCase {
             fullText: "Sample text"
         )
         
-        // Create mock contents (this would normally be a zip file)
         let encoder = JSONEncoder()
         let metadataData = try encoder.encode(metadata)
         let pdfData = Data("PDF Content".utf8)
-        
-        // For this test, we'll use a simple data structure
-        // In the real implementation, this would be a proper zip file
-        var contents = Data()
-        contents.append(metadataData)
-        contents.append(Data([0xFF, 0xFF, 0xFF, 0xFF])) // Separator
-        contents.append(pdfData)
-        
+        let tempArchiveURL = tempDirectory.appendingPathComponent("load-contents.yianazip")
+        try DocumentArchive.write(
+            metadata: metadataData,
+            pdf: .data(pdfData),
+            to: tempArchiveURL,
+            formatVersion: DocumentArchive.currentFormatVersion
+        )
+        let contents = try Data(contentsOf: tempArchiveURL)
+
         // When
         try document.load(fromContents: contents, ofType: UTType.yianaDocument.identifier)
         
@@ -228,6 +239,66 @@ final class NoteDocumentTests: XCTestCase {
         XCTAssertEqual(loadedDocument.metadata.pageCount, metadata.pageCount)
         XCTAssertEqual(loadedDocument.metadata.tags, metadata.tags)
         XCTAssertEqual(loadedDocument.metadata.fullText, metadata.fullText)
+    }
+
+    func testContentsFormatUsesSeparatorBoundary() throws {
+        let fileURL = tempDirectory.appendingPathComponent("format-check.yianazip")
+        let document = NoteDocument(fileURL: fileURL)
+        let pdfBytes = Data([0x25, 0x50, 0x44, 0x46, 0x2D])
+        let metadata = DocumentMetadata(
+            id: UUID(),
+            title: "Boundary Check",
+            created: Date(),
+            modified: Date(),
+            pageCount: 4,
+            tags: ["boundary"],
+            ocrCompleted: false,
+            fullText: nil
+        )
+
+        document.metadata = metadata
+        document.pdfData = pdfBytes
+
+        let raw = try XCTUnwrap(document.contents(forType: UTType.yianaDocument.identifier) as? Data)
+        let tempArchiveURL = tempDirectory.appendingPathComponent("format-check.yianazip")
+        try raw.write(to: tempArchiveURL)
+        defer { try? FileManager.default.removeItem(at: tempArchiveURL) }
+
+        let payload = try DocumentArchive.read(from: tempArchiveURL)
+        XCTAssertEqual(payload.formatVersion, DocumentArchive.currentFormatVersion)
+
+        let decodedMetadata = try JSONDecoder().decode(DocumentMetadata.self, from: payload.metadata)
+        XCTAssertEqual(decodedMetadata.title, metadata.title)
+        XCTAssertEqual(decodedMetadata.pageCount, metadata.pageCount)
+        XCTAssertEqual(payload.pdfData, pdfBytes)
+    }
+    
+    func testExtractMetadataReadsArchiveFormat() throws {
+        let url = tempDirectory.appendingPathComponent("metadata-only.yianazip")
+        let originalMetadata = DocumentMetadata(
+            id: UUID(),
+            title: "Metadata Only",
+            created: Date(timeIntervalSince1970: 12345),
+            modified: Date(timeIntervalSince1970: 12346),
+            pageCount: 7,
+            tags: ["meta"],
+            ocrCompleted: true,
+            fullText: "Sample"
+        )
+        let pdfBytes = Data([0x01, 0x02, 0x03])
+        let encoded = try JSONEncoder().encode(originalMetadata)
+        try DocumentArchive.write(
+            metadata: encoded,
+            pdf: .data(pdfBytes),
+            to: url,
+            formatVersion: DocumentArchive.currentFormatVersion
+        )
+
+        let extracted = try NoteDocument.extractMetadata(from: url)
+        XCTAssertEqual(extracted.id, originalMetadata.id)
+        XCTAssertEqual(extracted.title, originalMetadata.title)
+        XCTAssertEqual(extracted.pageCount, originalMetadata.pageCount)
+        XCTAssertEqual(extracted.fullText, originalMetadata.fullText)
     }
 }
 #endif

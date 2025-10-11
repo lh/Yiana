@@ -1,4 +1,5 @@
 import XCTest
+import YianaDocumentArchive
 @testable import Yiana
 
 @MainActor
@@ -11,10 +12,12 @@ final class OCRSearchTests: XCTestCase {
         // Create a document file (minimal yianazip with empty PDF payload)
         let docURL = docsDir.appendingPathComponent("Clinic Note").appendingPathExtension("yianazip")
         let meta = DocumentMetadata(id: UUID(), title: "Clinic Note", created: Date(), modified: Date(), pageCount: 2, tags: [], ocrCompleted: false, fullText: nil)
-        let sep = Data([0xFF, 0xFF, 0xFF, 0xFF])
-        var data = try JSONEncoder().encode(meta)
-        data.append(sep)
-        try data.write(to: docURL)
+        try DocumentArchive.write(
+            metadata: JSONEncoder().encode(meta),
+            pdf: nil,
+            to: docURL,
+            formatVersion: DocumentArchive.currentFormatVersion
+        )
 
         // Create OCR JSON under .ocr_results
         let relPath = "" // root

@@ -414,50 +414,17 @@ struct PageThumbnailView: View {
     
     #if os(iOS)
     private func generateThumbnail(for page: PDFPage) -> UIImage? {
-        let pageRect = page.bounds(for: .mediaBox)
         let scale: CGFloat = 2.0
-        let thumbnailSize = CGSize(width: 120 * scale, height: 150 * scale)
-        
-        let renderer = UIGraphicsImageRenderer(size: thumbnailSize)
-        return renderer.image { context in
-            UIColor.white.setFill()
-            context.fill(CGRect(origin: .zero, size: thumbnailSize))
-            
-            context.cgContext.translateBy(x: 0, y: thumbnailSize.height)
-            context.cgContext.scaleBy(x: 1, y: -1)
-            
-            let scaleFactor = min(thumbnailSize.width / pageRect.width, 
-                                thumbnailSize.height / pageRect.height)
-            context.cgContext.scaleBy(x: scaleFactor, y: scaleFactor)
-            
-            page.draw(with: .mediaBox, to: context.cgContext)
-        }
+        let baseSize = CGSize(width: 120, height: 150)
+        let targetSize = CGSize(width: baseSize.width * scale, height: baseSize.height * scale)
+        return page.thumbnail(of: targetSize, for: .mediaBox)
     }
     #else
     private func generateThumbnail(for page: PDFPage) -> NSImage? {
-        let pageRect = page.bounds(for: .mediaBox)
         let scale: CGFloat = 2.0
-        let thumbnailSize = CGSize(width: 120 * scale, height: 150 * scale)
-        
-        let image = NSImage(size: thumbnailSize)
-        image.lockFocus()
-        
-        NSColor.white.setFill()
-        NSRect(origin: .zero, size: thumbnailSize).fill()
-        
-        if let context = NSGraphicsContext.current?.cgContext {
-            context.translateBy(x: 0, y: thumbnailSize.height)
-            context.scaleBy(x: 1, y: -1)
-            
-            let scaleFactor = min(thumbnailSize.width / pageRect.width, 
-                                thumbnailSize.height / pageRect.height)
-            context.scaleBy(x: scaleFactor, y: scaleFactor)
-            
-            page.draw(with: .mediaBox, to: context)
-        }
-        
-        image.unlockFocus()
-        return image
+        let baseSize = CGSize(width: 120, height: 150)
+        let targetSize = CGSize(width: baseSize.width * scale, height: baseSize.height * scale)
+        return page.thumbnail(of: targetSize, for: .mediaBox)
     }
     #endif
 }

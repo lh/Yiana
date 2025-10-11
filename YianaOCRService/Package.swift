@@ -14,14 +14,16 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
-        .package(url: "https://github.com/apple/swift-log", from: "1.5.0")
+        .package(url: "https://github.com/apple/swift-log", from: "1.5.0"),
+        .package(path: "../YianaDocumentArchive")
     ],
     targets: [
         .executableTarget(
             name: "YianaOCRService",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Logging", package: "swift-log")
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "YianaDocumentArchive", package: "YianaDocumentArchive")
             ],
             swiftSettings: [
                 .unsafeFlags(["-parse-as-library"])
@@ -29,7 +31,10 @@ let package = Package(
         ),
         .testTarget(
             name: "YianaOCRServiceTests",
-            dependencies: ["YianaOCRService"],
+            dependencies: [
+                "YianaOCRService",
+                .product(name: "YianaDocumentArchive", package: "YianaDocumentArchive")
+            ],
             path: "Tests/YianaOCRServiceTests"
         ),
     ]

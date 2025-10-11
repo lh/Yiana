@@ -8,6 +8,7 @@
 #if DEBUG
 import Foundation
 import PDFKit
+import YianaDocumentArchive
 
 struct TestDataHelper {
     static func createTestDocumentWithOCR() {
@@ -95,14 +96,12 @@ struct TestDataHelper {
         let encoder = JSONEncoder()
         let metadataData = try! encoder.encode(metadata)
         
-        // Combine into document format
-        var documentData = Data()
-        documentData.append(metadataData)
-        documentData.append(Data([0xFF, 0xFF, 0xFF, 0xFF])) // Separator
-        documentData.append(pdfData)
-        
-        // Write to file
-        try! documentData.write(to: testDocURL)
+        try? DocumentArchive.write(
+            metadata: metadataData,
+            pdf: .data(pdfData),
+            to: testDocURL,
+            formatVersion: DocumentArchive.currentFormatVersion
+        )
         
         print("✅ Created test document with OCR at: \(testDocURL.path)")
         
@@ -144,14 +143,12 @@ struct TestDataHelper {
         let encoder = JSONEncoder()
         let metadataData = try! encoder.encode(metadata)
         
-        // Combine into document format
-        var documentData = Data()
-        documentData.append(metadataData)
-        documentData.append(Data([0xFF, 0xFF, 0xFF, 0xFF])) // Separator
-        documentData.append(pdfData)
-        
-        // Write to file
-        try! documentData.write(to: testDocURL)
+        try? DocumentArchive.write(
+            metadata: metadataData,
+            pdf: .data(pdfData),
+            to: testDocURL,
+            formatVersion: DocumentArchive.currentFormatVersion
+        )
         
         print("✅ Created test document without OCR at: \(testDocURL.path)")
         
