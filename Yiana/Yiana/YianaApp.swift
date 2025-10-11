@@ -22,6 +22,11 @@ struct YianaApp: App {
                 .onOpenURL { url in
                     handleIncomingURL(url)
                 }
+                .task {
+                    await MainActor.run {
+                        UbiquityMonitor.shared.start()
+                    }
+                }
                 #if os(iOS)
                 .onReceive(NotificationCenter.default.publisher(for: Notification.Name.yianaOpenURL)) { notification in
                     if let url = notification.object as? URL {
