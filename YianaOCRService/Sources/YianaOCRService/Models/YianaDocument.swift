@@ -100,6 +100,7 @@ public struct DocumentMetadata: Codable {
     public var ocrConfidence: Double?
     public var ocrEngineVersion: String?
     public var extractedData: Data? // JSON encoded ExtractedFormData
+    public var ocrSource: String?
     
     public init(
         id: UUID = UUID(),
@@ -113,7 +114,8 @@ public struct DocumentMetadata: Codable {
         ocrProcessedAt: Date? = nil,
         ocrConfidence: Double? = nil,
         ocrEngineVersion: String? = nil,
-        extractedData: Data? = nil
+        extractedData: Data? = nil,
+        ocrSource: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -127,6 +129,7 @@ public struct DocumentMetadata: Codable {
         self.ocrConfidence = ocrConfidence
         self.ocrEngineVersion = ocrEngineVersion
         self.extractedData = extractedData
+        self.ocrSource = ocrSource
     }
 }
 

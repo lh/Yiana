@@ -1,5 +1,11 @@
 import Foundation
 import Logging
+import PDFKit
+
+private enum OCRSource: String {
+    case embedded
+    case service
+}
 
 /// Watches for new or modified Yiana documents in the iCloud Documents folder
 public class DocumentWatcher {
@@ -207,22 +213,14 @@ public class DocumentWatcher {
                 return
             }
             
-            // Check if PDF has text
-            if let pdfData = document.pdfData, pdfHasText(pdfData) {
-                logger.info("PDF already has text", metadata: [
-                    "file": .string(fileName)
+            if let pdfData = document.pdfData,
+               let embeddedResult = embeddedOCRResult(from: pdfData, document: document) {
+                logger.info("PDF already has embedded text", metadata: [
+                    "file": .string(fileName),
+                    "pageCount": .stringConvertible(embeddedResult.pages.count),
+                    "textLength": .stringConvertible(embeddedResult.fullText.count)
                 ])
-                // Update metadata to mark as OCR completed
-                var updatedMetadata = document.metadata
-                updatedMetadata.ocrCompleted = true
-                updatedMetadata.modified = Date()
-                
-                let updatedDocument = YianaDocument(
-                    metadata: updatedMetadata,
-                    pdfData: pdfData
-                )
-                
-                try updatedDocument.save(to: url)
+                try await saveOCRResults(embeddedResult, for: document, at: url)
                 processedDocuments.insert(fileIdentifier)
                 saveProcessedDocuments()
                 return
@@ -274,13 +272,71 @@ public class DocumentWatcher {
         }
     }
     
-    private func pdfHasText(_ pdfData: Data) -> Bool {
-        // This is a simple check - you might want to use PDFKit for more accurate detection
-        if let string = String(data: pdfData, encoding: .ascii) {
-            // Look for common PDF text stream operators
-            return string.contains("BT") && string.contains("ET") && string.contains("Tj")
+    private func embeddedOCRResult(from pdfData: Data, document: YianaDocument) -> OCRResult? {
+        guard let pdfDocument = PDFDocument(data: pdfData) else { return nil }
+
+        var pages: [OCRPage] = []
+        var aggregated: [String] = []
+
+        for pageIndex in 0..<pdfDocument.pageCount {
+            guard let page = pdfDocument.page(at: pageIndex),
+                  let rawText = page.string else { continue }
+
+            let trimmed = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty { continue }
+
+            aggregated.append(trimmed)
+
+            let lineStrings = trimmed.split(separator: "\n").map(String.init)
+            let lines: [TextLine]
+            if lineStrings.isEmpty {
+                lines = [TextLine(text: trimmed,
+                                  boundingBox: BoundingBox(x: 0, y: 0, width: 1, height: 1),
+                                  words: [])]
+            } else {
+                lines = lineStrings.map { line in
+                    TextLine(text: line,
+                             boundingBox: BoundingBox(x: 0, y: 0, width: 1, height: 1),
+                             words: [])
+                }
+            }
+
+            let block = TextBlock(
+                text: trimmed,
+                boundingBox: BoundingBox(x: 0, y: 0, width: 1, height: 1),
+                confidence: 1.0,
+                lines: lines
+            )
+
+            let pageResult = OCRPage(
+                pageNumber: pageIndex + 1,
+                text: trimmed,
+                textBlocks: [block],
+                formFields: nil,
+                confidence: 1.0
+            )
+
+            pages.append(pageResult)
         }
-        return false
+
+        guard !aggregated.isEmpty else { return nil }
+
+        return OCRResult(
+            id: UUID(),
+            processedAt: Date(),
+            documentId: document.metadata.id,
+            engineVersion: "embedded-text",
+            pages: pages,
+            extractedData: nil,
+            confidence: 1.0,
+            metadata: ProcessingMetadata(
+                processingTime: 0,
+                pageCount: pdfDocument.pageCount,
+                detectedLanguages: [],
+                warnings: [],
+                options: .default
+            )
+        )
     }
     
     private func saveOCRResults(_ result: OCRResult, for document: YianaDocument, at url: URL) async throws {
@@ -292,6 +348,7 @@ public class DocumentWatcher {
         updatedMetadata.ocrProcessedAt = result.processedAt
         updatedMetadata.ocrConfidence = result.confidence
         updatedMetadata.ocrEngineVersion = result.engineVersion
+        updatedMetadata.ocrSource = result.engineVersion == "embedded-text" ? OCRSource.embedded.rawValue : OCRSource.service.rawValue
         
         // Store extracted data if available
         if let extractedData = result.extractedData {
@@ -304,12 +361,16 @@ public class DocumentWatcher {
         var pdfDataWithText = document.pdfData
         if let pdfData = document.pdfData {
             do {
-                pdfDataWithText = try processor.embedTextLayer(in: pdfData, with: result)
-                logger.info("Successfully embedded text layer in PDF", metadata: [
-                    "file": .string(url.lastPathComponent),
-                    "originalSize": .stringConvertible(pdfData.count),
-                    "newSize": .stringConvertible(pdfDataWithText?.count ?? 0)
-                ])
+                if result.engineVersion == "embedded-text" {
+                    pdfDataWithText = pdfData
+                } else {
+                    pdfDataWithText = try processor.embedTextLayer(in: pdfData, with: result)
+                    logger.info("Successfully embedded text layer in PDF", metadata: [
+                        "file": .string(url.lastPathComponent),
+                        "originalSize": .stringConvertible(pdfData.count),
+                        "newSize": .stringConvertible(pdfDataWithText?.count ?? 0)
+                    ])
+                }
             } catch {
                 logger.error("Failed to embed text layer", metadata: [
                     "file": .string(url.lastPathComponent),
