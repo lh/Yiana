@@ -207,15 +207,19 @@ struct DocumentListView: View {
                 
                 // Create the document in NoteDocument format
                 let encoder = JSONEncoder()
-                if let metadataData = try? encoder.encode(metadata) {
-                    try? DocumentArchive.write(
+                do {
+                    let metadataData = try encoder.encode(metadata)
+                    try DocumentArchive.write(
                         metadata: metadataData,
                         pdf: nil,
                         to: url,
                         formatVersion: DocumentArchive.currentFormatVersion
                     )
+                } catch {
+                    viewModel.errorMessage = "Failed to create document: \(error.localizedDescription)"
+                    showingError = true
                 }
-                
+
                 await viewModel.refresh()
                 #endif
             }

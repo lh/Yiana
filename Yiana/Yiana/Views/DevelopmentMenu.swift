@@ -8,6 +8,9 @@
 //
 
 import SwiftUI
+#if os(macOS)
+import Foundation
+#endif
 
 #if DEBUG
 struct DevelopmentMenu: View {
@@ -33,6 +36,12 @@ struct DevelopmentMenu: View {
                 )
             }) {
                 Label("Force OCR Re-run", systemImage: "doc.text.magnifyingglass")
+            }
+            
+            Button(action: {
+                triggerOCRCleanup()
+            }) {
+                Label("Run OCR Cleanup", systemImage: "trash.slash")
             }
             
             Button(action: {
@@ -134,6 +143,35 @@ struct DevelopmentMenu: View {
         } else {
             print("No OCR cache found to delete.")
         }
+    }
+    
+    private func triggerOCRCleanup() {
+#if os(macOS)
+        let commands = [
+            "cd ~/Code/YianaOCRService",
+            "swift run yiana-ocr cleanup"
+        ].joined(separator: " && ")
+        
+        let process = Process()
+        process.launchPath = "/bin/bash"
+        process.arguments = ["-lc", commands]
+        
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        
+        do {
+            try process.run()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            if let output = String(data: data, encoding: .utf8) {
+                print(output)
+            }
+        } catch {
+            print("❌ Failed to run OCR cleanup: \(error)")
+        }
+#else
+        print("OCR cleanup command is only available on macOS.")
+#endif
     }
 
     private func resetSearchIndex() async {

@@ -39,7 +39,7 @@ struct DocumentInfoPanel: View {
             // Tab selector
             Picker("Info Type", selection: $selectedTab) {
                 Text("Metadata").tag("metadata")
-                Text("OCR Text").tag("ocr")
+                Text("Text").tag("ocr")
                 Text("Debug").tag("debug")
             }
             .pickerStyle(.segmented)
@@ -128,11 +128,30 @@ struct OCRView: View {
         VStack(alignment: .leading, spacing: 15) {
             // Status header
             HStack {
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text("OCR Status")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     OCRStatusBadge(isCompleted: metadata.ocrCompleted)
+                    if metadata.ocrCompleted {
+                        VStack(alignment: .leading, spacing: 4) {
+                            if let processedAt = metadata.ocrProcessedAt {
+                                Text("Processed: \(formatDate(processedAt))")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            if let confidence = metadata.ocrConfidence {
+                                Text(String(format: "Confidence: %.1f%%", confidence * 100))
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            if let source = metadata.ocrSource {
+                                Text("Source: \(source.displayName)")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
                 }
                 
                 Spacer()
@@ -243,6 +262,13 @@ struct OCRView: View {
                 }
             }
         }
+    }
+
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 }
 
