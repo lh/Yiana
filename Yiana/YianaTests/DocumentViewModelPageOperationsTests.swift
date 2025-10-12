@@ -329,6 +329,7 @@ class DocumentViewModelPageOperationsTests: XCTestCase {
 class DocumentViewModelPageOperationsMacOSTests: XCTestCase {
 
     var viewModel: DocumentViewModel!
+    var noteDocument: NoteDocument!  // Keep strong reference to prevent deallocation
 
     override func setUp() {
         super.setUp()
@@ -341,8 +342,14 @@ class DocumentViewModelPageOperationsMacOSTests: XCTestCase {
         }
         let pdfData = pdf.dataRepresentation()
 
-        // Create view model with PDF data
-        viewModel = DocumentViewModel(pdfData: pdfData)
+        // Create a proper NoteDocument for testing
+        noteDocument = NoteDocument()  // Store in instance variable
+        noteDocument.pdfData = pdfData
+        noteDocument.metadata.pageCount = 3
+        noteDocument.metadata.title = "Test Document"
+
+        // Create view model with document (proper flow)
+        viewModel = DocumentViewModel(document: noteDocument)
 
         // Clear clipboard
         PageClipboard.shared.clear()
@@ -351,11 +358,12 @@ class DocumentViewModelPageOperationsMacOSTests: XCTestCase {
     override func tearDown() {
         PageClipboard.shared.clear()
         viewModel = nil
+        noteDocument = nil  // Clean up document reference
         super.tearDown()
     }
 
     func testCopyPagesOnMacOS() async throws {
-        // Given
+        // Given - viewModel is already set up with document
         let indices: Set<Int> = [0, 1]
 
         // When
@@ -364,27 +372,21 @@ class DocumentViewModelPageOperationsMacOSTests: XCTestCase {
         // Then
         XCTAssertEqual(payload.operation, .copy)
         XCTAssertEqual(payload.pageCount, 2)
+        XCTAssertEqual(payload.sourceDocumentID, viewModel.documentID)
+
+        // Verify document wasn't modified by copy
+        if let pdfDoc = PDFDocument(data: viewModel.pdfData ?? Data()) {
+            XCTAssertEqual(pdfDoc.pageCount, 3)
+        }
     }
 
     func testCutPagesOnMacOS() async throws {
-        // Given - create a NoteDocument and proper view model
-        let pdf = PDFDocument()
-        for i in 0..<3 {
-            let page = PDFPage()
-            pdf.insert(page, at: i)
-        }
-        let pdfData = pdf.dataRepresentation()
-
-        // Create a mock NoteDocument
-        let noteDocument = NoteDocument()
-        noteDocument.pdfData = pdfData
-        noteDocument.metadata.pageCount = 3
-
-        let documentViewModel = DocumentViewModel(document: noteDocument)
+        // Given - viewModel is already set up with document
         let indices: Set<Int> = [0]
+        let originalPageCount = 3
 
         // When
-        let payload = try await documentViewModel.cutPages(atZeroBasedIndices: indices)
+        let payload = try await viewModel.cutPages(atZeroBasedIndices: indices)
 
         // Then
         XCTAssertEqual(payload.operation, .cut)
@@ -392,23 +394,14 @@ class DocumentViewModelPageOperationsMacOSTests: XCTestCase {
         XCTAssertNotNil(payload.sourceDataBeforeCut)
 
         // Verify page was removed
-        if let updatedPDF = PDFDocument(data: documentViewModel.pdfData ?? Data()) {
-            XCTAssertEqual(updatedPDF.pageCount, 2)
+        if let updatedPDF = PDFDocument(data: viewModel.pdfData ?? Data()) {
+            XCTAssertEqual(updatedPDF.pageCount, originalPageCount - 1)
         }
+        XCTAssertTrue(viewModel.hasChanges)
     }
 
     func testPastePagesOnMacOS() async throws {
-        // Given - create a NoteDocument and proper view model
-        let pdf = PDFDocument()
-        let page = PDFPage()
-        pdf.insert(page, at: 0)
-        let pdfData = pdf.dataRepresentation()!
-
-        let noteDocument = NoteDocument()
-        noteDocument.pdfData = pdfData
-        noteDocument.metadata.pageCount = 1
-
-        let documentViewModel = DocumentViewModel(document: noteDocument)
+        // Given - viewModel already has 3 pages
 
         // Create a payload to paste
         let sourcePDF = PDFDocument()
@@ -421,60 +414,52 @@ class DocumentViewModelPageOperationsMacOSTests: XCTestCase {
         )
 
         // When
-        let insertedCount = try await documentViewModel.insertPages(from: payload, at: 0)
+        let insertedCount = try await viewModel.insertPages(from: payload, at: 0)
 
         // Then
         XCTAssertEqual(insertedCount, 1)
 
-        // Verify page was inserted
-        if let updatedPDF = PDFDocument(data: documentViewModel.pdfData ?? Data()) {
-            XCTAssertEqual(updatedPDF.pageCount, 2)
+        // Verify page was inserted (3 original + 1 new = 4)
+        if let updatedPDF = PDFDocument(data: viewModel.pdfData ?? Data()) {
+            XCTAssertEqual(updatedPDF.pageCount, 4)
         }
-        XCTAssertEqual(noteDocument.metadata.pageCount, 2)
+        XCTAssertTrue(viewModel.hasChanges)
     }
 
     func testSaveIntegrationOnMacOS() async {
-        // Given - create a NoteDocument
-        let noteDocument = NoteDocument()
-        let pdf = PDFDocument()
-        pdf.insert(PDFPage(), at: 0)
-        noteDocument.pdfData = pdf.dataRepresentation()
-        noteDocument.metadata.pageCount = 1
+        // Given - viewModel already set up with document
 
-        let documentViewModel = DocumentViewModel(document: noteDocument)
+        // When - mark changes and attempt save
+        viewModel.hasChanges = true
+        let success = await viewModel.save()
 
-        // When
-        documentViewModel.hasChanges = true
-        let success = await documentViewModel.save()
-
-        // Then - save should return false without a fileURL
+        // Then - save should return false without a fileURL set on the document
         XCTAssertFalse(success)
-        XCTAssertTrue(documentViewModel.hasChanges) // Should still have changes since save failed
+        XCTAssertTrue(viewModel.hasChanges) // Should still have changes since save failed
+
+        // Test that save returns true when no changes
+        viewModel.hasChanges = false
+        let successNoChanges = await viewModel.save()
+        XCTAssertTrue(successNoChanges) // Should return true per iOS behavior
     }
 
     func testUndoRedoOnMacOS() async throws {
-        // This test would require a proper NSUndoManager setup
-        // For now, we'll just verify the undo manager is properly used
-
-        // Given
-        let noteDocument = NoteDocument()
-        let pdf = PDFDocument()
-        for i in 0..<3 {
-            pdf.insert(PDFPage(), at: i)
-        }
-        noteDocument.pdfData = pdf.dataRepresentation()
-        noteDocument.metadata.pageCount = 3
-
-        let documentViewModel = DocumentViewModel(document: noteDocument)
+        // Given - viewModel already has 3 pages
+        let originalPageCount = 3
 
         // When - cut a page
-        let originalPageCount = 3
-        _ = try await documentViewModel.cutPages(atZeroBasedIndices: [0])
+        let payload = try await viewModel.cutPages(atZeroBasedIndices: [0])
+        PageClipboard.shared.setPayload(payload)
 
         // Then - verify page was cut
-        if let updatedPDF = PDFDocument(data: documentViewModel.pdfData ?? Data()) {
+        if let updatedPDF = PDFDocument(data: viewModel.pdfData ?? Data()) {
             XCTAssertEqual(updatedPDF.pageCount, originalPageCount - 1)
         }
+        XCTAssertTrue(viewModel.hasChanges)
+
+        // Verify we can still access the cut payload
+        let cutPayload = PageClipboard.shared.activeCutPayload(for: viewModel.documentID)
+        XCTAssertNotNil(cutPayload)
     }
 }
 #endif

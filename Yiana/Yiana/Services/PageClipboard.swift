@@ -191,7 +191,8 @@ final class PageClipboard {
         #elseif os(macOS)
         let pasteboard = NSPasteboard.general
         if pasteboard.data(forType: NSPasteboard.PasteboardType(Self.pasteboardType)) != nil {
-            pasteboard.clearContents()
+            // Only clear our custom type, preserve other clipboard content
+            pasteboard.setData(Data(), forType: NSPasteboard.PasteboardType(Self.pasteboardType))
         }
         #endif
     }

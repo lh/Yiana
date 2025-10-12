@@ -115,8 +115,8 @@ struct DocumentReadView: View {
                         print("DEBUG DocumentReadView: pageNumber = \(String(describing: searchResult?.pageNumber))")
                         print("DEBUG DocumentReadView: searchTerm = \(String(describing: searchResult?.searchTerm))")
                     }()
-                    // PDF viewer
-                    MacPDFViewer(pdfData: pdfData)
+                    // PDF viewer - use viewModel's pdfData for live updates
+                    MacPDFViewer(pdfData: viewModel?.pdfData ?? pdfData)
                 }
             } else {
                 VStack(spacing: 20) {
@@ -193,6 +193,12 @@ struct DocumentReadView: View {
             Button("OK") { }
         } message: {
             Text(exportErrorMessage)
+        }
+        .onChange(of: viewModel?.pdfData) { _, newValue in
+            // Sync viewModel changes back to local state for legacy support
+            if let newValue = newValue {
+                pdfData = newValue
+            }
         }
     }
     

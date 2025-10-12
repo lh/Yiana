@@ -528,6 +528,13 @@ class DocumentViewModel: ObservableObject {
 
 #else
 
+import UniformTypeIdentifiers
+
+// Extension to define the yianaDocument UTType
+extension UTType {
+    static let yianaDocument = UTType(exportedAs: "com.vitygas.yiana.document")
+}
+
 // macOS implementation with full page operations support
 @MainActor
 final class DocumentViewModel: ObservableObject {
@@ -568,9 +575,10 @@ final class DocumentViewModel: ObservableObject {
     }
 
     var isReadOnly: Bool {
-        guard let document = document,
-              let fileURL = document.fileURL else {
-            return true
+        guard let document = document else { return true }
+        guard let fileURL = document.fileURL else {
+            // Unsaved documents (no fileURL yet) should still allow edits
+            return false
         }
         return !FileManager.default.isWritableFile(atPath: fileURL.path)
     }
@@ -602,8 +610,10 @@ final class DocumentViewModel: ObservableObject {
     // MARK: - Save Operations
 
     func save() async -> Bool {
-        guard let document = document,
-              hasChanges else { return false }
+        guard let document = document else { return false }
+
+        // Return true immediately if no changes to match iOS behavior
+        guard hasChanges else { return true }
 
         isSaving = true
         defer { isSaving = false }
@@ -622,7 +632,9 @@ final class DocumentViewModel: ObservableObject {
         do {
             if let fileURL = document.fileURL {
                 try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                    document.save(to: fileURL, ofType: "com.vitygas.yianazip", for: .saveOperation) { error in
+                    // Use the correct UTType identifier
+                    let typeIdentifier = document.fileType ?? UTType.yianaDocument.identifier
+                    document.save(to: fileURL, ofType: typeIdentifier, for: .saveOperation) { error in
                         if let error = error {
                             continuation.resume(throwing: error)
                         } else {
