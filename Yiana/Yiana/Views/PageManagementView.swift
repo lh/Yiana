@@ -18,6 +18,7 @@ typealias PlatformImage = NSImage
 
 struct PageManagementView: View {
     @Binding var pdfData: Data?
+    @ObservedObject var viewModel: DocumentViewModel
     @Binding var isPresented: Bool
     var currentPageIndex: Int = 0  // The page currently being viewed
     var displayPDFData: Data? = nil
@@ -31,6 +32,10 @@ struct PageManagementView: View {
     @State private var pendingNavigationIndex: Int? = nil  // Show where we're about to navigate
     @State private var showProvisionalReorderAlert = false
     @State private var workingDocument: PDFDocument?
+    @State private var cutPageIndices: Set<Int>? = nil
+    @State private var alertMessage: String? = nil
+    @State private var showPasteIndicator = false
+    @State private var pasteIndicatorPosition: Int? = nil
     #if os(iOS)
     @State private var draggedPage: Int?
     #endif
@@ -65,16 +70,94 @@ struct PageManagementView: View {
                 
                 #if os(iOS)
                 if !selectedPages.isEmpty {
-                    ToolbarItem(placement: .bottomBar) {
+                    ToolbarItemGroup(placement: .bottomBar) {
+                        // Copy button
+                        Button {
+                            copyOrCutSelection(isCut: false)
+                        } label: {
+                            Label("Copy", systemImage: "doc.on.doc")
+                        }
+
+                        // Cut button
+                        Button {
+                            copyOrCutSelection(isCut: true)
+                        } label: {
+                            Label("Cut", systemImage: "scissors")
+                        }
+
+                        Spacer()
+
+                        // Delete button
                         Button(role: .destructive) {
                             deleteSelectedPages()
                         } label: {
-                            Label("Delete Selected", systemImage: "trash")
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                }
+
+                // Paste button - shown when clipboard has data
+                if PageClipboard.shared.hasPayload {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button {
+                            performPaste()
+                        } label: {
+                            Label("Paste", systemImage: "doc.on.clipboard")
+                        }
+                    }
+                }
+
+                // Restore Cut button - shown when there's an active cut for this document
+                if PageClipboard.shared.activeCutPayload(for: viewModel.documentID) != nil {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button {
+                            restoreCutPages()
+                        } label: {
+                            Label("Restore Cut", systemImage: "arrow.uturn.backward")
                         }
                     }
                 }
                 #else
                 ToolbarItemGroup(placement: .automatic) {
+                        // Copy button
+                        Button {
+                            copyOrCutSelection(isCut: false)
+                        } label: {
+                            Label("Copy", systemImage: "doc.on.doc")
+                        }
+                        .disabled(selectedPages.isEmpty)
+                        .keyboardShortcut("c", modifiers: .command)
+
+                        // Cut button
+                        Button {
+                            copyOrCutSelection(isCut: true)
+                        } label: {
+                            Label("Cut", systemImage: "scissors")
+                        }
+                        .disabled(selectedPages.isEmpty)
+                        .keyboardShortcut("x", modifiers: .command)
+
+                        // Paste button
+                        Button {
+                            performPaste()
+                        } label: {
+                            Label("Paste", systemImage: "doc.on.clipboard")
+                        }
+                        .disabled(!PageClipboard.shared.hasPayload)
+                        .keyboardShortcut("v", modifiers: .command)
+
+                        // Restore Cut button - shown when there's an active cut for this document
+                        if PageClipboard.shared.activeCutPayload(for: viewModel.documentID) != nil {
+                            Button {
+                                restoreCutPages()
+                            } label: {
+                                Label("Restore Cut", systemImage: "arrow.uturn.backward")
+                            }
+                            .keyboardShortcut("z", modifiers: [.command, .shift])
+                        }
+
+                        Divider()
+
                         // Move up button - always visible but disabled when inappropriate
                         Button {
                             moveSelectedPage(direction: -1)
@@ -82,7 +165,7 @@ struct PageManagementView: View {
                             Label("Move Up", systemImage: "arrow.up")
                         }
                         .disabled(selectedPages.count != 1 || selectedPages.first == 0)
-                        
+
                         // Move down button - always visible but disabled when inappropriate
                         Button {
                             moveSelectedPage(direction: 1)
@@ -90,7 +173,9 @@ struct PageManagementView: View {
                             Label("Move Down", systemImage: "arrow.down")
                         }
                         .disabled(selectedPages.count != 1 || (selectedPages.first ?? 0) >= pages.count - 1)
-                        
+
+                        Divider()
+
                         // Delete button - disabled when nothing selected
                         Button(role: .destructive) {
                             deleteSelectedPages()
@@ -116,6 +201,14 @@ struct PageManagementView: View {
         } message: {
             Text("Save or discard the draft text page before reordering.")
         }
+        .alert("Copy Pages", isPresented: Binding(
+            get: { alertMessage != nil },
+            set: { if !$0 { alertMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(alertMessage ?? "")
+        }
         .onChange(of: displayPDFData) { _, _ in
             loadPages()
         }
@@ -131,6 +224,7 @@ struct PageManagementView: View {
             ], spacing: 16) {
                 ForEach(Array(pages.enumerated()), id: \.offset) { index, page in
                     let isProvisional = provisionalPageRange?.contains(index) ?? false
+                    let isCut = cutPageIndices?.contains(index) ?? false
                     PageThumbnailView(
                         page: page,
                         pageNumber: index + 1,
@@ -138,6 +232,10 @@ struct PageManagementView: View {
                         isCurrentPage: pendingNavigationIndex == index ? true : (pendingNavigationIndex == nil && index == currentPageIndex),
                         isEditMode: isEditMode,
                         isProvisional: isProvisional
+                    )
+                    .opacity(isCut ? 0.4 : 1.0)
+                    .overlay(
+                        isCut ? Color.red.opacity(0.1) : Color.clear
                     )
                     .onTapGesture {
                         if isProvisional {
@@ -333,6 +431,93 @@ struct PageManagementView: View {
         pdfData = updatedData
         workingDocument = persistedDocument
         // Don't dismiss - let user continue working
+    }
+
+    
+    // MARK: - Copy/Paste Operations
+    
+    private func canCopy(index: Int) -> Bool {
+        if let provisionalRange = provisionalPageRange {
+            return !provisionalRange.contains(index)
+        }
+        return true
+    }
+    
+    private func filteredTransferSelection() -> Set<Int>? {
+        let valid = selectedPages.filter(canCopy)
+        guard !valid.isEmpty else {
+            alertMessage = "Save draft text pages before copying."
+            return nil
+        }
+        return Set(valid)
+    }
+    
+    private func copyOrCutSelection(isCut: Bool) {
+        guard let transferable = filteredTransferSelection() else { return }
+        Task {
+            do {
+                let payload = try await (isCut ?
+                    viewModel.cutPages(atZeroBasedIndices: transferable) :
+                    viewModel.copyPages(atZeroBasedIndices: transferable))
+                PageClipboard.shared.setPayload(payload)
+                
+                if isCut {
+                    // Mark pages as cut for visual feedback
+                    cutPageIndices = transferable
+                    // Pages are already removed by cutPages, so clear selection
+                    selectedPages.removeAll()
+                } else {
+                    // Keep selection for copy
+                    cutPageIndices = nil
+                }
+            } catch {
+                alertMessage = error.localizedDescription
+            }
+        }
+    }
+    
+    private func performPaste(at insertIndex: Int? = nil) {
+        guard let payload = PageClipboard.shared.currentPayload() else { return }
+        Task {
+            do {
+                let insertAt = insertIndex ?? pages.count
+                let inserted = try await viewModel.insertPages(from: payload, at: insertAt)
+                
+                // Clear clipboard if it was a cut operation
+                if payload.operation == .cut {
+                    PageClipboard.shared.clear()
+                }
+                
+                // Clear cut indicators
+                cutPageIndices = nil
+                
+                // Select the newly inserted pages
+                selectedPages = Set(insertAt..<(insertAt + inserted))
+                
+                // Reload pages to reflect changes
+                loadPages()
+            } catch {
+                alertMessage = error.localizedDescription
+            }
+        }
+    }
+
+    
+    private func restoreCutPages() {
+        guard let cutPayload = PageClipboard.shared.activeCutPayload(for: viewModel.documentID),
+              let sourceData = cutPayload.sourceDataBeforeCut else { return }
+        
+        Task {
+            // Restore the original document data
+            viewModel.pdfData = sourceData
+            
+            // Clear the cut state
+            cutPageIndices = nil
+            PageClipboard.shared.clear()
+            
+            // Reload pages to reflect the restoration
+            loadPages()
+        }
     }
 }
 

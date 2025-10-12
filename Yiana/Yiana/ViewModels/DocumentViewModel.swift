@@ -290,6 +290,149 @@ class DocumentViewModel: ObservableObject {
 
     /// Renders the provided Markdown into a PDF page, appends it to the current document,
     /// and updates metadata/search fields accordingly.
+    // MARK: - Page Copy/Cut/Paste Operations
+    
+    /// The document's unique identifier
+    var documentID: UUID {
+        document.metadata.id
+    }
+    
+    /// Ensures the document is in a valid state for modifications
+    func ensureDocumentIsAvailable() throws {
+        #if os(iOS)
+        // Check for closed state
+        if document.documentState.contains(.closed) {
+            throw PageOperationError.documentClosed
+        }
+
+        // Log conflict state for monitoring but don't block operations yet
+        if document.documentState.contains(.inConflict) {
+            print("[WARNING] Document '\(document.metadata.title)' is in conflict state during page operation")
+            print("[WARNING] Document state flags: \(document.documentState.rawValue)")
+            // TODO: Once conflict detection is reliable, uncomment the following:
+            // throw PageOperationError.documentInConflict
+            // For now, we log but allow the operation to proceed
+        }
+        #endif
+    }
+    
+    /// Copies pages at the specified zero-based indices
+    func copyPages(atZeroBasedIndices indices: Set<Int>) async throws -> PageClipboardPayload {
+        try ensureDocumentIsAvailable()
+        
+        // Filter out provisional pages
+        let validIndices = indices.filter { index in
+            if let provisionalRange = provisionalPageRange {
+                return !provisionalRange.contains(index)
+            }
+            return true
+        }
+        
+        guard !validIndices.isEmpty else {
+            throw PageOperationError.provisionalPagesNotSupported
+        }
+        
+        return try PageClipboard.shared.createPayload(
+            from: pdfData,
+            indices: validIndices,
+            documentID: documentID,
+            operation: .copy
+        )
+    }
+    
+    /// Cuts pages at the specified zero-based indices (removes them after creating payload)
+    func cutPages(atZeroBasedIndices indices: Set<Int>) async throws -> PageClipboardPayload {
+        try ensureDocumentIsAvailable()
+        
+        // Filter out provisional pages
+        let validIndices = indices.filter { index in
+            if let provisionalRange = provisionalPageRange {
+                return !provisionalRange.contains(index)
+            }
+            return true
+        }
+        
+        guard !validIndices.isEmpty else {
+            throw PageOperationError.provisionalPagesNotSupported
+        }
+        
+        // Store current state for potential recovery
+        let sourceDataBeforeCut = pdfData
+        
+        // Create the payload before removing pages
+        let payload = try PageClipboard.shared.createPayload(
+            from: pdfData,
+            indices: validIndices,
+            documentID: documentID,
+            operation: .cut,
+            sourceDataBeforeCut: sourceDataBeforeCut
+        )
+        
+        // Now remove the pages
+        await removePages(at: Array(validIndices))
+        
+        return payload
+    }
+    
+    /// Inserts pages from a clipboard payload at the specified index
+    /// - Parameters:
+    ///   - payload: The page clipboard payload
+    ///   - insertIndex: Zero-based index where to insert (nil = append to end)
+    /// - Returns: Number of pages inserted
+    @discardableResult
+    func insertPages(from payload: PageClipboardPayload, at insertIndex: Int?) async throws -> Int {
+        try ensureDocumentIsAvailable()
+        
+        guard let currentData = pdfData,
+              let targetPDF = PDFDocument(data: currentData),
+              let sourcePDF = PDFDocument(data: payload.pdfData) else {
+            throw PageOperationError.sourceDocumentUnavailable
+        }
+        
+        // Determine insertion point
+        let insertAt = insertIndex ?? targetPDF.pageCount
+        
+        // Insert pages
+        var insertedCount = 0
+        for i in 0..<sourcePDF.pageCount {
+            autoreleasepool {
+                if let page = sourcePDF.page(at: i),
+                   let pageCopy = page.copy() as? PDFPage {
+                    targetPDF.insert(pageCopy, at: insertAt + insertedCount)
+                    insertedCount += 1
+                }
+            }
+        }
+        
+        guard insertedCount > 0 else {
+            throw PageOperationError.insertionFailed
+        }
+        
+        // Update the document
+        guard let updatedData = targetPDF.dataRepresentation() else {
+            throw PageOperationError.unableToSerialise
+        }
+        
+        pdfData = updatedData
+        
+        // Update metadata
+        document.metadata.pageCount = targetPDF.pageCount
+        document.metadata.modified = Date()
+        hasChanges = true
+        
+        await refreshDisplayPDF()
+        
+        // Clear provisional range if we inserted at or before it
+        if let provisionalRange = provisionalPageRange,
+           let insertAt = insertIndex,
+           insertAt <= provisionalRange.lowerBound {
+            let shift = insertedCount
+            self.provisionalPageRange = (provisionalRange.lowerBound + shift)..<(provisionalRange.upperBound + shift)
+        }
+        
+        return insertedCount
+    }
+
     @discardableResult
     func appendTextPage(
         markdown: String,
@@ -385,21 +528,62 @@ class DocumentViewModel: ObservableObject {
 
 #else
 
-// Placeholder - macOS document editing will come later
+// Minimal macOS support for page operations
 @MainActor
 class DocumentViewModel: ObservableObject {
-    @Published var title = "Document viewing not yet supported on macOS"
+    @Published var title = "Document"
     @Published var isSaving = false
     @Published var hasChanges = false
     @Published var errorMessage: String?
-    
-    var pdfData: Data? { nil }
+    @Published var pdfData: Data?
+
     var autoSaveEnabled = false
-    
+    var displayPDFData: Data? { pdfData }
+    var provisionalPageRange: Range<Int>? { nil }
+
+    // Document ID for copy/paste operations
+    private let _documentID = UUID()
+    var documentID: UUID { _documentID }
+
     init() {}
-    
+
+    /// Initialize with PDF data for read-only operations
+    init(pdfData: Data?) {
+        self.pdfData = pdfData
+    }
+
     func save() async -> Bool {
         return false
+    }
+
+    // MARK: - Page Copy/Cut/Paste Operations (Read-only support for macOS)
+
+    func ensureDocumentIsAvailable() throws {
+        // No-op for macOS
+    }
+
+    func copyPages(atZeroBasedIndices indices: Set<Int>) async throws -> PageClipboardPayload {
+        // macOS can copy pages (read-only operation)
+        guard !indices.isEmpty else {
+            throw PageOperationError.noValidPagesSelected
+        }
+
+        return try PageClipboard.shared.createPayload(
+            from: pdfData,
+            indices: indices,
+            documentID: documentID,
+            operation: .copy
+        )
+    }
+
+    func cutPages(atZeroBasedIndices indices: Set<Int>) async throws -> PageClipboardPayload {
+        // Cut not supported on macOS (would require document modification)
+        throw PageOperationError.sourceDocumentUnavailable
+    }
+
+    func insertPages(from payload: PageClipboardPayload, at insertIndex: Int?) async throws -> Int {
+        // Paste not supported on macOS (would require document modification)
+        throw PageOperationError.insertionFailed
     }
 }
 #endif

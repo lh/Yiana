@@ -130,8 +130,11 @@ struct DocumentReadView: View {
             await loadDocument()
         }
         .sheet(isPresented: $showingPageManagement) {
+            // Create a temporary viewModel for PageManagementView with the current PDF data
+            // This allows copy operations to work on macOS
             PageManagementView(
                 pdfData: $pdfData,
+                viewModel: DocumentViewModel(pdfData: pdfData),
                 isPresented: $showingPageManagement,
                 currentPageIndex: 0,  // macOS version doesn't track current page yet
                 displayPDFData: pdfData,

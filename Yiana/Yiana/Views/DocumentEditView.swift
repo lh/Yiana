@@ -108,6 +108,7 @@ struct DocumentEditView: View {
                                 viewModel.hasChanges = true
                             }
                         ),
+                        viewModel: viewModel,
                         isPresented: Binding(
                             get: { activeSheet == .pageManagement },
                             set: { newValue in
