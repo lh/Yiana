@@ -528,42 +528,166 @@ class DocumentViewModel: ObservableObject {
 
 #else
 
-// Minimal macOS support for page operations
+// macOS implementation with full page operations support
 @MainActor
-class DocumentViewModel: ObservableObject {
-    @Published var title = "Document"
+final class DocumentViewModel: ObservableObject {
+    // MARK: - Published Properties
+
+    @Published var title: String = "Document" {
+        didSet {
+            guard title != oldValue else { return }
+            if let document = document {
+                document.metadata.title = title
+                hasChanges = true
+                scheduleAutosave()
+            }
+        }
+    }
+
     @Published var isSaving = false
     @Published var hasChanges = false
     @Published var errorMessage: String?
-    @Published var pdfData: Data?
 
-    var autoSaveEnabled = false
-    var displayPDFData: Data? { pdfData }
-    var provisionalPageRange: Range<Int>? { nil }
-
-    // Document ID for copy/paste operations
-    private let _documentID = UUID()
-    var documentID: UUID { _documentID }
-
-    init() {}
-
-    /// Initialize with PDF data for read-only operations
-    init(pdfData: Data?) {
-        self.pdfData = pdfData
+    @Published var pdfData: Data? {
+        didSet {
+            guard pdfData != oldValue else { return }
+            if document != nil {
+                hasChanges = true
+                scheduleAutosave()
+            }
+        }
     }
 
+    // MARK: - Computed Properties
+
+    var displayPDFData: Data? { pdfData }
+    var provisionalPageRange: Range<Int>? { nil }  // macOS doesn't support provisional pages yet
+
+    var documentID: UUID {
+        document?.metadata.id ?? UUID()
+    }
+
+    var isReadOnly: Bool {
+        guard let document = document,
+              let fileURL = document.fileURL else {
+            return true
+        }
+        return !FileManager.default.isWritableFile(atPath: fileURL.path)
+    }
+
+    // MARK: - Private Properties
+
+    weak var document: NoteDocument?
+    private var autosaveTask: Task<Void, Never>?
+    private let autosaveDelay: TimeInterval = 2.0
+
+    // MARK: - Initialization
+
+    /// Primary initializer for document-based operations
+    init(document: NoteDocument) {
+        self.document = document
+        self.title = document.metadata.title
+        self.pdfData = document.pdfData
+
+        // Update document metadata when properties change
+        self.hasChanges = false
+    }
+
+    /// Secondary initializer for legacy/test compatibility
+    init(pdfData: Data?) {
+        self.pdfData = pdfData
+        // Note: This is for legacy support only. Production code should use init(document:)
+    }
+
+    // MARK: - Save Operations
+
     func save() async -> Bool {
+        guard let document = document,
+              hasChanges else { return false }
+
+        isSaving = true
+        defer { isSaving = false }
+
+        // Update metadata
+        document.metadata.modified = Date()
+        if let pdfData = pdfData,
+           let pdfDocument = PDFDocument(data: pdfData) {
+            document.metadata.pageCount = pdfDocument.pageCount
+        }
+
+        // Update document's PDF data
+        document.pdfData = pdfData
+
+        // Save the document
+        do {
+            if let fileURL = document.fileURL {
+                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                    document.save(to: fileURL, ofType: "com.vitygas.yianazip", for: .saveOperation) { error in
+                        if let error = error {
+                            continuation.resume(throwing: error)
+                        } else {
+                            continuation.resume()
+                        }
+                    }
+                }
+                hasChanges = false
+                return true
+            }
+        } catch {
+            errorMessage = "Failed to save: \(error.localizedDescription)"
+            print("Save failed: \(error)")
+        }
+
         return false
     }
 
-    // MARK: - Page Copy/Cut/Paste Operations (Read-only support for macOS)
+    private func scheduleAutosave() {
+        autosaveTask?.cancel()
 
-    func ensureDocumentIsAvailable() throws {
-        // No-op for macOS
+        guard hasChanges else { return }
+
+        autosaveTask = Task { @MainActor in
+            do {
+                try await Task.sleep(nanoseconds: UInt64(autosaveDelay * 1_000_000_000))
+                guard !Task.isCancelled else { return }
+                _ = await save()
+            } catch {
+                // Task cancelled, ignore
+            }
+        }
     }
 
+    // MARK: - Page Operations Helpers
+
+    private func removePages(at indices: [Int]) async {
+        guard let currentData = pdfData,
+              let document = PDFDocument(data: currentData) else { return }
+
+        // Sort indices in descending order to remove from end to beginning
+        let sortedIndices = indices.sorted(by: >)
+        for index in sortedIndices where index >= 0 && index < document.pageCount {
+            document.removePage(at: index)
+        }
+
+        guard let updatedData = document.dataRepresentation() else { return }
+        pdfData = updatedData
+    }
+
+    // MARK: - Page Copy/Cut/Paste Operations
+
+    func ensureDocumentIsAvailable() throws {
+        guard document != nil else {
+            throw PageOperationError.sourceDocumentUnavailable
+        }
+
+        if isReadOnly {
+            throw PageOperationError.documentReadOnly
+        }
+    }
+
+    /// Copies pages at the specified zero-based indices
     func copyPages(atZeroBasedIndices indices: Set<Int>) async throws -> PageClipboardPayload {
-        // macOS can copy pages (read-only operation)
+        // Copy is a read-only operation, so we don't need write access
         guard !indices.isEmpty else {
             throw PageOperationError.noValidPagesSelected
         }
@@ -576,14 +700,104 @@ class DocumentViewModel: ObservableObject {
         )
     }
 
+    /// Cuts pages at the specified zero-based indices (removes them after creating payload)
     func cutPages(atZeroBasedIndices indices: Set<Int>) async throws -> PageClipboardPayload {
-        // Cut not supported on macOS (would require document modification)
-        throw PageOperationError.sourceDocumentUnavailable
+        try ensureDocumentIsAvailable()
+
+        guard !indices.isEmpty else {
+            throw PageOperationError.noValidPagesSelected
+        }
+
+        // Store current state for undo
+        let sourceDataBeforeCut = pdfData
+
+        // Register undo operation
+        if let undoManager = document?.undoManager {
+            undoManager.registerUndo(withTarget: self) { target in
+                Task { @MainActor in
+                    target.pdfData = sourceDataBeforeCut
+                    target.hasChanges = true
+                    target.scheduleAutosave()
+                }
+            }
+            undoManager.setActionName("Cut Pages")
+        }
+
+        // Create the payload before removing pages
+        let payload = try PageClipboard.shared.createPayload(
+            from: pdfData,
+            indices: indices,
+            documentID: documentID,
+            operation: .cut,
+            sourceDataBeforeCut: sourceDataBeforeCut
+        )
+
+        // Now remove the pages
+        await removePages(at: Array(indices))
+
+        return payload
     }
 
+    /// Inserts pages from a clipboard payload at the specified index
+    /// - Returns: Number of pages inserted
+    @discardableResult
     func insertPages(from payload: PageClipboardPayload, at insertIndex: Int?) async throws -> Int {
-        // Paste not supported on macOS (would require document modification)
-        throw PageOperationError.insertionFailed
+        try ensureDocumentIsAvailable()
+
+        guard let currentData = pdfData,
+              let targetPDF = PDFDocument(data: currentData),
+              let sourcePDF = PDFDocument(data: payload.pdfData) else {
+            throw PageOperationError.sourceDocumentUnavailable
+        }
+
+        // Determine insertion point
+        let insertAt = insertIndex ?? targetPDF.pageCount
+
+        // Store current state for undo
+        let originalPDFData = pdfData
+
+        // Insert pages with autoreleasepool to minimize memory pressure
+        var insertedCount = 0
+        for i in 0..<sourcePDF.pageCount {
+            autoreleasepool {
+                if let page = sourcePDF.page(at: i),
+                   let pageCopy = page.copy() as? PDFPage {
+                    targetPDF.insert(pageCopy, at: insertAt + insertedCount)
+                    insertedCount += 1
+                }
+            }
+        }
+
+        guard insertedCount > 0 else {
+            throw PageOperationError.insertionFailed
+        }
+
+        // Update the document
+        guard let updatedData = targetPDF.dataRepresentation() else {
+            throw PageOperationError.unableToSerialise
+        }
+
+        // Register undo operation
+        if let undoManager = document?.undoManager {
+            undoManager.registerUndo(withTarget: self) { target in
+                Task { @MainActor in
+                    target.pdfData = originalPDFData
+                    target.hasChanges = true
+                    target.scheduleAutosave()
+                }
+            }
+            undoManager.setActionName("Paste Pages")
+        }
+
+        pdfData = updatedData
+
+        // Update metadata
+        if let document = document {
+            document.metadata.pageCount = targetPDF.pageCount
+            document.metadata.modified = Date()
+        }
+
+        return insertedCount
     }
 }
 #endif

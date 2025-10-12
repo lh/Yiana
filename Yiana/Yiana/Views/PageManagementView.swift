@@ -215,6 +215,23 @@ struct PageManagementView: View {
         .onChange(of: pdfData) { _, _ in
             loadPages()
         }
+        #if os(macOS)
+        .onReceive(NotificationCenter.default.publisher(for: .copyPages)) { _ in
+            if !selectedPages.isEmpty {
+                copyOrCutSelection(isCut: false)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .cutPages)) { _ in
+            if !selectedPages.isEmpty {
+                copyOrCutSelection(isCut: true)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .pastePages)) { _ in
+            if PageClipboard.shared.hasPayload {
+                performPaste()
+            }
+        }
+        #endif
     }
     
     private var pageGrid: some View {

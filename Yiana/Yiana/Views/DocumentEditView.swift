@@ -410,7 +410,7 @@ struct DocumentEditView: View {
     
     private var scanButtonBar: some View {
         HStack(spacing: 32) {
-            // Color scan button - "Scan"
+            // Color scan button
             Button(action: {
                 if scanningService.isScanningAvailable() {
                     scanColorMode = .color
@@ -433,14 +433,11 @@ struct DocumentEditView: View {
                             .font(.title2)
                             .foregroundColor(.white)
                     }
-                    Text("Scan")
-                        .font(.caption)
-                        .foregroundColor(.primary)
                 }
             }
             .disabled(!scanningService.isScanningAvailable())
 
-            // B&W document scan button - "Doc"
+            // B&W document scan button
             Button(action: {
                 if scanningService.isScanningAvailable() {
                     scanColorMode = .blackAndWhite
@@ -457,9 +454,6 @@ struct DocumentEditView: View {
                             .font(.title2)
                             .foregroundColor(.white)
                     }
-                    Text("Doc")
-                        .font(.caption)
-                        .foregroundColor(.primary)
                 }
             }
             .disabled(!scanningService.isScanningAvailable())
@@ -494,9 +488,6 @@ struct DocumentEditView: View {
                             .offset(x: 22, y: -22)
                     }
                 }
-                Text(hasDraft ? "Resume" : "Text")
-                    .font(.caption)
-                    .foregroundColor(.primary)
             }
         }
     }

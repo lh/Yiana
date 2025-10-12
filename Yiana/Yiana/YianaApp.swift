@@ -38,19 +38,41 @@ struct YianaApp: App {
         #if os(iOS)
         .handlesExternalEvents(matching: ["*"])
         #endif
-        #if os(macOS) && DEBUG
+        #if os(macOS)
         .commands {
+            // Page operations commands
+            CommandGroup(after: .pasteboard) {
+                Divider()
+                Button("Copy Pages") {
+                    NotificationCenter.default.post(name: .copyPages, object: nil)
+                }
+                .keyboardShortcut("C", modifiers: [.option, .command])
+
+                Button("Cut Pages") {
+                    NotificationCenter.default.post(name: .cutPages, object: nil)
+                }
+                .keyboardShortcut("X", modifiers: [.option, .command])
+
+                Button("Paste Pages") {
+                    NotificationCenter.default.post(name: .pastePages, object: nil)
+                }
+                .keyboardShortcut("V", modifiers: [.option, .command])
+                .disabled(!PageClipboard.shared.hasPayload)
+            }
+
+            #if DEBUG
             CommandMenu("Debug") {
                 Button("Create Test Document with OCR") {
                     TestDataHelper.createTestDocumentWithOCR()
                 }
                 .keyboardShortcut("T", modifiers: [.command, .shift])
-                
+
                 Button("Create Test Document without OCR") {
                     TestDataHelper.createTestDocumentWithoutOCR()
                 }
                 .keyboardShortcut("N", modifiers: [.command, .shift])
             }
+            #endif
         }
         #endif
     }

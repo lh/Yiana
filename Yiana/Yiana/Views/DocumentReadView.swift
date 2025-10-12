@@ -20,6 +20,7 @@ struct DocumentReadView: View {
     @State private var showingPageManagement = false
     @State private var showingInfoPanel = false
     @State private var document: NoteDocument?
+    @State private var viewModel: DocumentViewModel?
     @State private var initialPageToShow: Int?
     @State private var showingExportError = false
     @State private var exportErrorMessage = ""
@@ -49,6 +50,20 @@ struct DocumentReadView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let pdfData = pdfData {
                 VStack(spacing: 0) {
+                    // Read-only banner
+                    if viewModel?.isReadOnly == true {
+                        HStack {
+                            Image(systemName: "lock.fill")
+                                .foregroundColor(.secondary)
+                            Text("This document is read-only")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 6)
+                        .background(Color.gray.opacity(0.1))
+                        .frame(maxWidth: .infinity)
+                    }
                     // Title bar
                     HStack {
                         Text(documentTitle)
@@ -126,20 +141,53 @@ struct DocumentReadView: View {
             }
         }
         .navigationTitle(documentURL.deletingPathExtension().lastPathComponent)
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                if let viewModel = viewModel {
+                    HStack(spacing: 8) {
+                        if viewModel.isSaving {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                                .help("Saving document...")
+                        } else if viewModel.hasChanges {
+                            Image(systemName: "circle.fill")
+                                .foregroundColor(.orange)
+                                .font(.system(size: 8))
+                                .help("Unsaved changes")
+                        }
+                    }
+                }
+            }
+        }
         .task {
             await loadDocument()
         }
         .sheet(isPresented: $showingPageManagement) {
-            // Create a temporary viewModel for PageManagementView with the current PDF data
-            // This allows copy operations to work on macOS
-            PageManagementView(
-                pdfData: $pdfData,
-                viewModel: DocumentViewModel(pdfData: pdfData),
-                isPresented: $showingPageManagement,
-                currentPageIndex: 0,  // macOS version doesn't track current page yet
-                displayPDFData: pdfData,
-                provisionalPageRange: nil
-            )
+            // Use the proper view model with bindings if available,
+            // or fall back to read-only mode for legacy PDFs
+            if let viewModel = viewModel {
+                PageManagementView(
+                    pdfData: Binding(
+                        get: { viewModel.pdfData ?? Data() },
+                        set: { viewModel.pdfData = $0 }
+                    ),
+                    viewModel: viewModel,
+                    isPresented: $showingPageManagement,
+                    currentPageIndex: 0,  // macOS version doesn't track current page yet
+                    displayPDFData: viewModel.displayPDFData,
+                    provisionalPageRange: viewModel.provisionalPageRange
+                )
+            } else {
+                // Legacy fallback for raw PDFs
+                PageManagementView(
+                    pdfData: $pdfData,
+                    viewModel: DocumentViewModel(pdfData: pdfData),
+                    isPresented: $showingPageManagement,
+                    currentPageIndex: 0,
+                    displayPDFData: pdfData,
+                    provisionalPageRange: nil
+                )
+            }
         }
         .alert("Export Error", isPresented: $showingExportError) {
             Button("OK") { }
@@ -163,6 +211,11 @@ struct DocumentReadView: View {
             self.document = noteDocument
             self.pdfData = noteDocument.pdfData
             self.documentTitle = noteDocument.metadata.title
+
+            // Create view model for document operations
+            await MainActor.run {
+                self.viewModel = DocumentViewModel(document: noteDocument)
+            }
             
         } catch {
             // If loading as NoteDocument fails, try legacy approach
@@ -187,6 +240,11 @@ struct DocumentReadView: View {
                         let noteDoc = NoteDocument(fileURL: documentURL)
                         // Load will have been called during extraction
                         self.document = noteDoc
+
+                        // Create view model
+                        await MainActor.run {
+                            self.viewModel = DocumentViewModel(document: noteDoc)
+                        }
                     } else {
                         throw YianaError.invalidFormat
                     }

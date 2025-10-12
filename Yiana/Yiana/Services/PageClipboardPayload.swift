@@ -65,6 +65,7 @@ struct PageClipboardPayload: Codable {
 enum PageOperationError: LocalizedError, Equatable {
     case documentInConflict
     case documentClosed
+    case documentReadOnly
     case selectionTooLarge(limit: Int)
     case sourceDocumentUnavailable
     case unableToSerialise
@@ -80,6 +81,8 @@ enum PageOperationError: LocalizedError, Equatable {
             return "Document has sync conflicts. Please resolve them first."
         case .documentClosed:
             return "Document is closed. Please open it first."
+        case .documentReadOnly:
+            return "Document is read-only and cannot be modified."
         case .selectionTooLarge(let limit):
             return "Selection too large. Maximum \(limit) pages allowed."
         case .sourceDocumentUnavailable:

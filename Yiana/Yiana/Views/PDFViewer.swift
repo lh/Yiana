@@ -15,6 +15,8 @@ struct PDFViewer: View {
     @Binding var navigateToPage: Int?
     @Binding var currentPage: Int
     @State private var totalPages = 0
+    @State private var showPageIndicator = true
+    @State private var hideIndicatorTask: Task<Void, Never>?
     let onRequestPageManagement: (() -> Void)?
     let onRequestMetadataView: (() -> Void)?
 
@@ -37,24 +39,65 @@ struct PDFViewer: View {
                    navigateToPage: $navigateToPage,
                    onRequestPageManagement: onRequestPageManagement,
                    onRequestMetadataView: onRequestMetadataView)
-            .overlay(alignment: .bottom) {
+            .overlay(alignment: .bottomTrailing) {
                 if totalPages > 1 {
                     pageIndicator
+                        .opacity(showPageIndicator ? 1 : 0)
+                        .animation(.easeInOut(duration: 0.3), value: showPageIndicator)
                 }
+            }
+            .onAppear {
+                scheduleHideIndicator()
+            }
+            .onChange(of: currentPage) { _, _ in
+                showIndicator()
+            }
+            .onChange(of: navigateToPage) { _, _ in
+                showIndicator()
+            }
+            .onTapGesture(count: 1) { location in
+                // If tapped in bottom-right corner area, show indicator
+                // This is handled in PDFKitView tap handling
             }
     }
     
     private var pageIndicator: some View {
-        HStack {
-            Text("Page \(currentPage + 1) of \(totalPages)")
-                .font(.caption)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.black.opacity(0.7))
-                .foregroundColor(.white)
-                .cornerRadius(15)
+        Text("\(currentPage + 1)/\(totalPages)")
+            .font(.system(size: 12, weight: .medium, design: .rounded))
+            .foregroundColor(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                Capsule()
+                    .fill(Color.accentColor.opacity(0.85))
+            )
+            .padding(.trailing, 16)
+            .padding(.bottom, 20)
+            .onTapGesture {
+                // Keep indicator visible and maybe show page management
+                showIndicator()
+                onRequestPageManagement?()
+            }
+    }
+    
+    private func showIndicator() {
+        showPageIndicator = true
+        scheduleHideIndicator()
+    }
+    
+    private func scheduleHideIndicator() {
+        // Cancel any existing hide task
+        hideIndicatorTask?.cancel()
+        
+        // Schedule new hide after 3 seconds
+        hideIndicatorTask = Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+            if !Task.isCancelled {
+                await MainActor.run {
+                    showPageIndicator = false
+                }
+            }
         }
-        .padding()
     }
 }
 
