@@ -67,7 +67,18 @@ struct PageManagementView: View {
                         }
                     }
                 }
-                
+
+                // Done button - always visible, primary way to dismiss
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        isPresented = false
+                    }
+                    .fontWeight(.semibold)
+                    #if os(macOS)
+                    .keyboardShortcut(.return, modifiers: .command)
+                    #endif
+                }
+
                 #if os(iOS)
                 if !selectedPages.isEmpty {
                     ToolbarItemGroup(placement: .bottomBar) {
