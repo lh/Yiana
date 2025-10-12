@@ -726,7 +726,8 @@ struct DocumentEditView: View {
         if isSidebarSelectionMode {
             toggleSidebarSelection(index)
         } else {
-            enterSidebarSelection(with: index)
+            // Open page organizer instead of entering selection mode
+            activeSheet = .pageManagement
         }
     }
 

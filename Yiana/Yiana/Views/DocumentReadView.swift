@@ -74,6 +74,17 @@ struct DocumentReadView: View {
                         
                         // Control buttons
                         HStack(spacing: 12) {
+                            // Page management button (first position for prominence)
+                            if pdfData.count > 0 {
+                                Button(action: {
+                                    showingPageManagement = true
+                                }) {
+                                    Label("Manage Pages", systemImage: "rectangle.stack")
+                                }
+                                .buttonStyle(.borderless)
+                                .help("Manage pages (copy, cut, paste, reorder)")
+                            }
+
                             // Export button
                             Button(action: {
                                 exportPDF()
@@ -82,7 +93,7 @@ struct DocumentReadView: View {
                             }
                             .buttonStyle(.borderless)
                             .help("Export as PDF")
-                            
+
                             // Info panel toggle
                             Button(action: {
                                 showingInfoPanel.toggle()
@@ -91,16 +102,6 @@ struct DocumentReadView: View {
                             }
                             .buttonStyle(.borderless)
                             .help("Toggle document info panel")
-                            
-                            // Page management button
-                            if pdfData.count > 0 {
-                                Button(action: {
-                                    showingPageManagement = true
-                                }) {
-                                    Label("Manage Pages", systemImage: "rectangle.stack")
-                                }
-                                .buttonStyle(.borderless)
-                            }
                         }
                         .padding(.trailing)
                     }
@@ -116,7 +117,12 @@ struct DocumentReadView: View {
                         print("DEBUG DocumentReadView: searchTerm = \(String(describing: searchResult?.searchTerm))")
                     }()
                     // PDF viewer - use viewModel's pdfData for live updates
-                    MacPDFViewer(pdfData: viewModel?.pdfData ?? pdfData)
+                    MacPDFViewer(
+                        pdfData: viewModel?.pdfData ?? pdfData,
+                        onRequestPageManagement: {
+                            showingPageManagement = true
+                        }
+                    )
                 }
             } else {
                 VStack(spacing: 20) {

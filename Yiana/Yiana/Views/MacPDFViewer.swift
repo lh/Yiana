@@ -17,6 +17,7 @@ struct MacPDFViewer: View {
     @State private var navigateToPage: Int?
     @State private var pageInputText: String = ""
     @State private var showingPageInput = false
+    var onRequestPageManagement: (() -> Void)? = nil
     
     var body: some View {
         HSplitView {
@@ -31,7 +32,12 @@ struct MacPDFViewer: View {
                                     pageNumber: pageIndex + 1,
                                     isSelected: pageIndex == currentPage
                                 )
-                                .onTapGesture {
+                                .onTapGesture(count: 2) {
+                                    // Double-click to open page management
+                                    onRequestPageManagement?()
+                                }
+                                .onTapGesture(count: 1) {
+                                    // Single-click to navigate
                                     navigateToPage = pageIndex
                                 }
                                 .id(pageIndex)
