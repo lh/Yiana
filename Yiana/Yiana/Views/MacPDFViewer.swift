@@ -183,6 +183,16 @@ struct MacPDFViewer: View {
                 }
             }
         }
+        .onChange(of: pdfData) { _, newData in
+            // Update the PDF document when data changes (e.g., after page management)
+            if let document = PDFDocument(data: newData) {
+                pdfDocument = document
+                // Maintain current page position if valid
+                if currentPage >= document.pageCount {
+                    currentPage = max(0, document.pageCount - 1)
+                }
+            }
+        }
         .onExitCommand {
             if showingPageInput {
                 showingPageInput = false
