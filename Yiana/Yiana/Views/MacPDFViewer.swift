@@ -17,6 +17,7 @@ struct MacPDFViewer: View {
     @State private var navigateToPage: Int?
     @State private var pageInputText: String = ""
     @State private var showingPageInput = false
+    @State private var pdfDataId = UUID()  // Track PDF data changes
     var onRequestPageManagement: (() -> Void)? = nil
     
     var body: some View {
@@ -44,6 +45,7 @@ struct MacPDFViewer: View {
                             }
                         }
                         .padding()
+                        .id(pdfDataId)  // Force refresh when PDF data changes
                     }
                     .frame(width: 200)
                     .background(Color(NSColor.controlBackgroundColor))
@@ -187,6 +189,7 @@ struct MacPDFViewer: View {
             // Update the PDF document when data changes (e.g., after page management)
             if let document = PDFDocument(data: newData) {
                 pdfDocument = document
+                pdfDataId = UUID()  // Force refresh of thumbnail sidebar
                 // Maintain current page position if valid
                 if currentPage >= document.pageCount {
                     currentPage = max(0, document.pageCount - 1)
