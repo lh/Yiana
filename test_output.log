@@ -1,0 +1,6 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild test -scheme Yiana -destination platform=macOS "-only-testing:YianaTests/DocumentViewModelPageOperationsTests"
+
+2025-10-13 20:49:59.096 xcodebuild[2425:36277373] Writing error result bundle to /var/folders/cf/hfdshtps1bzbtzd3txx2ybmr0000gn/T/ResultBundle_2025-13-10_20-49-0059.xcresult
+xcodebuild: error: The directory /Users/rose/Code/Yiana does not contain an Xcode project, workspace or package.
+

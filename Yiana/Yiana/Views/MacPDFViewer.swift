@@ -10,19 +10,26 @@ import SwiftUI
 import PDFKit
 
 struct MacPDFViewer: View {
-    let pdfData: Data
+    @ObservedObject var viewModel: DocumentViewModel
+    var legacyPDFData: Data? = nil  // optional fallback for read-only documents
+    @Binding var isSidebarVisible: Bool
+    var refreshTrigger: UUID  // force rebuild when changed
+    
     @State private var currentPage: Int = 0
-    @State private var showingSidebar = true
     @State private var pdfDocument: PDFDocument?
     @State private var navigateToPage: Int?
     @State private var pageInputText: String = ""
     @State private var showingPageInput = false
-    @State private var pdfDataId = UUID()  // Track PDF data changes
     var onRequestPageManagement: (() -> Void)? = nil
+    
+    // Computed property for current PDF data
+    private var currentPDFData: Data? {
+        viewModel.displayPDFData ?? viewModel.pdfData ?? legacyPDFData
+    }
     
     var body: some View {
         HSplitView {
-            if showingSidebar {
+            if isSidebarVisible {
                 // Thumbnail sidebar
                 ScrollViewReader { scrollProxy in
                     ScrollView {
@@ -35,17 +42,19 @@ struct MacPDFViewer: View {
                                 )
                                 .onTapGesture(count: 2) {
                                     // Double-click to open page management
+                                    guard isSidebarVisible else { return }
                                     onRequestPageManagement?()
                                 }
                                 .onTapGesture(count: 1) {
                                     // Single-click to navigate
+                                    guard isSidebarVisible else { return }
                                     navigateToPage = pageIndex
                                 }
                                 .id(pageIndex)
                             }
                         }
                         .padding()
-                        .id(pdfDataId)  // Force refresh when PDF data changes
+                        .id(refreshTrigger)  // Force refresh when trigger changes
                     }
                     .frame(width: 200)
                     .background(Color(NSColor.controlBackgroundColor))
@@ -63,14 +72,14 @@ struct MacPDFViewer: View {
                     // Toggle sidebar button
                     Button(action: {
                         withAnimation(.easeInOut(duration: 0.2)) {
-                            showingSidebar.toggle()
+                            isSidebarVisible.toggle()
                         }
                     }) {
                         Image(systemName: "sidebar.left")
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.borderless)
-                    .help(showingSidebar ? "Hide Sidebar" : "Show Sidebar")
+                    .help(isSidebarVisible ? "Hide Sidebar" : "Show Sidebar")
                     
                     Divider()
                         .frame(height: 20)
@@ -170,37 +179,42 @@ struct MacPDFViewer: View {
                 
                 Divider()
                 
-                // PDF viewer
-                PDFViewer(
-                    pdfData: pdfData,
-                    navigateToPage: $navigateToPage,
-                    currentPage: $currentPage
-                )
+                // PDF viewer - use currentPDFData instead of direct pdfData
+                if let pdfData = currentPDFData {
+                    PDFViewer(
+                        pdfData: pdfData,
+                        navigateToPage: $navigateToPage,
+                        currentPage: $currentPage
+                    )
+                }
             }
         }
         .task {
-            if let document = PDFDocument(data: pdfData) {
-                await MainActor.run {
-                    pdfDocument = document
-                }
-            }
+            resetPDFDocument()
         }
-        .onChange(of: pdfData) { _, newData in
-            // Update the PDF document when data changes (e.g., after page management)
-            if let document = PDFDocument(data: newData) {
-                pdfDocument = document
-                pdfDataId = UUID()  // Force refresh of thumbnail sidebar
-                // Maintain current page position if valid
-                if currentPage >= document.pageCount {
-                    currentPage = max(0, document.pageCount - 1)
-                }
-            }
+        .onChange(of: refreshTrigger) { _, _ in
+            resetPDFDocument()
+        }
+        .onChange(of: currentPDFData) { _, _ in
+            resetPDFDocument()
         }
         .onExitCommand {
             if showingPageInput {
                 showingPageInput = false
                 pageInputText = ""
             }
+        }
+    }
+    
+    private func resetPDFDocument() {
+        guard let data = currentPDFData, let doc = PDFDocument(data: data) else {
+            pdfDocument = nil
+            return
+        }
+        pdfDocument = doc
+        // Maintain current page position if valid
+        if currentPage >= doc.pageCount {
+            currentPage = max(0, doc.pageCount - 1)
         }
     }
 }

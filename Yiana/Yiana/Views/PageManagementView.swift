@@ -25,6 +25,7 @@ struct PageManagementView: View {
     var provisionalPageRange: Range<Int>? = nil
     var onPageSelected: ((Int) -> Void)? = nil  // Callback for navigation
     var onProvisionalPageSelected: (() -> Void)? = nil
+    var onDismiss: (() -> Void)? = nil  // Callback when the view is dismissed
     @State private var pages: [PDFPage] = []
     @State private var selectedPages: Set<Int> = []
     @State private var isEditMode = false  // Start in navigation mode
@@ -36,6 +37,7 @@ struct PageManagementView: View {
     @State private var alertMessage: String? = nil
     @State private var showPasteIndicator = false
     @State private var pasteIndicatorPosition: Int? = nil
+    @State private var clipboardHasPayload = PageClipboard.shared.hasPayload  // Track clipboard state
     #if os(iOS)
     @State private var draggedPage: Int?
     #endif
@@ -71,6 +73,7 @@ struct PageManagementView: View {
                 // Done button - always visible, primary way to dismiss
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
+                        onDismiss?()  // Call the dismiss callback
                         isPresented = false
                     }
                     .fontWeight(.semibold)
@@ -80,42 +83,41 @@ struct PageManagementView: View {
                 }
 
                 #if os(iOS)
-                if !selectedPages.isEmpty {
-                    ToolbarItemGroup(placement: .bottomBar) {
-                        // Copy button
-                        Button {
-                            copyOrCutSelection(isCut: false)
-                        } label: {
-                            Label("Copy", systemImage: "doc.on.doc")
-                        }
-
-                        // Cut button
-                        Button {
-                            copyOrCutSelection(isCut: true)
-                        } label: {
-                            Label("Cut", systemImage: "scissors")
-                        }
-
-                        Spacer()
-
-                        // Delete button
-                        Button(role: .destructive) {
-                            deleteSelectedPages()
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
+                // Bottom toolbar with Cut, Copy, Paste on left and Delete on right
+                ToolbarItemGroup(placement: .bottomBar) {
+                    // Cut button
+                    Button {
+                        copyOrCutSelection(isCut: true)
+                    } label: {
+                        Label("Cut", systemImage: "scissors")
                     }
-                }
+                    .disabled(selectedPages.isEmpty)
 
-                // Paste button - shown when clipboard has data
-                if PageClipboard.shared.hasPayload {
-                    ToolbarItem(placement: .bottomBar) {
-                        Button {
-                            performPaste()
-                        } label: {
-                            Label("Paste", systemImage: "doc.on.clipboard")
-                        }
+                    // Copy button
+                    Button {
+                        copyOrCutSelection(isCut: false)
+                    } label: {
+                        Label("Copy", systemImage: "doc.on.doc")
                     }
+                    .disabled(selectedPages.isEmpty)
+
+                    // Paste button - always visible, uses standard iOS disabled state
+                    Button {
+                        performPaste()
+                    } label: {
+                        Label("Paste", systemImage: "doc.on.clipboard")
+                    }
+                    .disabled(!clipboardHasPayload)
+
+                    Spacer()
+
+                    // Delete button - on the right
+                    Button(role: .destructive) {
+                        deleteSelectedPages()
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .disabled(selectedPages.isEmpty)
                 }
 
                 // Restore Cut button - shown when there's an active cut for this document
@@ -154,7 +156,7 @@ struct PageManagementView: View {
                         } label: {
                             Label("Paste", systemImage: "doc.on.clipboard")
                         }
-                        .disabled(!PageClipboard.shared.hasPayload)
+                        .disabled(!clipboardHasPayload)
                         .keyboardShortcut("v", modifiers: .command)
 
                         // Restore Cut button - shown when there's an active cut for this document
@@ -169,19 +171,19 @@ struct PageManagementView: View {
 
                         Divider()
 
-                        // Move up button - always visible but disabled when inappropriate
+                        // Move left button - always visible but disabled when inappropriate
                         Button {
                             moveSelectedPage(direction: -1)
                         } label: {
-                            Label("Move Up", systemImage: "arrow.up")
+                            Label("Move Left", systemImage: "arrow.left")
                         }
                         .disabled(selectedPages.count != 1 || selectedPages.first == 0)
 
-                        // Move down button - always visible but disabled when inappropriate
+                        // Move right button - always visible but disabled when inappropriate
                         Button {
                             moveSelectedPage(direction: 1)
                         } label: {
-                            Label("Move Down", systemImage: "arrow.down")
+                            Label("Move Right", systemImage: "arrow.right")
                         }
                         .disabled(selectedPages.count != 1 || (selectedPages.first ?? 0) >= pages.count - 1)
 
@@ -206,6 +208,8 @@ struct PageManagementView: View {
         }
         .onAppear {
             loadPages()
+            // Refresh clipboard state in case user copied elsewhere
+            clipboardHasPayload = PageClipboard.shared.hasPayload
         }
         .alert("Finish Editing", isPresented: $showProvisionalReorderAlert) {
             Button("OK", role: .cancel) { }
@@ -226,6 +230,12 @@ struct PageManagementView: View {
         .onChange(of: pdfData) { _, _ in
             loadPages()
         }
+        .onChange(of: isPresented) { _, newValue in
+            // Call onDismiss when the sheet is being dismissed
+            if !newValue {
+                onDismiss?()
+            }
+        }
         #if os(macOS)
         .onReceive(NotificationCenter.default.publisher(for: .copyPages)) { _ in
             if !selectedPages.isEmpty {
@@ -238,7 +248,7 @@ struct PageManagementView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .pastePages)) { _ in
-            if PageClipboard.shared.hasPayload {
+            if clipboardHasPayload {
                 performPaste()
             }
         }
@@ -488,7 +498,8 @@ struct PageManagementView: View {
                     viewModel.cutPages(atZeroBasedIndices: transferable) :
                     viewModel.copyPages(atZeroBasedIndices: transferable))
                 PageClipboard.shared.setPayload(payload)
-                
+                clipboardHasPayload = true  // Update state immediately
+
                 if isCut {
                     // Mark pages as cut for visual feedback
                     cutPageIndices = transferable
@@ -504,24 +515,45 @@ struct PageManagementView: View {
         }
     }
     
+    private func defaultPasteDestination() -> Int {
+        // If pages are selected, insert right after the last selected index
+        guard let maxSelected = selectedPages.max() else { return pages.count }
+        return min(maxSelected + 1, pages.count)
+    }
+
     private func performPaste(at insertIndex: Int? = nil) {
         guard let payload = PageClipboard.shared.currentPayload() else { return }
+
+        // Check if this is a same-document operation
+        let isSameDocument = payload.sourceDocumentID == viewModel.documentID
+
         Task {
             do {
-                let insertAt = insertIndex ?? pages.count
+                // Use smart insertion point if not specified
+                let insertAt = insertIndex ?? defaultPasteDestination()
                 let inserted = try await viewModel.insertPages(from: payload, at: insertAt)
                 
-                // Clear clipboard if it was a cut operation
-                if payload.operation == .cut {
+                // Clear clipboard only for cut operations from different documents
+                // Keep clipboard for copy operations to allow multiple pastes
+                if payload.operation == .cut && !isSameDocument {
                     PageClipboard.shared.clear()
+                    clipboardHasPayload = false  // Update state
+                } else if payload.operation == .cut && isSameDocument {
+                    // For same-document cut, clear after successful move
+                    PageClipboard.shared.clear()
+                    clipboardHasPayload = false  // Update state
                 }
+                // For copy operations, keep clipboard active (clipboardHasPayload stays true)
                 
                 // Clear cut indicators
                 cutPageIndices = nil
                 
                 // Select the newly inserted pages
                 selectedPages = Set(insertAt..<(insertAt + inserted))
-                
+
+                // User feedback removed - no popup needed
+                // The visual selection of pasted pages provides sufficient feedback
+
                 // Reload pages to reflect changes
                 loadPages()
             } catch {
@@ -542,7 +574,8 @@ struct PageManagementView: View {
             // Clear the cut state
             cutPageIndices = nil
             PageClipboard.shared.clear()
-            
+            clipboardHasPayload = false  // Update state
+
             // Reload pages to reflect the restoration
             loadPages()
         }

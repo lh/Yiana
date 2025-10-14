@@ -25,6 +25,11 @@ struct DocumentReadView: View {
     @State private var showingExportError = false
     @State private var exportErrorMessage = ""
     
+    // New state for sidebar management
+    @State private var isSidebarVisible = true
+    @State private var sidebarWasVisibleBeforeOrganiser = true
+    @State private var sidebarRefreshID = UUID()
+    
     init(documentURL: URL, searchResult: SearchResult? = nil) {
         self.documentURL = documentURL
         self.searchResult = searchResult
@@ -77,6 +82,9 @@ struct DocumentReadView: View {
                             // Page management button (first position for prominence)
                             if pdfData.count > 0 {
                                 Button(action: {
+                                    // Stash sidebar state and hide it before showing organiser
+                                    sidebarWasVisibleBeforeOrganiser = isSidebarVisible
+                                    isSidebarVisible = false
                                     showingPageManagement = true
                                 }) {
                                     Label("Manage Pages", systemImage: "rectangle.stack")
@@ -116,13 +124,35 @@ struct DocumentReadView: View {
                         print("DEBUG DocumentReadView: pageNumber = \(String(describing: searchResult?.pageNumber))")
                         print("DEBUG DocumentReadView: searchTerm = \(String(describing: searchResult?.searchTerm))")
                     }()
-                    // PDF viewer - use viewModel's pdfData for live updates
-                    MacPDFViewer(
-                        pdfData: viewModel?.pdfData ?? pdfData,
-                        onRequestPageManagement: {
-                            showingPageManagement = true
-                        }
-                    )
+                    // PDF viewer - use viewModel if available, with new parameters
+                    if let viewModel = viewModel {
+                        MacPDFViewer(
+                            viewModel: viewModel,
+                            legacyPDFData: pdfData,
+                            isSidebarVisible: $isSidebarVisible,
+                            refreshTrigger: sidebarRefreshID,
+                            onRequestPageManagement: {
+                                // Stash sidebar state and hide it before showing organiser
+                                sidebarWasVisibleBeforeOrganiser = isSidebarVisible
+                                isSidebarVisible = false
+                                showingPageManagement = true
+                            }
+                        )
+                    } else {
+                        // Fallback for legacy PDFs without view model
+                        MacPDFViewer(
+                            viewModel: DocumentViewModel(pdfData: pdfData),
+                            legacyPDFData: pdfData,
+                            isSidebarVisible: $isSidebarVisible,
+                            refreshTrigger: sidebarRefreshID,
+                            onRequestPageManagement: {
+                                // Stash sidebar state and hide it before showing organiser
+                                sidebarWasVisibleBeforeOrganiser = isSidebarVisible
+                                isSidebarVisible = false
+                                showingPageManagement = true
+                            }
+                        )
+                    }
                 }
             } else {
                 VStack(spacing: 20) {
@@ -181,7 +211,12 @@ struct DocumentReadView: View {
                     isPresented: $showingPageManagement,
                     currentPageIndex: 0,  // macOS version doesn't track current page yet
                     displayPDFData: viewModel.displayPDFData,
-                    provisionalPageRange: viewModel.provisionalPageRange
+                    provisionalPageRange: viewModel.provisionalPageRange,
+                    onDismiss: {
+                        // Restore sidebar visibility and trigger refresh
+                        isSidebarVisible = sidebarWasVisibleBeforeOrganiser
+                        sidebarRefreshID = UUID()
+                    }
                 )
             } else {
                 // Legacy fallback for raw PDFs
@@ -191,7 +226,12 @@ struct DocumentReadView: View {
                     isPresented: $showingPageManagement,
                     currentPageIndex: 0,
                     displayPDFData: pdfData,
-                    provisionalPageRange: nil
+                    provisionalPageRange: nil,
+                    onDismiss: {
+                        // Restore sidebar visibility and trigger refresh
+                        isSidebarVisible = sidebarWasVisibleBeforeOrganiser
+                        sidebarRefreshID = UUID()
+                    }
                 )
             }
         }
