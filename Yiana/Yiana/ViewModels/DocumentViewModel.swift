@@ -23,11 +23,11 @@ class DocumentViewModel: ObservableObject {
             }
         }
     }
-    
+
     @Published var isSaving = false
     @Published var hasChanges = false
     @Published var errorMessage: String?
-    
+
     @Published var pdfData: Data? {
         didSet {
             if pdfData != oldValue {
@@ -55,7 +55,7 @@ class DocumentViewModel: ObservableObject {
     private var autoSaveTask: Task<Void, Never>?
     private let textRenderService = TextPageRenderService.shared
     private let provisionalManager = ProvisionalPageManager()
-    
+
     init(document: NoteDocument) {
         self.document = document
         self.title = document.metadata.title
@@ -66,7 +66,7 @@ class DocumentViewModel: ObservableObject {
             await refreshDisplayPDF()
         }
     }
-    
+
     func save() async -> Bool {
         guard hasChanges else {
             print("DEBUG DocumentViewModel: No changes to save")
@@ -197,7 +197,7 @@ class DocumentViewModel: ObservableObject {
         hasChanges = true
         scheduleAutoSave()
     }
-    
+
     func setProvisionalPreviewData(_ data: Data?) async {
         await provisionalManager.updateProvisionalData(data)
         await refreshDisplayPDF()
@@ -251,23 +251,23 @@ class DocumentViewModel: ObservableObject {
         pdfData = updatedData
         await refreshDisplayPDF()
     }
-    
+
     #if DEBUG
     func logDocumentSnapshot(context: String) {
         if let data = pdfData, let doc = PDFDocument(data: data) {
             print("DEBUG DocSnapshot[", context, "]: pdfData pages =", doc.pageCount)
-            for i in 0..<doc.pageCount {
-                let text = doc.page(at: i)?.string ?? "<no text>"
-                print("  pdfData page", i, ":", text.prefix(40))
+            for pageIndex in 0..<doc.pageCount {
+                let text = doc.page(at: pageIndex)?.string ?? "<no text>"
+                print("  pdfData page", pageIndex, ":", text.prefix(40))
             }
         } else {
             print("DEBUG DocSnapshot[", context, "]: pdfData is nil")
         }
         if let data = displayPDFData, let doc = PDFDocument(data: data) {
             print("DEBUG DocSnapshot[", context, "]: displayPDFData pages =", doc.pageCount)
-            for i in 0..<doc.pageCount {
-                let text = doc.page(at: i)?.string ?? "<no text>"
-                print("  display page", i, ":", text.prefix(40))
+            for pageIndex in 0..<doc.pageCount {
+                let text = doc.page(at: pageIndex)?.string ?? "<no text>"
+                print("  display page", pageIndex, ":", text.prefix(40))
             }
         } else {
             print("DEBUG DocSnapshot[", context, "]: displayPDFData is nil")
@@ -291,12 +291,12 @@ class DocumentViewModel: ObservableObject {
     /// Renders the provided Markdown into a PDF page, appends it to the current document,
     /// and updates metadata/search fields accordingly.
     // MARK: - Page Copy/Cut/Paste Operations
-    
+
     /// The document's unique identifier
     var documentID: UUID {
         document.metadata.id
     }
-    
+
     /// Ensures the document is in a valid state for modifications
     func ensureDocumentIsAvailable() throws {
         #if os(iOS)
@@ -315,11 +315,11 @@ class DocumentViewModel: ObservableObject {
         }
         #endif
     }
-    
+
     /// Copies pages at the specified zero-based indices
     func copyPages(atZeroBasedIndices indices: Set<Int>) async throws -> PageClipboardPayload {
         try ensureDocumentIsAvailable()
-        
+
         // Filter out provisional pages
         let validIndices = indices.filter { index in
             if let provisionalRange = provisionalPageRange {
@@ -327,11 +327,11 @@ class DocumentViewModel: ObservableObject {
             }
             return true
         }
-        
+
         guard !validIndices.isEmpty else {
             throw PageOperationError.provisionalPagesNotSupported
         }
-        
+
         return try PageClipboard.shared.createPayload(
             from: pdfData,
             indices: validIndices,
@@ -339,11 +339,11 @@ class DocumentViewModel: ObservableObject {
             operation: .copy
         )
     }
-    
+
     /// Cuts pages at the specified zero-based indices (removes them after creating payload)
     func cutPages(atZeroBasedIndices indices: Set<Int>) async throws -> PageClipboardPayload {
         try ensureDocumentIsAvailable()
-        
+
         // Filter out provisional pages
         let validIndices = indices.filter { index in
             if let provisionalRange = provisionalPageRange {
@@ -351,14 +351,14 @@ class DocumentViewModel: ObservableObject {
             }
             return true
         }
-        
+
         guard !validIndices.isEmpty else {
             throw PageOperationError.provisionalPagesNotSupported
         }
-        
+
         // Store current state for potential recovery
         let sourceDataBeforeCut = pdfData
-        
+
         // Create the payload before removing pages
         let payload = try PageClipboard.shared.createPayload(
             from: pdfData,
@@ -367,13 +367,13 @@ class DocumentViewModel: ObservableObject {
             operation: .cut,
             sourceDataBeforeCut: sourceDataBeforeCut
         )
-        
+
         // Now remove the pages
         await removePages(at: Array(validIndices))
-        
+
         return payload
     }
-    
+
     /// Inserts pages from a clipboard payload at the specified index
     /// - Parameters:
     ///   - payload: The page clipboard payload
@@ -382,46 +382,46 @@ class DocumentViewModel: ObservableObject {
     @discardableResult
     func insertPages(from payload: PageClipboardPayload, at insertIndex: Int?) async throws -> Int {
         try ensureDocumentIsAvailable()
-        
+
         guard let currentData = pdfData,
               let targetPDF = PDFDocument(data: currentData),
               let sourcePDF = PDFDocument(data: payload.pdfData) else {
             throw PageOperationError.sourceDocumentUnavailable
         }
-        
+
         // Determine insertion point
         let insertAt = insertIndex ?? targetPDF.pageCount
-        
+
         // Insert pages
         var insertedCount = 0
-        for i in 0..<sourcePDF.pageCount {
+        for sourcePageIndex in 0..<sourcePDF.pageCount {
             autoreleasepool {
-                if let page = sourcePDF.page(at: i),
+                if let page = sourcePDF.page(at: sourcePageIndex),
                    let pageCopy = page.copy() as? PDFPage {
                     targetPDF.insert(pageCopy, at: insertAt + insertedCount)
                     insertedCount += 1
                 }
             }
         }
-        
+
         guard insertedCount > 0 else {
             throw PageOperationError.insertionFailed
         }
-        
+
         // Update the document
         guard let updatedData = targetPDF.dataRepresentation() else {
             throw PageOperationError.unableToSerialise
         }
-        
+
         pdfData = updatedData
-        
+
         // Update metadata
         document.metadata.pageCount = targetPDF.pageCount
         document.metadata.modified = Date()
         hasChanges = true
-        
+
         await refreshDisplayPDF()
-        
+
         // Clear provisional range if we inserted at or before it
         if let provisionalRange = provisionalPageRange,
            let insertAt = insertIndex,
@@ -429,7 +429,7 @@ class DocumentViewModel: ObservableObject {
             let shift = insertedCount
             self.provisionalPageRange = (provisionalRange.lowerBound + shift)..<(provisionalRange.upperBound + shift)
         }
-        
+
         return insertedCount
     }
 
@@ -770,9 +770,9 @@ final class DocumentViewModel: ObservableObject {
 
         // Insert pages with autoreleasepool to minimize memory pressure
         var insertedCount = 0
-        for i in 0..<sourcePDF.pageCount {
+        for sourcePageIndex in 0..<sourcePDF.pageCount {
             autoreleasepool {
-                if let page = sourcePDF.page(at: i),
+                if let page = sourcePDF.page(at: sourcePageIndex),
                    let pageCopy = page.copy() as? PDFPage {
                     targetPDF.insert(pageCopy, at: insertAt + insertedCount)
                     insertedCount += 1

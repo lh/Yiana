@@ -15,7 +15,7 @@ struct BulkImportView: View {
     let folderPath: String
     @Binding var isPresented: Bool
     var onDismiss: (() -> Void)?
-    
+
     @AppStorage("lastUsedImportFolder") private var lastUsedImportFolder = ""
     @StateObject private var importService: BulkImportService
     @State private var titles: [String]
@@ -23,26 +23,26 @@ struct BulkImportView: View {
     @State private var importResult: BulkImportResult?
     @State private var showingResults = false
     @State private var showingWarning = false
-    
+
     private let maxFilesWithoutWarning = 50
     private let absoluteMaxFiles = 500
-    
+
     init(pdfURLs: [URL], folderPath: String = "", isPresented: Binding<Bool>, onDismiss: (() -> Void)? = nil) {
         // Limit the number of files
         let limitedURLs = Array(pdfURLs.prefix(absoluteMaxFiles))
         print("BulkImportView init with \(limitedURLs.count) PDFs (original: \(pdfURLs.count))")
-        
+
         self.pdfURLs = limitedURLs
         self.folderPath = folderPath
         self._isPresented = isPresented
         self.onDismiss = onDismiss
-        
+
         // Create import service with folder path
         let service = BulkImportService(folderPath: folderPath)
         self._importService = StateObject(wrappedValue: service)
         self._titles = State(initialValue: service.suggestedTitles(for: limitedURLs))
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -50,18 +50,18 @@ struct BulkImportView: View {
                 Text("Import Multiple PDFs")
                     .font(.title2)
                     .fontWeight(.semibold)
-                
+
                 HStack {
                     Text("\(pdfURLs.count) files selected")
                         .foregroundColor(.secondary)
-                    
+
                     if pdfURLs.count > maxFilesWithoutWarning {
                         Label("Large import may take several minutes", systemImage: "exclamationmark.triangle.fill")
                             .font(.caption)
                             .foregroundColor(.orange)
                     }
                 }
-                
+
                 // Show target folder
                 HStack {
                     Image(systemName: "folder")
@@ -75,9 +75,9 @@ struct BulkImportView: View {
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color(NSColor.windowBackgroundColor))
-            
+
             Divider()
-            
+
             // File list with editable titles
             ScrollView {
                 LazyVStack(spacing: 12) { // Use LazyVStack for better performance with many items
@@ -92,9 +92,9 @@ struct BulkImportView: View {
                 .padding()
             }
             .frame(maxHeight: 400)
-            
+
             Divider()
-            
+
             // Progress or Action buttons
             VStack(spacing: 12) {
                 if isImporting {
@@ -105,7 +105,7 @@ struct BulkImportView: View {
                                     .font(.caption)
                             }
                             .progressViewStyle(.linear)
-                            
+
                             Text("\(Int(progress.progress * 100))%")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
@@ -121,13 +121,13 @@ struct BulkImportView: View {
                             onDismiss?()
                         }
                         .keyboardShortcut(.escape)
-                        
+
                         Spacer()
-                        
+
                         Button("Reset Titles") {
                             titles = importService.suggestedTitles(for: pdfURLs)
                         }
-                        
+
                         Button("Import All") {
                             startImport()
                         }
@@ -155,20 +155,20 @@ struct BulkImportView: View {
             }
         }
     }
-    
+
     private func startImport() {
         isImporting = true
-        
+
         Task {
             let result = await importService.importPDFs(
                 from: pdfURLs,
                 withTitles: titles
             )
-            
+
             await MainActor.run {
                 self.importResult = result
                 self.isImporting = false
-                
+
                 if result.failed.isEmpty {
                     // All successful - save folder preference and close
                     lastUsedImportFolder = folderPath
@@ -192,12 +192,12 @@ struct PDFImportRow: View {
     let index: Int
     @State private var thumbnail: NSImage?
     @State private var isLoadingThumbnail = false
-    
+
     // Only load thumbnails for first 100 files to prevent memory issues
     private var shouldLoadThumbnail: Bool {
         index < 100
     }
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // Row number
@@ -205,7 +205,7 @@ struct PDFImportRow: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .frame(width: 20)
-            
+
             // PDF thumbnail
             Group {
                 if let thumbnail = thumbnail {
@@ -222,20 +222,20 @@ struct PDFImportRow: View {
                         .frame(width: 40, height: 40)
                 }
             }
-            
+
             // File info and title
             VStack(alignment: .leading, spacing: 4) {
                 Text(url.lastPathComponent)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
-                
+
                 TextField("Document title", text: $title)
                     .textFieldStyle(.roundedBorder)
             }
-            
+
             Spacer()
-            
+
             // File size
             Text(fileSizeString(for: url))
                 .font(.caption)
@@ -251,7 +251,7 @@ struct PDFImportRow: View {
             }
         }
     }
-    
+
     private func loadThumbnail() {
         isLoadingThumbnail = true
         DispatchQueue.global(qos: .userInitiated).async {
@@ -260,9 +260,9 @@ struct PDFImportRow: View {
                 if let data = try? Data(contentsOf: url),
                    let pdf = PDFDocument(data: data),
                    let page = pdf.page(at: 0) {
-                    
+
                     let size = NSSize(width: 40, height: 40) // Smaller thumbnails for better performance
-                    
+
                     // Use the thumbnail method which is modern and efficient
                     let thumbnail = page.thumbnail(of: size, for: .mediaBox)
                     DispatchQueue.main.async {
@@ -277,7 +277,7 @@ struct PDFImportRow: View {
             }
         }
     }
-    
+
     private func fileSizeString(for url: URL) -> String {
         guard let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
               let size = attributes[.size] as? Int64 else {
@@ -291,7 +291,7 @@ struct BulkImportResultsView: View {
     let result: BulkImportResult
     @Binding var isPresented: Bool
     let onDismiss: () -> Void
-    
+
     var body: some View {
         VStack(spacing: 20) {
             // Summary
@@ -299,21 +299,21 @@ struct BulkImportResultsView: View {
                 Image(systemName: result.failed.isEmpty ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                     .font(.system(size: 48))
                     .foregroundColor(result.failed.isEmpty ? .green : .orange)
-                
+
                 Text("Import Complete")
                     .font(.title2)
                     .fontWeight(.semibold)
-                
+
                 Text("\(result.successful.count) of \(result.totalProcessed) files imported successfully")
                     .foregroundColor(.secondary)
             }
-            
+
             // Failed files list
             if !result.failed.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Failed imports:")
                         .font(.headline)
-                    
+
                     ScrollView {
                         VStack(alignment: .leading, spacing: 4) {
                             ForEach(result.failed, id: \.url) { failed in
@@ -321,7 +321,7 @@ struct BulkImportResultsView: View {
                                     Image(systemName: "xmark.circle.fill")
                                         .foregroundColor(.red)
                                         .font(.caption)
-                                    
+
                                     VStack(alignment: .leading) {
                                         Text(failed.url.lastPathComponent)
                                             .font(.caption)
@@ -339,7 +339,7 @@ struct BulkImportResultsView: View {
                 .background(Color(NSColor.controlBackgroundColor))
                 .cornerRadius(8)
             }
-            
+
             Button("Done") {
                 isPresented = false
                 onDismiss()

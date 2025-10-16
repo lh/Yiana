@@ -1,0 +1,21 @@
+disabled_rules:
+  - trailing_whitespace
+  - todo
+
+custom_rules:
+  accessibility_button_label:
+    name: "Button Accessibility"
+    regex: 'Button\s*\('
+    message: "Buttons should declare accessibility semantics"
+    severity: warning
+  accessibility_navigation_link:
+    name: "NavigationLink Accessibility"
+    regex: 'NavigationLink\s*\('
+    message: "NavigationLinks should expose combined accessibility semantics"
+    severity: warning
+
+excluded:
+  - YianaOCRService
+  - YianaDocumentArchive
+  - Yiana/Yiana/Accessibility
+  - Yiana/Yiana/Extensions

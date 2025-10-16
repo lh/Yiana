@@ -12,11 +12,11 @@ import SwiftUI
 struct CommitButton: View {
     let hasAnnotations: Bool
     let onCommit: () -> Void
-    
+
     @State private var showingConfirmation = false
     @State private var isCommitting = false
     @State private var showInkDryingAnimation = false
-    
+
     var body: some View {
         Button(action: {
             if hasAnnotations {
@@ -33,7 +33,7 @@ struct CommitButton: View {
                         .imageScale(.large)
                         .symbolRenderingMode(.hierarchical)
                 }
-                
+
                 Text(buttonText)
                     .fontWeight(.medium)
             }
@@ -66,9 +66,9 @@ struct CommitButton: View {
         }
         .animation(.easeInOut(duration: 0.3), value: showInkDryingAnimation)
     }
-    
+
     // MARK: - Computed Properties
-    
+
     private var buttonText: String {
         if isCommitting {
             return "Committing..."
@@ -80,7 +80,7 @@ struct CommitButton: View {
             return "No Annotations"
         }
     }
-    
+
     private var buttonColor: Color {
         if !hasAnnotations {
             return .secondary
@@ -90,7 +90,7 @@ struct CommitButton: View {
             return .white
         }
     }
-    
+
     private var buttonBackgroundColor: Color {
         if !hasAnnotations {
             return Color(NSColor.controlBackgroundColor)
@@ -100,7 +100,7 @@ struct CommitButton: View {
             return Color.accentColor
         }
     }
-    
+
     private var buttonBorderColor: Color {
         if !hasAnnotations {
             return Color(NSColor.separatorColor)
@@ -110,7 +110,7 @@ struct CommitButton: View {
             return Color.accentColor.opacity(0.8)
         }
     }
-    
+
     private var helpText: String {
         if !hasAnnotations {
             return "Add annotations before committing"
@@ -118,18 +118,18 @@ struct CommitButton: View {
             return "Permanently apply annotations (⌘Return)"
         }
     }
-    
+
     // MARK: - Methods
-    
+
     private func performCommit() {
         isCommitting = true
-        
+
         // Simulate ink drying with a slight delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             onCommit()
             isCommitting = false
             showInkDryingAnimation = true
-            
+
             // Reset animation after showing success
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                 showInkDryingAnimation = false
@@ -142,7 +142,7 @@ struct CommitButton: View {
 
 struct InkDryingAnimation: View {
     @State private var opacity: Double = 1.0
-    
+
     var body: some View {
         Text("✓ Ink Applied")
             .font(.caption)
@@ -176,12 +176,12 @@ struct CommitButton_Previews: PreviewProvider {
             CommitButton(hasAnnotations: true, onCommit: {
                 print("Committed!")
             })
-            
+
             // Without annotations
             CommitButton(hasAnnotations: false, onCommit: {
                 print("Nothing to commit")
             })
-            
+
             // Animation preview
             InkDryingAnimation()
         }

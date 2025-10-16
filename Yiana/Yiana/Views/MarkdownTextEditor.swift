@@ -367,9 +367,9 @@ struct MarkdownTextEditor: NSViewRepresentable {
 
 #if os(iOS) || os(macOS)
 
-fileprivate let orderedListPrefixRegex = try? NSRegularExpression(pattern: "^\\d+\\.\\s+", options: [])
+private let orderedListPrefixRegex = try? NSRegularExpression(pattern: "^\\d+\\.\\s+", options: [])
 
-fileprivate func wrapSelection(in text: String, range: NSRange, prefix: String, suffix: String) -> (text: String, cursor: NSRange) {
+private func wrapSelection(in text: String, range: NSRange, prefix: String, suffix: String) -> (text: String, cursor: NSRange) {
     let nsText = text as NSString
     let selectedText = nsText.substring(with: range)
     let replacement: String
@@ -388,7 +388,7 @@ fileprivate func wrapSelection(in text: String, range: NSRange, prefix: String, 
     return (newText, NSRange(location: boundedLocation, length: 0))
 }
 
-fileprivate func toggleList(
+private func toggleList(
     in text: String,
     range: NSRange,
     markerProvider: (Int) -> String
@@ -469,7 +469,7 @@ fileprivate func toggleList(
     return (newText, NSRange(location: location, length: 0))
 }
 
-fileprivate func toggleBlockquote(in text: String, range: NSRange) -> (text: String, cursor: NSRange) {
+private func toggleBlockquote(in text: String, range: NSRange) -> (text: String, cursor: NSRange) {
     let nsText = text as NSString
     let lineRange = nsText.lineRange(for: range)
     let selectedText = nsText.substring(with: lineRange)
@@ -512,7 +512,7 @@ fileprivate func toggleBlockquote(in text: String, range: NSRange) -> (text: Str
     return (newText, NSRange(location: location, length: 0))
 }
 
-fileprivate func insertHorizontalRule(in text: String, range: NSRange) -> (text: String, cursor: NSRange) {
+private func insertHorizontalRule(in text: String, range: NSRange) -> (text: String, cursor: NSRange) {
     let nsText = text as NSString
     let insertion = "\n\n---\n\n"
     let newText = nsText.replacingCharacters(in: range, with: insertion)
@@ -520,7 +520,7 @@ fileprivate func insertHorizontalRule(in text: String, range: NSRange) -> (text:
     return (newText, NSRange(location: location, length: 0))
 }
 
-fileprivate func applyHeading(in text: String, range: NSRange, level: Int) -> (text: String, cursor: NSRange) {
+private func applyHeading(in text: String, range: NSRange, level: Int) -> (text: String, cursor: NSRange) {
     let nsText = text as NSString
     let lineRange = nsText.lineRange(for: range)
     let selectedText = nsText.substring(with: lineRange)

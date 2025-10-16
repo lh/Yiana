@@ -51,7 +51,7 @@ struct TextPageRenderOptions {
     var boldFont: PlatformFont
     var italicFont: PlatformFont
     var monoFont: PlatformFont
-    var headerColor:PlatformColor
+    var headerColor: PlatformColor
     var bodyColor: PlatformColor
     var secondaryColor: PlatformColor
     var accentColor: PlatformColor

@@ -15,7 +15,7 @@ import Foundation
 #if DEBUG
 struct DevelopmentMenu: View {
     @State private var showingNukeView = false
-    
+
     var body: some View {
         Menu {
             Button(action: {
@@ -24,9 +24,9 @@ struct DevelopmentMenu: View {
                 Label("🔥 NUKE ALL DATA 🔥", systemImage: "trash.fill")
                     .foregroundColor(.red)
             }
-            
+
             Divider()
-            
+
             Button(action: {
                 print("DEBUG: Force OCR re-run requested")
                 // Could trigger OCR service to re-process all documents
@@ -37,13 +37,13 @@ struct DevelopmentMenu: View {
             }) {
                 Label("Force OCR Re-run", systemImage: "doc.text.magnifyingglass")
             }
-            
+
             Button(action: {
                 triggerOCRCleanup()
             }) {
                 Label("Run OCR Cleanup", systemImage: "trash.slash")
             }
-            
+
             Button(action: {
                 // Just delete OCR cache, less destructive than nuke
                 deleteOCRCache()
@@ -104,9 +104,9 @@ struct DevelopmentMenu: View {
                 Text("⚠️ DANGER ZONE ⚠️")
                     .font(.largeTitle)
                     .foregroundColor(.red)
-                
+
                 DevelopmentNukeView()
-                
+
                 Button("Cancel") {
                     showingNukeView = false
                 }
@@ -116,7 +116,7 @@ struct DevelopmentMenu: View {
             .frame(minWidth: 400, minHeight: 300)
         }
     }
-    
+
     private func deleteOCRCache() {
         let fileManager = FileManager.default
         let paths = [
@@ -144,22 +144,22 @@ struct DevelopmentMenu: View {
             print("No OCR cache found to delete.")
         }
     }
-    
+
     private func triggerOCRCleanup() {
 #if os(macOS)
         let commands = [
             "cd ~/Code/YianaOCRService",
             "swift run yiana-ocr cleanup"
         ].joined(separator: " && ")
-        
+
         let process = Process()
         process.launchPath = "/bin/bash"
         process.arguments = ["-lc", commands]
-        
+
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = pipe
-        
+
         do {
             try process.run()
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
@@ -238,7 +238,7 @@ struct DevelopmentMenu: View {
         }
     }
 
-    private func testSearchPipeline() async {
+    func testSearchPipeline() async {
         print("\n🔬 Testing Search Pipeline")
         print(String(repeating: "=", count: 50))
 

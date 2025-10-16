@@ -21,27 +21,27 @@ struct PageManagementView: View {
     @ObservedObject var viewModel: DocumentViewModel
     @Binding var isPresented: Bool
     var currentPageIndex: Int = 0  // The page currently being viewed
-    var displayPDFData: Data? = nil
-    var provisionalPageRange: Range<Int>? = nil
-    var onPageSelected: ((Int) -> Void)? = nil  // Callback for navigation
-    var onProvisionalPageSelected: (() -> Void)? = nil
-    var onDismiss: (() -> Void)? = nil  // Callback when the view is dismissed
+    var displayPDFData: Data?
+    var provisionalPageRange: Range<Int>?
+    var onPageSelected: ((Int) -> Void)?  // Callback for navigation
+    var onProvisionalPageSelected: (() -> Void)?
+    var onDismiss: (() -> Void)?  // Callback when the view is dismissed
     @State private var pages: [PDFPage] = []
     @State private var selectedPages: Set<Int> = []
     @State private var isEditMode = false  // Start in navigation mode
-    @State private var navigateToPage: Int? = nil  // Track navigation request
-    @State private var pendingNavigationIndex: Int? = nil  // Show where we're about to navigate
+    @State private var navigateToPage: Int?  // Track navigation request
+    @State private var pendingNavigationIndex: Int?  // Show where we're about to navigate
     @State private var showProvisionalReorderAlert = false
     @State private var workingDocument: PDFDocument?
-    @State private var cutPageIndices: Set<Int>? = nil
-    @State private var alertMessage: String? = nil
+    @State private var cutPageIndices: Set<Int>?
+    @State private var alertMessage: String?
     @State private var showPasteIndicator = false
-    @State private var pasteIndicatorPosition: Int? = nil
+    @State private var pasteIndicatorPosition: Int?
     @State private var clipboardHasPayload = PageClipboard.shared.hasPayload  // Track clipboard state
     #if os(iOS)
     @State private var draggedPage: Int?
     #endif
-    
+
     var body: some View {
         NavigationStack {
             Group {
@@ -91,6 +91,8 @@ struct PageManagementView: View {
                     } label: {
                         Label("Cut", systemImage: "scissors")
                     }
+                    .toolbarActionAccessibility(label: "Cut pages")
+                    .accessibilityValue(selectedPages.isEmpty ? "" : "\(selectedPages.count) selected")
                     .disabled(selectedPages.isEmpty)
 
                     // Copy button
@@ -99,6 +101,8 @@ struct PageManagementView: View {
                     } label: {
                         Label("Copy", systemImage: "doc.on.doc")
                     }
+                    .toolbarActionAccessibility(label: "Copy pages")
+                    .accessibilityValue(selectedPages.isEmpty ? "" : "\(selectedPages.count) selected")
                     .disabled(selectedPages.isEmpty)
 
                     // Paste button - always visible, uses standard iOS disabled state
@@ -107,6 +111,8 @@ struct PageManagementView: View {
                     } label: {
                         Label("Paste", systemImage: "doc.on.clipboard")
                     }
+                    .toolbarActionAccessibility(label: "Paste pages")
+                    .accessibilityValue(clipboardHasPayload ? "Clipboard ready" : "Clipboard empty")
                     .disabled(!clipboardHasPayload)
 
                     Spacer()
@@ -117,6 +123,8 @@ struct PageManagementView: View {
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
+                    .toolbarActionAccessibility(label: "Delete pages")
+                    .accessibilityValue(selectedPages.isEmpty ? "" : "\(selectedPages.count) selected")
                     .disabled(selectedPages.isEmpty)
                 }
 
@@ -138,6 +146,8 @@ struct PageManagementView: View {
                         } label: {
                             Label("Copy", systemImage: "doc.on.doc")
                         }
+                        .toolbarActionAccessibility(label: "Copy pages", keyboardShortcut: "Command C")
+                        .accessibilityValue(selectedPages.isEmpty ? "" : "\(selectedPages.count) selected")
                         .disabled(selectedPages.isEmpty)
                         .keyboardShortcut("c", modifiers: .command)
 
@@ -147,6 +157,8 @@ struct PageManagementView: View {
                         } label: {
                             Label("Cut", systemImage: "scissors")
                         }
+                        .toolbarActionAccessibility(label: "Cut pages", keyboardShortcut: "Command X")
+                        .accessibilityValue(selectedPages.isEmpty ? "" : "\(selectedPages.count) selected")
                         .disabled(selectedPages.isEmpty)
                         .keyboardShortcut("x", modifiers: .command)
 
@@ -156,6 +168,8 @@ struct PageManagementView: View {
                         } label: {
                             Label("Paste", systemImage: "doc.on.clipboard")
                         }
+                        .toolbarActionAccessibility(label: "Paste pages", keyboardShortcut: "Command V")
+                        .accessibilityValue(clipboardHasPayload ? "Clipboard ready" : "Clipboard empty")
                         .disabled(!clipboardHasPayload)
                         .keyboardShortcut("v", modifiers: .command)
 
@@ -166,6 +180,7 @@ struct PageManagementView: View {
                             } label: {
                                 Label("Restore Cut", systemImage: "arrow.uturn.backward")
                             }
+                            .toolbarActionAccessibility(label: "Restore cut pages", keyboardShortcut: "Shift Command Z")
                             .keyboardShortcut("z", modifiers: [.command, .shift])
                         }
 
@@ -177,6 +192,8 @@ struct PageManagementView: View {
                         } label: {
                             Label("Move Left", systemImage: "arrow.left")
                         }
+                        .toolbarActionAccessibility(label: "Move page left", keyboardShortcut: "Option Command Left Arrow")
+                        .accessibilityValue(selectedPages.count == 1 ? "Page \(selectedPages.first! + 1)" : "")
                         .disabled(selectedPages.count != 1 || selectedPages.first == 0)
 
                         // Move right button - always visible but disabled when inappropriate
@@ -185,6 +202,8 @@ struct PageManagementView: View {
                         } label: {
                             Label("Move Right", systemImage: "arrow.right")
                         }
+                        .toolbarActionAccessibility(label: "Move page right", keyboardShortcut: "Option Command Right Arrow")
+                        .accessibilityValue(selectedPages.count == 1 ? "Page \(selectedPages.first! + 1)" : "")
                         .disabled(selectedPages.count != 1 || (selectedPages.first ?? 0) >= pages.count - 1)
 
                         Divider()
@@ -195,6 +214,8 @@ struct PageManagementView: View {
                         } label: {
                             Label("Delete Selected", systemImage: "trash")
                         }
+                        .toolbarActionAccessibility(label: "Delete pages", keyboardShortcut: "Command Delete")
+                        .accessibilityValue(selectedPages.isEmpty ? "" : "\(selectedPages.count) selected")
                         .disabled(selectedPages.isEmpty)
                 }
                 #endif
@@ -254,7 +275,7 @@ struct PageManagementView: View {
         }
         #endif
     }
-    
+
     private var pageGrid: some View {
         ScrollView {
             LazyVGrid(columns: [
@@ -269,6 +290,12 @@ struct PageManagementView: View {
                         isSelected: selectedPages.contains(index),
                         isCurrentPage: pendingNavigationIndex == index ? true : (pendingNavigationIndex == nil && index == currentPageIndex),
                         isEditMode: isEditMode,
+                        isProvisional: isProvisional
+                    )
+                    .pageThumbnailAccessibility(
+                        pageNumber: index + 1,
+                        isSelected: selectedPages.contains(index),
+                        isCurrent: pendingNavigationIndex == index ? true : (pendingNavigationIndex == nil && index == currentPageIndex),
                         isProvisional: isProvisional
                     )
                     .opacity(isCut ? 0.4 : 1.0)
@@ -307,11 +334,11 @@ struct PageManagementView: View {
                         self.draggedPage = index
                         return NSItemProvider(object: "\(index)" as NSString)
                     }
-                    .onDrop(of: [.text], isTargeted: nil) { providers, location in
+                    .onDrop(of: [.text], isTargeted: nil) { _, _ in
                         guard !isProvisional else { return false }
                         guard let draggedPage = self.draggedPage,
                               draggedPage != index else { return false }
-                        
+
                         reorderPages(from: draggedPage, to: index)
                         return true
                     }
@@ -321,7 +348,7 @@ struct PageManagementView: View {
             .padding()
         }
     }
-    
+
     private func loadPages() {
         let hasProvisional = provisionalPageRange.map { !$0.isEmpty } ?? false
         let sourceData: Data?
@@ -349,7 +376,7 @@ struct PageManagementView: View {
         pages = loadedPages
         workingDocument = document
     }
-    
+
     private func toggleSelection(for index: Int) {
         if selectedPages.contains(index) {
             selectedPages.remove(index)
@@ -357,7 +384,7 @@ struct PageManagementView: View {
             selectedPages.insert(index)
         }
     }
-    
+
     private func deleteSelectedPages() {
         // Remove pages in reverse order to maintain indices
         let sortedIndices = selectedPages.sorted(by: >)
@@ -368,11 +395,11 @@ struct PageManagementView: View {
         }
         selectedPages.removeAll()
         // Stay in edit mode after deletion
-        
+
         // Update the PDF data
         saveChanges()
     }
-    
+
     private func reorderPages(from sourceIndex: Int, to destinationIndex: Int) {
         guard sourceIndex != destinationIndex else { return }
 
@@ -384,27 +411,27 @@ struct PageManagementView: View {
 
         let page = pages.remove(at: sourceIndex)
         pages.insert(page, at: destinationIndex)
-        
+
         // Update the PDF data
         saveChanges()
     }
-    
+
     #if os(macOS)
     private func moveSelectedPage(direction: Int) {
         guard let selectedIndex = selectedPages.first else { return }
         let newIndex = selectedIndex + direction
-        
+
         guard newIndex >= 0 && newIndex < pages.count else { return }
-        
+
         // Reorder the page
         reorderPages(from: selectedIndex, to: newIndex)
-        
+
         // Update selection to follow the moved page
         selectedPages.removeAll()
         selectedPages.insert(newIndex)
     }
     #endif
-    
+
     private func saveChanges() {
         guard !pages.isEmpty else {
             let emptyDocument = PDFDocument()
@@ -471,16 +498,15 @@ struct PageManagementView: View {
         // Don't dismiss - let user continue working
     }
 
-    
     // MARK: - Copy/Paste Operations
-    
+
     private func canCopy(index: Int) -> Bool {
         if let provisionalRange = provisionalPageRange {
             return !provisionalRange.contains(index)
         }
         return true
     }
-    
+
     private func filteredTransferSelection() -> Set<Int>? {
         let valid = selectedPages.filter(canCopy)
         guard !valid.isEmpty else {
@@ -489,7 +515,7 @@ struct PageManagementView: View {
         }
         return Set(valid)
     }
-    
+
     private func copyOrCutSelection(isCut: Bool) {
         guard let transferable = filteredTransferSelection() else { return }
         Task {
@@ -499,6 +525,8 @@ struct PageManagementView: View {
                     viewModel.copyPages(atZeroBasedIndices: transferable))
                 PageClipboard.shared.setPayload(payload)
                 clipboardHasPayload = true  // Update state immediately
+                let verb = isCut ? "Cut" : "Copied"
+                AccessibilityAnnouncer.shared.post("\(verb) \(transferable.count) \(transferable.count == 1 ? "page" : "pages")")
 
                 if isCut {
                     // Mark pages as cut for visual feedback
@@ -511,10 +539,11 @@ struct PageManagementView: View {
                 }
             } catch {
                 alertMessage = error.localizedDescription
+                AccessibilityAnnouncer.shared.post("Error: \(error.localizedDescription)")
             }
         }
     }
-    
+
     private func defaultPasteDestination() -> Int {
         // If pages are selected, insert right after the last selected index
         guard let maxSelected = selectedPages.max() else { return pages.count }
@@ -532,7 +561,7 @@ struct PageManagementView: View {
                 // Use smart insertion point if not specified
                 let insertAt = insertIndex ?? defaultPasteDestination()
                 let inserted = try await viewModel.insertPages(from: payload, at: insertAt)
-                
+
                 // Clear clipboard only for cut operations from different documents
                 // Keep clipboard for copy operations to allow multiple pastes
                 if payload.operation == .cut && !isSameDocument {
@@ -544,10 +573,10 @@ struct PageManagementView: View {
                     clipboardHasPayload = false  // Update state
                 }
                 // For copy operations, keep clipboard active (clipboardHasPayload stays true)
-                
+
                 // Clear cut indicators
                 cutPageIndices = nil
-                
+
                 // Select the newly inserted pages
                 selectedPages = Set(insertAt..<(insertAt + inserted))
 
@@ -556,21 +585,23 @@ struct PageManagementView: View {
 
                 // Reload pages to reflect changes
                 loadPages()
+                let announcementIndex = insertAt + 1
+                AccessibilityAnnouncer.shared.post("Pasted \(inserted) \(inserted == 1 ? "page" : "pages") at position \(announcementIndex)")
             } catch {
                 alertMessage = error.localizedDescription
+                AccessibilityAnnouncer.shared.post("Error: \(error.localizedDescription)")
             }
         }
     }
 
-    
     private func restoreCutPages() {
         guard let cutPayload = PageClipboard.shared.activeCutPayload(for: viewModel.documentID),
               let sourceData = cutPayload.sourceDataBeforeCut else { return }
-        
+
         Task {
             // Restore the original document data
             viewModel.pdfData = sourceData
-            
+
             // Clear the cut state
             cutPageIndices = nil
             PageClipboard.shared.clear()
@@ -578,6 +609,7 @@ struct PageManagementView: View {
 
             // Reload pages to reflect the restoration
             loadPages()
+            AccessibilityAnnouncer.shared.post("Restored cut pages")
         }
     }
 }
@@ -622,7 +654,7 @@ struct PageThumbnailView: View {
                             .padding(8)
                         }
                     }
-                
+
                 // Selection indicator (only show in edit mode)
                 if isEditMode {
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
@@ -631,14 +663,14 @@ struct PageThumbnailView: View {
                         .padding(8)
                 }
             }
-            
+
             // Page number
             Text(isProvisional ? "Page \(pageNumber) (Draft)" : "Page \(pageNumber)")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
     }
-    
+
     @ViewBuilder
     private var thumbnailImage: some View {
         if let thumbnail = generateThumbnail(for: page) {
@@ -657,7 +689,7 @@ struct PageThumbnailView: View {
                 .font(.largeTitle)
         }
     }
-    
+
     #if os(iOS)
     private func generateThumbnail(for page: PDFPage) -> UIImage? {
         let scale: CGFloat = 2.0

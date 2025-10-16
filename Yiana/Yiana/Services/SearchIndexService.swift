@@ -97,18 +97,20 @@ class SearchIndexService {
         do {
             // Create database queue with WAL mode for better concurrency
             var config = Configuration()
-            config.prepareDatabase { db in
-                try db.execute(sql: "PRAGMA journal_mode = WAL")
+            config.prepareDatabase { database in
+                try database.execute(sql: "PRAGMA journal_mode = WAL")
             }
 
             self.dbQueue = try DatabaseQueue(path: databaseURL.path, configuration: config)
 
             // Run migrations
-            try dbQueue.write { db in
-                try self.createSchema(db)
+            try dbQueue.write { database in
+                try self.createSchema(database)
             }
 
-            print("✓ Search index database initialized at \(databaseURL.path)")
+#if DEBUG
+        print("✓ Search index database initialized at \(databaseURL.path)")
+#endif
         } catch {
             fatalError("Failed to initialize search database: \(error)")
         }
@@ -116,9 +118,9 @@ class SearchIndexService {
 
     // MARK: - Schema Management
 
-    private func createSchema(_ db: Database) throws {
+    private func createSchema(_ database: Database) throws {
         // Create FTS5 virtual table for full-text search
-        try db.execute(sql: """
+        try database.execute(sql: """
             CREATE VIRTUAL TABLE IF NOT EXISTS documents_fts USING fts5(
                 document_id UNINDEXED,
                 title,
@@ -129,7 +131,7 @@ class SearchIndexService {
             """)
 
         // Create metadata table for non-searchable fields
-        try db.execute(sql: """
+        try database.execute(sql: """
             CREATE TABLE IF NOT EXISTS documents_metadata (
                 document_id TEXT PRIMARY KEY,
                 url TEXT NOT NULL,
@@ -142,7 +144,7 @@ class SearchIndexService {
             """)
 
         // Create index on URL for fast lookups
-        try db.execute(sql: """
+        try database.execute(sql: """
             CREATE INDEX IF NOT EXISTS idx_url ON documents_metadata(url)
             """)
     }
@@ -158,7 +160,7 @@ class SearchIndexService {
         tags: [String],
         metadata: DocumentMetadata
     ) async throws {
-        try await dbQueue.write { db in
+        try await dbQueue.write { database in
             // Insert FTS record
             let ftsRecord = DocumentFTSRecord(
                 documentId: id.uuidString,
@@ -166,7 +168,7 @@ class SearchIndexService {
                 fullText: fullText,
                 tags: tags.joined(separator: " ")
             )
-            try ftsRecord.insert(db, onConflict: .replace)
+            try ftsRecord.insert(database, onConflict: .replace)
 
             // Insert metadata record
             let metadataRecord = DocumentMetadataRecord(
@@ -178,23 +180,23 @@ class SearchIndexService {
                 ocrCompleted: metadata.ocrCompleted,
                 indexedDate: Date().timeIntervalSince1970
             )
-            try metadataRecord.insert(db, onConflict: .replace)
+            try metadataRecord.insert(database, onConflict: .replace)
         }
     }
 
     /// Remove a document from the search index
     func removeDocument(id: UUID) async throws {
-        try await dbQueue.write { db in
+        try await dbQueue.write { database in
             let idString = id.uuidString
 
             // Delete from FTS table
-            try db.execute(
+            try database.execute(
                 sql: "DELETE FROM documents_fts WHERE document_id = ?",
                 arguments: [idString]
             )
 
             // Delete from metadata table
-            try db.execute(
+            try database.execute(
                 sql: "DELETE FROM documents_metadata WHERE document_id = ?",
                 arguments: [idString]
             )
@@ -216,7 +218,7 @@ class SearchIndexService {
 
     /// Perform full-text search with relevance ranking
     func search(query: String, limit: Int = 50) async throws -> [IndexedSearchResult] {
-        return try await dbQueue.read { db in
+        return try await dbQueue.read { database in
             let sanitizedQuery = self.sanitizeFTSQuery(query)
 
             // FTS5 query with BM25 ranking
@@ -237,7 +239,7 @@ class SearchIndexService {
                 LIMIT ?
                 """
 
-            let rows = try Row.fetchAll(db, sql: sql, arguments: [sanitizedQuery, limit])
+            let rows = try Row.fetchAll(database, sql: sql, arguments: [sanitizedQuery, limit])
 
             return rows.compactMap { row in
                 guard let idString: String = row["document_id"],
@@ -289,16 +291,16 @@ class SearchIndexService {
 
     /// Get count of indexed documents
     func getIndexedDocumentCount() async throws -> Int {
-        return try await dbQueue.read { db in
-            return try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM documents_metadata") ?? 0
+        return try await dbQueue.read { database in
+            return try Int.fetchOne(database, sql: "SELECT COUNT(*) FROM documents_metadata") ?? 0
         }
     }
 
     /// Check if a document is indexed
     func isDocumentIndexed(id: UUID) async throws -> Bool {
-        return try await dbQueue.read { db in
+        return try await dbQueue.read { database in
             let count = try Int.fetchOne(
-                db,
+                database,
                 sql: "SELECT COUNT(*) FROM documents_metadata WHERE document_id = ?",
                 arguments: [id.uuidString]
             ) ?? 0
@@ -308,17 +310,17 @@ class SearchIndexService {
 
     /// Optimize the FTS index (should be called periodically)
     func optimize() async throws {
-        try await dbQueue.write { db in
-            try db.execute(sql: "INSERT INTO documents_fts(documents_fts) VALUES('optimize')")
+        try await dbQueue.write { database in
+            try database.execute(sql: "INSERT INTO documents_fts(documents_fts) VALUES('optimize')")
             print("✓ Search index optimized")
         }
     }
 
     /// Rebuild entire index (for migrations or corruption recovery)
     func rebuildIndex() async throws {
-        try await dbQueue.write { db in
-            try db.execute(sql: "DELETE FROM documents_fts")
-            try db.execute(sql: "DELETE FROM documents_metadata")
+        try await dbQueue.write { database in
+            try database.execute(sql: "DELETE FROM documents_fts")
+            try database.execute(sql: "DELETE FROM documents_metadata")
             print("✓ Search index cleared")
         }
     }
@@ -345,14 +347,14 @@ class SearchIndexService {
 
         // Recreate database queue
         var config = Configuration()
-        config.prepareDatabase { db in
-            try db.execute(sql: "PRAGMA journal_mode = WAL")
+        config.prepareDatabase { database in
+            try database.execute(sql: "PRAGMA journal_mode = WAL")
         }
 
         self.dbQueue = try DatabaseQueue(path: databaseURL.path, configuration: config)
 
-        try await dbQueue.write { db in
-            try self.createSchema(db)
+        try await dbQueue.write { database in
+            try self.createSchema(database)
         }
 
         print("✓ Database reset complete")

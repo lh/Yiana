@@ -1,4 +1,3 @@
-
 import Foundation
 import PDFKit
 import CoreGraphics
@@ -42,7 +41,7 @@ class PDFFlattener {
         let box: PDFDisplayBox = .cropBox
         var mediaBox = page.bounds(for: box)
         guard mediaBox.width > 0 && mediaBox.height > 0 else { return nil }
-        
+
         // Special case: If there are no annotations to flatten, just return a copy
         // of the original page with any existing annotations removed.
         // This avoids issues with re-rendering blank pages and is more efficient.
@@ -56,7 +55,7 @@ class PDFFlattener {
             }
             return nil
         }
-        
+
         // For pages with annotations, we need to re-render to flatten them
         let pdfData = NSMutableData()
         guard let consumer = CGDataConsumer(data: pdfData),
@@ -67,26 +66,26 @@ class PDFFlattener {
         let pdfInfo: [String: Any] = [
             kCGPDFContextCreator as String: "PDFFlattener"
         ]
-        
+
         context.beginPDFPage(pdfInfo as CFDictionary)
-        
+
         // Save and restore graphics state to ensure clean rendering
         context.saveGState()
         renderPage(page, box: box, into: context)
         context.restoreGState()
-        
+
         // Render the annotations
         context.saveGState()
         renderAnnotations(annotations, box: box, into: context)
         context.restoreGState()
-        
+
         context.endPDFPage()
         context.closePDF()
 
         guard let newDocument = PDFDocument(data: pdfData as Data) else {
             return nil
         }
-        
+
         return newDocument.page(at: 0)
     }
 

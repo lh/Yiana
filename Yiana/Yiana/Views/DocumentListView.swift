@@ -30,14 +30,14 @@ struct DocumentListView: View {
     @State private var showingDeleteConfirmation = false
     @State private var documentToDelete: URL?
     #if os(macOS)
-    @State private var pdfImportData: PDFImportData? = nil
+    @State private var pdfImportData: PDFImportData?
     @State private var isDraggingPDFs = false
     #endif
     @State private var currentSortOption: SortOption = .title
     @State private var isAscending = true
     @State private var hasLoadedAnyContent = false
     @State private var showingSettings = false
-    
+
     // Build date string for version display
     private var buildDateString: String {
         let formatter = DateFormatter()
@@ -45,7 +45,7 @@ struct DocumentListView: View {
         formatter.timeStyle = .short
         return formatter.string(from: Date())
     }
-    
+
     var body: some View {
         NavigationStack(path: $navigationPath) {
             mainContent
@@ -72,6 +72,7 @@ struct DocumentListView: View {
         .refreshable { await refreshDocuments() }
 #if os(iOS)
         .searchable(text: $searchText, prompt: "Search documents")
+        .accessibilityHint("Search by document title or document contents")
 #endif
         .onChange(of: searchText) { _, newValue in
             handleSearchChange(newValue)
@@ -90,7 +91,7 @@ struct DocumentListView: View {
             SettingsView()
         }
     }
-    
+
     private var emptyStateView: some View {
         VStack(spacing: 20) {
             if searchText.isEmpty {
@@ -173,11 +174,11 @@ struct DocumentListView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
+
     private func createDocument() {
         Task {
             guard !newDocumentTitle.isEmpty else { return }
-            
+
             if let url = await viewModel.createNewDocument(title: newDocumentTitle) {
                 #if os(iOS)
                 // Create the actual document
@@ -204,7 +205,7 @@ struct DocumentListView: View {
                     ocrCompleted: false,
                     fullText: nil
                 )
-                
+
                 // Create the document in NoteDocument format
                 let encoder = JSONEncoder()
                 do {
@@ -223,20 +224,22 @@ struct DocumentListView: View {
                 await viewModel.refresh()
                 #endif
             }
-            
+
             newDocumentTitle = ""
         }
     }
-    
+
     private func deleteDocuments(at offsets: IndexSet) {
         Task {
             for index in offsets {
                 let url = viewModel.documentURLs[index]
                 do {
                     try await viewModel.deleteDocument(at: url)
+                    AccessibilityAnnouncer.shared.post("Deleted document \(url.deletingPathExtension().lastPathComponent)")
                 } catch {
                     viewModel.errorMessage = error.localizedDescription
                     showingError = true
+                    AccessibilityAnnouncer.shared.post("Error deleting document: \(error.localizedDescription)")
                 }
             }
         }
@@ -246,9 +249,11 @@ struct DocumentListView: View {
         Task {
             do {
                 try await viewModel.duplicateDocument(at: url)
+                AccessibilityAnnouncer.shared.post("Duplicated document \(url.deletingPathExtension().lastPathComponent)")
             } catch {
                 viewModel.errorMessage = "Could not duplicate document: \(error.localizedDescription)"
                 showingError = true
+                AccessibilityAnnouncer.shared.post("Error duplicating document: \(error.localizedDescription)")
             }
         }
     }
@@ -551,12 +556,14 @@ struct DocumentListView: View {
                 Button(action: navigateToParent) {
                     Label("Back", systemImage: "chevron.left")
                 }
+                .toolbarActionAccessibility(label: "Go back")
             }
             #else
             ToolbarItem(placement: .navigation) {
                 Button(action: navigateToParent) {
                     Label("Back", systemImage: "chevron.left")
                 }
+                .toolbarActionAccessibility(label: "Go back")
             }
             #endif
         }
@@ -579,6 +586,7 @@ struct DocumentListView: View {
             } label: {
                 Label("Add", systemImage: "plus")
             }
+            .toolbarActionAccessibility(label: "Add")
         }
 
         ToolbarItem(placement: .automatic) {
@@ -601,6 +609,8 @@ struct DocumentListView: View {
             } label: {
                 Label("Sort", systemImage: "arrow.up.arrow.down")
             }
+            .toolbarActionAccessibility(label: "Sort documents")
+            .accessibilityValue("\(currentSortOption.rawValue), \(isAscending ? "ascending" : "descending")")
         }
 
         ToolbarItem(placement: .automatic) {
@@ -620,6 +630,9 @@ struct DocumentListView: View {
                 }
             }
             .disabled(downloadManager.isDownloading)
+            .toolbarActionAccessibility(label: downloadManager.isDownloading ? "Downloading documents" : "Download all documents")
+            .accessibilityValue(downloadManager.isDownloading ? "\(downloadManager.downloadedCount) of \(downloadManager.totalCount) downloaded" : "")
+            .accessibilityHint(downloadManager.isDownloading ? "Download in progress" : "Double tap to download all documents")
         }
 
         #if os(macOS)
@@ -641,7 +654,7 @@ struct DocumentListView: View {
             } label: {
                 Image(systemName: "gearshape")
             }
-            .accessibilityLabel("Settings")
+            .toolbarActionAccessibility(label: "Settings")
         }
 #else
         ToolbarItem(placement: .automatic) {
@@ -650,7 +663,7 @@ struct DocumentListView: View {
             } label: {
                 Image(systemName: "gearshape")
             }
-            .accessibilityLabel("Settings")
+            .toolbarActionAccessibility(label: "Settings")
         }
 #endif
     }
@@ -704,16 +717,16 @@ struct DocumentListView: View {
     private func createFolder() {
         Task {
             guard !newFolderName.isEmpty else { return }
-            
+
             let success = await viewModel.createFolder(name: newFolderName)
             if !success {
                 showingError = true
             }
-            
+
             newFolderName = ""
         }
     }
-    
+
     private var breadcrumbView: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 5) {
@@ -726,13 +739,13 @@ struct DocumentListView: View {
                         .font(.caption)
                         .foregroundColor(.accentColor)
                 }
-                
+
                 ForEach(Array(viewModel.folderPath.enumerated()), id: \.offset) { index, folder in
                     HStack(spacing: 5) {
                         Image(systemName: "chevron.right")
                             .font(.caption2)
                             .foregroundColor(.secondary)
-                        
+
                         Button(action: {
                             Task {
                                 await viewModel.navigateToPathComponent(at: index)
@@ -747,7 +760,7 @@ struct DocumentListView: View {
             }
         }
     }
-    
+
     #if os(macOS)
     private var macSearchToolbar: some View {
         HStack {
@@ -779,7 +792,7 @@ struct DocumentListView: View {
         panel.canChooseFiles = true
         panel.message = "Select PDF files to import"
         panel.prompt = "Import"
-        
+
         panel.begin { response in
             if response == .OK && !panel.urls.isEmpty {
                 print("Selected PDFs: \(panel.urls)")
@@ -790,11 +803,11 @@ struct DocumentListView: View {
             }
         }
     }
-    
+
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
         var pdfURLs: [URL] = []
         let group = DispatchGroup()
-        
+
         for provider in providers {
             if provider.hasItemConformingToTypeIdentifier(UTType.pdf.identifier) {
                 group.enter()
@@ -804,15 +817,15 @@ struct DocumentListView: View {
                         // Use just the original filename - the temp directory ensures uniqueness
                         let tempDir = FileManager.default.temporaryDirectory
                             .appendingPathComponent("YianaPDFImport", isDirectory: true)
-                        
+
                         // Create the temp subdirectory if needed
                         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-                        
+
                         // Use timestamp for uniqueness instead of UUID in filename
                         let timestamp = Int(Date().timeIntervalSince1970 * 1000)
                         let cleanName = url.lastPathComponent
                         let destinationURL = tempDir.appendingPathComponent("\(timestamp)_\(cleanName)")
-                        
+
                         do {
                             try FileManager.default.copyItem(at: url, to: destinationURL)
                             pdfURLs.append(destinationURL)
@@ -824,13 +837,13 @@ struct DocumentListView: View {
                 }
             }
         }
-        
+
         group.notify(queue: .main) {
             if !pdfURLs.isEmpty {
                 self.pdfImportData = PDFImportData(urls: pdfURLs)
             }
         }
-        
+
         return !providers.isEmpty
     }
     #endif
@@ -842,13 +855,38 @@ struct DocumentRow: View {
     let searchResult: SearchResult?
     let secondaryText: String?
     @State private var statusColor: Color = Color.gray.opacity(0.5)
-    
+    private let pinnedTag = "pinned"
+
+    private var metadata: DocumentMetadata? {
+        try? NoteDocument.extractMetadata(from: url)
+    }
+
+    private var accessibilityTitle: String {
+        metadata?.title ?? url.deletingPathExtension().lastPathComponent
+    }
+
+    private var accessibilityModifiedDate: Date {
+        if let metadataDate = metadata?.modified {
+            return metadataDate
+        }
+        if let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
+           let modDate = attributes[.modificationDate] as? Date {
+            return modDate
+        }
+        return Date.distantPast
+    }
+
+    private var isPinned: Bool {
+        let tags = metadata?.tags ?? []
+        return tags.contains { $0.caseInsensitiveCompare(pinnedTag) == .orderedSame }
+    }
+
     init(url: URL, searchResult: SearchResult? = nil, secondaryText: String? = nil) {
         self.url = url
         self.searchResult = searchResult
         self.secondaryText = secondaryText
     }
-    
+
     var body: some View {
         HStack(spacing: 0) {
             // Status indicator line (hidden during search)
@@ -861,7 +899,7 @@ struct DocumentRow: View {
                 Color.clear
                     .frame(width: 1.5)
             }
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 4) {
                     // Search indicator
@@ -870,12 +908,12 @@ struct DocumentRow: View {
                             .font(.caption)
                             .foregroundColor(.blue)
                     }
-                    
+
                     Text(url.deletingPathExtension().lastPathComponent)
                         .font(.headline)
                         .lineLimit(1)
                 }
-                
+
                 // Show snippet for content matches
                 if let result = searchResult,
                    result.matchType == .content || result.matchType == .both,
@@ -910,8 +948,15 @@ struct DocumentRow: View {
                 await loadStatus()
             }
         }
+        .documentRowAccessibility(
+            title: accessibilityTitle,
+            modified: accessibilityModifiedDate,
+            pageCount: metadata?.pageCount,
+            isPinned: isPinned,
+            hasUnsavedChanges: metadata?.hasPendingTextPage ?? false
+        )
     }
-    
+
     private var formattedDate: String {
         // Get file modification date if available
         if let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
@@ -958,7 +1003,7 @@ struct DocumentRow: View {
 
         return attributed
     }
-    
+
     @MainActor
     private func loadStatus() async {
         let state = downloadState(for: url)

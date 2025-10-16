@@ -15,46 +15,46 @@ struct ScannerView: UIViewControllerRepresentable {
     @Binding var isPresented: Bool
     let onScanComplete: ([UIImage]) -> Void
     let onScanCancel: () -> Void
-    
+
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
-    
+
     func makeUIViewController(context: Context) -> VNDocumentCameraViewController {
         let scannerViewController = VNDocumentCameraViewController()
         scannerViewController.delegate = context.coordinator
         return scannerViewController
     }
-    
+
     func updateUIViewController(_ uiViewController: VNDocumentCameraViewController, context: Context) {
         // No updates needed
     }
-    
+
     class Coordinator: NSObject, VNDocumentCameraViewControllerDelegate {
         let parent: ScannerView
-        
+
         init(_ parent: ScannerView) {
             self.parent = parent
         }
-        
+
         func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan) {
             // Extract all scanned pages as images
             var scannedImages: [UIImage] = []
-            
+
             for pageIndex in 0..<scan.pageCount {
                 let scannedImage = scan.imageOfPage(at: pageIndex)
                 scannedImages.append(scannedImage)
             }
-            
+
             parent.isPresented = false
             parent.onScanComplete(scannedImages)
         }
-        
+
         func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
             parent.isPresented = false
             parent.onScanCancel()
         }
-        
+
         func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFailWithError error: Error) {
             // Handle error same as cancel for now
             parent.isPresented = false
@@ -68,7 +68,7 @@ struct ScannerViewModifier: ViewModifier {
     @Binding var isPresented: Bool
     let onScanComplete: ([UIImage]) -> Void
     let onScanCancel: () -> Void
-    
+
     func body(content: Content) -> some View {
         content
             .fullScreenCover(isPresented: $isPresented) {

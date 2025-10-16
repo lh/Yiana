@@ -12,17 +12,17 @@ import YianaDocumentArchive
 
 /// A document containing a PDF and associated metadata
 class NoteDocument: UIDocument {
-    
+
     // MARK: - Properties
-    
+
     /// The PDF data for the document
     var pdfData: Data?
-    
+
     /// The metadata associated with this document
     var metadata: DocumentMetadata
-    
+
     // MARK: - Initialization
-    
+
     override init(fileURL url: URL) {
         self.metadata = DocumentMetadata(
             id: UUID(),
@@ -37,13 +37,13 @@ class NoteDocument: UIDocument {
         )
         super.init(fileURL: url)
     }
-    
+
     // MARK: - UIDocument Overrides
-    
+
     override var fileType: String? {
         return UTType.yianaDocument.identifier
     }
-    
+
     override func contents(forType typeName: String) throws -> Any {
         let encoder = JSONEncoder()
         let metadataData = try encoder.encode(metadata)
@@ -63,7 +63,7 @@ class NoteDocument: UIDocument {
 
         return try Data(contentsOf: tempURL)
     }
-    
+
     override func load(fromContents contents: Any, ofType typeName: String?) throws {
         guard let data = contents as? Data else {
             throw CocoaError(.fileReadCorruptFile)
@@ -101,17 +101,17 @@ import YianaDocumentArchive
 
 /// A document containing a PDF and associated metadata (macOS version)
 class NoteDocument: NSDocument {
-    
+
     // MARK: - Properties
-    
+
     /// The PDF data for the document
     var pdfData: Data?
-    
+
     /// The metadata associated with this document
     var metadata: DocumentMetadata
-    
+
     // MARK: - Initialization
-    
+
     override init() {
         self.metadata = DocumentMetadata(
             id: UUID(),
@@ -126,23 +126,23 @@ class NoteDocument: NSDocument {
         )
         super.init()
     }
-    
+
     convenience init(fileURL: URL) {
         self.init()
         self.fileURL = fileURL
         self.metadata.title = fileURL.deletingPathExtension().lastPathComponent
     }
-    
+
     // MARK: - NSDocument Overrides
-    
+
     override class var autosavesInPlace: Bool {
         return true
     }
-    
+
     override func makeWindowControllers() {
         // No window controllers for this document
     }
-    
+
     override func data(ofType typeName: String) throws -> Data {
         let encoder = JSONEncoder()
         let metadataData = try encoder.encode(metadata)
@@ -162,7 +162,7 @@ class NoteDocument: NSDocument {
 
         return try Data(contentsOf: tempURL)
     }
-    
+
     override func read(from data: Data, ofType typeName: String) throws {
         let payload = try DocumentArchive.read(from: data)
 
@@ -170,7 +170,7 @@ class NoteDocument: NSDocument {
         self.metadata = try decoder.decode(DocumentMetadata.self, from: payload.metadata)
         self.pdfData = payload.pdfData
     }
-    
+
     func read(from url: URL) throws {
         let data = try Data(contentsOf: url)
         try read(from: data, ofType: "yianaDocument")

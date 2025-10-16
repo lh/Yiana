@@ -29,7 +29,7 @@ enum ImportError: Error {
 /// - Appends PDF pages to an existing .yianazip
 class ImportService {
     private let folderPath: String
-    
+
     init(folderPath: String = "") {
         self.folderPath = folderPath
     }

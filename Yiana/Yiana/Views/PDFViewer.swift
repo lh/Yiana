@@ -8,35 +8,52 @@
 import SwiftUI
 import PDFKit
 
+/// PDF zoom actions that can be triggered programmatically
+enum PDFZoomAction {
+    case zoomIn
+    case zoomOut
+    case fitToWindow
+}
+
 /// SwiftUI wrapper for PDFKit's PDFView
 /// Works on both iOS and macOS with platform-specific adjustments
 struct PDFViewer: View {
     let pdfData: Data
     @Binding var navigateToPage: Int?
     @Binding var currentPage: Int
+    @Binding var zoomAction: PDFZoomAction?
     @State private var totalPages = 0
     @State private var showPageIndicator = true
     @State private var hideIndicatorTask: Task<Void, Never>?
+    @Binding var fitMode: FitMode
+    @State private var lastExplicitFitMode: FitMode = .height
     let onRequestPageManagement: (() -> Void)?
     let onRequestMetadataView: (() -> Void)?
 
     init(pdfData: Data,
          navigateToPage: Binding<Int?> = .constant(nil),
          currentPage: Binding<Int> = .constant(0),
+         zoomAction: Binding<PDFZoomAction?> = .constant(nil),
+         fitMode: Binding<FitMode> = .constant(.height),
          onRequestPageManagement: (() -> Void)? = nil,
          onRequestMetadataView: (() -> Void)? = nil) {
         self.pdfData = pdfData
         self._navigateToPage = navigateToPage
         self._currentPage = currentPage
+        self._zoomAction = zoomAction
+        self._fitMode = fitMode
+        self._lastExplicitFitMode = State(initialValue: fitMode.wrappedValue == .manual ? .height : fitMode.wrappedValue)
         self.onRequestPageManagement = onRequestPageManagement
         self.onRequestMetadataView = onRequestMetadataView
     }
-    
+
     var body: some View {
         PDFKitView(pdfData: pdfData,
                    currentPage: $currentPage,
                    totalPages: $totalPages,
                    navigateToPage: $navigateToPage,
+                   zoomAction: $zoomAction,
+                   fitMode: $fitMode,
                    onRequestPageManagement: onRequestPageManagement,
                    onRequestMetadataView: onRequestMetadataView)
             .overlay(alignment: .bottomTrailing) {
@@ -44,6 +61,14 @@ struct PDFViewer: View {
                     pageIndicator
                         .opacity(showPageIndicator ? 1 : 0)
                         .animation(.easeInOut(duration: 0.3), value: showPageIndicator)
+                }
+            }
+            .onChange(of: fitMode) { _, newValue in
+                switch newValue {
+                case .width, .height:
+                    lastExplicitFitMode = newValue
+                case .manual:
+                    break
                 }
             }
             .onAppear {
@@ -55,12 +80,12 @@ struct PDFViewer: View {
             .onChange(of: navigateToPage) { _, _ in
                 showIndicator()
             }
-            .onTapGesture(count: 1) { location in
+            .onTapGesture(count: 1) { _ in
                 // If tapped in bottom-right corner area, show indicator
                 // This is handled in PDFKitView tap handling
             }
     }
-    
+
     private var pageIndicator: some View {
         Text("\(currentPage + 1)/\(totalPages)")
             .font(.system(size: 12, weight: .medium, design: .rounded))
@@ -79,16 +104,16 @@ struct PDFViewer: View {
                 onRequestPageManagement?()
             }
     }
-    
+
     private func showIndicator() {
         showPageIndicator = true
         scheduleHideIndicator()
     }
-    
+
     private func scheduleHideIndicator() {
         // Cancel any existing hide task
         hideIndicatorTask?.cancel()
-        
+
         // Schedule new hide after 3 seconds
         hideIndicatorTask = Task {
             try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
@@ -102,14 +127,23 @@ struct PDFViewer: View {
 }
 
 /// UIViewRepresentable/NSViewRepresentable wrapper for PDFView
+// Fit mode for manual zoom control
+enum FitMode: Hashable {
+    case width
+    case height
+    case manual
+}
+
 struct PDFKitView: ViewRepresentable {
     let pdfData: Data
     @Binding var currentPage: Int
     @Binding var totalPages: Int
     @Binding var navigateToPage: Int?
+    @Binding var zoomAction: PDFZoomAction?
+    @Binding var fitMode: FitMode
     let onRequestPageManagement: (() -> Void)?
     let onRequestMetadataView: (() -> Void)?
-    
+
     #if os(iOS)
     func makeUIView(context: Context) -> PDFView {
         let pdfView = PDFView()
@@ -140,7 +174,9 @@ struct PDFKitView: ViewRepresentable {
                     #else
                     pdfView.documentView?.needsDisplay = true
                     #endif
-                    pdfView.layoutDocumentView()
+                    DispatchQueue.main.async {
+                        pdfView.layoutDocumentView()
+                    }
                     self.totalPages = pageCount
                     if self.currentPage != clamped {
                         self.currentPage = clamped
@@ -169,6 +205,7 @@ struct PDFKitView: ViewRepresentable {
             context.coordinator.isReloadingDocument = false
         }
         handleNavigation(pdfView, coordinator: context.coordinator)
+        handleZoom(pdfView, coordinator: context.coordinator)
         context.coordinator.isInitialLoad = false
     }
     #else
@@ -201,7 +238,14 @@ struct PDFKitView: ViewRepresentable {
                     #else
                     pdfView.documentView?.needsDisplay = true
                     #endif
-                    pdfView.layoutDocumentView()
+                    DispatchQueue.main.async {
+                        pdfView.layoutDocumentView()
+                        // Apply initial fit-to-page and sync coordinator state
+                        self.applyFitToHeight(pdfView, coordinator: context.coordinator)
+                        context.coordinator.currentFitMode = .height
+                        context.coordinator.lastExplicitFitMode = .height
+                        self.fitMode = .height
+                    }
                     self.totalPages = pageCount
                     if self.currentPage != clamped {
                         self.currentPage = clamped
@@ -230,25 +274,57 @@ struct PDFKitView: ViewRepresentable {
             context.coordinator.isReloadingDocument = false
         }
         handleNavigation(pdfView, coordinator: context.coordinator)
+        handleZoom(pdfView, coordinator: context.coordinator)
         context.coordinator.isInitialLoad = false
     }
     #endif
-    
+
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
+
+    // MARK: - Zoom Helpers
     
+    private func applyFitToWindow(_ pdfView: PDFView, coordinator: Coordinator) {
+        pdfView.scaleFactor = pdfView.scaleFactorForSizeToFit
+        coordinator.lastKnownScaleFactor = pdfView.scaleFactor
+    }
+    
+    private func applyFitToWidth(_ pdfView: PDFView, coordinator: Coordinator) {
+        guard let page = pdfView.currentPage else { return }
+        let pageRect = page.bounds(for: pdfView.displayBox)
+        let viewWidth = pdfView.bounds.width
+        let scaleFactor = viewWidth / pageRect.width
+        pdfView.scaleFactor = scaleFactor
+        coordinator.lastKnownScaleFactor = scaleFactor
+        coordinator.currentFitMode = .width
+        coordinator.lastExplicitFitMode = .width
+    }
+    
+    private func applyFitToHeight(_ pdfView: PDFView, coordinator: Coordinator) {
+        guard let page = pdfView.currentPage else { return }
+        let pageRect = page.bounds(for: pdfView.displayBox)
+        let viewHeight = pdfView.bounds.height
+        let scaleFactor = viewHeight / pageRect.height
+        pdfView.scaleFactor = scaleFactor
+        coordinator.lastKnownScaleFactor = scaleFactor
+        coordinator.currentFitMode = .height
+        coordinator.lastExplicitFitMode = .height
+    }
+
     private func configurePDFView(_ pdfView: PDFView, context: Context) {
         // Store reference to pdfView in coordinator
         context.coordinator.pdfView = pdfView
-        
+
         // Common configuration for both platforms
-        pdfView.autoScales = true
+        // Disable autoScales to take manual control over zoom
+        pdfView.autoScales = false
+        
         // Use single page mode to eliminate scrolling artifacts
         pdfView.displayMode = .singlePage
         pdfView.displayDirection = .horizontal
         pdfView.displaysPageBreaks = false
-        
+
         #if os(iOS)
         // Use white background to match typical PDF page color
         pdfView.backgroundColor = UIColor.systemBackground
@@ -264,7 +340,7 @@ struct PDFKitView: ViewRepresentable {
         let swipeLeft = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeLeft(_:)))
         swipeLeft.direction = .left
         pdfView.addGestureRecognizer(swipeLeft)
-        
+
         let swipeRight = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeRight(_:)))
         swipeRight.direction = .right
         pdfView.addGestureRecognizer(swipeRight)
@@ -278,10 +354,68 @@ struct PDFKitView: ViewRepresentable {
         let swipeDown = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeDown(_:)))
         swipeDown.direction = .down
         pdfView.addGestureRecognizer(swipeDown)
-        #else
+
+        // Recursively attach our double-tap recognizer to each scroll view so it fires on iPad
+        let doubleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.resetZoom(_:)))
+        doubleTap.numberOfTapsRequired = 2
+        doubleTap.delegate = context.coordinator
+
+        func collectScrollViews(in view: UIView, depth: Int = 0, store: inout [(UIScrollView, Int)]) {
+            if let scrollView = view as? UIScrollView {
+                store.append((scrollView, depth))
+            }
+            for subview in view.subviews {
+                collectScrollViews(in: subview, depth: depth + 1, store: &store)
+            }
+        }
+
+        var scrollViewCandidates: [(UIScrollView, Int)] = []
+        collectScrollViews(in: pdfView, store: &scrollViewCandidates)
+
+        let targetScrollView = scrollViewCandidates.max(by: { $0.1 < $1.1 })?.0
+
+        for (scrollView, _) in scrollViewCandidates {
+            if scrollView === targetScrollView {
+                scrollView.delegate = context.coordinator
+                scrollView.addGestureRecognizer(doubleTap)
+
+                scrollView.gestureRecognizers?
+                    .compactMap { $0 as? UITapGestureRecognizer }
+                    .filter { $0 !== doubleTap && $0.numberOfTapsRequired == 2 }
+                    .forEach { recognizer in
+                        recognizer.require(toFail: doubleTap)
+                    }
+            } else {
+                scrollView.gestureRecognizers?
+                    .compactMap { $0 as? UITapGestureRecognizer }
+                    .filter { $0.numberOfTapsRequired == 2 }
+                    .forEach { recognizer in
+                        recognizer.isEnabled = false
+                    }
+            }
+        }
+
+        if targetScrollView == nil {
+            pdfView.addGestureRecognizer(doubleTap)
+        }
+
+        // Also ensure any remaining double-tap recognizers on the PDFView itself yield to ours
+        pdfView.gestureRecognizers?
+            .compactMap { $0 as? UITapGestureRecognizer }
+            .filter { $0.numberOfTapsRequired == 2 && $0 !== doubleTap }
+            .forEach { other in
+                other.require(toFail: doubleTap)
+            }
+
+#else
         // Use white background to match typical PDF page color
         pdfView.backgroundColor = NSColor.white
-        
+
+        // Add double-click gesture to reset zoom
+        let doubleClick = NSClickGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.resetZoom(_:)))
+        doubleClick.numberOfClicksRequired = 2
+        pdfView.addGestureRecognizer(doubleClick)
+
         // Set up keyboard navigation (only if not already set)
         if context.coordinator.keyEventMonitor == nil {
             context.coordinator.keyEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
@@ -291,7 +425,7 @@ struct PDFKitView: ViewRepresentable {
                 return event
             }
         }
-        
+
         // Set up scroll wheel navigation (only if not already set)
         if context.coordinator.scrollEventMonitor == nil {
             context.coordinator.scrollEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
@@ -302,8 +436,16 @@ struct PDFKitView: ViewRepresentable {
                 return event
             }
         }
-        #endif
         
+        // Observe scale changes on macOS
+        NotificationCenter.default.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.scaleChanged(_:)),
+            name: NSNotification.Name.PDFViewScaleChanged,
+            object: pdfView
+        )
+        #endif
+
         // Set up notifications for page changes
         NotificationCenter.default.addObserver(
             context.coordinator,
@@ -311,9 +453,7 @@ struct PDFKitView: ViewRepresentable {
             name: .PDFViewPageChanged,
             object: pdfView
         )
-        
 
-        
         // Load the PDF
         if let document = PDFDocument(data: pdfData) {
             // Defer state updates to avoid "modifying state during view update" warning
@@ -321,28 +461,45 @@ struct PDFKitView: ViewRepresentable {
                 self.totalPages = document.pageCount
                 self.currentPage = 0
             }
-            
+
             // Set the document
             pdfView.document = document
             context.coordinator.pdfDataSignature = pdfData.hashValue
+            
+            // Set scale limits and initial zoom after document layout completes
+            DispatchQueue.main.async {
+                pdfView.layoutDocumentView()
+                
+                // Only set scale limits if we have a valid fit scale
+                let fitScale = pdfView.scaleFactorForSizeToFit
+                if fitScale > 0 {
+                    pdfView.minScaleFactor = fitScale * 0.5
+                    pdfView.maxScaleFactor = fitScale * 4.0
+                    
+                    // Apply initial fit after document is loaded
+                    if context.coordinator.isInitialLoad {
+                        self.applyFitToHeight(pdfView, coordinator: context.coordinator)
+                    }
+                }
+            }
         }
     }
-    
+
     private func updatePDFView(_ pdfView: PDFView) {
         // Only update if document has actually changed
         if pdfView.document == nil || pdfView.document?.dataRepresentation() != pdfData {
             if let document = PDFDocument(data: pdfData) {
                 // Get current position before updating
-                let currentPageIndex = pdfView.currentPage != nil ? 
+                let currentPageIndex = pdfView.currentPage != nil ?
                     pdfView.document?.index(for: pdfView.currentPage!) ?? 0 : 0
-                
+
                 pdfView.document = document
                 // Call layoutDocumentView to reduce flashing
                 pdfView.layoutDocumentView()
-                
+
                 DispatchQueue.main.async {
                     self.totalPages = document.pageCount
-                    
+
                     // If we had pages and still have pages, try to maintain position
                     // BUT ONLY if we don't have a pending navigation request
                     if navigateToPage == nil && currentPageIndex > 0 && document.pageCount > 0 {
@@ -357,31 +514,78 @@ struct PDFKitView: ViewRepresentable {
             }
         }
     }
-    
+
     private func handleNavigation(_ pdfView: PDFView, coordinator: Coordinator) {
-        if coordinator.isReloadingDocument { return }
-        if let pageIndex = navigateToPage,
-           let document = pdfView.document,
-           pageIndex >= 0 && pageIndex < document.pageCount,
-           let page = document.page(at: pageIndex) {
-            if let current = pdfView.currentPage,
-               document.index(for: current) == pageIndex {
-                DispatchQueue.main.async {
-                    self.navigateToPage = nil
-                }
-                return
-            }
-            pdfView.go(to: page)
+        guard !coordinator.isReloadingDocument else { return }
+        guard let pageIndex = navigateToPage,
+              let document = pdfView.document,
+              pageIndex >= 0 && pageIndex < document.pageCount,
+              let page = document.page(at: pageIndex) else { return }
+
+        if let current = pdfView.currentPage,
+           document.index(for: current) == pageIndex {
             DispatchQueue.main.async {
-                if self.currentPage != pageIndex {
-                    self.currentPage = pageIndex
-                }
-                coordinator.lastReportedPageIndex = pageIndex
-                self.navigateToPage = nil  // Clear navigation request
+                self.navigateToPage = nil
             }
+            return
+        }
+        pdfView.go(to: page)
+        DispatchQueue.main.async {
+            if self.currentPage != pageIndex {
+                self.currentPage = pageIndex
+            }
+            coordinator.lastReportedPageIndex = pageIndex
+            self.navigateToPage = nil  // Clear navigation request
         }
     }
-    
+
+    private func handleZoom(_ pdfView: PDFView, coordinator: Coordinator) {
+        guard let action = zoomAction else { return }
+
+        switch action {
+        case .zoomIn:
+            pdfView.zoomIn(nil)
+            coordinator.lastKnownScaleFactor = pdfView.scaleFactor
+            coordinator.currentFitMode = .manual
+            // Sync with parent's fitMode binding
+            DispatchQueue.main.async {
+                self.fitMode = .manual
+            }
+        case .zoomOut:
+            pdfView.zoomOut(nil)
+            coordinator.lastKnownScaleFactor = pdfView.scaleFactor
+            coordinator.currentFitMode = .manual
+            // Sync with parent's fitMode binding
+            DispatchQueue.main.async {
+                self.fitMode = .manual
+            }
+        case .fitToWindow:
+            // Use the parent's fitMode binding to determine which fit to apply
+            switch fitMode {
+            case .width:
+                applyFitToWidth(pdfView, coordinator: coordinator)
+            case .height:
+                applyFitToHeight(pdfView, coordinator: coordinator)
+            case .manual:
+                let target = coordinator.lastExplicitFitMode
+                switch target {
+                case .width:
+                    applyFitToWidth(pdfView, coordinator: coordinator)
+                case .height, .manual:
+                    applyFitToHeight(pdfView, coordinator: coordinator)
+                }
+                DispatchQueue.main.async {
+                    self.fitMode = target
+                }
+            }
+        }
+
+        // Clear the action after processing
+        DispatchQueue.main.async {
+            self.zoomAction = nil
+        }
+    }
+
     class Coordinator: NSObject {
         var parent: PDFKitView
         weak var pdfView: PDFView?
@@ -391,6 +595,10 @@ struct PDFKitView: ViewRepresentable {
         var pdfDataSignature: Int?
         var lastReportedPageIndex: Int?
         var isReloadingDocument = false
+        // Zoom tracking state
+        var lastKnownScaleFactor: CGFloat?
+        var currentFitMode: FitMode = .height
+        var lastExplicitFitMode: FitMode = .height
         #if os(macOS)
         var keyEventMonitor: Any?
         var scrollEventMonitor: Any?
@@ -401,7 +609,7 @@ struct PDFKitView: ViewRepresentable {
             self.onRequestPageManagement = parent.onRequestPageManagement
             self.onRequestMetadataView = parent.onRequestMetadataView
         }
-        
+
         deinit {
             #if os(macOS)
             if let monitor = keyEventMonitor {
@@ -412,14 +620,14 @@ struct PDFKitView: ViewRepresentable {
             }
             #endif
         }
-        
+
         @objc func pageChanged(_ notification: Notification) {
             guard let pdfView = notification.object as? PDFView,
                   let currentPage = pdfView.currentPage,
                   let document = pdfView.document else {
                 return
             }
-            
+
             if isReloadingDocument { return }
             let pageIndex = document.index(for: currentPage)
             if lastReportedPageIndex == pageIndex { return }
@@ -431,7 +639,7 @@ struct PDFKitView: ViewRepresentable {
                 }
             }
         }
-        
+
         #if os(iOS)
         @objc func swipeLeft(_ gesture: UISwipeGestureRecognizer) {
             guard let pdfView = gesture.view as? PDFView else { return }
@@ -510,7 +718,7 @@ struct PDFKitView: ViewRepresentable {
         // macOS keyboard event handling
         @objc func handleKeyDown(_ event: NSEvent) -> Bool {
             guard let pdfView = pdfView else { return false }
-            
+
             switch event.keyCode {
             case 123: // Left arrow
                 if pdfView.canGoToPreviousPage {
@@ -539,11 +747,11 @@ struct PDFKitView: ViewRepresentable {
             }
             return false
         }
-        
+
         // macOS scroll wheel handling
         @objc func handleScrollWheel(_ event: NSEvent) {
             guard let pdfView = pdfView else { return }
-            
+
             // Only handle horizontal scrolling or vertical with shift
             if abs(event.deltaY) > abs(event.deltaX) && !event.modifierFlags.contains(.shift) {
                 // Vertical scroll - navigate pages
@@ -560,10 +768,78 @@ struct PDFKitView: ViewRepresentable {
                 }
             }
         }
+
+        #endif
+
+        // MARK: - Zoom Gesture Handlers
+
+        @objc func resetZoom(_ sender: Any) {
+            guard let pdfView = pdfView else { return }
+            
+            // Implement cycling behavior for iOS double-tap:
+            // Manual zoom → Fit Page (height)
+            // Fit Page → Fit Width
+            // Fit Width → Fit Page
+            switch currentFitMode {
+            case .manual:
+                // From manual zoom, snap to Fit Page
+                parent.applyFitToHeight(pdfView, coordinator: self)
+                DispatchQueue.main.async {
+                    self.parent.fitMode = .height
+                }
+            case .height:
+                // From Fit Page, switch to Fit Width
+                parent.applyFitToWidth(pdfView, coordinator: self)
+                DispatchQueue.main.async {
+                    self.parent.fitMode = .width
+                }
+            case .width:
+                // From Fit Width, switch back to Fit Page
+                parent.applyFitToHeight(pdfView, coordinator: self)
+                DispatchQueue.main.async {
+                    self.parent.fitMode = .height
+                }
+            }
+        }
+
+        #if os(macOS)
+        @objc func scaleChanged(_ notification: Notification) {
+            guard let pdfView = notification.object as? PDFView else { return }
+            // Treat scale changes after load as manual zoom
+            if !isInitialLoad && !isReloadingDocument {
+                lastKnownScaleFactor = pdfView.scaleFactor
+                currentFitMode = .manual
+                // Sync with parent's fitMode binding
+                DispatchQueue.main.async {
+                    self.parent.fitMode = .manual
+                }
+            }
+        }
         #endif
 
     }
 }
+
+// MARK: - UIScrollViewDelegate for iOS zoom tracking
+#if os(iOS)
+extension PDFKitView.Coordinator: UIScrollViewDelegate, UIGestureRecognizerDelegate {
+    func scrollViewDidZoom(_ scrollView: UIScrollView) {
+        // Track user zoom on iOS
+        if !isInitialLoad && !isReloadingDocument, let pdfView = pdfView {
+            lastKnownScaleFactor = pdfView.scaleFactor
+            currentFitMode = .manual
+            // Sync with parent's fitMode binding
+            DispatchQueue.main.async {
+                self.parent.fitMode = .manual
+            }
+        }
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        return true
+    }
+}
+#endif
 
 // Platform-specific type alias for ViewRepresentable
 #if os(iOS)

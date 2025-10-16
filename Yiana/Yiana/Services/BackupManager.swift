@@ -111,7 +111,7 @@ public final class BackupManager {
             try withDocumentLock(resolvedURL) {
                 let backupDir = try backupDirectory(for: resolvedURL)
                 guard fileManager.fileExists(atPath: backupDir.path) else { return }
-                
+
                 let retentionDate = calendar.date(byAdding: .day, value: -config.retentionDays, to: Date())!
                 let startOfRetentionDay = startOfDay(for: retentionDate)
 
@@ -153,12 +153,12 @@ public final class BackupManager {
             return
         }
         #endif
-        
+
         let coordinator = NSFileCoordinator()
         var coordinationError: NSError?
         var actionError: Error?
 
-        coordinator.coordinate(writingItemAt: url, options: .forMerging, error: &coordinationError) { writeURL in
+        coordinator.coordinate(writingItemAt: url, options: .forMerging, error: &coordinationError) { _ in
             do {
                 try action()
             } catch {
@@ -212,7 +212,7 @@ public final class BackupManager {
     internal func startOfDay(for date: Date) -> Date {
         return calendar.startOfDay(for: date)
     }
-    
+
     internal func withResolvedURL(for documentURL: URL, bookmark: Data?, perform action: (URL) throws -> Void) throws {
         guard let bookmark = bookmark else {
             // If no bookmark, assume direct access is possible
@@ -243,7 +243,7 @@ public final class BackupManager {
             #endif
 
             try action(resolvedURL)
-            
+
         } catch let error as BackupError {
             throw error
         } catch {

@@ -36,7 +36,7 @@ struct DocumentEditView: View {
     @State private var isProcessingScans = false
     @State private var scanColorMode: ScanColorMode = .color
     @State private var showTitleField = false
-    @State private var navigateToPage: Int? = nil
+    @State private var navigateToPage: Int?
     @State private var currentViewedPage: Int = 0
     @State private var exportedPDFURL: URL?
     @State private var activeSheet: ActiveSheet?
@@ -45,6 +45,7 @@ struct DocumentEditView: View {
     @State private var textEditorViewModel: TextPageEditorViewModel?
     @State private var showTextEditor = false
     @State private var isRenderingTextPage = false
+    @State private var pdfFitMode: FitMode = .height
     @State private var textAppendErrorMessage: String?
     @State private var showingTextAppendError = false
     @State private var isSidebarVisible = false
@@ -58,10 +59,10 @@ struct DocumentEditView: View {
     @State private var pendingDeleteIndices: [Int] = []
     @State private var shouldRestoreSidebarAfterPageManagement = false
     @State private var awaitingDownload = false
-    
+
     private let scanningService = ScanningService()
     private let exportService = ExportService()
-    
+
     var body: some View {
         Group {
             if isLoading {
@@ -137,13 +138,11 @@ struct DocumentEditView: View {
             textEditorSheet
         }
         .onChange(of: showTextEditor) { _, newValue in
-            if !newValue,
-               let preview = textEditorViewModel?.latestRenderedPageData {
-                Task {
-                    if let viewModel = self.viewModel {
-                        await viewModel.setProvisionalPreviewData(preview)
-                    }
-                }
+            guard !newValue,
+                  let preview = textEditorViewModel?.latestRenderedPageData else { return }
+            Task {
+                guard let viewModel = self.viewModel else { return }
+                await viewModel.setProvisionalPreviewData(preview)
             }
         }
         .onChange(of: viewModel?.displayPDFData) { _, newValue in
@@ -190,7 +189,7 @@ struct DocumentEditView: View {
             Task { await loadDocument() }
         }
     }
-    
+
     @ViewBuilder
     private func documentContent(viewModel: DocumentViewModel) -> some View {
         HStack(spacing: 0) {
@@ -221,17 +220,19 @@ struct DocumentEditView: View {
                     PDFViewer(pdfData: pdfData,
                               navigateToPage: $navigateToPage,
                               currentPage: $currentViewedPage,
+                              fitMode: $pdfFitMode,
                               onRequestPageManagement: {
                                   #if os(iOS)
-                                  if UIDevice.current.userInterfaceIdiom == .pad && isSidebarVisible {
-                                      withAnimation(.easeInOut(duration: 0.2)) {
-                                          isSidebarVisible = false
-                                          exitSidebarSelection()
-                                      }
-                                      shouldRestoreSidebarAfterPageManagement = true
-                                  } else {
+                                  guard UIDevice.current.userInterfaceIdiom == .pad && isSidebarVisible else {
                                       shouldRestoreSidebarAfterPageManagement = false
+                                      activeSheet = .pageManagement
+                                      return
                                   }
+                                  withAnimation(.easeInOut(duration: 0.2)) {
+                                      isSidebarVisible = false
+                                      exitSidebarSelection()
+                                  }
+                                  shouldRestoreSidebarAfterPageManagement = true
                                   #endif
                                   activeSheet = .pageManagement
                               },
@@ -407,7 +408,7 @@ struct DocumentEditView: View {
         .animation(.easeInOut(duration: 0.2), value: isSidebarVisible)
         .animation(.easeInOut(duration: 0.2), value: sidebarPosition)
     }
-    
+
     private var scanButtonBar: some View {
         HStack(spacing: 32) {
             // Color scan button
@@ -428,7 +429,7 @@ struct DocumentEditView: View {
                                 )
                             )
                             .frame(width: 60, height: 60)
-                        
+
                         Image(systemName: "camera.fill")
                             .font(.title2)
                             .foregroundColor(.white)
@@ -436,6 +437,8 @@ struct DocumentEditView: View {
                 }
             }
             .disabled(!scanningService.isScanningAvailable())
+            .toolbarActionAccessibility(label: "Scan color pages")
+            .accessibilityHint(scanningService.isScanningAvailable() ? "Double tap to start scanning pages in color" : "Scanner unavailable")
 
             // B&W document scan button
             Button(action: {
@@ -457,6 +460,8 @@ struct DocumentEditView: View {
                 }
             }
             .disabled(!scanningService.isScanningAvailable())
+            .toolbarActionAccessibility(label: "Scan black and white pages")
+            .accessibilityHint(scanningService.isScanningAvailable() ? "Double tap to start scanning pages in black and white" : "Scanner unavailable")
 
             if textEditorViewModel != nil {
                 textPageButton
@@ -490,6 +495,8 @@ struct DocumentEditView: View {
                 }
             }
         }
+        .toolbarActionAccessibility(label: hasDraft ? "Continue draft text page" : "Add text page")
+        .accessibilityHint("Double tap to \(hasDraft ? "resume editing the draft text page" : "add a new text page")")
     }
 
     private func handleDismiss() {
@@ -584,10 +591,10 @@ struct DocumentEditView: View {
             .padding()
         }
     }
-    
+
     private func loadDocument() async {
         let loadedDocument = NoteDocument(fileURL: documentURL)
-        
+
         await withCheckedContinuation { continuation in
             loadedDocument.open { success in
                 Task { @MainActor in
@@ -864,52 +871,50 @@ struct DocumentEditView: View {
     private func promptDeleteSidebarPages(indices: [Int]? = nil) { }
     private func performDuplicate(for indices: [Int]) { }
 #endif
-    
 
-    
     private func handleScannedImages(_ images: [UIImage]) {
         Task {
             isProcessingScans = true
-            
+
             // Convert images to PDF with selected color mode
             if let newPDFData = await scanningService.convertImagesToPDF(images, colorMode: scanColorMode),
                let viewModel = viewModel {
-                
+
                 // If document already has PDF data, append pages
                 if let existingPDFData = viewModel.pdfData,
                    let existingPDF = PDFDocument(data: existingPDFData),
                    let newPDF = PDFDocument(data: newPDFData) {
-                    
+
                     // Append all pages from new PDF to existing PDF
                     for pageIndex in 0..<newPDF.pageCount {
                         if let page = newPDF.page(at: pageIndex) {
                             existingPDF.insert(page, at: existingPDF.pageCount)
                         }
                     }
-                    
+
                     // Update with combined PDF
                     viewModel.pdfData = existingPDF.dataRepresentation()
                 } else {
                     // No existing PDF, just use the new one
                     viewModel.pdfData = newPDFData
                 }
-                
+
                 viewModel.hasChanges = true
-                
+
                 // Save the document
                 _ = await viewModel.save()
             }
-            
+
             isProcessingScans = false
         }
     }
-    
+
     private func presentMarkup() {
         guard let viewModel = viewModel, let pdfData = viewModel.pdfData else {
             print("DEBUG Markup: No PDF data to mark up")
             return
         }
-        
+
         print("DEBUG Markup: Using PencilKit implementation for page \(currentViewedPage + 1)")
         let markupVC = PencilKitMarkupViewController(
             pdfData: pdfData,
@@ -924,29 +929,28 @@ struct DocumentEditView: View {
             rootVC.present(markupVC, animated: true)
         }
     }
-    
-    
+
     private func handleMarkupResult(_ result: Result<Data, Error>) async {
         switch result {
         case .success(let markedPDFData):
             print("DEBUG Markup: Received marked PDF with \(markedPDFData.count) bytes")
-            
+
             // Update the document with marked-up PDF
             if let viewModel = viewModel {
                 // TODO: Create backup before first markup
                 // TODO: Implement atomic save
-                
+
                 // Update PDF data
                 viewModel.pdfData = markedPDFData
                 viewModel.hasChanges = true
-                
+
                 // Re-extract text for search
                 if let pdfDocument = PDFDocument(data: markedPDFData) {
                     let extractedText = pdfDocument.string ?? ""
                     print("DEBUG Markup: Extracted \(extractedText.count) characters of text")
                     // TODO: Update metadata with extracted text
                 }
-                
+
                 // Save the document
                 let saved = await viewModel.save()
                 if saved {
@@ -962,26 +966,26 @@ struct DocumentEditView: View {
             showingMarkupError = true
         }
     }
-    
+
     private func exportPDF() {
         guard let viewModel = viewModel, let pdfData = viewModel.pdfData else {
             print("DEBUG Export: No PDF data to export")
             return
         }
-        
+
         print("DEBUG Export: PDF data size: \(pdfData.count) bytes")
-        
+
         // Create a temporary file with the PDF data
         let tempDir = FileManager.default.temporaryDirectory
         let fileName = "\(viewModel.title.isEmpty ? "Document" : viewModel.title).pdf"
         let tempURL = tempDir.appendingPathComponent(fileName)
-        
+
         print("DEBUG Export: Creating temp file at: \(tempURL.path)")
-        
+
         do {
             try pdfData.write(to: tempURL)
             print("DEBUG Export: Successfully wrote PDF to temp file")
-            
+
             // Verify file exists
             if FileManager.default.fileExists(atPath: tempURL.path) {
                 print("DEBUG Export: File exists, size: \(try FileManager.default.attributesOfItem(atPath: tempURL.path)[.size] ?? 0)")
@@ -1017,7 +1021,7 @@ private struct DraftBadge: View {
 // ShareSheet for iOS
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
-    
+
     func makeUIViewController(context: Context) -> UIActivityViewController {
         print("DEBUG ShareSheet: Creating with \(items.count) items")
         for (index, item) in items.enumerated() {
@@ -1027,7 +1031,7 @@ struct ShareSheet: UIViewControllerRepresentable {
                 print("DEBUG ShareSheet: File exists: \(FileManager.default.fileExists(atPath: url.path))")
             }
         }
-        
+
         let controller = UIActivityViewController(
             activityItems: items,
             applicationActivities: nil
@@ -1035,7 +1039,7 @@ struct ShareSheet: UIViewControllerRepresentable {
         controller.excludedActivityTypes = [.addToReadingList, .assignToContact]
         return controller
     }
-    
+
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
         // Nothing to update
     }
@@ -1044,7 +1048,7 @@ struct ShareSheet: UIViewControllerRepresentable {
 // Placeholder view for PDF content
 struct PDFPlaceholderView: View {
     let pdfData: Data
-    
+
     var body: some View {
         VStack {
             Image(systemName: "doc.fill")

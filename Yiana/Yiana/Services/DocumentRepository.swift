@@ -10,10 +10,10 @@ import Foundation
 /// Manages document URLs in a directory. Does NOT handle document content.
 class DocumentRepository {
     let documentsDirectory: URL
-    
+
     /// Current folder being viewed (relative to documentsDirectory)
     private(set) var currentFolderPath: String = ""
-    
+
     init(documentsDirectory: URL? = nil) {
         if let directory = documentsDirectory {
             self.documentsDirectory = directory
@@ -30,20 +30,20 @@ class DocumentRepository {
                 ).first!
             }
         }
-        
+
         // Ensure directory exists
         try? FileManager.default.createDirectory(
             at: self.documentsDirectory,
             withIntermediateDirectories: true
         )
     }
-    
+
     /// Returns all .yianazip file URLs in the current folder
     func documentURLs() -> [URL] {
-        let targetDirectory = currentFolderPath.isEmpty ? 
-            documentsDirectory : 
+        let targetDirectory = currentFolderPath.isEmpty ?
+            documentsDirectory :
             documentsDirectory.appendingPathComponent(currentFolderPath)
-        
+
         guard let urls = try? FileManager.default.contentsOfDirectory(
             at: targetDirectory,
             includingPropertiesForKeys: [.isRegularFileKey],
@@ -51,24 +51,24 @@ class DocumentRepository {
         ) else {
             return []
         }
-        
+
         return urls.filter { $0.pathExtension == "yianazip" }
     }
-    
+
     /// Generates a new unique URL for a document with given title
     func newDocumentURL(title: String) -> URL {
         let cleanTitle = title
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
-        
-        let targetDirectory = currentFolderPath.isEmpty ? 
-            documentsDirectory : 
+
+        let targetDirectory = currentFolderPath.isEmpty ?
+            documentsDirectory :
             documentsDirectory.appendingPathComponent(currentFolderPath)
-        
+
         let baseURL = targetDirectory
             .appendingPathComponent(cleanTitle)
             .appendingPathExtension("yianazip")
-        
+
         // If file exists, add number
         var url = baseURL
         var counter = 1
@@ -78,10 +78,10 @@ class DocumentRepository {
                 .appendingPathExtension("yianazip")
             counter += 1
         }
-        
+
         return url
     }
-    
+
     /// Deletes document at URL
     func deleteDocument(at url: URL) throws {
         try FileManager.default.removeItem(at: url)
@@ -127,18 +127,18 @@ class DocumentRepository {
 
     /// Check if using iCloud
     var isUsingiCloud: Bool {
-        return documentsDirectory.path.contains("com~apple~CloudDocs") || 
+        return documentsDirectory.path.contains("com~apple~CloudDocs") ||
                documentsDirectory.path.contains("Mobile Documents")
     }
-    
+
     // MARK: - Folder Operations
-    
+
     /// Returns all folders in the current directory
     func folderURLs() -> [URL] {
-        let targetDirectory = currentFolderPath.isEmpty ? 
-            documentsDirectory : 
+        let targetDirectory = currentFolderPath.isEmpty ?
+            documentsDirectory :
             documentsDirectory.appendingPathComponent(currentFolderPath)
-        
+
         guard let urls = try? FileManager.default.contentsOfDirectory(
             at: targetDirectory,
             includingPropertiesForKeys: [.isDirectoryKey],
@@ -146,13 +146,13 @@ class DocumentRepository {
         ) else {
             return []
         }
-        
+
         return urls.filter { url in
             var isDirectory: ObjCBool = false
             return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) && isDirectory.boolValue
         }
     }
-    
+
     /// Navigate into a folder
     func navigateToFolder(_ folderName: String) {
         if currentFolderPath.isEmpty {
@@ -161,29 +161,29 @@ class DocumentRepository {
             currentFolderPath = (currentFolderPath as NSString).appendingPathComponent(folderName)
         }
     }
-    
+
     /// Navigate to parent folder
     func navigateToParent() {
         if !currentFolderPath.isEmpty {
             currentFolderPath = (currentFolderPath as NSString).deletingLastPathComponent
         }
     }
-    
+
     /// Navigate to root
     func navigateToRoot() {
         currentFolderPath = ""
     }
-    
+
     /// Create a new folder
     func createFolder(name: String) throws {
-        let targetDirectory = currentFolderPath.isEmpty ? 
-            documentsDirectory : 
+        let targetDirectory = currentFolderPath.isEmpty ?
+            documentsDirectory :
             documentsDirectory.appendingPathComponent(currentFolderPath)
-        
+
         let folderURL = targetDirectory.appendingPathComponent(name)
         try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
     }
-    
+
     /// Get current folder display name
     var currentFolderName: String {
         if currentFolderPath.isEmpty {
@@ -191,7 +191,7 @@ class DocumentRepository {
         }
         return (currentFolderPath as NSString).lastPathComponent
     }
-    
+
     /// Get folder path components for breadcrumb navigation
     var folderPathComponents: [String] {
         if currentFolderPath.isEmpty {
@@ -199,16 +199,16 @@ class DocumentRepository {
         }
         return currentFolderPath.components(separatedBy: "/").filter { !$0.isEmpty }
     }
-    
+
     // MARK: - Search Operations
-    
+
     /// Recursively find all documents in all folders
     func allDocumentsRecursive() -> [(url: URL, relativePath: String)] {
         var results: [(URL, String)] = []
         searchRecursive(at: documentsDirectory, relativePath: "", results: &results)
         return results
     }
-    
+
     private func searchRecursive(at directory: URL, relativePath: String, results: inout [(URL, String)]) {
         guard let urls = try? FileManager.default.contentsOfDirectory(
             at: directory,
@@ -217,7 +217,7 @@ class DocumentRepository {
         ) else {
             return
         }
-        
+
         for url in urls {
             var isDirectory: ObjCBool = false
             if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) {

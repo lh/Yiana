@@ -11,8 +11,6 @@ import PDFKit
 import YianaDocumentArchive
 
 // Search result type to track what matched
-import Foundation
-import SwiftUI
 import Combine
 
 enum SortOption: String, CaseIterable {
@@ -29,7 +27,7 @@ struct SearchResult: Identifiable {
     let snippet: String?
     let pageNumber: Int?  // 1-based page number (page 1 is first page)
     let searchTerm: String?  // The search term that matched
-    
+
     enum MatchType {
         case title
         case content
@@ -45,13 +43,13 @@ class DocumentListViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var currentFolderName: String = "Documents"
     @Published var folderPath: [String] = []
-    
+
     // Search results
     @Published var otherFolderResults: [(url: URL, path: String)] = []
     @Published var isSearching = false
     @Published var isSearchInProgress = false  // New: indicates active search operation
     @Published var searchResults: [SearchResult] = []
-    
+
     private let repository: DocumentRepository
     private var allDocumentURLs: [URL] = []
     private var allFolderURLs: [URL] = []
@@ -61,49 +59,52 @@ class DocumentListViewModel: ObservableObject {
     private var currentSortAscending = true
     private let searchIndex = SearchIndexService.shared
     private var useSearchIndex = true  // Enable FTS5 index, fallback to brute force if needed
-    
+
     // Search debouncing and cancellation
     private var searchTask: Task<Void, Never>?
     private var searchDebounceTask: Task<Void, Never>?
-    
-    
+
     init(repository: DocumentRepository? = nil) {
         self.repository = repository ?? DocumentRepository()
     }
-    
+
     func loadDocuments() async {
         isLoading = true
         errorMessage = nil
-        
+
         // Simulate async work (file system is actually sync)
         await Task.yield()
-        
+
         allDocumentURLs = repository.documentURLs()
-        
+
         allFolderURLs = repository.folderURLs()
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
-        
+
         currentFolderName = repository.currentFolderName
         folderPath = repository.folderPathComponents
-        
+
         // Load all documents globally for search
         allDocumentsGlobal = repository.allDocumentsRecursive()
+        #if DEBUG
         print("DEBUG: Loaded \(allDocumentsGlobal.count) documents globally")
+#endif
+        #if DEBUG
         print("DEBUG: Current folder: \(repository.currentFolderPath)")
-        
+#endif
+
         // Apply current filter (which will internally apply sorting)
         await applyFilter()
-        
+
         isLoading = false
     }
-    
+
     func createNewDocument(title: String) async -> URL? {
         let url = repository.newDocumentURL(title: title)
         // Note: We don't create the file here, just return the URL
         // The UI will create the actual NoteDocument
         return url
     }
-    
+
     func deleteDocument(at url: URL) async throws {
         do {
             // Extract metadata to get document ID before deleting
@@ -138,17 +139,16 @@ class DocumentListViewModel: ObservableObject {
         await loadDocuments()
     }
 
-    
     // MARK: - Sorting
-    
+
     func sortDocuments(by option: SortOption, ascending: Bool = true) async {
         currentSortOption = option
         currentSortAscending = ascending
-        
+
         // Apply sort to the loaded documents
         applySorting()
     }
-    
+
     private func applySorting() {
         // When searching, sort the filtered results; otherwise sort all documents
         let sourceURLs = isSearching ? documentURLs : allDocumentURLs
@@ -208,32 +208,32 @@ class DocumentListViewModel: ObservableObject {
             }
         }
     }
-    
+
     // MARK: - Folder Navigation
-    
+
     func navigateToFolder(_ folderName: String) async {
         repository.navigateToFolder(folderName)
         await loadDocuments()
     }
-    
+
     func navigateToParent() async {
         repository.navigateToParent()
         await loadDocuments()
     }
-    
+
     func navigateToRoot() async {
         repository.navigateToRoot()
         await loadDocuments()
     }
-    
+
     func navigateToPathComponent(at index: Int) async {
         // Navigate to a specific component in the path
         let components = repository.folderPathComponents
         guard index < components.count else { return }
-        
+
         // Build path up to the selected component
         let newPath = components.prefix(index + 1).joined(separator: "/")
-        
+
         // Navigate directly to that path
         repository.navigateToRoot()
         if !newPath.isEmpty {
@@ -241,7 +241,7 @@ class DocumentListViewModel: ObservableObject {
         }
         await loadDocuments()
     }
-    
+
     func createFolder(name: String) async -> Bool {
         do {
             try repository.createFolder(name: name)
@@ -252,31 +252,31 @@ class DocumentListViewModel: ObservableObject {
             return false
         }
     }
-    
+
     // MARK: - Search
-    
+
     nonisolated private func searchPDFContent(at url: URL, for searchText: String) async -> (snippet: String, pageNumber: Int?)? {
         // First try to use our OCR data with page info
         if let ocrResult = searchOCRContentWithPageInfo(at: url, for: searchText) {
             return (snippet: ocrResult.snippet, pageNumber: ocrResult.pageNumber)
         }
-        
+
         // Fallback: Load the document to extract PDF data
-        guard let data = try? Data(contentsOf: url) else { 
-            return nil 
+        guard let data = try? Data(contentsOf: url) else {
+            return nil
         }
-        
+
         // Try to parse as our document format to get PDF data
         if let pdfData = extractPDFData(from: data),
            let pdfDocument = PDFDocument(data: pdfData) {
-            
+
             // NOTE: PDFs created from scanned images in this app don't have searchable text
             // VisionKit performs OCR for display/selection but doesn't embed it in the PDF
             // This will only work for PDFs that already have embedded text layers
-            
+
             // Try PDFKit's built-in search
             let selections = pdfDocument.findString(searchText, withOptions: .caseInsensitive)
-            
+
             if !selections.isEmpty, let firstMatch = selections.first {
                 // Get the page and surrounding text for context
                 if let page = firstMatch.pages.first,
@@ -288,15 +288,15 @@ class DocumentListViewModel: ObservableObject {
                 }
             }
         }
-        
+
         return nil
     }
-    
+
     nonisolated private func searchOCRContent(at documentURL: URL, for searchText: String) async -> String? {
         let result = searchOCRContentWithPageInfo(at: documentURL, for: searchText)
         return result?.snippet
     }
-    
+
     nonisolated private func getDocumentsDirectory(from documentURL: URL) -> URL? {
         // Find the Documents directory in the path
         let pathComponents = documentURL.pathComponents
@@ -324,7 +324,7 @@ class DocumentListViewModel: ObservableObject {
         // As a last resort, return the document's immediate parent directory
         return documentURL.deletingLastPathComponent()
     }
-    
+
     nonisolated private func searchOCRContentWithPageInfo(at documentURL: URL, for searchText: String) -> (snippet: String, pageNumber: Int)? {
         // Build path to OCR JSON file
         // Get documents directory from the document URL itself
@@ -345,24 +345,24 @@ class DocumentListViewModel: ObservableObject {
         let ocrResultsDir = documentsDir
             .appendingPathComponent(".ocr_results")
             .appendingPathComponent(trimmedPath)
-        
+
         let baseFileName = documentURL.deletingPathExtension().lastPathComponent
         let jsonURL = ocrResultsDir.appendingPathComponent("\(baseFileName).json")
-        
+
         // Check if OCR JSON exists
         guard FileManager.default.fileExists(atPath: jsonURL.path) else {
             return nil
         }
-        
+
         do {
             // Read and parse OCR JSON
             let jsonData = try Data(contentsOf: jsonURL)
             if let json = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
                let pages = json["pages"] as? [[String: Any]] {
-                
+
                 // Search through all pages and track page numbers
                 var allMatches: [(snippet: String, pageNumber: Int)] = []
-                
+
                 for (index, page) in pages.enumerated() {
                     if let pageText = page["text"] as? String,
                        let pageNumber = page["pageNumber"] as? Int {  // 1-based from OCR
@@ -374,17 +374,17 @@ class DocumentListViewModel: ObservableObject {
                         }
                     }
                 }
-                
+
                 // Return first match for now (we'll enhance this later to show all matches)
                 return allMatches.first
             }
         } catch {
             print("DEBUG: Error reading OCR data: \(error)")
         }
-        
+
         return nil
     }
-    
+
     nonisolated private func extractPDFData(from data: Data) -> Data? {
         // Check if it's raw PDF
         let pdfHeader = "%PDF"
@@ -398,25 +398,25 @@ class DocumentListViewModel: ObservableObject {
 
         return nil
     }
-    
+
     nonisolated private func extractSnippet(from text: String, around searchTerm: String, contextLength: Int = 50) -> String {
         let lowercaseText = text.lowercased()
         let lowercaseSearch = searchTerm.lowercased()
-        
+
         guard let range = lowercaseText.range(of: lowercaseSearch) else {
             return ""
         }
-        
+
         let startIndex = text.index(range.lowerBound, offsetBy: -contextLength, limitedBy: text.startIndex) ?? text.startIndex
         let endIndex = text.index(range.upperBound, offsetBy: contextLength, limitedBy: text.endIndex) ?? text.endIndex
-        
+
         var snippet = String(text[startIndex..<endIndex])
-        
+
         // Clean up the snippet
         snippet = snippet.trimmingCharacters(in: .whitespacesAndNewlines)
         snippet = snippet.replacingOccurrences(of: "\n", with: " ")
         snippet = snippet.replacingOccurrences(of: "  ", with: " ")
-        
+
         // Add ellipsis if truncated
         if startIndex != text.startIndex {
             snippet = "..." + snippet
@@ -424,7 +424,7 @@ class DocumentListViewModel: ObservableObject {
         if endIndex != text.endIndex {
             snippet = snippet + "..."
         }
-        
+
         return snippet
     }
 
@@ -569,25 +569,25 @@ class DocumentListViewModel: ObservableObject {
             }
         }
     }
-    
+
     private func performSearch(searchText: String) async {
         guard !Task.isCancelled else { return }
         print("DEBUG: Searching for '\(searchText)' in folder '\(repository.currentFolderPath)'")
-        
+
         // Set search in progress
         await MainActor.run {
             isSearchInProgress = true
         }
-        
+
         // Perform search with async operations
         await applyFilter()
-        
+
         // Clear search in progress
         await MainActor.run {
             isSearchInProgress = false
         }
     }
-    
+
     private func applyFilter() async {
         if currentSearchText.isEmpty {
             // No filter - show all in current folder, then apply sorting
@@ -606,38 +606,38 @@ class DocumentListViewModel: ObservableObject {
                 isSearching = true
                 searchResults = []
             }
-            
+
             // Filter current folder documents by title and content
             var titleMatches: [URL] = []
             var contentMatches: [URL] = []
             var newSearchResults: [SearchResult] = []
-            
+
             // Process documents in parallel
             await withTaskGroup(of: (URL, Bool, (snippet: String, pageNumber: Int?)?)?.self) { group in
                 for url in allDocumentURLs {
                     group.addTask {
                         // Check for cancellation
                         if Task.isCancelled { return nil }
-                        
+
                         let titleMatch = url.deletingPathExtension().lastPathComponent.lowercased().contains(searchLower)
-                        
+
                         // Search PDF content asynchronously
                         let contentResult = await self.searchPDFContent(at: url, for: self.currentSearchText)
-                        
+
                         return (url, titleMatch, contentResult)
                     }
                 }
-                
+
                 // Collect results
                 for await result in group {
                     if Task.isCancelled { break }
-                    
+
                     guard let (url, titleMatch, contentResult) = result else { continue }
-                    
+
                     if titleMatch {
                         titleMatches.append(url)
                     }
-                    
+
                     if let contentResult = contentResult {
                         if !titleMatch {
                             contentMatches.append(url)
@@ -661,10 +661,10 @@ class DocumentListViewModel: ObservableObject {
                     }
                 }
             }
-            
+
             // Check for cancellation before updating UI
             if Task.isCancelled { return }
-            
+
             // Update UI on main thread
             await MainActor.run {
                 searchResults = newSearchResults
@@ -680,41 +680,41 @@ class DocumentListViewModel: ObservableObject {
                     url.lastPathComponent.lowercased().contains(searchLower)
                 }
             }
-            
+
             // Search globally for documents NOT in current folder
             let currentPath = repository.currentFolderPath
             var globalResults: [(URL, String)] = []
             var globalSearchResults: [SearchResult] = []
-            
+
             await withTaskGroup(of: (URL, String, Bool, (snippet: String, pageNumber: Int?)?)?.self) { group in
                 for item in allDocumentsGlobal {
                     // Skip documents in current folder (already searched above)
                     if item.relativePath == currentPath {
                         continue
                     }
-                    
+
                     group.addTask {
                         // Check for cancellation
                         if Task.isCancelled { return nil }
-                        
+
                         let titleMatch = item.url.deletingPathExtension().lastPathComponent.lowercased().contains(searchLower)
                         let contentResult = await self.searchPDFContent(at: item.url, for: self.currentSearchText)
                         let displayPath = item.relativePath.isEmpty ? "Documents" : item.relativePath.replacingOccurrences(of: "/", with: " > ")
-                        
+
                         return (item.url, displayPath, titleMatch, contentResult)
                     }
                 }
-                
+
                 // Collect results
                 for await result in group {
                     if Task.isCancelled { break }
-                    
+
                     guard let (url, displayPath, titleMatch, contentResult) = result else { continue }
-                    
+
                     // Include if title matches OR content matches
                     if titleMatch || contentResult != nil {
                         globalResults.append((url, displayPath))
-                        
+
                         // Add to search results if content matches
                         if let result = contentResult {
                             let matchType: SearchResult.MatchType = titleMatch ? .both : .content
@@ -729,14 +729,14 @@ class DocumentListViewModel: ObservableObject {
                     }
                 }
             }
-            
+
             // Check for cancellation before final UI update
             if Task.isCancelled { return }
-            
+
             await MainActor.run {
                 searchResults.append(contentsOf: globalSearchResults)
                 otherFolderResults = globalResults.sorted { $0.0.lastPathComponent < $1.0.lastPathComponent }
-                
+
                 print("DEBUG: Found \(documentURLs.count) in current folder, \(otherFolderResults.count) in other folders")
             }
         }

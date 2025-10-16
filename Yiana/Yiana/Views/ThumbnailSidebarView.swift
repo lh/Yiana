@@ -13,10 +13,10 @@ struct ThumbnailSidebarView: View {
     let selectedPages: Set<Int>
     var onTap: (Int) -> Void
     var onDoubleTap: (Int) -> Void
-    var onClearSelection: (() -> Void)? = nil
-    var onToggleSelectionMode: (() -> Void)? = nil
-    var onDeleteSelection: (() -> Void)? = nil
-    var onDuplicateSelection: (() -> Void)? = nil
+    var onClearSelection: (() -> Void)?
+    var onToggleSelectionMode: (() -> Void)?
+    var onDeleteSelection: (() -> Void)?
+    var onDuplicateSelection: (() -> Void)?
 
     var body: some View {
         VStack(spacing: 8) {

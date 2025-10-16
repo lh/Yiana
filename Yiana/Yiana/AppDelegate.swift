@@ -17,7 +17,7 @@ extension Notification.Name {
 import UIKit
 
 class AppDelegate: NSObject, UIApplicationDelegate {
-    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         // Broadcast to SwiftUI layer
         NotificationCenter.default.post(name: .yianaOpenURL, object: url)
         return true

@@ -14,7 +14,7 @@ struct YianaApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     #endif
     @StateObject private var importHandler = DocumentImportHandler()
-    
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -76,10 +76,10 @@ struct YianaApp: App {
         }
         #endif
     }
-    
+
     private func handleIncomingURL(_ url: URL) {
         print("DEBUG: Received URL: \(url)")
-        
+
         // Check if it's a PDF
         if url.pathExtension.lowercased() == "pdf" {
             importHandler.importPDF(from: url)
@@ -97,23 +97,23 @@ class DocumentImportHandler: ObservableObject {
     @Published var showingImportDialog = false
     @Published var pdfToImport: URL?
     @Published var documentToOpen: URL?
-    
+
     func importPDF(from url: URL) {
         // Copy to temporary location if needed
         if url.startAccessingSecurityScopedResource() {
             defer { url.stopAccessingSecurityScopedResource() }
-            
+
             do {
                 // Read the PDF data
                 let pdfData = try Data(contentsOf: url)
-                
+
                 // Save to temporary location
                 let tempURL = FileManager.default.temporaryDirectory
                     .appendingPathComponent(UUID().uuidString)
                     .appendingPathExtension("pdf")
-                
+
                 try pdfData.write(to: tempURL)
-                
+
                 DispatchQueue.main.async {
                     self.pdfToImport = tempURL
                     self.showingImportDialog = true
@@ -129,7 +129,7 @@ class DocumentImportHandler: ObservableObject {
             }
         }
     }
-    
+
     func openDocument(at url: URL) {
         DispatchQueue.main.async {
             self.documentToOpen = url

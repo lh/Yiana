@@ -354,7 +354,6 @@ final class PencilKitMarkupViewController: UIViewController, PKCanvasViewDelegat
         updatePodsVisibility()
     }
 
-
     private func updateTextColorSelection(selectedTag: Int) {
         currentTextColorTag = selectedTag
         switch selectedTag {
@@ -367,7 +366,6 @@ final class PencilKitMarkupViewController: UIViewController, PKCanvasViewDelegat
         // Apply color to selected label
         selectedLabel?.textColor = textColor
     }
-
 
     @objc private func handleTextTap(_ gr: UITapGestureRecognizer) {
         guard isTextMode else { return }

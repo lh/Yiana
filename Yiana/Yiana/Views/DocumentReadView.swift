@@ -24,152 +24,43 @@ struct DocumentReadView: View {
     @State private var initialPageToShow: Int?
     @State private var showingExportError = false
     @State private var exportErrorMessage = ""
-    
+
     // New state for sidebar management
     @State private var isSidebarVisible = true
     @State private var sidebarWasVisibleBeforeOrganiser = true
     @State private var sidebarRefreshID = UUID()
-    
+
     init(documentURL: URL, searchResult: SearchResult? = nil) {
         self.documentURL = documentURL
         self.searchResult = searchResult
     }
-    
+
     var body: some View {
         HSplitView {
             // Main document view
-            ZStack {
-            if isLoading {
-                ProgressView("Loading document...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let error = errorMessage {
-                VStack(spacing: 20) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 50))
-                        .foregroundColor(.orange)
-                    Text("Unable to load document")
-                        .font(.title2)
-                    Text(error)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let pdfData = pdfData {
-                VStack(spacing: 0) {
-                    // Read-only banner
-                    if viewModel?.isReadOnly == true {
-                        HStack {
-                            Image(systemName: "lock.fill")
-                                .foregroundColor(.secondary)
-                            Text("This document is read-only")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.horizontal)
-                        .padding(.vertical, 6)
-                        .background(Color.gray.opacity(0.1))
-                        .frame(maxWidth: .infinity)
-                    }
-                    // Title bar
-                    HStack {
-                        Text(documentTitle)
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .padding()
-                        Spacer()
-                        
-                        // Control buttons
-                        HStack(spacing: 12) {
-                            // Page management button (first position for prominence)
-                            if pdfData.count > 0 {
-                                Button(action: {
-                                    // Stash sidebar state and hide it before showing organiser
-                                    sidebarWasVisibleBeforeOrganiser = isSidebarVisible
-                                    isSidebarVisible = false
-                                    showingPageManagement = true
-                                }) {
-                                    Label("Manage Pages", systemImage: "rectangle.stack")
-                                }
-                                .buttonStyle(.borderless)
-                                .help("Manage pages (copy, cut, paste, reorder)")
-                            }
-
-                            // Export button
-                            Button(action: {
-                                exportPDF()
-                            }) {
-                                Label("Export PDF", systemImage: "square.and.arrow.up")
-                            }
-                            .buttonStyle(.borderless)
-                            .help("Export as PDF")
-
-                            // Info panel toggle
-                            Button(action: {
-                                showingInfoPanel.toggle()
-                            }) {
-                                Label("Info", systemImage: showingInfoPanel ? "info.circle.fill" : "info.circle")
-                            }
-                            .buttonStyle(.borderless)
-                            .help("Toggle document info panel")
-                        }
-                        .padding(.trailing)
-                    }
-                    .background(Color(NSColor.windowBackgroundColor))
-                    
-                    Divider()
-                    
-                    // PDF content with optional markup mode
-                    // Note: searchResult.pageNumber is 1-based
-                    let _ = {
-                        print("DEBUG DocumentReadView: searchResult = \(String(describing: searchResult))")
-                        print("DEBUG DocumentReadView: pageNumber = \(String(describing: searchResult?.pageNumber))")
-                        print("DEBUG DocumentReadView: searchTerm = \(String(describing: searchResult?.searchTerm))")
-                    }()
-                    // PDF viewer - use viewModel if available, with new parameters
-                    if let viewModel = viewModel {
-                        MacPDFViewer(
-                            viewModel: viewModel,
-                            legacyPDFData: pdfData,
-                            isSidebarVisible: $isSidebarVisible,
-                            refreshTrigger: sidebarRefreshID,
-                            onRequestPageManagement: {
-                                // Stash sidebar state and hide it before showing organiser
-                                sidebarWasVisibleBeforeOrganiser = isSidebarVisible
-                                isSidebarVisible = false
-                                showingPageManagement = true
-                            }
-                        )
-                    } else {
-                        // Fallback for legacy PDFs without view model
-                        MacPDFViewer(
-                            viewModel: DocumentViewModel(pdfData: pdfData),
-                            legacyPDFData: pdfData,
-                            isSidebarVisible: $isSidebarVisible,
-                            refreshTrigger: sidebarRefreshID,
-                            onRequestPageManagement: {
-                                // Stash sidebar state and hide it before showing organiser
-                                sidebarWasVisibleBeforeOrganiser = isSidebarVisible
-                                isSidebarVisible = false
-                                showingPageManagement = true
-                            }
-                        )
-                    }
-                }
-            } else {
-                VStack(spacing: 20) {
-                    ProgressView()
-                        .scaleEffect(1.4)
-                    Text("Document not downloaded yet")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    Text("This document is still downloading from iCloud. It will open automatically once the download finishes.")
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            VStack(spacing: 0) {
+                ReadOnlyBanner(isReadOnly: isReadOnly)
+                DocumentReadToolbar(
+                    title: documentTitle,
+                    isReadOnly: isReadOnly,
+                    hasPDFContent: hasPDFContent,
+                    isInfoVisible: showingInfoPanel,
+                    onManagePages: handleManagePages,
+                    onExport: exportPDF,
+                    onToggleInfo: handleToggleInfo
+                )
+                Divider()
+                DocumentReadContent(
+                    isLoading: isLoading,
+                    errorMessage: errorMessage,
+                    pdfData: pdfData,
+                    viewModel: viewModel,
+                    isSidebarVisible: $isSidebarVisible,
+                    sidebarRefreshID: sidebarRefreshID,
+                    onRequestPageManagement: handleManagePages
+                )
             }
-            }
-            
+
             // Info panel (when visible)
             if showingInfoPanel, let document = document {
                 DocumentInfoPanel(document: document)
@@ -199,41 +90,7 @@ struct DocumentReadView: View {
             await loadDocument()
         }
         .sheet(isPresented: $showingPageManagement) {
-            // Use the proper view model with bindings if available,
-            // or fall back to read-only mode for legacy PDFs
-            if let viewModel = viewModel {
-                PageManagementView(
-                    pdfData: Binding(
-                        get: { viewModel.pdfData ?? Data() },
-                        set: { viewModel.pdfData = $0 }
-                    ),
-                    viewModel: viewModel,
-                    isPresented: $showingPageManagement,
-                    currentPageIndex: 0,  // macOS version doesn't track current page yet
-                    displayPDFData: viewModel.displayPDFData,
-                    provisionalPageRange: viewModel.provisionalPageRange,
-                    onDismiss: {
-                        // Restore sidebar visibility and trigger refresh
-                        isSidebarVisible = sidebarWasVisibleBeforeOrganiser
-                        sidebarRefreshID = UUID()
-                    }
-                )
-            } else {
-                // Legacy fallback for raw PDFs
-                PageManagementView(
-                    pdfData: $pdfData,
-                    viewModel: DocumentViewModel(pdfData: pdfData),
-                    isPresented: $showingPageManagement,
-                    currentPageIndex: 0,
-                    displayPDFData: pdfData,
-                    provisionalPageRange: nil,
-                    onDismiss: {
-                        // Restore sidebar visibility and trigger refresh
-                        isSidebarVisible = sidebarWasVisibleBeforeOrganiser
-                        sidebarRefreshID = UUID()
-                    }
-                )
-            }
+            pageManagementSheet
         }
         .alert("Export Error", isPresented: $showingExportError) {
             Button("OK") { }
@@ -247,18 +104,18 @@ struct DocumentReadView: View {
             }
         }
     }
-    
+
     private func loadDocument() async {
         isLoading = true
         errorMessage = nil
-        
+
         do {
             // Create a NoteDocument instance
             let noteDocument = NoteDocument(fileURL: documentURL)
-            
+
             // Load the document content
             try noteDocument.read(from: documentURL)
-            
+
             // Store the document and its data
             self.document = noteDocument
             self.pdfData = noteDocument.pdfData
@@ -268,12 +125,12 @@ struct DocumentReadView: View {
             await MainActor.run {
                 self.viewModel = DocumentViewModel(document: noteDocument)
             }
-            
+
         } catch {
             // If loading as NoteDocument fails, try legacy approach
             do {
                 let data = try Data(contentsOf: documentURL)
-                
+
                 if isPDFData(data) {
                     // It's a raw PDF
                     pdfData = data
@@ -287,7 +144,7 @@ struct DocumentReadView: View {
                     if let documentData = try? extractDocumentData(from: data) {
                         pdfData = documentData.pdfData
                         documentTitle = documentData.title
-                        
+
                         // Create document with extracted metadata
                         let noteDoc = NoteDocument(fileURL: documentURL)
                         // Load will have been called during extraction
@@ -305,10 +162,10 @@ struct DocumentReadView: View {
                 errorMessage = error.localizedDescription
             }
         }
-        
+
         isLoading = false
     }
-    
+
     private func isPDFData(_ data: Data) -> Bool {
         // Check for PDF magic number
         let pdfHeader = "%PDF"
@@ -317,23 +174,24 @@ struct DocumentReadView: View {
         }
         return false
     }
-    
+
     private func exportPDF() {
         let exportService = ExportService()
-        
+
         // Create save panel
         let savePanel = NSSavePanel()
         savePanel.allowedContentTypes = [.pdf]
         savePanel.nameFieldStringValue = exportService.suggestedFileName(for: documentURL)
         savePanel.title = "Export PDF"
         savePanel.message = "Choose where to save the exported PDF"
-        
+
         savePanel.begin { response in
             if response == .OK, let destinationURL = savePanel.url {
                 do {
                     try exportService.exportToPDF(from: documentURL, to: destinationURL)
                     // Optionally show success feedback
-                    NSWorkspace.shared.selectFile(destinationURL.path, inFileViewerRootedAtPath: destinationURL.deletingLastPathComponent().path)
+                    let parentPath = destinationURL.deletingLastPathComponent().path
+                    NSWorkspace.shared.selectFile(destinationURL.path, inFileViewerRootedAtPath: parentPath)
                 } catch {
                     // Show error
                     exportErrorMessage = error.localizedDescription
@@ -342,23 +200,93 @@ struct DocumentReadView: View {
             }
         }
     }
-    
+
     private func extractDocumentData(from data: Data) throws -> (title: String, pdfData: Data?) {
         let payload = try DocumentArchive.read(from: data)
-        
+
         let decoder = JSONDecoder()
         let metadata = try decoder.decode(DocumentMetadata.self, from: payload.metadata)
-        
+
         return (
             title: metadata.title,
             pdfData: payload.pdfData
         )
     }
+
+    // MARK: - Computed Properties
+
+    /// Derived state: whether the document is read-only
+    private var isReadOnly: Bool {
+        viewModel?.isReadOnly ?? false
+    }
+
+    /// Derived state: whether PDF has content
+    private var hasPDFContent: Bool {
+        guard let pdfData = pdfData else { return false }
+        return pdfData.count > 0
+    }
+
+    // MARK: - Helper Methods
+
+    /// Handles the page management action
+    private func handleManagePages() {
+        sidebarWasVisibleBeforeOrganiser = isSidebarVisible
+        isSidebarVisible = false
+        showingPageManagement = true
+    }
+
+    /// Handles toggling the info panel
+    private func handleToggleInfo() {
+        showingInfoPanel.toggle()
+        let message = showingInfoPanel ? "Showing document information" : "Hiding document information"
+        AccessibilityAnnouncer.shared.post(message)
+    }
+
+    /// Builds the page management sheet view
+    @ViewBuilder
+    private var pageManagementSheet: some View {
+        if let viewModel = viewModel {
+            PageManagementView(
+                pdfData: Binding(
+                    get: { viewModel.pdfData ?? Data() },
+                    set: { viewModel.pdfData = $0 }
+                ),
+                viewModel: viewModel,
+                isPresented: $showingPageManagement,
+                currentPageIndex: 0,  // macOS version doesn't track current page yet
+                displayPDFData: viewModel.displayPDFData,
+                provisionalPageRange: viewModel.provisionalPageRange,
+                onDismiss: {
+                    // Restore sidebar visibility and trigger refresh
+                    isSidebarVisible = sidebarWasVisibleBeforeOrganiser
+                    sidebarRefreshID = UUID()
+                }
+            )
+        } else {
+            // Legacy fallback for raw PDFs
+            PageManagementView(
+                pdfData: Binding(
+                    get: { pdfData ?? Data() },
+                    set: { pdfData = $0 }
+                ),
+                viewModel: DocumentViewModel(pdfData: pdfData),
+                isPresented: $showingPageManagement,
+                currentPageIndex: 0,
+                displayPDFData: pdfData,
+                provisionalPageRange: nil,
+                onDismiss: {
+                    // Restore sidebar visibility and trigger refresh
+                    isSidebarVisible = sidebarWasVisibleBeforeOrganiser
+                    sidebarRefreshID = UUID()
+                }
+            )
+        }
+    }
 }
 
 enum YianaError: LocalizedError {
     case invalidFormat
-    
+
     var errorDescription: String? {
         switch self {
         case .invalidFormat:

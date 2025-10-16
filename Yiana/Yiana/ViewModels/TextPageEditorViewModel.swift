@@ -24,10 +24,10 @@ final class TextPageEditorViewModel: ObservableObject {
             switch (lhs, rhs) {
             case (.empty, .empty), (.modified, .modified):
                 return true
-            case let (.loaded(a), .loaded(b)):
-                return a == b
-            case let (.saved(a), .saved(b)):
-                return a == b
+            case let (.loaded(dateA), .loaded(dateB)):
+                return dateA == dateB
+            case let (.saved(dateA), .saved(dateB)):
+                return dateA == dateB
             case let (.failed(errorA), .failed(errorB)):
                 return String(describing: errorA) == String(describing: errorB)
             default:
