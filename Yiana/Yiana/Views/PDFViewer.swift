@@ -7,6 +7,7 @@
 
 import SwiftUI
 import PDFKit
+import OSLog
 
 /// PDF zoom actions that can be triggered programmatically
 enum PDFZoomAction {
@@ -134,6 +135,35 @@ enum FitMode: Hashable {
     case manual
 }
 
+#if DEBUG
+private let pdfViewerLog = Logger(subsystem: "com.vitygas.yiana", category: "PDFViewer")
+private func pdfDebug(_ message: String) {
+    pdfViewerLog.debug("\(message, privacy: .public)")
+}
+#else
+private func pdfDebug(_ message: String) {}
+#endif
+
+#if os(iOS)
+final class SizeAwarePDFView: PDFView {
+    var onLayout: ((CGSize) -> Void)?
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        onLayout?(bounds.size)
+    }
+}
+#else
+final class SizeAwarePDFView: PDFView {
+    var onLayout: ((CGSize) -> Void)?
+
+    override func layout() {
+        super.layout()
+        onLayout?(bounds.size)
+    }
+}
+#endif
+
 struct PDFKitView: ViewRepresentable {
     let pdfData: Data
     @Binding var currentPage: Int
@@ -146,8 +176,9 @@ struct PDFKitView: ViewRepresentable {
 
     #if os(iOS)
     func makeUIView(context: Context) -> PDFView {
-        let pdfView = PDFView()
+        let pdfView = SizeAwarePDFView()
         context.coordinator.isInitialLoad = true
+        pdfDebug("makeUIView: preparing new PDFView; mainThread=\(Thread.isMainThread)")
         configurePDFView(pdfView, context: context)
         return pdfView
     }
@@ -155,33 +186,54 @@ struct PDFKitView: ViewRepresentable {
     func updateUIView(_ pdfView: PDFView, context: Context) {
         context.coordinator.pdfView = pdfView
         let signature = pdfData.count
+        let previousSignature = context.coordinator.pdfDataSignature ?? -1
+        let boundsSize = pdfView.bounds.size
+        let currentScale = pdfView.scaleFactor
+        pdfDebug("updateUIView start: signature=\(signature) previous=\(previousSignature) awaitingFit=\(context.coordinator.awaitingInitialFit) bounds=\(boundsSize) scale=\(currentScale)")
         if context.coordinator.pdfDataSignature != signature {
             context.coordinator.pdfDataSignature = signature
             context.coordinator.lastReportedPageIndex = nil
             if let document = PDFDocument(data: pdfData) {
+                pdfDebug("updateUIView detected new document; pageCount=\(document.pageCount)")
                 context.coordinator.isReloadingDocument = true
+                context.coordinator.awaitingInitialFit = true
                 DispatchQueue.main.async {
                     let pageCount = document.pageCount
                     let clamped = max(0, min(self.currentPage, pageCount - 1))
                     pdfView.document = nil
                     pdfView.document = document
-                    if let page = document.page(at: clamped) {
-                        pdfView.go(to: page)
-                        context.coordinator.lastReportedPageIndex = clamped
-                    }
+                    pdfDebug("updateUIView async: document assigned; clampedPage=\(clamped) awaitingFit=\(context.coordinator.awaitingInitialFit)")
+
                     #if os(iOS)
                     pdfView.documentView?.setNeedsDisplay()
                     #else
                     pdfView.documentView?.needsDisplay = true
                     #endif
-                    DispatchQueue.main.async {
-                        pdfView.layoutDocumentView()
+                    pdfView.layoutDocumentView()
+
+                    pdfDebug("📍 BEFORE applyFitToHeight: scale=\(pdfView.scaleFactor)")
+
+                    // Apply scale FIRST before navigating
+                    let applied = self.applyFitToHeight(pdfView, coordinator: context.coordinator)
+                    pdfDebug("📍 AFTER applyFitToHeight: applied=\(applied) scale=\(pdfView.scaleFactor) awaitingFit=\(context.coordinator.awaitingInitialFit) bounds=\(pdfView.bounds.size)")
+
+                    // THEN navigate to page with correct scale already set
+                    document.page(at: clamped).map { page in
+                        pdfView.go(to: page)
+                        context.coordinator.lastReportedPageIndex = clamped
+
+                        #if os(iOS)
+                        // Manually center the content since go(to:) doesn't center when already on the page
+                        self.centerPDFContent(in: pdfView)
+                        #endif
                     }
+
                     self.totalPages = pageCount
                     if self.currentPage != clamped {
                         self.currentPage = clamped
                     }
                     context.coordinator.isReloadingDocument = false
+                    pdfDebug("updateUIView async: finished initial document setup; awaitingFit=\(context.coordinator.awaitingInitialFit)")
                 }
             } else {
                 pdfView.document = nil
@@ -189,6 +241,8 @@ struct PDFKitView: ViewRepresentable {
                     self.totalPages = 0
                     self.currentPage = 0
                     context.coordinator.isReloadingDocument = false
+                    context.coordinator.awaitingInitialFit = false
+                    pdfDebug("updateUIView async: document failed to load; resetting state")
                 }
             }
         } else if let document = pdfView.document {
@@ -210,8 +264,9 @@ struct PDFKitView: ViewRepresentable {
     }
     #else
     func makeNSView(context: Context) -> PDFView {
-        let pdfView = PDFView()
+        let pdfView = SizeAwarePDFView()
         context.coordinator.isInitialLoad = true
+        pdfDebug("makeNSView: preparing new PDFView; mainThread=\(Thread.isMainThread)")
         configurePDFView(pdfView, context: context)
         return pdfView
     }
@@ -219,38 +274,42 @@ struct PDFKitView: ViewRepresentable {
     func updateNSView(_ pdfView: PDFView, context: Context) {
         context.coordinator.pdfView = pdfView
         let signature = pdfData.count
+        let previousSignature = context.coordinator.pdfDataSignature ?? -1
+        let boundsSize = pdfView.bounds.size
+        let currentScale = pdfView.scaleFactor
+        pdfDebug("updateNSView start: signature=\(signature) previous=\(previousSignature) awaitingFit=\(context.coordinator.awaitingInitialFit) bounds=\(boundsSize) scale=\(currentScale)")
         if context.coordinator.pdfDataSignature != signature {
             context.coordinator.pdfDataSignature = signature
             context.coordinator.lastReportedPageIndex = nil
             if let document = PDFDocument(data: pdfData) {
+                pdfDebug("updateNSView detected new document; pageCount=\(document.pageCount)")
                 context.coordinator.isReloadingDocument = true
+                context.coordinator.awaitingInitialFit = true
                 DispatchQueue.main.async {
                     let pageCount = document.pageCount
                     let clamped = max(0, min(self.currentPage, pageCount - 1))
                     pdfView.document = nil
                     pdfView.document = document
-                    if let page = document.page(at: clamped) {
+                    pdfDebug("updateNSView async: document assigned; clampedPage=\(clamped) awaitingFit=\(context.coordinator.awaitingInitialFit)")
+                    document.page(at: clamped).map { page in
                         pdfView.go(to: page)
                         context.coordinator.lastReportedPageIndex = clamped
+                        pdfDebug("updateNSView async: navigated to page \(clamped)")
                     }
                     #if os(iOS)
                     pdfView.documentView?.setNeedsDisplay()
                     #else
                     pdfView.documentView?.needsDisplay = true
                     #endif
-                    DispatchQueue.main.async {
-                        pdfView.layoutDocumentView()
-                        // Apply initial fit-to-page and sync coordinator state
-                        self.applyFitToHeight(pdfView, coordinator: context.coordinator)
-                        context.coordinator.currentFitMode = .height
-                        context.coordinator.lastExplicitFitMode = .height
-                        self.fitMode = .height
-                    }
+                    pdfView.layoutDocumentView()
+                    let applied = self.applyFitToHeight(pdfView, coordinator: context.coordinator)
+                    pdfDebug("updateNSView async: layoutDocumentView appliedFit=\(applied) awaitingFit=\(context.coordinator.awaitingInitialFit) bounds=\(pdfView.bounds.size)")
                     self.totalPages = pageCount
                     if self.currentPage != clamped {
                         self.currentPage = clamped
                     }
                     context.coordinator.isReloadingDocument = false
+                    pdfDebug("updateNSView async: finished initial document setup; awaitingFit=\(context.coordinator.awaitingInitialFit)")
                 }
             } else {
                 pdfView.document = nil
@@ -258,6 +317,8 @@ struct PDFKitView: ViewRepresentable {
                     self.totalPages = 0
                     self.currentPage = 0
                     context.coordinator.isReloadingDocument = false
+                    context.coordinator.awaitingInitialFit = false
+                    pdfDebug("updateNSView async: document failed to load; resetting state")
                 }
             }
         } else if let document = pdfView.document {
@@ -284,7 +345,39 @@ struct PDFKitView: ViewRepresentable {
     }
 
     // MARK: - Zoom Helpers
-    
+
+    #if os(iOS)
+    /// Manually center PDF content in the scroll view
+    /// This is needed because go(to:) doesn't re-center when already on the target page
+    private func centerPDFContent(in pdfView: PDFView) {
+        func findScrollView(in view: UIView) -> UIScrollView? {
+            if let scrollView = view as? UIScrollView { return scrollView }
+            for subview in view.subviews {
+                if let found = findScrollView(in: subview) { return found }
+            }
+            return nil
+        }
+
+        guard let scrollView = findScrollView(in: pdfView) else {
+            pdfDebug("📍 centerPDFContent: no scroll view found")
+            return
+        }
+
+        let contentWidth = scrollView.contentSize.width
+        let viewWidth = scrollView.bounds.width
+        let contentHeight = scrollView.contentSize.height
+        let viewHeight = scrollView.bounds.height
+
+        // Calculate centered offset
+        let centeredX = max(0, (contentWidth - viewWidth) / 2)
+        let centeredY = max(0, (contentHeight - viewHeight) / 2)
+        let centeredOffset = CGPoint(x: centeredX, y: centeredY)
+
+        pdfDebug("📍 centerPDFContent: setting offset to \(centeredOffset) (contentSize=\(scrollView.contentSize) bounds=\(scrollView.bounds.size))")
+        scrollView.contentOffset = centeredOffset
+    }
+    #endif
+
     private func applyFitToWindow(_ pdfView: PDFView, coordinator: Coordinator) {
         pdfView.scaleFactor = pdfView.scaleFactorForSizeToFit
         coordinator.lastKnownScaleFactor = pdfView.scaleFactor
@@ -301,20 +394,67 @@ struct PDFKitView: ViewRepresentable {
         coordinator.lastExplicitFitMode = .width
     }
     
-    private func applyFitToHeight(_ pdfView: PDFView, coordinator: Coordinator) {
-        guard let page = pdfView.currentPage else { return }
-        let pageRect = page.bounds(for: pdfView.displayBox)
+    @discardableResult
+    private func applyFitToHeight(_ pdfView: PDFView, coordinator: Coordinator) -> Bool {
+        pdfDebug("applyFitToHeight start: awaiting=\(coordinator.awaitingInitialFit) currentFit=\(coordinator.currentFitMode) bounds=\(pdfView.bounds.size)")
+        let page = pdfView.currentPage ?? {
+            guard let document = pdfView.document else { return nil }
+            if let index = coordinator.lastReportedPageIndex,
+               let candidate = document.page(at: index) {
+                return candidate
+            }
+            return document.page(at: 0)
+        }()
+
+        guard let page else {
+            pdfDebug("applyFitToHeight abort: no page; awaiting=\(coordinator.awaitingInitialFit)")
+            return false
+        }
+
+        #if os(iOS)
+        pdfView.layoutIfNeeded()
+        let layoutFrameHeight = pdfView.safeAreaLayoutGuide.layoutFrame.height
+        let viewHeight = layoutFrameHeight > 0 ? layoutFrameHeight : pdfView.bounds.height
+        #else
+        pdfView.layoutSubtreeIfNeeded()
         let viewHeight = pdfView.bounds.height
+        #endif
+        pdfDebug("applyFitToHeight using viewHeight=\(viewHeight)")
+        guard viewHeight > 0 else {
+            pdfDebug("applyFitToHeight abort: zero height; awaiting=\(coordinator.awaitingInitialFit)")
+            return false
+        }
+
+        let pageRect = page.bounds(for: pdfView.displayBox)
         let scaleFactor = viewHeight / pageRect.height
+        guard scaleFactor.isFinite, scaleFactor > 0 else {
+            pdfDebug("applyFitToHeight abort: invalid scale=\(scaleFactor)")
+            return false
+        }
+
         pdfView.scaleFactor = scaleFactor
         coordinator.lastKnownScaleFactor = scaleFactor
         coordinator.currentFitMode = .height
         coordinator.lastExplicitFitMode = .height
+        coordinator.awaitingInitialFit = false
+
+        pdfDebug("applyFitToHeight success: scaleFactor=\(scaleFactor) viewHeight=\(viewHeight)")
+
+        DispatchQueue.main.async {
+            self.fitMode = .height
+            let actualScale = pdfView.scaleFactor
+            let matches = abs(actualScale - scaleFactor) < 0.001
+            pdfDebug("⚠️ SCALE CHECK: set=\(scaleFactor) actual=\(actualScale) match=\(matches)")
+        }
+
+        return true
     }
 
     private func configurePDFView(_ pdfView: PDFView, context: Context) {
         // Store reference to pdfView in coordinator
         context.coordinator.pdfView = pdfView
+        context.coordinator.attachLayoutObserver(to: pdfView)
+        pdfDebug("configurePDFView: setup start autoScales=\(pdfView.autoScales) initialLoad=\(context.coordinator.isInitialLoad)")
 
         // Common configuration for both platforms
         // Disable autoScales to take manual control over zoom
@@ -465,22 +605,18 @@ struct PDFKitView: ViewRepresentable {
             // Set the document
             pdfView.document = document
             context.coordinator.pdfDataSignature = pdfData.hashValue
+            context.coordinator.awaitingInitialFit = true
             
             // Set scale limits and initial zoom after document layout completes
             DispatchQueue.main.async {
                 pdfView.layoutDocumentView()
-                
+
                 // Only set scale limits if we have a valid fit scale
                 let fitScale = pdfView.scaleFactorForSizeToFit
-                if fitScale > 0 {
-                    pdfView.minScaleFactor = fitScale * 0.5
-                    pdfView.maxScaleFactor = fitScale * 4.0
-                    
-                    // Apply initial fit after document is loaded
-                    if context.coordinator.isInitialLoad {
-                        self.applyFitToHeight(pdfView, coordinator: context.coordinator)
-                    }
-                }
+                guard fitScale > 0 else { return }
+                pdfView.minScaleFactor = fitScale * 0.5
+                pdfView.maxScaleFactor = fitScale * 4.0
+
             }
         }
     }
@@ -502,13 +638,12 @@ struct PDFKitView: ViewRepresentable {
 
                     // If we had pages and still have pages, try to maintain position
                     // BUT ONLY if we don't have a pending navigation request
-                    if navigateToPage == nil && currentPageIndex > 0 && document.pageCount > 0 {
-                        // Adjust page index if pages were deleted before current position
-                        let pageToShow = min(currentPageIndex, document.pageCount - 1)
-                        if let page = document.page(at: pageToShow) {
-                            pdfView.go(to: page)
-                            self.currentPage = pageToShow
-                        }
+                    guard navigateToPage == nil && currentPageIndex > 0 && document.pageCount > 0 else { return }
+                    // Adjust page index if pages were deleted before current position
+                    let pageToShow = min(currentPageIndex, document.pageCount - 1)
+                    document.page(at: pageToShow).map { page in
+                        pdfView.go(to: page)
+                        self.currentPage = pageToShow
                     }
                 }
             }
@@ -599,6 +734,7 @@ struct PDFKitView: ViewRepresentable {
         var lastKnownScaleFactor: CGFloat?
         var currentFitMode: FitMode = .height
         var lastExplicitFitMode: FitMode = .height
+        var awaitingInitialFit = false
         #if os(macOS)
         var keyEventMonitor: Any?
         var scrollEventMonitor: Any?
@@ -608,6 +744,34 @@ struct PDFKitView: ViewRepresentable {
             self.parent = parent
             self.onRequestPageManagement = parent.onRequestPageManagement
             self.onRequestMetadataView = parent.onRequestMetadataView
+        }
+
+        func attachLayoutObserver(to pdfView: PDFView) {
+            guard let sizeAwareView = pdfView as? SizeAwarePDFView else {
+                pdfDebug("attachLayoutObserver: PDFView is not SizeAwarePDFView")
+                return
+            }
+            pdfDebug("attachLayoutObserver: registered layout callback")
+            sizeAwareView.onLayout = { [weak self, weak pdfView] _ in
+                guard let self, let pdfView else { return }
+                self.handleLayout(for: pdfView)
+            }
+        }
+
+        func handleLayout(for pdfView: PDFView) {
+            pdfDebug("handleLayout: awaiting=\(awaitingInitialFit) size=\(pdfView.bounds.size) currentFit=\(currentFitMode) parentFit=\(parent.fitMode) reloading=\(isReloadingDocument)")
+            if awaitingInitialFit {
+                pdfDebug("handleLayout: triggering deferred fit")
+                _ = parent.applyFitToHeight(pdfView, coordinator: self)
+                return
+            }
+
+            if currentFitMode == .height,
+               parent.fitMode == .height,
+               !isReloadingDocument {
+                pdfDebug("handleLayout: maintaining height fit after layout")
+                _ = parent.applyFitToHeight(pdfView, coordinator: self)
+            }
         }
 
         deinit {
@@ -628,15 +792,14 @@ struct PDFKitView: ViewRepresentable {
                 return
             }
 
-            if isReloadingDocument { return }
+            guard !isReloadingDocument else { return }
             let pageIndex = document.index(for: currentPage)
-            if lastReportedPageIndex == pageIndex { return }
+            guard lastReportedPageIndex != pageIndex else { return }
             lastReportedPageIndex = pageIndex
 
             DispatchQueue.main.async {
-                if self.parent.currentPage != pageIndex {
-                    self.parent.currentPage = pageIndex
-                }
+                guard self.parent.currentPage != pageIndex else { return }
+                self.parent.currentPage = pageIndex
             }
         }
 
@@ -752,20 +915,18 @@ struct PDFKitView: ViewRepresentable {
         @objc func handleScrollWheel(_ event: NSEvent) {
             guard let pdfView = pdfView else { return }
 
-            // Only handle horizontal scrolling or vertical with shift
-            if abs(event.deltaY) > abs(event.deltaX) && !event.modifierFlags.contains(.shift) {
-                // Vertical scroll - navigate pages
-                if event.deltaY > 0.5 {
-                    // Scrolling up - previous page
-                    if pdfView.canGoToPreviousPage {
-                        pdfView.goToPreviousPage(nil)
-                    }
-                } else if event.deltaY < -0.5 {
-                    // Scrolling down - next page
-                    if pdfView.canGoToNextPage {
-                        pdfView.goToNextPage(nil)
-                    }
-                }
+            // Only handle dominant vertical scrolling without the shift modifier
+            let isVerticalScroll = abs(event.deltaY) > abs(event.deltaX) && !event.modifierFlags.contains(.shift)
+            guard isVerticalScroll else { return }
+
+            if event.deltaY > 0.5 {
+                // Scrolling up - previous page
+                guard pdfView.canGoToPreviousPage else { return }
+                pdfView.goToPreviousPage(nil)
+            } else if event.deltaY < -0.5 {
+                // Scrolling down - next page
+                guard pdfView.canGoToNextPage else { return }
+                pdfView.goToNextPage(nil)
             }
         }
 
@@ -784,9 +945,6 @@ struct PDFKitView: ViewRepresentable {
             case .manual:
                 // From manual zoom, snap to Fit Page
                 parent.applyFitToHeight(pdfView, coordinator: self)
-                DispatchQueue.main.async {
-                    self.parent.fitMode = .height
-                }
             case .height:
                 // From Fit Page, switch to Fit Width
                 parent.applyFitToWidth(pdfView, coordinator: self)
@@ -796,15 +954,13 @@ struct PDFKitView: ViewRepresentable {
             case .width:
                 // From Fit Width, switch back to Fit Page
                 parent.applyFitToHeight(pdfView, coordinator: self)
-                DispatchQueue.main.async {
-                    self.parent.fitMode = .height
-                }
             }
         }
 
         #if os(macOS)
         @objc func scaleChanged(_ notification: Notification) {
             guard let pdfView = notification.object as? PDFView else { return }
+            pdfDebug("⚠️ SCALE CHANGED: \(pdfView.scaleFactor) isInitialLoad=\(isInitialLoad) isReloading=\(isReloadingDocument) awaiting=\(awaitingInitialFit)")
             // Treat scale changes after load as manual zoom
             if !isInitialLoad && !isReloadingDocument {
                 lastKnownScaleFactor = pdfView.scaleFactor
@@ -824,6 +980,9 @@ struct PDFKitView: ViewRepresentable {
 #if os(iOS)
 extension PDFKitView.Coordinator: UIScrollViewDelegate, UIGestureRecognizerDelegate {
     func scrollViewDidZoom(_ scrollView: UIScrollView) {
+        if let pdfView = pdfView {
+            pdfDebug("⚠️ iOS ZOOM: \(pdfView.scaleFactor) isInitialLoad=\(isInitialLoad) isReloading=\(isReloadingDocument) awaiting=\(awaitingInitialFit)")
+        }
         // Track user zoom on iOS
         if !isInitialLoad && !isReloadingDocument, let pdfView = pdfView {
             lastKnownScaleFactor = pdfView.scaleFactor
