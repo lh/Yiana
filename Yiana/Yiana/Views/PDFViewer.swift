@@ -921,7 +921,10 @@ struct PDFKitView: ViewRepresentable {
                                 options: [.transitionCrossDissolve, .allowUserInteraction],
                                 animations: {
                     targetPDFView.goToNextPage(nil)
-                }, completion: nil)
+                }, completion: { _ in
+                    // Re-center content after navigation completes
+                    self.parent.centerPDFContent(in: targetPDFView, coordinator: self)
+                })
             }
         }
 
@@ -962,7 +965,10 @@ struct PDFKitView: ViewRepresentable {
                                 options: [.transitionCrossDissolve, .allowUserInteraction],
                                 animations: {
                     targetPDFView.goToPreviousPage(nil)
-                }, completion: nil)
+                }, completion: { _ in
+                    // Re-center content after navigation completes
+                    self.parent.centerPDFContent(in: targetPDFView, coordinator: self)
+                })
             }
         }
 
