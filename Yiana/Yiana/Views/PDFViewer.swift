@@ -26,6 +26,7 @@ struct PDFViewer: View {
     @State private var totalPages = 0
     @State private var showPageIndicator = true
     @State private var hideIndicatorTask: Task<Void, Never>?
+    @State private var indicatorTrigger: UUID = UUID() // Used to trigger indicator show
     @Binding var fitMode: FitMode
     @State private var lastExplicitFitMode: FitMode = .height
     let onRequestPageManagement: (() -> Void)?
@@ -55,6 +56,7 @@ struct PDFViewer: View {
                    navigateToPage: $navigateToPage,
                    zoomAction: $zoomAction,
                    fitMode: $fitMode,
+                   indicatorTrigger: $indicatorTrigger,
                    onRequestPageManagement: onRequestPageManagement,
                    onRequestMetadataView: onRequestMetadataView)
             .overlay(alignment: .bottomTrailing) {
@@ -79,6 +81,9 @@ struct PDFViewer: View {
                 showIndicator()
             }
             .onChange(of: navigateToPage) { _, _ in
+                showIndicator()
+            }
+            .onChange(of: indicatorTrigger) { _, _ in
                 showIndicator()
             }
             .onTapGesture(count: 1) { _ in
@@ -171,6 +176,7 @@ struct PDFKitView: ViewRepresentable {
     @Binding var navigateToPage: Int?
     @Binding var zoomAction: PDFZoomAction?
     @Binding var fitMode: FitMode
+    @Binding var indicatorTrigger: UUID
     let onRequestPageManagement: (() -> Void)?
     let onRequestMetadataView: (() -> Void)?
 
@@ -516,22 +522,27 @@ struct PDFKitView: ViewRepresentable {
         pdfView.displayBox = .cropBox
 
         // Add swipe gestures for page navigation
+        // We add them to both the PDFView and scroll views to ensure they work at all zoom levels
         let swipeLeft = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeLeft(_:)))
         swipeLeft.direction = .left
+        swipeLeft.delegate = context.coordinator
         pdfView.addGestureRecognizer(swipeLeft)
 
         let swipeRight = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeRight(_:)))
         swipeRight.direction = .right
+        swipeRight.delegate = context.coordinator
         pdfView.addGestureRecognizer(swipeRight)
 
         // Add upward swipe for page management
         let swipeUp = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeUp(_:)))
         swipeUp.direction = .up
+        swipeUp.delegate = context.coordinator
         pdfView.addGestureRecognizer(swipeUp)
 
         // Add downward swipe for metadata/address view
         let swipeDown = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeDown(_:)))
         swipeDown.direction = .down
+        swipeDown.delegate = context.coordinator
         pdfView.addGestureRecognizer(swipeDown)
 
         // Recursively attach our double-tap recognizer to each scroll view so it fires on iPad
@@ -557,6 +568,17 @@ struct PDFKitView: ViewRepresentable {
             if scrollView === targetScrollView {
                 scrollView.delegate = context.coordinator
                 scrollView.addGestureRecognizer(doubleTap)
+
+                // Add swipe gestures to scroll view to ensure they work at all zoom levels
+                let scrollSwipeLeft = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeLeft(_:)))
+                scrollSwipeLeft.direction = .left
+                scrollSwipeLeft.delegate = context.coordinator
+                scrollView.addGestureRecognizer(scrollSwipeLeft)
+
+                let scrollSwipeRight = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeRight(_:)))
+                scrollSwipeRight.direction = .right
+                scrollSwipeRight.delegate = context.coordinator
+                scrollView.addGestureRecognizer(scrollSwipeRight)
 
                 scrollView.gestureRecognizers?
                     .compactMap { $0 as? UITapGestureRecognizer }
@@ -774,6 +796,9 @@ struct PDFKitView: ViewRepresentable {
         var currentFitMode: FitMode = .height
         var lastExplicitFitMode: FitMode = .height
         var awaitingInitialFit = false
+        // Debouncing for swipe gestures to prevent double-firing
+        var lastSwipeTime: Date = .distantPast
+        let swipeDebounceInterval: TimeInterval = 0.3 // 300ms debounce
         #if os(macOS)
         var keyEventMonitor: Any?
         var scrollEventMonitor: Any?
@@ -860,36 +885,90 @@ struct PDFKitView: ViewRepresentable {
 
         #if os(iOS)
         @objc func swipeLeft(_ gesture: UISwipeGestureRecognizer) {
-            guard let pdfView = gesture.view as? PDFView else { return }
-            if pdfView.canGoToNextPage {
+            guard let targetPDFView = (gesture.view as? PDFView) ?? pdfView else { return }
+
+            // Only allow page navigation when at fit-to-screen zoom
+            // When zoomed in, users need to pan around the page
+            let currentScale = targetPDFView.scaleFactor
+            let fitScale = targetPDFView.scaleFactorForSizeToFit
+            let tolerance: CGFloat = 0.10
+            let isAtFitZoom = abs(currentScale - fitScale) < tolerance
+
+            guard isAtFitZoom else {
+                pdfDebug("swipeLeft ignored: zoomed in (scale=\(currentScale) fit=\(fitScale))")
+                return
+            }
+
+            let now = Date()
+            let timeSinceLastSwipe = now.timeIntervalSince(lastSwipeTime)
+
+            // Debounce: ignore if we just processed a swipe (prevents duplicate firing)
+            guard timeSinceLastSwipe > swipeDebounceInterval else {
+                return
+            }
+
+            if targetPDFView.canGoToNextPage {
+                // Update debounce timestamp BEFORE executing
+                lastSwipeTime = now
+
                 // Haptic feedback for premium feel
                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                 impactFeedback.impactOccurred()
 
                 // Simple fade transition
-                UIView.transition(with: pdfView,
+                UIView.transition(with: targetPDFView,
                                 duration: 0.25,
                                 options: [.transitionCrossDissolve, .allowUserInteraction],
                                 animations: {
-                    pdfView.goToNextPage(nil)
-                }, completion: nil)
+                    targetPDFView.goToNextPage(nil)
+                }, completion: { _ in
+                    // Re-center content after navigation completes
+                    self.parent.centerPDFContent(in: targetPDFView, coordinator: self)
+                })
             }
         }
 
         @objc func swipeRight(_ gesture: UISwipeGestureRecognizer) {
-            guard let pdfView = gesture.view as? PDFView else { return }
-            if pdfView.canGoToPreviousPage {
+            guard let targetPDFView = (gesture.view as? PDFView) ?? pdfView else { return }
+
+            // Only allow page navigation when at fit-to-screen zoom
+            // When zoomed in, users need to pan around the page
+            let currentScale = targetPDFView.scaleFactor
+            let fitScale = targetPDFView.scaleFactorForSizeToFit
+            let tolerance: CGFloat = 0.10
+            let isAtFitZoom = abs(currentScale - fitScale) < tolerance
+
+            guard isAtFitZoom else {
+                pdfDebug("swipeRight ignored: zoomed in (scale=\(currentScale) fit=\(fitScale))")
+                return
+            }
+
+            let now = Date()
+            let timeSinceLastSwipe = now.timeIntervalSince(lastSwipeTime)
+
+            // Debounce: ignore if we just processed a swipe (prevents duplicate firing)
+            guard timeSinceLastSwipe > swipeDebounceInterval else {
+                return
+            }
+
+            if targetPDFView.canGoToPreviousPage {
+                // Update debounce timestamp BEFORE executing
+                lastSwipeTime = now
+
                 // Haptic feedback for premium feel
                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                 impactFeedback.impactOccurred()
 
                 // Simple fade transition
-                UIView.transition(with: pdfView,
+                UIView.transition(with: targetPDFView,
                                 duration: 0.25,
                                 options: [.transitionCrossDissolve, .allowUserInteraction],
                                 animations: {
-                    pdfView.goToPreviousPage(nil)
-                }, completion: nil)
+                    targetPDFView.goToPreviousPage(nil)
+                }, completion: { _ in
+                    // Re-center content after navigation completes
+                    self.parent.centerPDFContent(in: targetPDFView, coordinator: self)
+                })
             }
         }
 
@@ -1016,6 +1095,11 @@ struct PDFKitView: ViewRepresentable {
                 #if os(iOS)
                 parent.centerPDFContent(in: pdfView, coordinator: self)
                 #endif
+            }
+
+            // Trigger page indicator to show after zoom change
+            DispatchQueue.main.async {
+                self.parent.indicatorTrigger = UUID()
             }
         }
 
