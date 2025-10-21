@@ -180,6 +180,14 @@ struct PDFKitView: ViewRepresentable {
     let onRequestPageManagement: (() -> Void)?
     let onRequestMetadataView: (() -> Void)?
 
+    // MARK: - Transition Constants
+    
+    /// Duration for snapshot overlay fade during page transitions
+    private let snapshotFadeDuration: TimeInterval = 0.12
+    
+    /// Delay before re-centering PDF content to allow PDFKit layout to settle
+    private let pdfLayoutSettleDelay: TimeInterval = 0.060
+
     #if os(iOS)
     func makeUIView(context: Context) -> PDFView {
         let pdfView = SizeAwarePDFView()
@@ -400,6 +408,9 @@ struct PDFKitView: ViewRepresentable {
             return
         }
 
+        // Log initial state for timing verification
+        pdfDebug("📍 centerPDFContent start: contentSize=\(scrollView.contentSize) offset=\(scrollView.contentOffset)")
+
         let contentWidth = scrollView.contentSize.width
         let viewWidth = scrollView.bounds.width
         let contentHeight = scrollView.contentSize.height
@@ -418,8 +429,22 @@ struct PDFKitView: ViewRepresentable {
 
         let targetOffset = CGPoint(x: centeredX, y: centeredY)
 
+        pdfDebug("📍 centerPDFContent target: \(targetOffset)")
         pdfDebug("📍 centerPDFContent: mode=\(coordinator.currentFitMode) setting offset to \(targetOffset) (contentSize=\(scrollView.contentSize) bounds=\(scrollView.bounds.size))")
         scrollView.contentOffset = targetOffset
+    }
+
+    /// Capture a snapshot of the current PDFView for transition animations
+    /// - Parameter pdfView: The PDFView to snapshot
+    /// - Returns: A UIImage snapshot, or nil if rendering fails
+    private func snapshot(of pdfView: PDFView) -> UIImage? {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = UIScreen.main.scale
+        
+        let renderer = UIGraphicsImageRenderer(bounds: pdfView.bounds, format: format)
+        return renderer.image { context in
+            pdfView.layer.render(in: context.cgContext)
+        }
     }
     #endif
 
@@ -826,6 +851,11 @@ struct PDFKitView: ViewRepresentable {
             let isLandscape = pdfView.bounds.width > pdfView.bounds.height
             pdfDebug("handleLayout: awaiting=\(awaitingInitialFit) size=\(pdfView.bounds.size) orientation=\(isLandscape ? "landscape" : "portrait") currentFit=\(currentFitMode) parentFit=\(parent.fitMode) reloading=\(isReloadingDocument)")
 
+            #if os(iOS)
+            // Log scroll view content size to verify when it stabilizes
+            logScrollViewLayout(pdfView)
+            #endif
+
             if awaitingInitialFit {
                 pdfDebug("handleLayout: triggering deferred fit")
                 if isLandscape {
@@ -853,6 +883,30 @@ struct PDFKitView: ViewRepresentable {
                 #endif
             }
         }
+        
+        #if os(iOS)
+        /// Helper to log scroll view content size during layout
+        private func logScrollViewLayout(_ pdfView: PDFView) {
+            // Simple linear search for scroll view - temp debug logging only
+            var scrollView: UIScrollView?
+            for subview in pdfView.subviews where scrollView == nil {
+                if let sv = subview as? UIScrollView {
+                    scrollView = sv
+                    break
+                }
+                // Check one level deep
+                for nested in subview.subviews where scrollView == nil {
+                    if let sv = nested as? UIScrollView {
+                        scrollView = sv
+                        break
+                    }
+                }
+            }
+            
+            guard let scrollView else { return }
+            pdfDebug("📐 handleLayout iOS: scrollView.contentSize=\(scrollView.contentSize) bounds=\(pdfView.bounds.size)")
+        }
+        #endif
 
         deinit {
             #if os(macOS)
@@ -908,23 +962,45 @@ struct PDFKitView: ViewRepresentable {
             }
 
             if targetPDFView.canGoToNextPage {
-                // Update debounce timestamp BEFORE executing
+                // Update debounce timestamp after passing guards
                 lastSwipeTime = now
 
                 // Haptic feedback for premium feel
                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                 impactFeedback.impactOccurred()
 
-                // Simple fade transition
-                UIView.transition(with: targetPDFView,
-                                duration: 0.25,
-                                options: [.transitionCrossDissolve, .allowUserInteraction],
-                                animations: {
+                // Attempt to capture snapshot for smooth transition
+                guard let snapshot = parent.snapshot(of: targetPDFView) else {
+                    pdfDebug("Snapshot unavailable, falling back to immediate transition")
                     targetPDFView.goToNextPage(nil)
+                    
+                    // Still use delayed centering to fix layout timing issue
+                    DispatchQueue.main.asyncAfter(deadline: .now() + parent.pdfLayoutSettleDelay) {
+                        self.parent.centerPDFContent(in: targetPDFView, coordinator: self)
+                    }
+                    return
+                }
+                
+                // Create snapshot overlay
+                let overlay = UIImageView(frame: targetPDFView.bounds)
+                overlay.image = snapshot
+                overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+                targetPDFView.addSubview(overlay)
+                
+                // Fade out the snapshot overlay
+                UIView.animate(withDuration: parent.snapshotFadeDuration, animations: {
+                    overlay.alpha = 0.0
                 }, completion: { _ in
-                    // Re-center content after navigation completes
-                    self.parent.centerPDFContent(in: targetPDFView, coordinator: self)
+                    overlay.removeFromSuperview()
                 })
+                
+                // Immediately change the page (while overlay fades)
+                targetPDFView.goToNextPage(nil)
+                
+                // Defer centering until PDFKit layout settles
+                DispatchQueue.main.asyncAfter(deadline: .now() + parent.pdfLayoutSettleDelay) {
+                    self.parent.centerPDFContent(in: targetPDFView, coordinator: self)
+                }
             }
         }
 
@@ -952,23 +1028,45 @@ struct PDFKitView: ViewRepresentable {
             }
 
             if targetPDFView.canGoToPreviousPage {
-                // Update debounce timestamp BEFORE executing
+                // Update debounce timestamp after passing guards
                 lastSwipeTime = now
 
                 // Haptic feedback for premium feel
                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                 impactFeedback.impactOccurred()
 
-                // Simple fade transition
-                UIView.transition(with: targetPDFView,
-                                duration: 0.25,
-                                options: [.transitionCrossDissolve, .allowUserInteraction],
-                                animations: {
+                // Attempt to capture snapshot for smooth transition
+                guard let snapshot = parent.snapshot(of: targetPDFView) else {
+                    pdfDebug("Snapshot unavailable, falling back to immediate transition")
                     targetPDFView.goToPreviousPage(nil)
+                    
+                    // Still use delayed centering to fix layout timing issue
+                    DispatchQueue.main.asyncAfter(deadline: .now() + parent.pdfLayoutSettleDelay) {
+                        self.parent.centerPDFContent(in: targetPDFView, coordinator: self)
+                    }
+                    return
+                }
+                
+                // Create snapshot overlay
+                let overlay = UIImageView(frame: targetPDFView.bounds)
+                overlay.image = snapshot
+                overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+                targetPDFView.addSubview(overlay)
+                
+                // Fade out the snapshot overlay
+                UIView.animate(withDuration: parent.snapshotFadeDuration, animations: {
+                    overlay.alpha = 0.0
                 }, completion: { _ in
-                    // Re-center content after navigation completes
-                    self.parent.centerPDFContent(in: targetPDFView, coordinator: self)
+                    overlay.removeFromSuperview()
                 })
+                
+                // Immediately change the page (while overlay fades)
+                targetPDFView.goToPreviousPage(nil)
+                
+                // Defer centering until PDFKit layout settles
+                DispatchQueue.main.asyncAfter(deadline: .now() + parent.pdfLayoutSettleDelay) {
+                    self.parent.centerPDFContent(in: targetPDFView, coordinator: self)
+                }
             }
         }
 
