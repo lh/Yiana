@@ -64,11 +64,10 @@ pdfView.usePageViewController(false, withViewOptions: nil)
 - [ ] Smooth scrolling throughout document
 - [ ] No performance degradation
 
-#### 5. Gesture Conflicts
-- [ ] Swipe up triggers page management
-- [ ] Swipe down triggers metadata view
-- [ ] Vertical scroll doesn't accidentally trigger gestures
+#### 6. Remaining Gestures
 - [ ] Double-tap zoom works reliably
+- [ ] Pinch-to-zoom works smoothly
+- [ ] Vertical scrolling is smooth and natural
 
 ## Success Criteria
 
