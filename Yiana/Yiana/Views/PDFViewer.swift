@@ -254,11 +254,15 @@ struct PDFKitView: ViewRepresentable {
 
             // iOS: Always use fit-to-width for natural vertical scrolling with top-alignment
             // User can double-tap to toggle to fit-to-height if desired
-            pdfDebug("📍 Initial fit mode: fit-to-width, bounds=\(pdfView.bounds.size)")
-
-            // Apply scale FIRST before navigating
-            self.applyFitToWidth(pdfView, coordinator: context.coordinator)
-            pdfDebug("📍 AFTER applyFitToWidth: scale=\(pdfView.scaleFactor) awaitingFit=\(context.coordinator.awaitingInitialFit) bounds=\(pdfView.bounds.size)")
+            // Check if bounds are valid before applying fit
+            if pdfView.bounds.width > 0 && pdfView.bounds.height > 0 {
+                pdfDebug("📍 Initial fit mode: fit-to-width, bounds=\(pdfView.bounds.size)")
+                self.applyFitToWidth(pdfView, coordinator: context.coordinator)
+                pdfDebug("📍 AFTER applyFitToWidth: scale=\(pdfView.scaleFactor) awaitingFit=\(context.coordinator.awaitingInitialFit) bounds=\(pdfView.bounds.size)")
+            } else {
+                // Bounds not ready yet, leave awaitingInitialFit=true so layout observer handles it
+                pdfDebug("📍 Bounds not ready (0.0, 0.0), deferring fit-to-width to layout observer")
+            }
 
             // THEN navigate to page with correct scale already set
             document.page(at: clamped).map { page in
@@ -416,6 +420,7 @@ struct PDFKitView: ViewRepresentable {
         coordinator.lastKnownScaleFactor = scaleFactor
         coordinator.currentFitMode = .width
         coordinator.lastExplicitFitMode = .width
+        coordinator.awaitingInitialFit = false
 
         #if os(iOS)
         // Top-align content immediately - no timing hack needed with vertical continuous scrolling
@@ -783,8 +788,8 @@ struct PDFKitView: ViewRepresentable {
 
         func handleLayout(for pdfView: PDFView) {
             #if os(iOS)
-            // On iOS with page view controller, bail early - it handles layout internally
-            return
+            // On iOS, only handle layout if we're awaiting initial fit (bounds weren't ready earlier)
+            guard awaitingInitialFit else { return }
             #endif
 
             let isLandscape = pdfView.bounds.width > pdfView.bounds.height
@@ -792,11 +797,17 @@ struct PDFKitView: ViewRepresentable {
 
             if awaitingInitialFit {
                 pdfDebug("handleLayout: triggering deferred fit")
+                #if os(iOS)
+                // iOS: Always fit-to-width
+                parent.applyFitToWidth(pdfView, coordinator: self)
+                #else
+                // macOS: Use orientation-aware fit
                 if isLandscape {
                     parent.applyFitToWidth(pdfView, coordinator: self)
                 } else {
                     _ = parent.applyFitToHeight(pdfView, coordinator: self)
                 }
+                #endif
                 return
             }
 
