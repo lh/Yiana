@@ -403,10 +403,16 @@ struct PDFKitView: ViewRepresentable {
         }
 
         // Set Y offset to 0 to show top of page
-        var currentOffset = scrollView.contentOffset
-        currentOffset.y = 0
-        scrollView.setContentOffset(currentOffset, animated: false)
-        pdfDebug("topAlignContent: set Y offset to 0")
+        let beforeOffset = scrollView.contentOffset
+        var newOffset = scrollView.contentOffset
+        newOffset.y = 0
+        scrollView.setContentOffset(newOffset, animated: false)
+
+        // Force layout to prevent UIPageViewController from overriding
+        scrollView.layoutIfNeeded()
+
+        let afterOffset = scrollView.contentOffset
+        pdfDebug("topAlignContent: before=\(beforeOffset.y) after=\(afterOffset.y) contentSize=\(scrollView.contentSize)")
     }
     #endif
 
@@ -498,9 +504,10 @@ struct PDFKitView: ViewRepresentable {
         // Disable autoScales to take manual control over zoom
         pdfView.autoScales = false
         
-        // Use single page mode to eliminate scrolling artifacts
-        pdfView.displayMode = .singlePage
-        pdfView.displayDirection = .horizontal
+        // EXPERIMENTAL: Test vertical continuous scrolling to see if flickering issues are resolved
+        // If this works well, it enables natural vertical scrolling and top-aligned fit-to-width
+        pdfView.displayMode = .singlePageContinuous
+        pdfView.displayDirection = .vertical
         pdfView.displaysPageBreaks = false
 
         #if os(iOS)
@@ -509,11 +516,10 @@ struct PDFKitView: ViewRepresentable {
         // Disable shadows for better performance
         pdfView.pageShadowsEnabled = false
 
-        // Enable native page view controller for smooth horizontal paging
-        pdfView.usePageViewController(true, withViewOptions: [
-            UIPageViewController.OptionsKey.interPageSpacing: pageSpacing
-        ])
-        pdfDebug("usePageViewController enabled: true")
+        // EXPERIMENTAL: Disable page view controller for vertical continuous scrolling
+        // Page view controller conflicts with .singlePageContinuous mode
+        pdfView.usePageViewController(false, withViewOptions: nil)
+        pdfDebug("usePageViewController disabled for vertical scrolling test")
 
         // Add rendering optimizations for smoother transitions
         pdfView.interpolationQuality = .high
