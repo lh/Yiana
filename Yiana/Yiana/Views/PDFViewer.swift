@@ -386,6 +386,28 @@ struct PDFKitView: ViewRepresentable {
     private func centerPDFContent(in pdfView: PDFView, coordinator: Coordinator) {
         // Page view controller manages content positioning
     }
+
+    /// Top-align PDF content for fit-to-width mode (natural reading flow)
+    private func topAlignContent(in pdfView: PDFView) {
+        func findScrollView(in view: UIView) -> UIScrollView? {
+            if let scrollView = view as? UIScrollView { return scrollView }
+            for subview in view.subviews {
+                if let found = findScrollView(in: subview) { return found }
+            }
+            return nil
+        }
+
+        guard let scrollView = findScrollView(in: pdfView) else {
+            pdfDebug("topAlignContent: no scroll view found")
+            return
+        }
+
+        // Set Y offset to 0 to show top of page
+        var currentOffset = scrollView.contentOffset
+        currentOffset.y = 0
+        scrollView.setContentOffset(currentOffset, animated: false)
+        pdfDebug("topAlignContent: set Y offset to 0")
+    }
     #endif
 
     private func applyFitToWindow(_ pdfView: PDFView, coordinator: Coordinator) {
@@ -402,6 +424,13 @@ struct PDFKitView: ViewRepresentable {
         coordinator.lastKnownScaleFactor = scaleFactor
         coordinator.currentFitMode = .width
         coordinator.lastExplicitFitMode = .width
+
+        #if os(iOS)
+        // After zoom animation completes, top-align the content for natural reading flow
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            self.topAlignContent(in: pdfView)
+        }
+        #endif
     }
     
     @discardableResult
