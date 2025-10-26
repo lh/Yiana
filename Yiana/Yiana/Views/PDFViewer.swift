@@ -180,15 +180,12 @@ struct PDFKitView: ViewRepresentable {
     let onRequestPageManagement: (() -> Void)?
     let onRequestMetadataView: (() -> Void)?
 
-    // MARK: - Transition Constants
-    
-    /// Duration for snapshot overlay fade during page transitions
-    private let snapshotFadeDuration: TimeInterval = 0.12
-    
-    /// Delay before re-centering PDF content to allow PDFKit layout to settle
-    private let pdfLayoutSettleDelay: TimeInterval = 0.060
-
     #if os(iOS)
+    // MARK: - iOS Page View Controller Configuration
+
+    /// Spacing between pages in the native page view controller
+    private let pageSpacing: CGFloat = 12
+
     func makeUIView(context: Context) -> PDFView {
         let pdfView = SizeAwarePDFView()
         context.coordinator.isInitialLoad = true
@@ -281,11 +278,6 @@ struct PDFKitView: ViewRepresentable {
             document.page(at: clamped).map { page in
                 pdfView.go(to: page)
                 context.coordinator.lastReportedPageIndex = clamped
-
-                #if os(iOS)
-                // Manually position the content since go(to:) doesn't position when already on the page
-                self.centerPDFContent(in: pdfView, coordinator: context.coordinator)
-                #endif
             }
 
             self.totalPages = pageCount
@@ -390,61 +382,9 @@ struct PDFKitView: ViewRepresentable {
     // MARK: - Zoom Helpers
 
     #if os(iOS)
-    /// Manually position PDF content in the scroll view based on current fit mode
-    /// - For fit-to-height: Center both horizontally and vertically
-    /// - For fit-to-width: Center horizontally, top-align vertically
-    /// This is needed because go(to:) doesn't re-center when already on the target page
+    /// No-op on iOS when using UIPageViewController - the page controller handles all layout
     private func centerPDFContent(in pdfView: PDFView, coordinator: Coordinator) {
-        func findScrollView(in view: UIView) -> UIScrollView? {
-            if let scrollView = view as? UIScrollView { return scrollView }
-            for subview in view.subviews {
-                if let found = findScrollView(in: subview) { return found }
-            }
-            return nil
-        }
-
-        guard let scrollView = findScrollView(in: pdfView) else {
-            pdfDebug("📍 centerPDFContent: no scroll view found")
-            return
-        }
-
-        // Log initial state for timing verification
-        pdfDebug("📍 centerPDFContent start: contentSize=\(scrollView.contentSize) offset=\(scrollView.contentOffset)")
-
-        let contentWidth = scrollView.contentSize.width
-        let viewWidth = scrollView.bounds.width
-        let contentHeight = scrollView.contentSize.height
-        let viewHeight = scrollView.bounds.height
-
-        // Calculate horizontal centering (always center horizontally)
-        let centeredX = max(0, (contentWidth - viewWidth) / 2)
-
-        // For fit-to-width, top-align (Y=0). For fit-to-height, center vertically.
-        let centeredY: CGFloat
-        if coordinator.currentFitMode == .width {
-            centeredY = 0  // Top-align for fit-to-width
-        } else {
-            centeredY = max(0, (contentHeight - viewHeight) / 2)  // Center for fit-to-height
-        }
-
-        let targetOffset = CGPoint(x: centeredX, y: centeredY)
-
-        pdfDebug("📍 centerPDFContent target: \(targetOffset)")
-        pdfDebug("📍 centerPDFContent: mode=\(coordinator.currentFitMode) setting offset to \(targetOffset) (contentSize=\(scrollView.contentSize) bounds=\(scrollView.bounds.size))")
-        scrollView.contentOffset = targetOffset
-    }
-
-    /// Capture a snapshot of the current PDFView for transition animations
-    /// - Parameter pdfView: The PDFView to snapshot
-    /// - Returns: A UIImage snapshot, or nil if rendering fails
-    private func snapshot(of pdfView: PDFView) -> UIImage? {
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = UIScreen.main.scale
-        
-        let renderer = UIGraphicsImageRenderer(bounds: pdfView.bounds, format: format)
-        return renderer.image { context in
-            pdfView.layer.render(in: context.cgContext)
-        }
+        // Page view controller manages content positioning
     }
     #endif
 
@@ -523,7 +463,6 @@ struct PDFKitView: ViewRepresentable {
     private func configurePDFView(_ pdfView: PDFView, context: Context) {
         // Store reference to pdfView in coordinator
         context.coordinator.pdfView = pdfView
-        context.coordinator.attachLayoutObserver(to: pdfView)
         pdfDebug("configurePDFView: setup start autoScales=\(pdfView.autoScales) initialLoad=\(context.coordinator.isInitialLoad)")
 
         // Common configuration for both platforms
@@ -540,23 +479,16 @@ struct PDFKitView: ViewRepresentable {
         pdfView.backgroundColor = UIColor.systemBackground
         // Disable shadows for better performance
         pdfView.pageShadowsEnabled = false
-        // Don't use page view controller - it causes glitches
-        // pdfView.usePageViewController(true, withViewOptions: nil)
+
+        // Enable native page view controller for smooth horizontal paging
+        pdfView.usePageViewController(true, withViewOptions: [
+            UIPageViewController.OptionsKey.interPageSpacing: pageSpacing
+        ])
+        pdfDebug("usePageViewController enabled: true")
+
         // Add rendering optimizations for smoother transitions
         pdfView.interpolationQuality = .high
         pdfView.displayBox = .cropBox
-
-        // Add swipe gestures for page navigation
-        // We add them to both the PDFView and scroll views to ensure they work at all zoom levels
-        let swipeLeft = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeLeft(_:)))
-        swipeLeft.direction = .left
-        swipeLeft.delegate = context.coordinator
-        pdfView.addGestureRecognizer(swipeLeft)
-
-        let swipeRight = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeRight(_:)))
-        swipeRight.direction = .right
-        swipeRight.delegate = context.coordinator
-        pdfView.addGestureRecognizer(swipeRight)
 
         // Add upward swipe for page management
         let swipeUp = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeUp(_:)))
@@ -593,17 +525,6 @@ struct PDFKitView: ViewRepresentable {
             if scrollView === targetScrollView {
                 scrollView.delegate = context.coordinator
                 scrollView.addGestureRecognizer(doubleTap)
-
-                // Add swipe gestures to scroll view to ensure they work at all zoom levels
-                let scrollSwipeLeft = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeLeft(_:)))
-                scrollSwipeLeft.direction = .left
-                scrollSwipeLeft.delegate = context.coordinator
-                scrollView.addGestureRecognizer(scrollSwipeLeft)
-
-                let scrollSwipeRight = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeRight(_:)))
-                scrollSwipeRight.direction = .right
-                scrollSwipeRight.delegate = context.coordinator
-                scrollView.addGestureRecognizer(scrollSwipeRight)
 
                 scrollView.gestureRecognizers?
                     .compactMap { $0 as? UITapGestureRecognizer }
@@ -705,6 +626,11 @@ struct PDFKitView: ViewRepresentable {
 
             }
         }
+
+        // Only attach layout observer on macOS (iOS uses page view controller which handles layout)
+        #if os(macOS)
+        context.coordinator.attachLayoutObserver(to: pdfView)
+        #endif
     }
 
     private func updatePDFView(_ pdfView: PDFView) {
@@ -821,9 +747,6 @@ struct PDFKitView: ViewRepresentable {
         var currentFitMode: FitMode = .height
         var lastExplicitFitMode: FitMode = .height
         var awaitingInitialFit = false
-        // Debouncing for swipe gestures to prevent double-firing
-        var lastSwipeTime: Date = .distantPast
-        let swipeDebounceInterval: TimeInterval = 0.3 // 300ms debounce
         #if os(macOS)
         var keyEventMonitor: Any?
         var scrollEventMonitor: Any?
@@ -848,13 +771,13 @@ struct PDFKitView: ViewRepresentable {
         }
 
         func handleLayout(for pdfView: PDFView) {
+            #if os(iOS)
+            // On iOS with page view controller, bail early - it handles layout internally
+            return
+            #endif
+
             let isLandscape = pdfView.bounds.width > pdfView.bounds.height
             pdfDebug("handleLayout: awaiting=\(awaitingInitialFit) size=\(pdfView.bounds.size) orientation=\(isLandscape ? "landscape" : "portrait") currentFit=\(currentFitMode) parentFit=\(parent.fitMode) reloading=\(isReloadingDocument)")
-
-            #if os(iOS)
-            // Log scroll view content size to verify when it stabilizes
-            logScrollViewLayout(pdfView)
-            #endif
 
             if awaitingInitialFit {
                 pdfDebug("handleLayout: triggering deferred fit")
@@ -872,41 +795,11 @@ struct PDFKitView: ViewRepresentable {
             if currentFitMode == .height, parent.fitMode == .height {
                 pdfDebug("handleLayout: maintaining height fit after layout")
                 _ = parent.applyFitToHeight(pdfView, coordinator: self)
-                #if os(iOS)
-                parent.centerPDFContent(in: pdfView, coordinator: self)
-                #endif
             } else if currentFitMode == .width, parent.fitMode == .width {
                 pdfDebug("handleLayout: maintaining width fit after layout")
                 parent.applyFitToWidth(pdfView, coordinator: self)
-                #if os(iOS)
-                parent.centerPDFContent(in: pdfView, coordinator: self)
-                #endif
             }
         }
-        
-        #if os(iOS)
-        /// Helper to log scroll view content size during layout
-        private func logScrollViewLayout(_ pdfView: PDFView) {
-            // Simple linear search for scroll view - temp debug logging only
-            var scrollView: UIScrollView?
-            for subview in pdfView.subviews where scrollView == nil {
-                if let sv = subview as? UIScrollView {
-                    scrollView = sv
-                    break
-                }
-                // Check one level deep
-                for nested in subview.subviews where scrollView == nil {
-                    if let sv = nested as? UIScrollView {
-                        scrollView = sv
-                        break
-                    }
-                }
-            }
-            
-            guard let scrollView else { return }
-            pdfDebug("📐 handleLayout iOS: scrollView.contentSize=\(scrollView.contentSize) bounds=\(pdfView.bounds.size)")
-        }
-        #endif
 
         deinit {
             #if os(macOS)
@@ -938,138 +831,6 @@ struct PDFKitView: ViewRepresentable {
         }
 
         #if os(iOS)
-        @objc func swipeLeft(_ gesture: UISwipeGestureRecognizer) {
-            guard let targetPDFView = (gesture.view as? PDFView) ?? pdfView else { return }
-
-            // Only allow page navigation when at fit-to-screen zoom
-            // When zoomed in, users need to pan around the page
-            let currentScale = targetPDFView.scaleFactor
-            let fitScale = targetPDFView.scaleFactorForSizeToFit
-            let tolerance: CGFloat = 0.10
-            let isAtFitZoom = abs(currentScale - fitScale) < tolerance
-
-            guard isAtFitZoom else {
-                pdfDebug("swipeLeft ignored: zoomed in (scale=\(currentScale) fit=\(fitScale))")
-                return
-            }
-
-            let now = Date()
-            let timeSinceLastSwipe = now.timeIntervalSince(lastSwipeTime)
-
-            // Debounce: ignore if we just processed a swipe (prevents duplicate firing)
-            guard timeSinceLastSwipe > swipeDebounceInterval else {
-                return
-            }
-
-            if targetPDFView.canGoToNextPage {
-                // Update debounce timestamp after passing guards
-                lastSwipeTime = now
-
-                // Haptic feedback for premium feel
-                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                impactFeedback.impactOccurred()
-
-                // Attempt to capture snapshot for smooth transition
-                guard let snapshot = parent.snapshot(of: targetPDFView) else {
-                    pdfDebug("Snapshot unavailable, falling back to immediate transition")
-                    targetPDFView.goToNextPage(nil)
-                    
-                    // Still use delayed centering to fix layout timing issue
-                    DispatchQueue.main.asyncAfter(deadline: .now() + parent.pdfLayoutSettleDelay) {
-                        self.parent.centerPDFContent(in: targetPDFView, coordinator: self)
-                    }
-                    return
-                }
-                
-                // Create snapshot overlay
-                let overlay = UIImageView(frame: targetPDFView.bounds)
-                overlay.image = snapshot
-                overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-                targetPDFView.addSubview(overlay)
-                
-                // Fade out the snapshot overlay
-                UIView.animate(withDuration: parent.snapshotFadeDuration, animations: {
-                    overlay.alpha = 0.0
-                }, completion: { _ in
-                    overlay.removeFromSuperview()
-                })
-                
-                // Immediately change the page (while overlay fades)
-                targetPDFView.goToNextPage(nil)
-                
-                // Defer centering until PDFKit layout settles
-                DispatchQueue.main.asyncAfter(deadline: .now() + parent.pdfLayoutSettleDelay) {
-                    self.parent.centerPDFContent(in: targetPDFView, coordinator: self)
-                }
-            }
-        }
-
-        @objc func swipeRight(_ gesture: UISwipeGestureRecognizer) {
-            guard let targetPDFView = (gesture.view as? PDFView) ?? pdfView else { return }
-
-            // Only allow page navigation when at fit-to-screen zoom
-            // When zoomed in, users need to pan around the page
-            let currentScale = targetPDFView.scaleFactor
-            let fitScale = targetPDFView.scaleFactorForSizeToFit
-            let tolerance: CGFloat = 0.10
-            let isAtFitZoom = abs(currentScale - fitScale) < tolerance
-
-            guard isAtFitZoom else {
-                pdfDebug("swipeRight ignored: zoomed in (scale=\(currentScale) fit=\(fitScale))")
-                return
-            }
-
-            let now = Date()
-            let timeSinceLastSwipe = now.timeIntervalSince(lastSwipeTime)
-
-            // Debounce: ignore if we just processed a swipe (prevents duplicate firing)
-            guard timeSinceLastSwipe > swipeDebounceInterval else {
-                return
-            }
-
-            if targetPDFView.canGoToPreviousPage {
-                // Update debounce timestamp after passing guards
-                lastSwipeTime = now
-
-                // Haptic feedback for premium feel
-                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                impactFeedback.impactOccurred()
-
-                // Attempt to capture snapshot for smooth transition
-                guard let snapshot = parent.snapshot(of: targetPDFView) else {
-                    pdfDebug("Snapshot unavailable, falling back to immediate transition")
-                    targetPDFView.goToPreviousPage(nil)
-                    
-                    // Still use delayed centering to fix layout timing issue
-                    DispatchQueue.main.asyncAfter(deadline: .now() + parent.pdfLayoutSettleDelay) {
-                        self.parent.centerPDFContent(in: targetPDFView, coordinator: self)
-                    }
-                    return
-                }
-                
-                // Create snapshot overlay
-                let overlay = UIImageView(frame: targetPDFView.bounds)
-                overlay.image = snapshot
-                overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-                targetPDFView.addSubview(overlay)
-                
-                // Fade out the snapshot overlay
-                UIView.animate(withDuration: parent.snapshotFadeDuration, animations: {
-                    overlay.alpha = 0.0
-                }, completion: { _ in
-                    overlay.removeFromSuperview()
-                })
-                
-                // Immediately change the page (while overlay fades)
-                targetPDFView.goToPreviousPage(nil)
-                
-                // Defer centering until PDFKit layout settles
-                DispatchQueue.main.asyncAfter(deadline: .now() + parent.pdfLayoutSettleDelay) {
-                    self.parent.centerPDFContent(in: targetPDFView, coordinator: self)
-                }
-            }
-        }
-
         @objc func swipeUp(_ gesture: UISwipeGestureRecognizer) {
             guard let pdfView = gesture.view as? PDFView else { return }
 
@@ -1175,24 +936,15 @@ struct PDFKitView: ViewRepresentable {
             case .manual:
                 // From manual zoom, snap to Fit Page
                 parent.applyFitToHeight(pdfView, coordinator: self)
-                #if os(iOS)
-                parent.centerPDFContent(in: pdfView, coordinator: self)
-                #endif
             case .height:
                 // From Fit Page, switch to Fit Width
                 parent.applyFitToWidth(pdfView, coordinator: self)
-                #if os(iOS)
-                parent.centerPDFContent(in: pdfView, coordinator: self)
-                #endif
                 DispatchQueue.main.async {
                     self.parent.fitMode = .width
                 }
             case .width:
                 // From Fit Width, switch back to Fit Page
                 parent.applyFitToHeight(pdfView, coordinator: self)
-                #if os(iOS)
-                parent.centerPDFContent(in: pdfView, coordinator: self)
-                #endif
             }
 
             // Trigger page indicator to show after zoom change
