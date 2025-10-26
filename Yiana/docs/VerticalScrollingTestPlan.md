@@ -109,20 +109,31 @@ Record observations here during testing:
 
 ---
 
-**Tester**:
-**Date**:
-**Device**:
-**iOS Version**:
+**Tester**: User
+**Date**: 2025-10-26
+**Device**: iPad
+**iOS Version**: October 2025
 
 ### Observations:
--
+- ✅ Vertical scrolling is smooth and beautiful
+- ✅ No flickering or artifacts
+- ✅ No stuttering or jerky motion
+- ✅ Apple has fixed the PDFKit vertical scrolling bugs!
 
 ### Issues Found:
--
+- None - vertical continuous scrolling works perfectly
 
 ### Decision:
-- [ ] PASS - Adopt vertical scrolling
+- [x] **PASS** - Adopt vertical scrolling
 - [ ] FAIL - Keep horizontal paging
 - [ ] INCONCLUSIVE - Needs more testing
 
 ---
+
+## Final Decision: ADOPT VERTICAL SCROLLING ✅
+
+The historical flickering issues (July-August 2025) have been resolved by Apple.
+Vertical continuous scrolling is now production-ready.
+
+**Next steps**: See `VerticalScrollingImplementationPlan.md` for cleanup tasks.
+

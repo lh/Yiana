@@ -181,11 +181,6 @@ struct PDFKitView: ViewRepresentable {
     let onRequestMetadataView: (() -> Void)?
 
     #if os(iOS)
-    // MARK: - iOS Page View Controller Configuration
-
-    /// Spacing between pages in the native page view controller
-    private let pageSpacing: CGFloat = 12
-
     func makeUIView(context: Context) -> PDFView {
         let pdfView = SizeAwarePDFView()
         context.coordinator.isInitialLoad = true
@@ -257,22 +252,13 @@ struct PDFKitView: ViewRepresentable {
             #endif
             pdfView.layoutDocumentView()
 
-            // Detect orientation and choose appropriate initial fit mode
-            let isLandscape = pdfView.bounds.width > pdfView.bounds.height
-            pdfDebug("📍 Initial orientation: \(isLandscape ? "landscape" : "portrait") bounds=\(pdfView.bounds.size)")
+            // iOS: Always use fit-to-width for natural vertical scrolling with top-alignment
+            // User can double-tap to toggle to fit-to-height if desired
+            pdfDebug("📍 Initial fit mode: fit-to-width, bounds=\(pdfView.bounds.size)")
 
             // Apply scale FIRST before navigating
-            let applied: Bool
-            if isLandscape {
-                // Landscape: fit to width
-                self.applyFitToWidth(pdfView, coordinator: context.coordinator)
-                applied = true
-                pdfDebug("📍 AFTER applyFitToWidth: applied=true scale=\(pdfView.scaleFactor) awaitingFit=\(context.coordinator.awaitingInitialFit) bounds=\(pdfView.bounds.size)")
-            } else {
-                // Portrait: fit to height
-                applied = self.applyFitToHeight(pdfView, coordinator: context.coordinator)
-                pdfDebug("📍 AFTER applyFitToHeight: applied=\(applied) scale=\(pdfView.scaleFactor) awaitingFit=\(context.coordinator.awaitingInitialFit) bounds=\(pdfView.bounds.size)")
-            }
+            self.applyFitToWidth(pdfView, coordinator: context.coordinator)
+            pdfDebug("📍 AFTER applyFitToWidth: scale=\(pdfView.scaleFactor) awaitingFit=\(context.coordinator.awaitingInitialFit) bounds=\(pdfView.bounds.size)")
 
             // THEN navigate to page with correct scale already set
             document.page(at: clamped).map { page in
@@ -432,10 +418,8 @@ struct PDFKitView: ViewRepresentable {
         coordinator.lastExplicitFitMode = .width
 
         #if os(iOS)
-        // After zoom animation completes, top-align the content for natural reading flow
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-            self.topAlignContent(in: pdfView)
-        }
+        // Top-align content immediately - no timing hack needed with vertical continuous scrolling
+        topAlignContent(in: pdfView)
         #endif
     }
     
@@ -525,19 +509,9 @@ struct PDFKitView: ViewRepresentable {
         pdfView.interpolationQuality = .high
         pdfView.displayBox = .cropBox
 
-        // EXPERIMENTAL: Disable upward swipe to avoid conflicts with vertical scrolling
-        // TODO: Re-enable after testing, or use edge swipe gesture instead
-        // let swipeUp = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeUp(_:)))
-        // swipeUp.direction = .up
-        // swipeUp.delegate = context.coordinator
-        // pdfView.addGestureRecognizer(swipeUp)
-
-        // EXPERIMENTAL: Disable downward swipe to avoid conflicts with vertical scrolling
-        // TODO: Re-enable after testing, or use edge swipe gesture instead
-        // let swipeDown = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeDown(_:)))
-        // swipeDown.direction = .down
-        // swipeDown.delegate = context.coordinator
-        // pdfView.addGestureRecognizer(swipeDown)
+        // Vertical swipe gestures removed - conflicts with vertical continuous scrolling
+        // Page organizer access: tap page indicator
+        // Metadata access: info icon in navigation bar
 
         // Recursively attach our double-tap recognizer to each scroll view so it fires on iPad
         let doubleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.resetZoom(_:)))

@@ -359,6 +359,21 @@ struct DocumentEditView: View {
                                     .frame(width: 44, height: 44)
                                     .contentShape(Rectangle())
                             }
+                            .padding(.trailing, 4)
+                        }
+
+                        // Info button for metadata
+                        if viewModel.pdfData != nil {
+                            Button(action: {
+                                // TODO: Show metadata sheet
+                                print("DEBUG: Info button tapped - metadata view coming soon!")
+                            }) {
+                                Image(systemName: "info.circle")
+                                    .font(.title3)
+                                    .foregroundColor(.accentColor)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }
                             .padding(.trailing, 8)
                         }
 #if os(iOS)
