@@ -1,7 +1,14 @@
-# PDF Viewer Historical Issues - Why We Abandoned Vertical Scrolling
+# PDF Viewer Historical Issues - ✅ RESOLVED
 
 **Date**: 2025-10-26
-**Context**: Understanding why we moved from `.singlePageContinuous` to `.singlePage` with UIPageViewController
+**Status**: **ISSUE RESOLVED** - Apple has fixed PDFKit vertical scrolling bugs!
+**Resolution**: Vertical continuous scrolling now works perfectly. Adopted as production solution.
+
+---
+
+## Historical Context
+
+This document records why we moved from `.singlePageContinuous` to `.singlePage` with UIPageViewController in July-August 2025, and why we were able to switch back in October 2025.
 
 ## Timeline of Issues
 
@@ -130,7 +137,61 @@ Need to test on current iOS to see if the problem still exists.
 - Build our own page layout using UICollectionView
 - Full control but significant engineering effort
 
-### Option D: Wait for Apple to Fix PDFKit
+### Option D: Wait for Apple to Fix PDFKit ✅ **CHOSEN**
 - File bug report with Apple
 - Stick with current horizontal paging
 - Revisit in future iOS versions
+
+---
+
+## ✅ RESOLUTION (October 2025)
+
+### Test Results
+
+**Testing Date**: October 26, 2025
+**Device**: iPad
+**iOS Version**: October 2025 release
+
+**Outcome**: ✅ **VERTICAL SCROLLING WORKS PERFECTLY**
+
+- No flickering or artifacts
+- No stuttering or jerky motion
+- Smooth continuous vertical scrolling
+- Top-alignment works naturally (no UIPageViewController conflicts)
+
+### What Changed
+
+Apple fixed the underlying PDFKit issues between August and October 2025. The `.singlePageContinuous` display mode now renders smoothly without the performance problems we experienced in July/August.
+
+### Final Implementation
+
+**Adopted Solution**:
+- Vertical continuous scrolling (`.singlePageContinuous` + `.vertical`)
+- No UIPageViewController needed
+- Default fit-to-width zoom with top-alignment
+- Tap page indicator for page organizer
+- Info icon button for metadata access
+
+**Benefits**:
+1. Simpler architecture (no UIPageViewController complexity)
+2. Natural vertical scrolling matches iOS HIG
+3. Top-alignment works immediately (no timing hacks)
+4. Consistent with Files.app and Safari PDF viewing
+5. Better UX for document reading
+
+**Commits**:
+- `518c5e7` - Test vertical continuous scrolling mode
+- `b7d9e35` - Disable vertical swipe gestures for testing
+- `c5c9042` - Update test plan
+- `d3d70da` - Implement cleanup and UI improvements
+
+### Lessons Learned
+
+1. **Trust but verify Apple frameworks** - PDFKit issues can be fixed in OS updates
+2. **Document workarounds clearly** - Made it easy to revisit when fixed
+3. **Test experimental branches** - Low-risk way to validate fixes
+4. **Patience pays off** - Waiting 2-3 months was better than complex custom solutions
+
+---
+
+**Status**: Issue closed - vertical scrolling adopted as production solution ✅
