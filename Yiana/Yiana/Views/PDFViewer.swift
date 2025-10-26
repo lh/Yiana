@@ -635,10 +635,8 @@ struct PDFKitView: ViewRepresentable {
             }
         }
 
-        // Only attach layout observer on macOS (iOS uses page view controller which handles layout)
-        #if os(macOS)
+        // Attach layout observer on all platforms for deferred fit-to-width
         context.coordinator.attachLayoutObserver(to: pdfView)
-        #endif
     }
 
     private func updatePDFView(_ pdfView: PDFView) {
