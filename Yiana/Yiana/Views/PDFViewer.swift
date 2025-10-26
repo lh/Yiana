@@ -252,17 +252,9 @@ struct PDFKitView: ViewRepresentable {
             #endif
             pdfView.layoutDocumentView()
 
-            // iOS: Always use fit-to-width for natural vertical scrolling with top-alignment
-            // User can double-tap to toggle to fit-to-height if desired
-            // Check if bounds are valid before applying fit
-            if pdfView.bounds.width > 0 && pdfView.bounds.height > 0 {
-                pdfDebug("📍 Initial fit mode: fit-to-width, bounds=\(pdfView.bounds.size)")
-                self.applyFitToWidth(pdfView, coordinator: context.coordinator)
-                pdfDebug("📍 AFTER applyFitToWidth: scale=\(pdfView.scaleFactor) awaitingFit=\(context.coordinator.awaitingInitialFit) bounds=\(pdfView.bounds.size)")
-            } else {
-                // Bounds not ready yet, leave awaitingInitialFit=true so layout observer handles it
-                pdfDebug("📍 Bounds not ready (0.0, 0.0), deferring fit-to-width to layout observer")
-            }
+            // iOS: Fit-to-width will be applied by layout observer when bounds are ready
+            // Leave awaitingInitialFit=true so handleLayout() applies fit once bounds are valid
+            pdfDebug("📍 Initial setup complete, awaiting layout callback for fit-to-width")
 
             // THEN navigate to page with correct scale already set
             document.page(at: clamped).map { page in
