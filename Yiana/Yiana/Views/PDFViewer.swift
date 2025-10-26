@@ -525,17 +525,19 @@ struct PDFKitView: ViewRepresentable {
         pdfView.interpolationQuality = .high
         pdfView.displayBox = .cropBox
 
-        // Add upward swipe for page management
-        let swipeUp = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeUp(_:)))
-        swipeUp.direction = .up
-        swipeUp.delegate = context.coordinator
-        pdfView.addGestureRecognizer(swipeUp)
+        // EXPERIMENTAL: Disable upward swipe to avoid conflicts with vertical scrolling
+        // TODO: Re-enable after testing, or use edge swipe gesture instead
+        // let swipeUp = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeUp(_:)))
+        // swipeUp.direction = .up
+        // swipeUp.delegate = context.coordinator
+        // pdfView.addGestureRecognizer(swipeUp)
 
-        // Add downward swipe for metadata/address view
-        let swipeDown = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeDown(_:)))
-        swipeDown.direction = .down
-        swipeDown.delegate = context.coordinator
-        pdfView.addGestureRecognizer(swipeDown)
+        // EXPERIMENTAL: Disable downward swipe to avoid conflicts with vertical scrolling
+        // TODO: Re-enable after testing, or use edge swipe gesture instead
+        // let swipeDown = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.swipeDown(_:)))
+        // swipeDown.direction = .down
+        // swipeDown.delegate = context.coordinator
+        // pdfView.addGestureRecognizer(swipeDown)
 
         // Recursively attach our double-tap recognizer to each scroll view so it fires on iPad
         let doubleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.resetZoom(_:)))
