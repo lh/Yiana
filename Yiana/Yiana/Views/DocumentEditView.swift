@@ -15,11 +15,13 @@ import UIKit
 enum ActiveSheet: Identifiable, Equatable {
     case share(URL)
     case pageManagement
+    case metadata
 
     var id: String {
         switch self {
         case .share: return "share"
         case .pageManagement: return "pageManagement"
+        case .metadata: return "metadata"
         }
     }
 }
@@ -131,6 +133,10 @@ struct DocumentEditView: View {
                             showTextEditor = true
                         }
                     )
+                }
+            case .metadata:
+                if let document = document {
+                    DocumentInfoSheet(document: document)
                 }
             }
         }
@@ -365,8 +371,7 @@ struct DocumentEditView: View {
                         // Info button for metadata
                         if viewModel.pdfData != nil {
                             Button(action: {
-                                // TODO: Show metadata sheet
-                                print("DEBUG: Info button tapped - metadata view coming soon!")
+                                activeSheet = .metadata
                             }) {
                                 Image(systemName: "info.circle")
                                     .font(.title3)
