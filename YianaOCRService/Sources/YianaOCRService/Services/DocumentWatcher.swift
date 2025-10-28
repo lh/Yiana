@@ -18,6 +18,8 @@ public class DocumentWatcher {
     private let health: HealthMonitor
     private var lastCleanupTime: Date = .distantPast
     private let cleanupInterval: TimeInterval = 60 * 60
+    private var isScanning = false  // Prevent concurrent scans
+    private var processingDocuments = Set<String>()  // Track documents currently being processed
     
     public init(logger: Logger, customPath: String? = nil) {
         self.logger = logger
@@ -107,6 +109,15 @@ public class DocumentWatcher {
     }
     
     private func scanExistingDocuments() async {
+        // Prevent concurrent scans from piling up
+        guard !isScanning else {
+            logger.debug("Scan already in progress, skipping")
+            return
+        }
+
+        isScanning = true
+        defer { isScanning = false }
+
         logger.info("Scanning existing documents")
         health.touchHeartbeat(note: "scan")
 
@@ -170,11 +181,12 @@ public class DocumentWatcher {
             }
         }
         directoryMonitor?.start()
-        
+
         // Also set up a periodic scan to catch any missed changes in subdirectories
+        // Reduced frequency to prevent concurrent scan deadlocks
         Task {
             while true {
-                try? await Task.sleep(nanoseconds: 5_000_000_000) // Check every 5 seconds
+                try? await Task.sleep(nanoseconds: 60_000_000_000) // Check every 60 seconds (was 5)
                 await scanExistingDocuments()
             }
         }
@@ -183,7 +195,7 @@ public class DocumentWatcher {
     private func checkAndProcessDocument(at url: URL) async {
         let fileName = url.lastPathComponent
         let fileIdentifier = getFileIdentifier(for: url)
-        
+
         // Check if already processed
         if processedDocuments.contains(fileIdentifier) {
             logger.debug("Document already processed", metadata: [
@@ -191,6 +203,18 @@ public class DocumentWatcher {
             ])
             return
         }
+
+        // Check if currently being processed by another scan
+        if processingDocuments.contains(fileIdentifier) {
+            logger.debug("Document currently being processed, skipping", metadata: [
+                "file": .string(fileName)
+            ])
+            return
+        }
+
+        // Mark as being processed
+        processingDocuments.insert(fileIdentifier)
+        defer { processingDocuments.remove(fileIdentifier) }
         
         logger.info("Checking document", metadata: [
             "file": .string(fileName)
