@@ -161,20 +161,71 @@ b7d9e35 Disable vertical swipe gestures for testing
 - Simple architecture
 - Better UX (iOS-native patterns)
 - Page organizer accessible (tap indicator)
-- Metadata accessible (info icon)
+- Metadata accessible (info icon - iOS implementation pending)
 
-**Build status**: ✅ Success (0 errors, 2 minor warnings)
+**Build status**: ✅ Success
 **User testing**: ✅ "Smooth and beautiful"
+
+---
+
+## Final Implementation Summary (October 28, 2025)
+
+### Issues Fixed
+
+1. **Initial fit-to-width not applying** (iPhone/iPad)
+   - **Root cause**: Async document assignment was resetting scale to 1.0 after layout observer applied fit
+   - **Fix**: Assign document synchronously, eliminate reassignment in async block
+
+2. **Sidebar toggle not re-scaling** (iPad)
+   - **Root cause**: `handleLayout()` returned early on iOS after initial fit, preventing bounds-change handling
+   - **Fix**: Removed early return, allow layout changes to trigger re-scaling
+
+3. **Orientation changes not enforcing fit-to-width** (iOS)
+   - **Root cause**: Layout observer only maintained current fit mode instead of enforcing fit-to-width
+   - **Fix**: iOS always enforces fit-to-width on layout changes
+
+4. **Double-tap jumping to page 1** (iPhone)
+   - **Root cause**: `topAlignContent()` set Y offset to 0 (top of document) instead of top of current page
+   - **Fix**: Calculate Y offset by summing heights of all previous pages
+
+5. **Race condition with fitMode binding**
+   - **Root cause**: `applyFitToWidth()` updated fitMode asynchronously, causing mismatch with handleLayout checks
+   - **Fix**: Update fitMode synchronously
+
+### Double-Tap Behavior (Final)
+
+**iOS:**
+- iPad landscape: Toggle fit-to-width ↔ fit-to-height
+- iPad portrait: Always return to fit-to-width
+- iPhone (all): Always return to fit-to-width
+
+**Rationale**: Fit-to-height makes pages tiny on narrow screens
+
+### Key Technical Changes
+
+**File**: `PDFViewer.swift`
+
+1. **Line 248**: Synchronous document assignment (no reset in async block)
+2. **Line 420**: Synchronous `fitMode` update (prevent race conditions)
+3. **Line 807-810**: iOS always enforces fit-to-width on layout changes
+4. **Line 393-413**: `topAlignContent()` calculates per-page Y offset
+5. **Line 957-973**: Smart double-tap behavior (device/orientation aware)
+
+### Remaining Work
+
+- **iOS metadata sheet**: Info icon button exists but shows placeholder message
+  - Implementation deferred (not critical to vertical scrolling)
+  - macOS has full `DocumentInfoPanel` available
 
 ---
 
 ## Celebration! 🎉
 
-After all the horizontal paging workarounds, UIPageViewController conflicts, and top-alignment timing hacks... **vertical scrolling just works now!**
+After all the horizontal paging workarounds, UIPageViewController conflicts, top-alignment timing hacks, and scale reset bugs... **vertical scrolling works perfectly!**
 
 This is a huge win for:
-- **Code simplicity** (less to maintain)
-- **User experience** (iOS-native patterns)
-- **Future development** (solid foundation)
+- **Code simplicity** (~50 lines removed, event-driven architecture)
+- **User experience** (iOS-native patterns, smooth scrolling)
+- **Future development** (solid foundation, no timing hacks)
 
 Ready to merge! 🚀

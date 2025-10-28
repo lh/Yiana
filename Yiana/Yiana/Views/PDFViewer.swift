@@ -238,28 +238,29 @@ struct PDFKitView: ViewRepresentable {
         pdfDebug("updateUIView detected new document; pageCount=\(document.pageCount)")
         context.coordinator.isReloadingDocument = true
         context.coordinator.awaitingInitialFit = true
+
+        // Assign document immediately (not in async) to allow layout observer to fire with valid bounds
+        pdfView.document = document
+        pdfView.layoutDocumentView()
+
         DispatchQueue.main.async {
             let pageCount = document.pageCount
             let clamped = max(0, min(self.currentPage, pageCount - 1))
-            pdfView.document = nil
-            pdfView.document = document
-            pdfDebug("updateUIView async: document assigned; clampedPage=\(clamped) awaitingFit=\(context.coordinator.awaitingInitialFit)")
 
             #if os(iOS)
             pdfView.documentView?.setNeedsDisplay()
             #else
             pdfView.documentView?.needsDisplay = true
             #endif
-            pdfView.layoutDocumentView()
 
-            // iOS: Fit-to-width will be applied by layout observer when bounds are ready
-            // Leave awaitingInitialFit=true so handleLayout() applies fit once bounds are valid
-            pdfDebug("📍 Initial setup complete, awaiting layout callback for fit-to-width")
-
-            // THEN navigate to page with correct scale already set
-            document.page(at: clamped).map { page in
+            // Navigate to page if needed (save/restore scale to prevent reset)
+            if clamped > 0, let page = document.page(at: clamped) {
+                let savedScale = pdfView.scaleFactor
                 pdfView.go(to: page)
+                pdfView.scaleFactor = savedScale
                 context.coordinator.lastReportedPageIndex = clamped
+            } else {
+                context.coordinator.lastReportedPageIndex = 0
             }
 
             self.totalPages = pageCount
@@ -371,6 +372,11 @@ struct PDFKitView: ViewRepresentable {
 
     /// Top-align PDF content for fit-to-width mode (natural reading flow)
     private func topAlignContent(in pdfView: PDFView) {
+        guard let currentPage = pdfView.currentPage,
+              let document = pdfView.document else {
+            return
+        }
+
         func findScrollView(in view: UIView) -> UIScrollView? {
             if let scrollView = view as? UIScrollView { return scrollView }
             for subview in view.subviews {
@@ -384,17 +390,27 @@ struct PDFKitView: ViewRepresentable {
             return
         }
 
-        // Set Y offset to 0 to show top of page
+        // Calculate Y offset for top of current page
+        // In vertical continuous mode, pages are stacked vertically
+        let currentPageIndex = document.index(for: currentPage)
+        var yOffset: CGFloat = 0
+
+        // Sum heights of all pages before current page
+        for i in 0..<currentPageIndex {
+            if let page = document.page(at: i) {
+                let pageHeight = page.bounds(for: pdfView.displayBox).height * pdfView.scaleFactor
+                yOffset += pageHeight
+            }
+        }
+
         let beforeOffset = scrollView.contentOffset
         var newOffset = scrollView.contentOffset
-        newOffset.y = 0
+        newOffset.y = yOffset
         scrollView.setContentOffset(newOffset, animated: false)
-
-        // Force layout to prevent UIPageViewController from overriding
         scrollView.layoutIfNeeded()
 
         let afterOffset = scrollView.contentOffset
-        pdfDebug("topAlignContent: before=\(beforeOffset.y) after=\(afterOffset.y) contentSize=\(scrollView.contentSize)")
+        pdfDebug("topAlignContent: page=\(currentPageIndex) before=\(beforeOffset.y) after=\(afterOffset.y) targetY=\(yOffset)")
     }
     #endif
 
@@ -413,6 +429,10 @@ struct PDFKitView: ViewRepresentable {
         coordinator.currentFitMode = .width
         coordinator.lastExplicitFitMode = .width
         coordinator.awaitingInitialFit = false
+
+        // Update parent's fitMode binding synchronously to prevent race conditions
+        // This must happen before any subsequent updateUIView calls that might check fitMode
+        fitMode = .width
 
         #if os(iOS)
         // Top-align content immediately - no timing hack needed with vertical continuous scrolling
@@ -777,11 +797,6 @@ struct PDFKitView: ViewRepresentable {
         }
 
         func handleLayout(for pdfView: PDFView) {
-            #if os(iOS)
-            // On iOS, only handle layout if we're awaiting initial fit (bounds weren't ready earlier)
-            guard awaitingInitialFit else { return }
-            #endif
-
             let isLandscape = pdfView.bounds.width > pdfView.bounds.height
             pdfDebug("handleLayout: awaiting=\(awaitingInitialFit) size=\(pdfView.bounds.size) orientation=\(isLandscape ? "landscape" : "portrait") currentFit=\(currentFitMode) parentFit=\(parent.fitMode) reloading=\(isReloadingDocument)")
 
@@ -801,9 +816,15 @@ struct PDFKitView: ViewRepresentable {
                 return
             }
 
-            // Reapply fit mode after layout changes (like orientation changes)
+            // Reapply fit mode after layout changes (sidebar toggle, orientation changes)
             guard !isReloadingDocument else { return }
 
+            #if os(iOS)
+            // iOS: Always enforce fit-to-width on layout changes (orientation, sidebar toggle)
+            pdfDebug("handleLayout: enforcing fit-to-width on iOS")
+            parent.applyFitToWidth(pdfView, coordinator: self)
+            #else
+            // macOS: Maintain current fit mode
             if currentFitMode == .height, parent.fitMode == .height {
                 pdfDebug("handleLayout: maintaining height fit after layout")
                 _ = parent.applyFitToHeight(pdfView, coordinator: self)
@@ -811,6 +832,7 @@ struct PDFKitView: ViewRepresentable {
                 pdfDebug("handleLayout: maintaining width fit after layout")
                 parent.applyFitToWidth(pdfView, coordinator: self)
             }
+            #endif
         }
 
         deinit {
@@ -940,24 +962,41 @@ struct PDFKitView: ViewRepresentable {
         @objc func resetZoom(_ sender: Any) {
             guard let pdfView = pdfView else { return }
 
-            // Implement cycling behavior for iOS double-tap:
-            // Manual zoom → Fit Page (height)
-            // Fit Page → Fit Width
-            // Fit Width → Fit Page
+            #if os(iOS)
+            // iOS double-tap behavior:
+            // - iPad landscape: Toggle between fit-to-width and fit-to-height
+            // - All other cases: Always return to fit-to-width (fit-to-height doesn't make sense on narrow screens)
+            let isIPad = UIDevice.current.userInterfaceIdiom == .pad
+            let isLandscape = pdfView.bounds.width > pdfView.bounds.height
+
+            if isIPad && isLandscape {
+                // iPad landscape: Allow toggling between width and height
+                switch currentFitMode {
+                case .manual:
+                    // From manual zoom, go to fit-to-width
+                    parent.applyFitToWidth(pdfView, coordinator: self)
+                case .width:
+                    // From fit-to-width, go to fit-to-height
+                    parent.applyFitToHeight(pdfView, coordinator: self)
+                case .height:
+                    // From fit-to-height, go back to fit-to-width
+                    parent.applyFitToWidth(pdfView, coordinator: self)
+                }
+            } else {
+                // iPhone or iPad portrait: Always return to fit-to-width
+                parent.applyFitToWidth(pdfView, coordinator: self)
+            }
+            #else
+            // macOS: Cycle through fit modes
             switch currentFitMode {
             case .manual:
-                // From manual zoom, snap to Fit Page
                 parent.applyFitToHeight(pdfView, coordinator: self)
             case .height:
-                // From Fit Page, switch to Fit Width
                 parent.applyFitToWidth(pdfView, coordinator: self)
-                DispatchQueue.main.async {
-                    self.parent.fitMode = .width
-                }
             case .width:
-                // From Fit Width, switch back to Fit Page
                 parent.applyFitToHeight(pdfView, coordinator: self)
             }
+            #endif
 
             // Trigger page indicator to show after zoom change
             DispatchQueue.main.async {
