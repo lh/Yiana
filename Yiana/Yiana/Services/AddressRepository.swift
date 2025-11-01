@@ -63,6 +63,7 @@ final class AddressRepository: ObservableObject {
 
         return try await dbQueue.read { db in
             // Query with LEFT JOIN to get user overrides when present
+            // Use subquery to get only the most recent override for each address
             try ExtractedAddress.fetchAll(db, sql: """
                 SELECT
                     ea.id,
@@ -95,6 +96,13 @@ final class AddressRepository: ObservableObject {
                 FROM extracted_addresses ea
                 LEFT JOIN address_overrides ao ON ea.id = ao.original_extraction_id
                     AND (ao.override_reason IS NULL OR ao.override_reason != 'removed')
+                    AND ao.id = (
+                        SELECT id FROM address_overrides
+                        WHERE original_extraction_id = ea.id
+                        AND (override_reason IS NULL OR override_reason != 'removed')
+                        ORDER BY overridden_at DESC
+                        LIMIT 1
+                    )
                 WHERE ea.document_id = ?
                 ORDER BY ea.page_number ASC
                 """, arguments: [documentId])
