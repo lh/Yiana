@@ -92,6 +92,12 @@ iOSInjectionProject/
 # macOS
 .DS_Store
 
+# Python virtual environments
+.venv/
+venv/
+*.pyc
+__pycache__/
+
 # Debug PDF sync logs
 temp-debug-files/debug-pdf-sync.log
 temp-debug-files/debug-pdf-sync.error.log
