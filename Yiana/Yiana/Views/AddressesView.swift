@@ -277,20 +277,22 @@ struct AddressCard: View {
         isSaving = true
 
         var updatedAddress = address
-        updatedAddress.fullName = fullName.isEmpty ? nil : fullName
-        updatedAddress.dateOfBirth = dateOfBirth.isEmpty ? nil : dateOfBirth
-        updatedAddress.addressLine1 = addressLine1.isEmpty ? nil : addressLine1
-        updatedAddress.addressLine2 = addressLine2.isEmpty ? nil : addressLine2
-        updatedAddress.city = city.isEmpty ? nil : city
-        updatedAddress.county = county.isEmpty ? nil : county
-        updatedAddress.postcode = postcode.isEmpty ? nil : postcode
-        updatedAddress.phoneHome = phoneHome.isEmpty ? nil : phoneHome
-        updatedAddress.phoneWork = phoneWork.isEmpty ? nil : phoneWork
-        updatedAddress.phoneMobile = phoneMobile.isEmpty ? nil : phoneMobile
-        updatedAddress.gpName = gpName.isEmpty ? nil : gpName
-        updatedAddress.gpPractice = gpPractice.isEmpty ? nil : gpPractice
-        updatedAddress.gpAddress = gpAddress.isEmpty ? nil : gpAddress
-        updatedAddress.gpPostcode = gpPostcode.isEmpty ? nil : gpPostcode
+        // Save empty strings as empty strings (not nil) so cleared fields stay cleared
+        // Empty string means "user explicitly cleared this field"
+        updatedAddress.fullName = fullName.isEmpty ? "" : fullName
+        updatedAddress.dateOfBirth = dateOfBirth.isEmpty ? "" : dateOfBirth
+        updatedAddress.addressLine1 = addressLine1.isEmpty ? "" : addressLine1
+        updatedAddress.addressLine2 = addressLine2.isEmpty ? "" : addressLine2
+        updatedAddress.city = city.isEmpty ? "" : city
+        updatedAddress.county = county.isEmpty ? "" : county
+        updatedAddress.postcode = postcode.isEmpty ? "" : postcode
+        updatedAddress.phoneHome = phoneHome.isEmpty ? "" : phoneHome
+        updatedAddress.phoneWork = phoneWork.isEmpty ? "" : phoneWork
+        updatedAddress.phoneMobile = phoneMobile.isEmpty ? "" : phoneMobile
+        updatedAddress.gpName = gpName.isEmpty ? "" : gpName
+        updatedAddress.gpPractice = gpPractice.isEmpty ? "" : gpPractice
+        updatedAddress.gpAddress = gpAddress.isEmpty ? "" : gpAddress
+        updatedAddress.gpPostcode = gpPostcode.isEmpty ? "" : gpPostcode
 
         do {
             try await repository.saveOverride(
