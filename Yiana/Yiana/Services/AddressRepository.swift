@@ -62,10 +62,42 @@ final class AddressRepository: ObservableObject {
         }
 
         return try await dbQueue.read { db in
-            try ExtractedAddress
-                .filter(ExtractedAddress.Columns.documentId == documentId)
-                .order(ExtractedAddress.Columns.pageNumber.asc)
-                .fetchAll(db)
+            // Query with LEFT JOIN to get user overrides when present
+            try ExtractedAddress.fetchAll(db, sql: """
+                SELECT
+                    ea.id,
+                    COALESCE(ao.document_id, ea.document_id) as document_id,
+                    COALESCE(ao.page_number, ea.page_number) as page_number,
+                    COALESCE(ao.full_name, ea.full_name) as full_name,
+                    COALESCE(ao.date_of_birth, ea.date_of_birth) as date_of_birth,
+                    COALESCE(ao.address_line_1, ea.address_line_1) as address_line_1,
+                    COALESCE(ao.address_line_2, ea.address_line_2) as address_line_2,
+                    COALESCE(ao.city, ea.city) as city,
+                    COALESCE(ao.county, ea.county) as county,
+                    COALESCE(ao.postcode, ea.postcode) as postcode,
+                    COALESCE(ao.country, ea.country) as country,
+                    COALESCE(ao.phone_home, ea.phone_home) as phone_home,
+                    COALESCE(ao.phone_work, ea.phone_work) as phone_work,
+                    COALESCE(ao.phone_mobile, ea.phone_mobile) as phone_mobile,
+                    COALESCE(ao.gp_name, ea.gp_name) as gp_name,
+                    COALESCE(ao.gp_practice, ea.gp_practice) as gp_practice,
+                    COALESCE(ao.gp_address, ea.gp_address) as gp_address,
+                    COALESCE(ao.gp_postcode, ea.gp_postcode) as gp_postcode,
+                    ea.gp_ods_code,
+                    ea.gp_official_name,
+                    ea.extraction_confidence,
+                    ea.extraction_method,
+                    ea.extracted_at,
+                    ea.postcode_valid,
+                    ea.postcode_district,
+                    ea.raw_text,
+                    ea.ocr_json
+                FROM extracted_addresses ea
+                LEFT JOIN address_overrides ao ON ea.id = ao.original_extraction_id
+                    AND (ao.override_reason IS NULL OR ao.override_reason != 'removed')
+                WHERE ea.document_id = ?
+                ORDER BY ea.page_number ASC
+                """, arguments: [documentId])
         }
     }
 
