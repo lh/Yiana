@@ -106,6 +106,8 @@ struct AddressCard: View {
 
     @State private var isSavingPatient = false
     @State private var isSavingGP = false
+    @State private var patientCopied = false
+    @State private var gpCopied = false
 
     init(address: ExtractedAddress, onSave: @escaping () -> Void) {
         self.address = address
@@ -151,11 +153,12 @@ struct AddressCard: View {
                             Button {
                                 copyPatientAddress()
                             } label: {
-                                Label("Copy", systemImage: "doc.on.doc")
+                                Label(patientCopied ? "Copied" : "Copy",
+                                      systemImage: patientCopied ? "checkmark" : "doc.on.doc")
                                     .font(.caption)
                             }
                             .buttonStyle(.plain)
-                            .foregroundColor(.blue)
+                            .foregroundColor(patientCopied ? .green : .blue)
                             .help("Copy name and address to clipboard")
                         }
                         #endif
@@ -255,11 +258,12 @@ struct AddressCard: View {
                             Button {
                                 copyGPAddress()
                             } label: {
-                                Label("Copy", systemImage: "doc.on.doc")
+                                Label(gpCopied ? "Copied" : "Copy",
+                                      systemImage: gpCopied ? "checkmark" : "doc.on.doc")
                                     .font(.caption)
                             }
                             .buttonStyle(.plain)
-                            .foregroundColor(.blue)
+                            .foregroundColor(gpCopied ? .green : .blue)
                             .help("Copy GP details to clipboard")
                         }
                         #endif
@@ -441,6 +445,13 @@ struct AddressCard: View {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(addressText, forType: .string)
+
+        // Show feedback
+        patientCopied = true
+        Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+            patientCopied = false
+        }
         #endif
     }
 
@@ -466,6 +477,13 @@ struct AddressCard: View {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(addressText, forType: .string)
+
+        // Show feedback
+        gpCopied = true
+        Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+            gpCopied = false
+        }
         #endif
     }
 }
