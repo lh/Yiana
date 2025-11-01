@@ -13,7 +13,7 @@ import PDFKit
 struct DocumentInfoSheet: View {
     let document: NoteDocument
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedTab = "metadata"
+    @State private var selectedTab = "addresses"
     @State private var showingRawJSON = false
 
     var body: some View {
@@ -21,6 +21,7 @@ struct DocumentInfoSheet: View {
             VStack(spacing: 0) {
                 // Tab selector
                 Picker("Info Type", selection: $selectedTab) {
+                    Text("Addresses").tag("addresses")
                     Text("Metadata").tag("metadata")
                     Text("Text").tag("ocr")
                     Text("Debug").tag("debug")
@@ -35,6 +36,9 @@ struct DocumentInfoSheet: View {
                             .padding()
                     } else {
                         switch selectedTab {
+                        case "addresses":
+                            AddressesView(documentId: document.metadata.id.uuidString)
+                                .padding()
                         case "metadata":
                             MetadataView(metadata: document.metadata)
                                 .padding()
