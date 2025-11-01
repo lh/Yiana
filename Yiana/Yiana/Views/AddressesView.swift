@@ -74,6 +74,7 @@ struct AddressesView: View {
 // MARK: - Address Card
 struct AddressCard: View {
     let address: ExtractedAddress
+    @State private var showingEditSheet = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -91,6 +92,20 @@ struct AddressCard: View {
                         .font(.headline)
                 }
                 Spacer()
+                
+                // Edit button
+                Button {
+                    showingEditSheet = true
+                } label: {
+                    Label("Edit", systemImage: "pencil")
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.blue.opacity(0.1))
+                        .foregroundColor(.blue)
+                        .cornerRadius(8)
+                }
+                
                 if let pageNum = address.pageNumber {
                     Text("Page \(pageNum)")
                         .font(.caption)
@@ -157,6 +172,9 @@ struct AddressCard: View {
         .padding()
         .background(Color.secondary.opacity(0.1))
         .cornerRadius(12)
+        .sheet(isPresented: $showingEditSheet) {
+            AddressEditView(address: address)
+        }
     }
 
     private func confidenceColor(_ confidence: Double) -> Color {
@@ -205,6 +223,152 @@ private struct PostcodeRow: View {
                     .foregroundColor(.green)
                     .font(.caption)
             }
+        }
+    }
+}
+
+// MARK: - Address Edit View
+struct AddressEditView: View {
+    let address: ExtractedAddress
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var repository = AddressRepository()
+    
+    // Editable fields
+    @State private var fullName: String
+    @State private var dateOfBirth: String
+    @State private var addressLine1: String
+    @State private var addressLine2: String
+    @State private var city: String
+    @State private var county: String
+    @State private var postcode: String
+    @State private var phoneHome: String
+    @State private var phoneWork: String
+    @State private var phoneMobile: String
+    @State private var gpName: String
+    @State private var gpPractice: String
+    @State private var gpAddress: String
+    @State private var gpPostcode: String
+    
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+    
+    init(address: ExtractedAddress) {
+        self.address = address
+        _fullName = State(initialValue: address.fullName ?? "")
+        _dateOfBirth = State(initialValue: address.dateOfBirth ?? "")
+        _addressLine1 = State(initialValue: address.addressLine1 ?? "")
+        _addressLine2 = State(initialValue: address.addressLine2 ?? "")
+        _city = State(initialValue: address.city ?? "")
+        _county = State(initialValue: address.county ?? "")
+        _postcode = State(initialValue: address.postcode ?? "")
+        _phoneHome = State(initialValue: address.phoneHome ?? "")
+        _phoneWork = State(initialValue: address.phoneWork ?? "")
+        _phoneMobile = State(initialValue: address.phoneMobile ?? "")
+        _gpName = State(initialValue: address.gpName ?? "")
+        _gpPractice = State(initialValue: address.gpPractice ?? "")
+        _gpAddress = State(initialValue: address.gpAddress ?? "")
+        _gpPostcode = State(initialValue: address.gpPostcode ?? "")
+    }
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                // Patient Information Section
+                if address.hasPatientInfo {
+                    Section("Patient Information") {
+                        TextField("Full Name", text: $fullName)
+                        TextField("Date of Birth", text: $dateOfBirth)
+                    }
+
+                    Section("Patient Address") {
+                        TextField("Address Line 1", text: $addressLine1)
+                        TextField("Address Line 2", text: $addressLine2)
+                        TextField("City", text: $city)
+                        TextField("County", text: $county)
+                        TextField("Postcode", text: $postcode)
+                            .textCase(.uppercase)
+                    }
+
+                    Section("Contact Details") {
+                        TextField("Home Phone", text: $phoneHome)
+                        TextField("Work Phone", text: $phoneWork)
+                        TextField("Mobile Phone", text: $phoneMobile)
+                    }
+                }
+                
+                // GP Information Section
+                if address.hasGPInfo {
+                    Section("GP Information") {
+                        TextField("GP Name", text: $gpName)
+                        TextField("Practice Name", text: $gpPractice)
+                        TextField("GP Address", text: $gpAddress)
+                        TextField("GP Postcode", text: $gpPostcode)
+                            .textCase(.uppercase)
+                    }
+                }
+                
+                // Actions
+                Section {
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                            .font(.caption)
+                    }
+                }
+            }
+            .navigationTitle("Edit Address")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        Task {
+                            await saveChanges()
+                        }
+                    }
+                    .disabled(isSaving)
+                }
+            }
+        }
+    }
+    
+    private func saveChanges() async {
+        isSaving = true
+        errorMessage = nil
+        
+        // Create updated address
+        var updatedAddress = address
+        updatedAddress.fullName = fullName.isEmpty ? nil : fullName
+        updatedAddress.dateOfBirth = dateOfBirth.isEmpty ? nil : dateOfBirth
+        updatedAddress.addressLine1 = addressLine1.isEmpty ? nil : addressLine1
+        updatedAddress.addressLine2 = addressLine2.isEmpty ? nil : addressLine2
+        updatedAddress.city = city.isEmpty ? nil : city
+        updatedAddress.county = county.isEmpty ? nil : county
+        updatedAddress.postcode = postcode.isEmpty ? nil : postcode
+        updatedAddress.phoneHome = phoneHome.isEmpty ? nil : phoneHome
+        updatedAddress.phoneWork = phoneWork.isEmpty ? nil : phoneWork
+        updatedAddress.phoneMobile = phoneMobile.isEmpty ? nil : phoneMobile
+        updatedAddress.gpName = gpName.isEmpty ? nil : gpName
+        updatedAddress.gpPractice = gpPractice.isEmpty ? nil : gpPractice
+        updatedAddress.gpAddress = gpAddress.isEmpty ? nil : gpAddress
+        updatedAddress.gpPostcode = gpPostcode.isEmpty ? nil : gpPostcode
+        
+        do {
+            try await repository.saveOverride(
+                originalId: address.id!,
+                updatedAddress: updatedAddress,
+                reason: "corrected"
+            )
+            dismiss()
+        } catch {
+            errorMessage = "Failed to save: \(error.localizedDescription)"
+            isSaving = false
         }
     }
 }

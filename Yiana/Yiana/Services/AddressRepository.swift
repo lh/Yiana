@@ -41,9 +41,8 @@ final class AddressRepository: ObservableObject {
         }
 
         do {
-            // Open database in read-only mode (Phase 1 - MVP)
+            // Open database in read-write mode for Phase 2 (user editing)
             var config = Configuration()
-            config.readonly = true
             config.label = "AddressRepository"
 
             self.dbQueue = try DatabaseQueue(path: dbURL.path, configuration: config)
@@ -119,6 +118,72 @@ final class AddressRepository: ObservableObject {
                 gpsFound: gpsFound
             )
         }
+    }
+
+    /// Save user correction as an override
+    /// - Parameters:
+    ///   - originalId: The ID of the original extracted address
+    ///   - updatedAddress: The corrected address data
+    ///   - reason: Reason for override ("corrected", "added", "removed", "false_positive")
+    func saveOverride(originalId: Int64, updatedAddress: ExtractedAddress, reason: String) async throws {
+        guard let dbQueue else {
+            throw NSError(domain: "AddressRepository", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "Database not available"
+            ])
+        }
+
+        try await dbQueue.write { db in
+            // Insert override record
+            try db.execute(sql: """
+                INSERT INTO address_overrides (
+                    document_id,
+                    page_number,
+                    original_extraction_id,
+                    full_name,
+                    date_of_birth,
+                    address_line_1,
+                    address_line_2,
+                    city,
+                    county,
+                    postcode,
+                    country,
+                    phone_home,
+                    phone_work,
+                    phone_mobile,
+                    gp_name,
+                    gp_practice,
+                    gp_address,
+                    gp_postcode,
+                    override_reason,
+                    is_training_candidate,
+                    training_used
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
+                """,
+                arguments: [
+                    updatedAddress.documentId,
+                    updatedAddress.pageNumber,
+                    originalId,
+                    updatedAddress.fullName,
+                    updatedAddress.dateOfBirth,
+                    updatedAddress.addressLine1,
+                    updatedAddress.addressLine2,
+                    updatedAddress.city,
+                    updatedAddress.county,
+                    updatedAddress.postcode,
+                    updatedAddress.country,
+                    updatedAddress.phoneHome,
+                    updatedAddress.phoneWork,
+                    updatedAddress.phoneMobile,
+                    updatedAddress.gpName,
+                    updatedAddress.gpPractice,
+                    updatedAddress.gpAddress,
+                    updatedAddress.gpPostcode,
+                    reason
+                ]
+            )
+        }
+
+        logger.info("Saved override for address ID \(originalId) with reason '\(reason)'")
     }
 }
 
