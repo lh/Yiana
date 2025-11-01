@@ -12,7 +12,7 @@ import PDFKit
 
 struct DocumentInfoPanel: View {
     let document: NoteDocument
-    @State private var selectedTab = "metadata"
+    @State private var selectedTab = "addresses"
     @State private var isLoadingOCR = false
     @State private var showingRawJSON = false
 
@@ -38,6 +38,7 @@ struct DocumentInfoPanel: View {
 
             // Tab selector
             Picker("Info Type", selection: $selectedTab) {
+                Text("Addresses").tag("addresses")
                 Text("Metadata").tag("metadata")
                 Text("Text").tag("ocr")
                 Text("Debug").tag("debug")
@@ -52,6 +53,9 @@ struct DocumentInfoPanel: View {
                         .padding()
                 } else {
                     switch selectedTab {
+                    case "addresses":
+                        AddressesView(documentId: document.metadata.title)
+                            .padding()
                     case "metadata":
                         MetadataView(metadata: document.metadata)
                             .padding()
