@@ -13,6 +13,7 @@ struct AddressesView: View {
     @State private var addresses: [ExtractedAddress] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var refreshTrigger = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -46,7 +47,9 @@ struct AddressesView: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         ForEach(addresses, id: \.id) { address in
-                            AddressCard(address: address)
+                            AddressCard(address: address, onSave: {
+                                refreshTrigger.toggle()
+                            })
                         }
                     }
                 }
@@ -54,6 +57,11 @@ struct AddressesView: View {
         }
         .task {
             await loadAddresses()
+        }
+        .onChange(of: refreshTrigger) {
+            Task {
+                await loadAddresses()
+            }
         }
     }
 
@@ -74,6 +82,8 @@ struct AddressesView: View {
 // MARK: - Address Card
 struct AddressCard: View {
     let address: ExtractedAddress
+    let onSave: () -> Void
+    
     @State private var isEditing = false
     @StateObject private var repository = AddressRepository()
 
@@ -95,8 +105,9 @@ struct AddressCard: View {
 
     @State private var isSaving = false
 
-    init(address: ExtractedAddress) {
+    init(address: ExtractedAddress, onSave: @escaping () -> Void) {
         self.address = address
+        self.onSave = onSave
         _fullName = State(initialValue: address.fullName ?? "")
         _dateOfBirth = State(initialValue: address.dateOfBirth ?? "")
         _addressLine1 = State(initialValue: address.addressLine1 ?? "")
@@ -288,6 +299,7 @@ struct AddressCard: View {
                 reason: "corrected"
             )
             isEditing = false
+            onSave() // Trigger refresh
         } catch {
             // Handle error silently for now
             print("Failed to save: \(error)")
