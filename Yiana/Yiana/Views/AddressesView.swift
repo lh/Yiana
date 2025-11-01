@@ -2,7 +2,7 @@
 //  AddressesView.swift
 //  Yiana
 //
-//  Displays extracted addresses for a document (read-only)
+//  Displays extracted addresses for a document with inline editing
 //
 
 import SwiftUI
@@ -74,7 +74,44 @@ struct AddressesView: View {
 // MARK: - Address Card
 struct AddressCard: View {
     let address: ExtractedAddress
-    @State private var showingEditSheet = false
+    @State private var isEditing = false
+    @StateObject private var repository = AddressRepository()
+
+    // Editable fields
+    @State private var fullName: String
+    @State private var dateOfBirth: String
+    @State private var addressLine1: String
+    @State private var addressLine2: String
+    @State private var city: String
+    @State private var county: String
+    @State private var postcode: String
+    @State private var phoneHome: String
+    @State private var phoneWork: String
+    @State private var phoneMobile: String
+    @State private var gpName: String
+    @State private var gpPractice: String
+    @State private var gpAddress: String
+    @State private var gpPostcode: String
+
+    @State private var isSaving = false
+
+    init(address: ExtractedAddress) {
+        self.address = address
+        _fullName = State(initialValue: address.fullName ?? "")
+        _dateOfBirth = State(initialValue: address.dateOfBirth ?? "")
+        _addressLine1 = State(initialValue: address.addressLine1 ?? "")
+        _addressLine2 = State(initialValue: address.addressLine2 ?? "")
+        _city = State(initialValue: address.city ?? "")
+        _county = State(initialValue: address.county ?? "")
+        _postcode = State(initialValue: address.postcode ?? "")
+        _phoneHome = State(initialValue: address.phoneHome ?? "")
+        _phoneWork = State(initialValue: address.phoneWork ?? "")
+        _phoneMobile = State(initialValue: address.phoneMobile ?? "")
+        _gpName = State(initialValue: address.gpName ?? "")
+        _gpPractice = State(initialValue: address.gpPractice ?? "")
+        _gpAddress = State(initialValue: address.gpAddress ?? "")
+        _gpPostcode = State(initialValue: address.gpPostcode ?? "")
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -92,20 +129,34 @@ struct AddressCard: View {
                         .font(.headline)
                 }
                 Spacer()
-                
-                // Edit button
-                Button {
-                    showingEditSheet = true
-                } label: {
-                    Label("Edit", systemImage: "pencil")
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.blue.opacity(0.1))
-                        .foregroundColor(.blue)
-                        .cornerRadius(8)
+
+                // Edit/Save/Cancel buttons
+                if isEditing {
+                    Button("Cancel") {
+                        resetFields()
+                        isEditing = false
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.secondary)
+
+                    Button("Save") {
+                        Task {
+                            await saveChanges()
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isSaving)
+                } else {
+                    Button {
+                        isEditing = true
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.blue)
                 }
-                
+
                 if let pageNum = address.pageNumber {
                     Text("Page \(pageNum)")
                         .font(.caption)
@@ -118,20 +169,33 @@ struct AddressCard: View {
             // Patient Information
             if address.hasPatientInfo {
                 VStack(alignment: .leading, spacing: 8) {
-                    if let name = address.fullName {
-                        AddressInfoRow(label: "Name", value: name, icon: "person")
-                    }
-                    if let dob = address.dateOfBirth {
-                        AddressInfoRow(label: "Date of Birth", value: dob, icon: "calendar")
-                    }
-                    if let formattedAddress = address.formattedPatientAddress {
-                        AddressInfoRow(label: "Address", value: formattedAddress, icon: "house")
-                    }
-                    if let postcode = address.postcode {
-                        PostcodeRow(postcode: postcode, isValid: address.postcodeValid)
-                    }
-                    if let phones = address.formattedPhones {
-                        AddressInfoRow(label: "Phone", value: phones, icon: "phone")
+                    if isEditing {
+                        EditableField(label: "Name", text: $fullName, icon: "person")
+                        EditableField(label: "Date of Birth", text: $dateOfBirth, icon: "calendar")
+                        EditableField(label: "Address Line 1", text: $addressLine1, icon: "house")
+                        EditableField(label: "Address Line 2", text: $addressLine2, icon: "house")
+                        EditableField(label: "City", text: $city, icon: "building.2")
+                        EditableField(label: "County", text: $county, icon: "map")
+                        EditableField(label: "Postcode", text: $postcode, icon: "mappin.circle")
+                        EditableField(label: "Home Phone", text: $phoneHome, icon: "phone")
+                        EditableField(label: "Work Phone", text: $phoneWork, icon: "phone")
+                        EditableField(label: "Mobile Phone", text: $phoneMobile, icon: "phone")
+                    } else {
+                        if !fullName.isEmpty {
+                            AddressInfoRow(label: "Name", value: fullName, icon: "person")
+                        }
+                        if !dateOfBirth.isEmpty {
+                            AddressInfoRow(label: "Date of Birth", value: dateOfBirth, icon: "calendar")
+                        }
+                        if let formattedAddress = address.formattedPatientAddress {
+                            AddressInfoRow(label: "Address", value: formattedAddress, icon: "house")
+                        }
+                        if !postcode.isEmpty {
+                            PostcodeRow(postcode: postcode, isValid: address.postcodeValid)
+                        }
+                        if let phones = address.formattedPhones {
+                            AddressInfoRow(label: "Phone", value: phones, icon: "phone")
+                        }
                     }
                 }
             }
@@ -139,26 +203,33 @@ struct AddressCard: View {
             // GP Information
             if address.hasGPInfo {
                 VStack(alignment: .leading, spacing: 8) {
-                    if let gpName = address.gpName {
-                        AddressInfoRow(label: "GP Name", value: gpName, icon: "stethoscope")
-                    }
-                    if let practice = address.gpPractice {
-                        AddressInfoRow(label: "Practice", value: practice, icon: "building.2")
-                    }
-                    if let gpAddress = address.gpAddress {
-                        AddressInfoRow(label: "Address", value: gpAddress, icon: "house")
-                    }
-                    if let gpPostcode = address.gpPostcode {
-                        AddressInfoRow(label: "Postcode", value: gpPostcode, icon: "mappin.circle")
-                    }
-                    if let odsCode = address.gpOdsCode {
-                        AddressInfoRow(label: "ODS Code", value: odsCode, icon: "number")
+                    if isEditing {
+                        EditableField(label: "GP Name", text: $gpName, icon: "stethoscope")
+                        EditableField(label: "Practice", text: $gpPractice, icon: "building.2")
+                        EditableField(label: "GP Address", text: $gpAddress, icon: "house")
+                        EditableField(label: "GP Postcode", text: $gpPostcode, icon: "mappin.circle")
+                    } else {
+                        if !gpName.isEmpty {
+                            AddressInfoRow(label: "GP Name", value: gpName, icon: "stethoscope")
+                        }
+                        if !gpPractice.isEmpty {
+                            AddressInfoRow(label: "Practice", value: gpPractice, icon: "building.2")
+                        }
+                        if !gpAddress.isEmpty {
+                            AddressInfoRow(label: "Address", value: gpAddress, icon: "house")
+                        }
+                        if !gpPostcode.isEmpty {
+                            AddressInfoRow(label: "Postcode", value: gpPostcode, icon: "mappin.circle")
+                        }
+                        if let odsCode = address.gpOdsCode {
+                            AddressInfoRow(label: "ODS Code", value: odsCode, icon: "number")
+                        }
                     }
                 }
             }
 
             // Metadata
-            if let confidence = address.extractionConfidence {
+            if !isEditing, let confidence = address.extractionConfidence {
                 HStack {
                     Text("Confidence:")
                         .font(.caption)
@@ -172,9 +243,57 @@ struct AddressCard: View {
         .padding()
         .background(Color.secondary.opacity(0.1))
         .cornerRadius(12)
-        .sheet(isPresented: $showingEditSheet) {
-            AddressEditView(address: address)
+    }
+
+    private func resetFields() {
+        fullName = address.fullName ?? ""
+        dateOfBirth = address.dateOfBirth ?? ""
+        addressLine1 = address.addressLine1 ?? ""
+        addressLine2 = address.addressLine2 ?? ""
+        city = address.city ?? ""
+        county = address.county ?? ""
+        postcode = address.postcode ?? ""
+        phoneHome = address.phoneHome ?? ""
+        phoneWork = address.phoneWork ?? ""
+        phoneMobile = address.phoneMobile ?? ""
+        gpName = address.gpName ?? ""
+        gpPractice = address.gpPractice ?? ""
+        gpAddress = address.gpAddress ?? ""
+        gpPostcode = address.gpPostcode ?? ""
+    }
+
+    private func saveChanges() async {
+        isSaving = true
+
+        var updatedAddress = address
+        updatedAddress.fullName = fullName.isEmpty ? nil : fullName
+        updatedAddress.dateOfBirth = dateOfBirth.isEmpty ? nil : dateOfBirth
+        updatedAddress.addressLine1 = addressLine1.isEmpty ? nil : addressLine1
+        updatedAddress.addressLine2 = addressLine2.isEmpty ? nil : addressLine2
+        updatedAddress.city = city.isEmpty ? nil : city
+        updatedAddress.county = county.isEmpty ? nil : county
+        updatedAddress.postcode = postcode.isEmpty ? nil : postcode
+        updatedAddress.phoneHome = phoneHome.isEmpty ? nil : phoneHome
+        updatedAddress.phoneWork = phoneWork.isEmpty ? nil : phoneWork
+        updatedAddress.phoneMobile = phoneMobile.isEmpty ? nil : phoneMobile
+        updatedAddress.gpName = gpName.isEmpty ? nil : gpName
+        updatedAddress.gpPractice = gpPractice.isEmpty ? nil : gpPractice
+        updatedAddress.gpAddress = gpAddress.isEmpty ? nil : gpAddress
+        updatedAddress.gpPostcode = gpPostcode.isEmpty ? nil : gpPostcode
+
+        do {
+            try await repository.saveOverride(
+                originalId: address.id!,
+                updatedAddress: updatedAddress,
+                reason: "corrected"
+            )
+            isEditing = false
+        } catch {
+            // Handle error silently for now
+            print("Failed to save: \(error)")
         }
+
+        isSaving = false
     }
 
     private func confidenceColor(_ confidence: Double) -> Color {
@@ -210,6 +329,28 @@ private struct AddressInfoRow: View {
     }
 }
 
+// MARK: - Editable Field
+private struct EditableField: View {
+    let label: String
+    @Binding var text: String
+    let icon: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: icon)
+                .foregroundColor(.secondary)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                TextField(label, text: $text)
+                    .textFieldStyle(.roundedBorder)
+            }
+        }
+    }
+}
+
 // MARK: - Postcode Row
 private struct PostcodeRow: View {
     let postcode: String
@@ -223,155 +364,6 @@ private struct PostcodeRow: View {
                     .foregroundColor(.green)
                     .font(.caption)
             }
-        }
-    }
-}
-
-// MARK: - Address Edit View
-struct AddressEditView: View {
-    let address: ExtractedAddress
-    @Environment(\.dismiss) private var dismiss
-    @StateObject private var repository = AddressRepository()
-    
-    // Editable fields
-    @State private var fullName: String
-    @State private var dateOfBirth: String
-    @State private var addressLine1: String
-    @State private var addressLine2: String
-    @State private var city: String
-    @State private var county: String
-    @State private var postcode: String
-    @State private var phoneHome: String
-    @State private var phoneWork: String
-    @State private var phoneMobile: String
-    @State private var gpName: String
-    @State private var gpPractice: String
-    @State private var gpAddress: String
-    @State private var gpPostcode: String
-    
-    @State private var isSaving = false
-    @State private var errorMessage: String?
-    
-    init(address: ExtractedAddress) {
-        self.address = address
-        _fullName = State(initialValue: address.fullName ?? "")
-        _dateOfBirth = State(initialValue: address.dateOfBirth ?? "")
-        _addressLine1 = State(initialValue: address.addressLine1 ?? "")
-        _addressLine2 = State(initialValue: address.addressLine2 ?? "")
-        _city = State(initialValue: address.city ?? "")
-        _county = State(initialValue: address.county ?? "")
-        _postcode = State(initialValue: address.postcode ?? "")
-        _phoneHome = State(initialValue: address.phoneHome ?? "")
-        _phoneWork = State(initialValue: address.phoneWork ?? "")
-        _phoneMobile = State(initialValue: address.phoneMobile ?? "")
-        _gpName = State(initialValue: address.gpName ?? "")
-        _gpPractice = State(initialValue: address.gpPractice ?? "")
-        _gpAddress = State(initialValue: address.gpAddress ?? "")
-        _gpPostcode = State(initialValue: address.gpPostcode ?? "")
-    }
-    
-    var body: some View {
-        NavigationView {
-            Form {
-                // Patient Information Section
-                if address.hasPatientInfo {
-                    Section("Patient Information") {
-                        TextField("Full Name", text: $fullName)
-                        TextField("Date of Birth", text: $dateOfBirth)
-                    }
-
-                    Section("Patient Address") {
-                        TextField("Address Line 1", text: $addressLine1)
-                        TextField("Address Line 2", text: $addressLine2)
-                        TextField("City", text: $city)
-                        TextField("County", text: $county)
-                        TextField("Postcode", text: $postcode)
-                            .textCase(.uppercase)
-                    }
-
-                    Section("Contact Details") {
-                        TextField("Home Phone", text: $phoneHome)
-                        TextField("Work Phone", text: $phoneWork)
-                        TextField("Mobile Phone", text: $phoneMobile)
-                    }
-                }
-                
-                // GP Information Section
-                if address.hasGPInfo {
-                    Section("GP Information") {
-                        TextField("GP Name", text: $gpName)
-                        TextField("Practice Name", text: $gpPractice)
-                        TextField("GP Address", text: $gpAddress)
-                        TextField("GP Postcode", text: $gpPostcode)
-                            .textCase(.uppercase)
-                    }
-                }
-                
-                // Actions
-                Section {
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .foregroundColor(.red)
-                            .font(.caption)
-                    }
-                }
-            }
-            .navigationTitle("Edit Address")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        Task {
-                            await saveChanges()
-                        }
-                    }
-                    .disabled(isSaving)
-                }
-            }
-        }
-        #if os(macOS)
-        .frame(minWidth: 600, minHeight: 500)
-        #endif
-    }
-
-    private func saveChanges() async {
-        isSaving = true
-        errorMessage = nil
-        
-        // Create updated address
-        var updatedAddress = address
-        updatedAddress.fullName = fullName.isEmpty ? nil : fullName
-        updatedAddress.dateOfBirth = dateOfBirth.isEmpty ? nil : dateOfBirth
-        updatedAddress.addressLine1 = addressLine1.isEmpty ? nil : addressLine1
-        updatedAddress.addressLine2 = addressLine2.isEmpty ? nil : addressLine2
-        updatedAddress.city = city.isEmpty ? nil : city
-        updatedAddress.county = county.isEmpty ? nil : county
-        updatedAddress.postcode = postcode.isEmpty ? nil : postcode
-        updatedAddress.phoneHome = phoneHome.isEmpty ? nil : phoneHome
-        updatedAddress.phoneWork = phoneWork.isEmpty ? nil : phoneWork
-        updatedAddress.phoneMobile = phoneMobile.isEmpty ? nil : phoneMobile
-        updatedAddress.gpName = gpName.isEmpty ? nil : gpName
-        updatedAddress.gpPractice = gpPractice.isEmpty ? nil : gpPractice
-        updatedAddress.gpAddress = gpAddress.isEmpty ? nil : gpAddress
-        updatedAddress.gpPostcode = gpPostcode.isEmpty ? nil : gpPostcode
-        
-        do {
-            try await repository.saveOverride(
-                originalId: address.id!,
-                updatedAddress: updatedAddress,
-                reason: "corrected"
-            )
-            dismiss()
-        } catch {
-            errorMessage = "Failed to save: \(error.localizedDescription)"
-            isSaving = false
         }
     }
 }
