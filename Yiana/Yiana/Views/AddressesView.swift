@@ -199,7 +199,7 @@ struct AddressCard: View {
                             EditableField(label: "Address Line 2", text: $addressLine2, icon: "house", onSubmit: { Task { await saveChanges() } })
                             EditableField(label: "City", text: $city, icon: "building.2", onSubmit: { Task { await saveChanges() } })
                             EditableField(label: "County", text: $county, icon: "map", onSubmit: { Task { await saveChanges() } })
-                            EditableField(label: "Postcode", text: $postcode, icon: "mappin.circle", onSubmit: { Task { await saveChanges() } })
+                            EditableField(label: "Postcode", text: $postcode, icon: "mappin.circle", onSubmit: { Task { await saveChanges() } }, isPostcode: true)
                             EditableField(label: "Home Phone", text: $phoneHome, icon: "phone", onSubmit: { Task { await saveChanges() } })
                             EditableField(label: "Work Phone", text: $phoneWork, icon: "phone", onSubmit: { Task { await saveChanges() } })
                             EditableField(label: "Mobile Phone", text: $phoneMobile, icon: "phone", onSubmit: { Task { await saveChanges() } })
@@ -256,7 +256,7 @@ struct AddressCard: View {
                             EditableField(label: "GP Name", text: $gpName, icon: "stethoscope", onSubmit: { Task { await saveChanges() } })
                             EditableField(label: "Practice", text: $gpPractice, icon: "building.2", onSubmit: { Task { await saveChanges() } })
                             EditableField(label: "GP Address", text: $gpAddress, icon: "house", onSubmit: { Task { await saveChanges() } })
-                            EditableField(label: "GP Postcode", text: $gpPostcode, icon: "mappin.circle", onSubmit: { Task { await saveChanges() } })
+                            EditableField(label: "GP Postcode", text: $gpPostcode, icon: "mappin.circle", onSubmit: { Task { await saveChanges() } }, isPostcode: true)
                         } else {
                             if !gpName.isEmpty {
                                 AddressInfoRow(label: "GP Name", value: gpName, icon: "stethoscope")
@@ -407,6 +407,7 @@ private struct EditableField: View {
     @Binding var text: String
     let icon: String
     let onSubmit: () -> Void
+    var isPostcode: Bool = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
@@ -417,11 +418,25 @@ private struct EditableField: View {
                 Text(label)
                     .font(.caption)
                     .foregroundColor(.secondary)
-                TextField(label, text: $text)
+                TextField(label, text: isPostcode ? postcodeBinding : $text)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit(onSubmit)
+                    #if os(iOS)
+                    .autocapitalization(isPostcode ? .allCharacters : .none)
+                    .disableAutocorrection(isPostcode)
+                    #endif
             }
         }
+    }
+
+    private var postcodeBinding: Binding<String> {
+        Binding(
+            get: { text },
+            set: { newValue in
+                // Convert to uppercase for postcodes
+                text = newValue.uppercased()
+            }
+        )
     }
 }
 
