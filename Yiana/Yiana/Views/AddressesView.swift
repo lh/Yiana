@@ -336,8 +336,11 @@ struct AddressEditView: View {
                 }
             }
         }
+        #if os(macOS)
+        .frame(minWidth: 600, minHeight: 500)
+        #endif
     }
-    
+
     private func saveChanges() async {
         isSaving = true
         errorMessage = nil
