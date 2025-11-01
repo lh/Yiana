@@ -37,7 +37,7 @@ struct DocumentInfoSheet: View {
                     } else {
                         switch selectedTab {
                         case "addresses":
-                            AddressesView(documentId: document.metadata.id.uuidString)
+                            AddressesView(documentId: document.metadata.title)
                                 .padding()
                         case "metadata":
                             MetadataView(metadata: document.metadata)
