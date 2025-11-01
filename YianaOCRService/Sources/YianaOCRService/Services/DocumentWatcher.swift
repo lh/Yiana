@@ -432,19 +432,31 @@ public class DocumentWatcher {
         let jsonExporter = JSONExporter()
         let jsonData = try jsonExporter.export(result)
         let jsonURL = ocrResultsDir.appendingPathComponent("\(baseFileName).json")
+        #if os(iOS)
+        try jsonData.write(to: jsonURL, options: .completeFileProtectionUntilFirstUserAuthentication)
+        #else
         try jsonData.write(to: jsonURL)
-        
+        #endif
+
         // Save as XML
         let xmlExporter = XMLExporter()
         let xmlData = try xmlExporter.export(result)
         let xmlURL = ocrResultsDir.appendingPathComponent("\(baseFileName).xml")
+        #if os(iOS)
+        try xmlData.write(to: xmlURL, options: .completeFileProtectionUntilFirstUserAuthentication)
+        #else
         try xmlData.write(to: xmlURL)
-        
+        #endif
+
         // Save as hOCR
         let hocrExporter = HOCRExporter()
         let hocrData = try hocrExporter.export(result)
         let hocrURL = ocrResultsDir.appendingPathComponent("\(baseFileName).hocr")
+        #if os(iOS)
+        try hocrData.write(to: hocrURL, options: .completeFileProtectionUntilFirstUserAuthentication)
+        #else
         try hocrData.write(to: hocrURL)
+        #endif
         
         logger.info("OCR results saved", metadata: [
             "formats": .array([.string("json"), .string("xml"), .string("hocr")])

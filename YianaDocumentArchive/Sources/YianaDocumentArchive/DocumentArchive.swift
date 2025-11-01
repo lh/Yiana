@@ -133,6 +133,14 @@ public enum DocumentArchive {
             try fm.moveItem(at: temporaryURL, to: destinationURL)
         }
 
+        // Apply iOS Data Protection to the final archive
+        #if os(iOS)
+        try fm.setAttributes(
+            [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
+            ofItemAtPath: destinationURL.path
+        )
+        #endif
+
         return destinationURL
     }
 
