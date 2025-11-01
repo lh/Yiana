@@ -147,7 +147,7 @@ struct AddressCard: View {
                             .font(.headline)
                         Spacer()
 
-                        // Copy button (only on macOS, not when editing)
+                        // Copy/Share button (platform-specific, not when editing)
                         #if os(macOS)
                         if !isEditingPatient {
                             Button {
@@ -160,6 +160,13 @@ struct AddressCard: View {
                             .buttonStyle(.plain)
                             .foregroundColor(patientCopied ? .green : .blue)
                             .help("Copy name and address to clipboard")
+                        }
+                        #elseif os(iOS)
+                        if !isEditingPatient {
+                            ShareLink(item: formattedPatientAddress) {
+                                Label("Share", systemImage: "square.and.arrow.up")
+                                    .font(.caption)
+                            }
                         }
                         #endif
 
@@ -252,7 +259,7 @@ struct AddressCard: View {
                             .font(.headline)
                         Spacer()
 
-                        // Copy button (only on macOS, not when editing)
+                        // Copy/Share button (platform-specific, not when editing)
                         #if os(macOS)
                         if !isEditingGP {
                             Button {
@@ -265,6 +272,13 @@ struct AddressCard: View {
                             .buttonStyle(.plain)
                             .foregroundColor(gpCopied ? .green : .blue)
                             .help("Copy GP details to clipboard")
+                        }
+                        #elseif os(iOS)
+                        if !isEditingGP {
+                            ShareLink(item: formattedGPAddress) {
+                                Label("Share", systemImage: "square.and.arrow.up")
+                                    .font(.caption)
+                            }
                         }
                         #endif
 
@@ -415,6 +429,51 @@ struct AddressCard: View {
         } else {
             return .red
         }
+    }
+
+    // Formatted addresses for sharing
+    private var formattedPatientAddress: String {
+        var components: [String] = []
+
+        if !fullName.isEmpty {
+            components.append(fullName)
+        }
+        if !addressLine1.isEmpty {
+            components.append(addressLine1)
+        }
+        if !addressLine2.isEmpty {
+            components.append(addressLine2)
+        }
+        if !city.isEmpty {
+            components.append(city)
+        }
+        if !county.isEmpty {
+            components.append(county)
+        }
+        if !postcode.isEmpty {
+            components.append(postcode)
+        }
+
+        return components.joined(separator: "\n")
+    }
+
+    private var formattedGPAddress: String {
+        var components: [String] = []
+
+        if !gpName.isEmpty {
+            components.append(gpName)
+        }
+        if !gpPractice.isEmpty {
+            components.append(gpPractice)
+        }
+        if !gpAddress.isEmpty {
+            components.append(gpAddress)
+        }
+        if !gpPostcode.isEmpty {
+            components.append(gpPostcode)
+        }
+
+        return components.joined(separator: "\n")
     }
 
     private func copyPatientAddress() {

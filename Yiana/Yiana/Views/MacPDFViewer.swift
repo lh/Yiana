@@ -9,6 +9,11 @@
 import SwiftUI
 import PDFKit
 
+enum SidebarMode {
+    case pages
+    case addresses
+}
+
 struct MacPDFViewer: View {
     @ObservedObject var viewModel: DocumentViewModel
     var legacyPDFData: Data?  // optional fallback for read-only documents
@@ -22,11 +27,20 @@ struct MacPDFViewer: View {
     @State private var showingPageInput = false
     @State private var zoomAction: PDFZoomAction?
     @State private var fitMode: FitMode = .height
+    @State private var sidebarMode: SidebarMode = .pages
     var onRequestPageManagement: (() -> Void)?
 
     // Computed property for current PDF data
     private var currentPDFData: Data? {
         viewModel.displayPDFData ?? viewModel.pdfData ?? legacyPDFData
+    }
+
+    // Get document ID for addresses
+    private var documentId: String? {
+        // Extract document ID from viewModel
+        // This needs to match how AddressRepository expects it (filename without extension)
+        // For now, use the title which typically contains the filename
+        return viewModel.title
     }
 
     var body: some View {
@@ -217,6 +231,31 @@ struct MacPDFViewer: View {
 
     @ViewBuilder
     private func thumbnailSidebar() -> some View {
+        VStack(spacing: 0) {
+            // Mode switcher at top
+            Picker("", selection: $sidebarMode) {
+                Text("Pages").tag(SidebarMode.pages)
+                Text("Addresses").tag(SidebarMode.addresses)
+            }
+            .pickerStyle(.segmented)
+            .padding(8)
+
+            Divider()
+
+            // Content based on mode
+            switch sidebarMode {
+            case .pages:
+                pagesSidebarContent()
+            case .addresses:
+                addressesSidebarContent()
+            }
+        }
+        .frame(width: 250)
+        .background(Color(NSColor.controlBackgroundColor))
+    }
+
+    @ViewBuilder
+    private func pagesSidebarContent() -> some View {
         if let document = pdfDocument {
             let pageIndices = Array(0..<document.pageCount)
 
@@ -234,8 +273,6 @@ struct MacPDFViewer: View {
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("Page thumbnails")
                 .accessibilityHint("Navigate pages using arrow keys")
-                .frame(width: 200)
-                .background(Color(NSColor.controlBackgroundColor))
                 .onChange(of: currentPage) { _, newPage in
                     withAnimation {
                         scrollProxy.scrollTo(newPage, anchor: .center)
@@ -244,6 +281,23 @@ struct MacPDFViewer: View {
             }
         } else {
             EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    private func addressesSidebarContent() -> some View {
+        if let docId = documentId {
+            AddressesView(documentId: docId)
+                .padding(8)
+        } else {
+            VStack(spacing: 12) {
+                Image(systemName: "doc.text.magnifyingglass")
+                    .font(.largeTitle)
+                    .foregroundColor(.secondary)
+                Text("No document loaded")
+                    .font(.headline)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
