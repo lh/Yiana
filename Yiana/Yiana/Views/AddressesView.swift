@@ -83,8 +83,9 @@ struct AddressesView: View {
 struct AddressCard: View {
     let address: ExtractedAddress
     let onSave: () -> Void
-    
-    @State private var isEditing = false
+
+    @State private var isEditingPatient = false
+    @State private var isEditingGP = false
     @StateObject private var repository = AddressRepository()
 
     // Editable fields
@@ -103,7 +104,8 @@ struct AddressCard: View {
     @State private var gpAddress: String
     @State private var gpPostcode: String
 
-    @State private var isSaving = false
+    @State private var isSavingPatient = false
+    @State private var isSavingGP = false
 
     init(address: ExtractedAddress, onSave: @escaping () -> Void) {
         self.address = address
@@ -126,57 +128,11 @@ struct AddressCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Header with Edit/Copy buttons
-            HStack {
-                if let pageNum = address.pageNumber {
-                    Text("Page \(pageNum)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                Spacer()
-
-                // Copy button (only on macOS, not when editing)
-                #if os(macOS)
-                if !isEditing && address.hasPatientInfo {
-                    Button {
-                        copyPatientAddress()
-                    } label: {
-                        Label("Copy", systemImage: "doc.on.doc")
-                            .font(.caption)
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundColor(.blue)
-                    .help("Copy name and address to clipboard")
-                }
-                #endif
-
-                // Edit/Save/Cancel buttons
-                if isEditing {
-                    Button("Cancel") {
-                        resetFields()
-                        isEditing = false
-                    }
-                    .buttonStyle(.plain)
+            // Page number header
+            if let pageNum = address.pageNumber {
+                Text("Page \(pageNum)")
+                    .font(.caption)
                     .foregroundColor(.secondary)
-
-                    Button("Save") {
-                        Task {
-                            await saveChanges()
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(isSaving)
-                    .keyboardShortcut(.return, modifiers: [])
-                } else {
-                    Button {
-                        isEditing = true
-                    } label: {
-                        Label("Edit", systemImage: "pencil")
-                            .font(.caption)
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundColor(.blue)
-                }
             }
 
             // Patient Information Panel
@@ -187,22 +143,66 @@ struct AddressCard: View {
                             .foregroundColor(.blue)
                         Text("Patient Information")
                             .font(.headline)
+                        Spacer()
+
+                        // Copy button (only on macOS, not when editing)
+                        #if os(macOS)
+                        if !isEditingPatient {
+                            Button {
+                                copyPatientAddress()
+                            } label: {
+                                Label("Copy", systemImage: "doc.on.doc")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(.blue)
+                            .help("Copy name and address to clipboard")
+                        }
+                        #endif
+
+                        // Edit/Save/Cancel buttons
+                        if isEditingPatient {
+                            Button("Cancel") {
+                                resetPatientFields()
+                                isEditingPatient = false
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(.secondary)
+
+                            Button("Save") {
+                                Task {
+                                    await savePatientChanges()
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(isSavingPatient)
+                            .keyboardShortcut(.return, modifiers: [])
+                        } else {
+                            Button {
+                                isEditingPatient = true
+                            } label: {
+                                Label("Edit", systemImage: "pencil")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(.blue)
+                        }
                     }
 
                     Divider()
 
                     VStack(alignment: .leading, spacing: 8) {
-                        if isEditing {
-                            EditableField(label: "Name", text: $fullName, icon: "person", onSubmit: { Task { await saveChanges() } })
-                            EditableField(label: "Date of Birth", text: $dateOfBirth, icon: "calendar", onSubmit: { Task { await saveChanges() } })
-                            EditableField(label: "Address Line 1", text: $addressLine1, icon: "house", onSubmit: { Task { await saveChanges() } })
-                            EditableField(label: "Address Line 2", text: $addressLine2, icon: "house", onSubmit: { Task { await saveChanges() } })
-                            EditableField(label: "City", text: $city, icon: "building.2", onSubmit: { Task { await saveChanges() } })
-                            EditableField(label: "County", text: $county, icon: "map", onSubmit: { Task { await saveChanges() } })
-                            EditableField(label: "Postcode", text: $postcode, icon: "mappin.circle", onSubmit: { Task { await saveChanges() } }, isPostcode: true)
-                            EditableField(label: "Home Phone", text: $phoneHome, icon: "phone", onSubmit: { Task { await saveChanges() } })
-                            EditableField(label: "Work Phone", text: $phoneWork, icon: "phone", onSubmit: { Task { await saveChanges() } })
-                            EditableField(label: "Mobile Phone", text: $phoneMobile, icon: "phone", onSubmit: { Task { await saveChanges() } })
+                        if isEditingPatient {
+                            EditableField(label: "Name", text: $fullName, icon: "person", onSubmit: { Task { await savePatientChanges() } })
+                            EditableField(label: "Date of Birth", text: $dateOfBirth, icon: "calendar", onSubmit: { Task { await savePatientChanges() } })
+                            EditableField(label: "Address Line 1", text: $addressLine1, icon: "house", onSubmit: { Task { await savePatientChanges() } })
+                            EditableField(label: "Address Line 2", text: $addressLine2, icon: "house", onSubmit: { Task { await savePatientChanges() } })
+                            EditableField(label: "City", text: $city, icon: "building.2", onSubmit: { Task { await savePatientChanges() } })
+                            EditableField(label: "County", text: $county, icon: "map", onSubmit: { Task { await savePatientChanges() } })
+                            EditableField(label: "Postcode", text: $postcode, icon: "mappin.circle", onSubmit: { Task { await savePatientChanges() } }, isPostcode: true)
+                            EditableField(label: "Home Phone", text: $phoneHome, icon: "phone", onSubmit: { Task { await savePatientChanges() } })
+                            EditableField(label: "Work Phone", text: $phoneWork, icon: "phone", onSubmit: { Task { await savePatientChanges() } })
+                            EditableField(label: "Mobile Phone", text: $phoneMobile, icon: "phone", onSubmit: { Task { await savePatientChanges() } })
                         } else {
                             if !fullName.isEmpty {
                                 AddressInfoRow(label: "Name", value: fullName, icon: "person")
@@ -223,7 +223,7 @@ struct AddressCard: View {
                     }
 
                     // Metadata for patient section
-                    if !isEditing, let confidence = address.extractionConfidence {
+                    if !isEditingPatient, let confidence = address.extractionConfidence {
                         HStack {
                             Text("Confidence:")
                                 .font(.caption)
@@ -247,16 +247,60 @@ struct AddressCard: View {
                             .foregroundColor(.red)
                         Text("GP Information")
                             .font(.headline)
+                        Spacer()
+
+                        // Copy button (only on macOS, not when editing)
+                        #if os(macOS)
+                        if !isEditingGP {
+                            Button {
+                                copyGPAddress()
+                            } label: {
+                                Label("Copy", systemImage: "doc.on.doc")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(.blue)
+                            .help("Copy GP details to clipboard")
+                        }
+                        #endif
+
+                        // Edit/Save/Cancel buttons
+                        if isEditingGP {
+                            Button("Cancel") {
+                                resetGPFields()
+                                isEditingGP = false
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(.secondary)
+
+                            Button("Save") {
+                                Task {
+                                    await saveGPChanges()
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(isSavingGP)
+                            .keyboardShortcut(.return, modifiers: [])
+                        } else {
+                            Button {
+                                isEditingGP = true
+                            } label: {
+                                Label("Edit", systemImage: "pencil")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(.blue)
+                        }
                     }
 
                     Divider()
 
                     VStack(alignment: .leading, spacing: 8) {
-                        if isEditing {
-                            EditableField(label: "GP Name", text: $gpName, icon: "stethoscope", onSubmit: { Task { await saveChanges() } })
-                            EditableField(label: "Practice", text: $gpPractice, icon: "building.2", onSubmit: { Task { await saveChanges() } })
-                            EditableField(label: "GP Address", text: $gpAddress, icon: "house", onSubmit: { Task { await saveChanges() } })
-                            EditableField(label: "GP Postcode", text: $gpPostcode, icon: "mappin.circle", onSubmit: { Task { await saveChanges() } }, isPostcode: true)
+                        if isEditingGP {
+                            EditableField(label: "GP Name", text: $gpName, icon: "stethoscope", onSubmit: { Task { await saveGPChanges() } })
+                            EditableField(label: "Practice", text: $gpPractice, icon: "building.2", onSubmit: { Task { await saveGPChanges() } })
+                            EditableField(label: "GP Address", text: $gpAddress, icon: "house", onSubmit: { Task { await saveGPChanges() } })
+                            EditableField(label: "GP Postcode", text: $gpPostcode, icon: "mappin.circle", onSubmit: { Task { await saveGPChanges() } }, isPostcode: true)
                         } else {
                             if !gpName.isEmpty {
                                 AddressInfoRow(label: "GP Name", value: gpName, icon: "stethoscope")
@@ -283,7 +327,7 @@ struct AddressCard: View {
         }
     }
 
-    private func resetFields() {
+    private func resetPatientFields() {
         fullName = address.fullName ?? ""
         dateOfBirth = address.dateOfBirth ?? ""
         addressLine1 = address.addressLine1 ?? ""
@@ -294,18 +338,20 @@ struct AddressCard: View {
         phoneHome = address.phoneHome ?? ""
         phoneWork = address.phoneWork ?? ""
         phoneMobile = address.phoneMobile ?? ""
+    }
+
+    private func resetGPFields() {
         gpName = address.gpName ?? ""
         gpPractice = address.gpPractice ?? ""
         gpAddress = address.gpAddress ?? ""
         gpPostcode = address.gpPostcode ?? ""
     }
 
-    private func saveChanges() async {
-        isSaving = true
+    private func savePatientChanges() async {
+        isSavingPatient = true
 
         var updatedAddress = address
         // Save empty strings as empty strings (not nil) so cleared fields stay cleared
-        // Empty string means "user explicitly cleared this field"
         updatedAddress.fullName = fullName.isEmpty ? "" : fullName
         updatedAddress.dateOfBirth = dateOfBirth.isEmpty ? "" : dateOfBirth
         updatedAddress.addressLine1 = addressLine1.isEmpty ? "" : addressLine1
@@ -316,6 +362,27 @@ struct AddressCard: View {
         updatedAddress.phoneHome = phoneHome.isEmpty ? "" : phoneHome
         updatedAddress.phoneWork = phoneWork.isEmpty ? "" : phoneWork
         updatedAddress.phoneMobile = phoneMobile.isEmpty ? "" : phoneMobile
+
+        do {
+            try await repository.saveOverride(
+                originalId: address.id!,
+                updatedAddress: updatedAddress,
+                reason: "corrected"
+            )
+            isEditingPatient = false
+            onSave() // Trigger refresh
+        } catch {
+            print("Failed to save patient changes: \(error)")
+        }
+
+        isSavingPatient = false
+    }
+
+    private func saveGPChanges() async {
+        isSavingGP = true
+
+        var updatedAddress = address
+        // Save empty strings as empty strings (not nil) so cleared fields stay cleared
         updatedAddress.gpName = gpName.isEmpty ? "" : gpName
         updatedAddress.gpPractice = gpPractice.isEmpty ? "" : gpPractice
         updatedAddress.gpAddress = gpAddress.isEmpty ? "" : gpAddress
@@ -327,14 +394,13 @@ struct AddressCard: View {
                 updatedAddress: updatedAddress,
                 reason: "corrected"
             )
-            isEditing = false
+            isEditingGP = false
             onSave() // Trigger refresh
         } catch {
-            // Handle error silently for now
-            print("Failed to save: \(error)")
+            print("Failed to save GP changes: \(error)")
         }
 
-        isSaving = false
+        isSavingGP = false
     }
 
     private func confidenceColor(_ confidence: Double) -> Color {
@@ -368,6 +434,31 @@ struct AddressCard: View {
         }
         if !postcode.isEmpty {
             components.append(postcode)
+        }
+
+        let addressText = components.joined(separator: "\n")
+
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(addressText, forType: .string)
+        #endif
+    }
+
+    private func copyGPAddress() {
+        #if os(macOS)
+        var components: [String] = []
+
+        if !gpName.isEmpty {
+            components.append(gpName)
+        }
+        if !gpPractice.isEmpty {
+            components.append(gpPractice)
+        }
+        if !gpAddress.isEmpty {
+            components.append(gpAddress)
+        }
+        if !gpPostcode.isEmpty {
+            components.append(gpPostcode)
         }
 
         let addressText = components.joined(separator: "\n")
