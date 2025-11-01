@@ -125,21 +125,30 @@ struct AddressCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Header
+        VStack(alignment: .leading, spacing: 16) {
+            // Header with Edit/Copy buttons
             HStack {
-                if address.hasPatientInfo {
-                    Image(systemName: "person.fill")
-                        .foregroundColor(.blue)
-                    Text("Patient Information")
-                        .font(.headline)
-                } else if address.hasGPInfo {
-                    Image(systemName: "cross.fill")
-                        .foregroundColor(.red)
-                    Text("GP Information")
-                        .font(.headline)
+                if let pageNum = address.pageNumber {
+                    Text("Page \(pageNum)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 Spacer()
+
+                // Copy button (only on macOS, not when editing)
+                #if os(macOS)
+                if !isEditing && address.hasPatientInfo {
+                    Button {
+                        copyPatientAddress()
+                    } label: {
+                        Label("Copy", systemImage: "doc.on.doc")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.blue)
+                    .help("Copy name and address to clipboard")
+                }
+                #endif
 
                 // Edit/Save/Cancel buttons
                 if isEditing {
@@ -157,6 +166,7 @@ struct AddressCard: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(isSaving)
+                    .keyboardShortcut(.return, modifiers: [])
                 } else {
                     Button {
                         isEditing = true
@@ -167,93 +177,110 @@ struct AddressCard: View {
                     .buttonStyle(.plain)
                     .foregroundColor(.blue)
                 }
-
-                if let pageNum = address.pageNumber {
-                    Text("Page \(pageNum)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
             }
 
-            Divider()
-
-            // Patient Information
+            // Patient Information Panel
             if address.hasPatientInfo {
-                VStack(alignment: .leading, spacing: 8) {
-                    if isEditing {
-                        EditableField(label: "Name", text: $fullName, icon: "person")
-                        EditableField(label: "Date of Birth", text: $dateOfBirth, icon: "calendar")
-                        EditableField(label: "Address Line 1", text: $addressLine1, icon: "house")
-                        EditableField(label: "Address Line 2", text: $addressLine2, icon: "house")
-                        EditableField(label: "City", text: $city, icon: "building.2")
-                        EditableField(label: "County", text: $county, icon: "map")
-                        EditableField(label: "Postcode", text: $postcode, icon: "mappin.circle")
-                        EditableField(label: "Home Phone", text: $phoneHome, icon: "phone")
-                        EditableField(label: "Work Phone", text: $phoneWork, icon: "phone")
-                        EditableField(label: "Mobile Phone", text: $phoneMobile, icon: "phone")
-                    } else {
-                        if !fullName.isEmpty {
-                            AddressInfoRow(label: "Name", value: fullName, icon: "person")
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: "person.fill")
+                            .foregroundColor(.blue)
+                        Text("Patient Information")
+                            .font(.headline)
+                    }
+
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        if isEditing {
+                            EditableField(label: "Name", text: $fullName, icon: "person", onSubmit: { Task { await saveChanges() } })
+                            EditableField(label: "Date of Birth", text: $dateOfBirth, icon: "calendar", onSubmit: { Task { await saveChanges() } })
+                            EditableField(label: "Address Line 1", text: $addressLine1, icon: "house", onSubmit: { Task { await saveChanges() } })
+                            EditableField(label: "Address Line 2", text: $addressLine2, icon: "house", onSubmit: { Task { await saveChanges() } })
+                            EditableField(label: "City", text: $city, icon: "building.2", onSubmit: { Task { await saveChanges() } })
+                            EditableField(label: "County", text: $county, icon: "map", onSubmit: { Task { await saveChanges() } })
+                            EditableField(label: "Postcode", text: $postcode, icon: "mappin.circle", onSubmit: { Task { await saveChanges() } })
+                            EditableField(label: "Home Phone", text: $phoneHome, icon: "phone", onSubmit: { Task { await saveChanges() } })
+                            EditableField(label: "Work Phone", text: $phoneWork, icon: "phone", onSubmit: { Task { await saveChanges() } })
+                            EditableField(label: "Mobile Phone", text: $phoneMobile, icon: "phone", onSubmit: { Task { await saveChanges() } })
+                        } else {
+                            if !fullName.isEmpty {
+                                AddressInfoRow(label: "Name", value: fullName, icon: "person")
+                            }
+                            if !dateOfBirth.isEmpty {
+                                AddressInfoRow(label: "Date of Birth", value: dateOfBirth, icon: "calendar")
+                            }
+                            if let formattedAddress = address.formattedPatientAddress {
+                                AddressInfoRow(label: "Address", value: formattedAddress, icon: "house")
+                            }
+                            if !postcode.isEmpty {
+                                PostcodeRow(postcode: postcode, isValid: address.postcodeValid)
+                            }
+                            if let phones = address.formattedPhones {
+                                AddressInfoRow(label: "Phone", value: phones, icon: "phone")
+                            }
                         }
-                        if !dateOfBirth.isEmpty {
-                            AddressInfoRow(label: "Date of Birth", value: dateOfBirth, icon: "calendar")
-                        }
-                        if let formattedAddress = address.formattedPatientAddress {
-                            AddressInfoRow(label: "Address", value: formattedAddress, icon: "house")
-                        }
-                        if !postcode.isEmpty {
-                            PostcodeRow(postcode: postcode, isValid: address.postcodeValid)
-                        }
-                        if let phones = address.formattedPhones {
-                            AddressInfoRow(label: "Phone", value: phones, icon: "phone")
+                    }
+
+                    // Metadata for patient section
+                    if !isEditing, let confidence = address.extractionConfidence {
+                        HStack {
+                            Text("Confidence:")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("\(Int(confidence * 100))%")
+                                .font(.caption)
+                                .foregroundColor(confidenceColor(confidence))
                         }
                     }
                 }
+                .padding()
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(12)
             }
 
-            // GP Information
+            // GP Information Panel (separate from patient)
             if address.hasGPInfo {
-                VStack(alignment: .leading, spacing: 8) {
-                    if isEditing {
-                        EditableField(label: "GP Name", text: $gpName, icon: "stethoscope")
-                        EditableField(label: "Practice", text: $gpPractice, icon: "building.2")
-                        EditableField(label: "GP Address", text: $gpAddress, icon: "house")
-                        EditableField(label: "GP Postcode", text: $gpPostcode, icon: "mappin.circle")
-                    } else {
-                        if !gpName.isEmpty {
-                            AddressInfoRow(label: "GP Name", value: gpName, icon: "stethoscope")
-                        }
-                        if !gpPractice.isEmpty {
-                            AddressInfoRow(label: "Practice", value: gpPractice, icon: "building.2")
-                        }
-                        if !gpAddress.isEmpty {
-                            AddressInfoRow(label: "Address", value: gpAddress, icon: "house")
-                        }
-                        if !gpPostcode.isEmpty {
-                            AddressInfoRow(label: "Postcode", value: gpPostcode, icon: "mappin.circle")
-                        }
-                        if let odsCode = address.gpOdsCode {
-                            AddressInfoRow(label: "ODS Code", value: odsCode, icon: "number")
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: "cross.fill")
+                            .foregroundColor(.red)
+                        Text("GP Information")
+                            .font(.headline)
+                    }
+
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        if isEditing {
+                            EditableField(label: "GP Name", text: $gpName, icon: "stethoscope", onSubmit: { Task { await saveChanges() } })
+                            EditableField(label: "Practice", text: $gpPractice, icon: "building.2", onSubmit: { Task { await saveChanges() } })
+                            EditableField(label: "GP Address", text: $gpAddress, icon: "house", onSubmit: { Task { await saveChanges() } })
+                            EditableField(label: "GP Postcode", text: $gpPostcode, icon: "mappin.circle", onSubmit: { Task { await saveChanges() } })
+                        } else {
+                            if !gpName.isEmpty {
+                                AddressInfoRow(label: "GP Name", value: gpName, icon: "stethoscope")
+                            }
+                            if !gpPractice.isEmpty {
+                                AddressInfoRow(label: "Practice", value: gpPractice, icon: "building.2")
+                            }
+                            if !gpAddress.isEmpty {
+                                AddressInfoRow(label: "Address", value: gpAddress, icon: "house")
+                            }
+                            if !gpPostcode.isEmpty {
+                                AddressInfoRow(label: "Postcode", value: gpPostcode, icon: "mappin.circle")
+                            }
+                            if let odsCode = address.gpOdsCode {
+                                AddressInfoRow(label: "ODS Code", value: odsCode, icon: "number")
+                            }
                         }
                     }
                 }
-            }
-
-            // Metadata
-            if !isEditing, let confidence = address.extractionConfidence {
-                HStack {
-                    Text("Confidence:")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text("\(Int(confidence * 100))%")
-                        .font(.caption)
-                        .foregroundColor(confidenceColor(confidence))
-                }
+                .padding()
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(12)
             }
         }
-        .padding()
-        .background(Color.secondary.opacity(0.1))
-        .cornerRadius(12)
     }
 
     private func resetFields() {
@@ -319,6 +346,37 @@ struct AddressCard: View {
             return .red
         }
     }
+
+    private func copyPatientAddress() {
+        #if os(macOS)
+        var components: [String] = []
+
+        if !fullName.isEmpty {
+            components.append(fullName)
+        }
+        if !addressLine1.isEmpty {
+            components.append(addressLine1)
+        }
+        if !addressLine2.isEmpty {
+            components.append(addressLine2)
+        }
+        if !city.isEmpty {
+            components.append(city)
+        }
+        if !county.isEmpty {
+            components.append(county)
+        }
+        if !postcode.isEmpty {
+            components.append(postcode)
+        }
+
+        let addressText = components.joined(separator: "\n")
+
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(addressText, forType: .string)
+        #endif
+    }
 }
 
 // MARK: - Info Row
@@ -348,6 +406,7 @@ private struct EditableField: View {
     let label: String
     @Binding var text: String
     let icon: String
+    let onSubmit: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
@@ -360,6 +419,7 @@ private struct EditableField: View {
                     .foregroundColor(.secondary)
                 TextField(label, text: $text)
                     .textFieldStyle(.roundedBorder)
+                    .onSubmit(onSubmit)
             }
         }
     }
