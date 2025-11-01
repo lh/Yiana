@@ -415,29 +415,89 @@ class AddressExtractor:
         
         return False, ''
     
+    def should_exclude_address(self, result: Dict) -> bool:
+        """Check if address matches any exclusion pattern"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute("""
+                SELECT full_name_pattern, address_pattern, postcode_pattern, exclusion_type
+                FROM address_exclusions
+                WHERE enabled = 1
+            """)
+
+            exclusions = cursor.fetchall()
+
+        for name_pat, addr_pat, post_pat, ex_type in exclusions:
+            # Check name pattern
+            if name_pat and result.get('full_name'):
+                # Convert SQL LIKE pattern to Python: % -> .*
+                regex_pattern = name_pat.replace('%', '.*').replace('_', '.')
+                if re.match(regex_pattern, result['full_name'], re.IGNORECASE):
+                    logger.info(f"Excluded {result.get('full_name')} - matches {name_pat} ({ex_type})")
+                    return True
+
+            # Check address pattern
+            if addr_pat:
+                address_text = ' '.join(filter(None, [
+                    result.get('address_line_1', ''),
+                    result.get('address_line_2', ''),
+                    result.get('city', ''),
+                    result.get('gp_address', '')
+                ]))
+                if address_text:
+                    regex_pattern = addr_pat.replace('%', '.*').replace('_', '.')
+                    if re.search(regex_pattern, address_text, re.IGNORECASE):
+                        logger.info(f"Excluded address matching {addr_pat} ({ex_type})")
+                        return True
+
+            # Check postcode pattern
+            if post_pat and result.get('postcode'):
+                postcode = result['postcode'].replace(' ', '')
+                pattern_no_space = post_pat.replace(' ', '')
+                regex_pattern = pattern_no_space.replace('%', '.*').replace('_', '.')
+                if re.match(regex_pattern, postcode, re.IGNORECASE):
+                    logger.info(f"Excluded postcode {result.get('postcode')} - matches {post_pat} ({ex_type})")
+                    return True
+
+        return False
+
     def save_to_database(self, results: List[Dict]):
-        """Save extracted addresses to database"""
+        """Save extracted addresses to database (with exclusion filtering)"""
+        if not results:
+            return
+
+        saved_count = 0
+        excluded_count = 0
+
         with sqlite3.connect(self.db_path) as conn:
             for result in results:
+                # Check exclusions first
+                if self.should_exclude_address(result):
+                    excluded_count += 1
+                    continue
+
                 # Validate postcode
                 if result.get('postcode'):
                     valid, district = self.validate_postcode(result['postcode'])
                     result['postcode_valid'] = valid
                     result['postcode_district'] = district
-                
+
                 # Insert into database
                 columns = list(result.keys())
                 values = list(result.values())
-                
+
                 query = f'''
                     INSERT INTO extracted_addresses ({','.join(columns)})
                     VALUES ({','.join(['?' for _ in columns])})
                 '''
-                
+
                 conn.execute(query, values)
-            
+                saved_count += 1
+
             conn.commit()
-            logger.info(f"Saved {len(results)} addresses to database")
+            if saved_count > 0:
+                logger.info(f"Saved {saved_count} addresses to database")
+            if excluded_count > 0:
+                logger.info(f"Excluded {excluded_count} addresses (matched exclusion patterns)")
 
 
 def main():
