@@ -7,6 +7,7 @@ Processes OCR output to extract UK addresses, names, and DOB
 import json
 import re
 import sqlite3
+import os
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
@@ -461,7 +462,10 @@ class AddressExtractor:
         return False
 
     def save_to_database(self, results: List[Dict]):
-        """Save extracted addresses to database (with exclusion filtering)"""
+        """Save extracted addresses to database (with exclusion filtering)
+
+        Creates separate records for patient and GP data
+        """
         if not results:
             return
 
@@ -475,27 +479,74 @@ class AddressExtractor:
                     excluded_count += 1
                     continue
 
-                # Validate postcode
-                if result.get('postcode'):
-                    valid, district = self.validate_postcode(result['postcode'])
-                    result['postcode_valid'] = valid
-                    result['postcode_district'] = district
+                # Split into separate patient and GP records
+                records_to_insert = []
 
-                # Insert into database
-                columns = list(result.keys())
-                values = list(result.values())
+                # Patient record fields
+                patient_fields = ['full_name', 'date_of_birth', 'address_line_1', 'address_line_2',
+                                'city', 'county', 'postcode', 'country', 'phone_home', 'phone_work',
+                                'phone_mobile', 'phone_day', 'phone_night']
 
-                query = f'''
-                    INSERT INTO extracted_addresses ({','.join(columns)})
-                    VALUES ({','.join(['?' for _ in columns])})
-                '''
+                # GP record fields
+                gp_fields = ['gp_name', 'gp_practice', 'gp_address', 'gp_postcode']
 
-                conn.execute(query, values)
-                saved_count += 1
+                # Common fields for both
+                common_fields = ['document_id', 'page_number', 'extraction_confidence',
+                               'extraction_method', 'raw_text', 'ocr_json']
+
+                # Check if we have patient data
+                has_patient_data = any(result.get(field) for field in patient_fields)
+
+                # Check if we have GP data
+                has_gp_data = any(result.get(field) for field in gp_fields)
+
+                # Create patient record if patient data exists
+                if has_patient_data:
+                    patient_record = {field: result.get(field) for field in common_fields + patient_fields}
+                    patient_record['address_type'] = 'patient'
+                    patient_record['is_prime'] = 0
+
+                    # Validate patient postcode
+                    if patient_record.get('postcode'):
+                        valid, district = self.validate_postcode(patient_record['postcode'])
+                        patient_record['postcode_valid'] = valid
+                        patient_record['postcode_district'] = district
+
+                    records_to_insert.append(patient_record)
+
+                # Create GP record if GP data exists
+                if has_gp_data:
+                    gp_record = {field: result.get(field) for field in common_fields + gp_fields}
+                    gp_record['address_type'] = 'gp'
+                    gp_record['is_prime'] = 0
+
+                    # Validate GP postcode
+                    if gp_record.get('gp_postcode'):
+                        valid, district = self.validate_postcode(gp_record['gp_postcode'])
+                        gp_record['postcode_valid'] = valid
+                        gp_record['postcode_district'] = district
+
+                    records_to_insert.append(gp_record)
+
+                # Insert all records
+                for record in records_to_insert:
+                    # Remove None values
+                    record = {k: v for k, v in record.items() if v is not None}
+
+                    columns = list(record.keys())
+                    values = list(record.values())
+
+                    query = f'''
+                        INSERT INTO extracted_addresses ({','.join(columns)})
+                        VALUES ({','.join(['?' for _ in columns])})
+                    '''
+
+                    conn.execute(query, values)
+                    saved_count += 1
 
             conn.commit()
             if saved_count > 0:
-                logger.info(f"Saved {saved_count} addresses to database")
+                logger.info(f"Saved {saved_count} address records to database")
             if excluded_count > 0:
                 logger.info(f"Excluded {excluded_count} addresses (matched exclusion patterns)")
 
@@ -510,8 +561,10 @@ def main():
     
     ocr_file = sys.argv[1]
     doc_id = sys.argv[2]
-    
-    extractor = AddressExtractor()
+
+    # Use DB_PATH environment variable if set
+    db_path = os.environ.get("DB_PATH", "addresses.db")
+    extractor = AddressExtractor(db_path)
     results = extractor.extract_from_ocr_json(ocr_file, doc_id)
     
     if results:

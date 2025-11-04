@@ -93,7 +93,10 @@ final class AddressRepository: ObservableObject {
                     ea.postcode_valid,
                     ea.postcode_district,
                     ea.raw_text,
-                    ea.ocr_json
+                    ea.ocr_json,
+                    CASE WHEN ao.id IS NOT NULL THEN ao.address_type ELSE ea.address_type END as address_type,
+                    CASE WHEN ao.id IS NOT NULL THEN ao.is_prime ELSE ea.is_prime END as is_prime,
+                    CASE WHEN ao.id IS NOT NULL THEN ao.specialist_name ELSE ea.specialist_name END as specialist_name
                 FROM extracted_addresses ea
                 LEFT JOIN address_overrides ao ON ea.id = ao.original_extraction_id
                     AND (ao.override_reason IS NULL OR ao.override_reason != 'removed')
@@ -195,10 +198,13 @@ final class AddressRepository: ObservableObject {
                     gp_practice,
                     gp_address,
                     gp_postcode,
+                    address_type,
+                    is_prime,
+                    specialist_name,
                     override_reason,
                     is_training_candidate,
                     training_used
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
                 """,
                 arguments: [
                     updatedAddress.documentId,
@@ -219,12 +225,95 @@ final class AddressRepository: ObservableObject {
                     updatedAddress.gpPractice,
                     updatedAddress.gpAddress,
                     updatedAddress.gpPostcode,
+                    updatedAddress.addressType,
+                    updatedAddress.isPrime,
+                    updatedAddress.specialistName,
                     reason
                 ]
             )
         }
 
         logger.info("Saved override for address ID \(originalId) with reason '\(reason)'")
+    }
+
+    /// Toggle the prime status of an address
+    /// Ensures only one address of the same type (except specialists) is marked as prime per document
+    /// - Parameters:
+    ///   - addressId: The ID of the address to toggle
+    ///   - documentId: The document ID
+    ///   - addressType: The type of the address
+    ///   - makePrime: Whether to make this address prime (true) or non-prime (false)
+    func togglePrime(addressId: Int64, documentId: String, addressType: String, makePrime: Bool) async throws {
+        guard let dbQueue else {
+            throw NSError(domain: "AddressRepository", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "Database not available"
+            ])
+        }
+
+        try await dbQueue.write { db in
+            if makePrime && addressType != "specialist" {
+                // First, unset prime for all other addresses of this type in the document
+                try db.execute(sql: """
+                    UPDATE extracted_addresses
+                    SET is_prime = 0
+                    WHERE document_id = ? AND address_type = ? AND id != ?
+                    """, arguments: [documentId, addressType, addressId])
+
+                try db.execute(sql: """
+                    UPDATE address_overrides
+                    SET is_prime = 0
+                    WHERE document_id = ? AND address_type = ? AND original_extraction_id != ?
+                    """, arguments: [documentId, addressType, addressId])
+            }
+
+            // Now toggle the target address
+            try db.execute(sql: """
+                UPDATE extracted_addresses
+                SET is_prime = ?
+                WHERE id = ?
+                """, arguments: [makePrime ? 1 : 0, addressId])
+
+            // Also update any override for this address
+            try db.execute(sql: """
+                UPDATE address_overrides
+                SET is_prime = ?
+                WHERE original_extraction_id = ?
+                AND (override_reason IS NULL OR override_reason != 'removed')
+                """, arguments: [makePrime ? 1 : 0, addressId])
+        }
+
+        logger.info("Toggled prime status for address ID \(addressId) to \(makePrime)")
+    }
+
+    /// Update the address type for an address
+    /// - Parameters:
+    ///   - addressId: The ID of the address
+    ///   - newType: The new address type
+    ///   - specialistName: The specialist name (if type is specialist)
+    func updateAddressType(addressId: Int64, newType: String, specialistName: String?) async throws {
+        guard let dbQueue else {
+            throw NSError(domain: "AddressRepository", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "Database not available"
+            ])
+        }
+
+        try await dbQueue.write { db in
+            try db.execute(sql: """
+                UPDATE extracted_addresses
+                SET address_type = ?, specialist_name = ?
+                WHERE id = ?
+                """, arguments: [newType, specialistName, addressId])
+
+            // Also update any override for this address
+            try db.execute(sql: """
+                UPDATE address_overrides
+                SET address_type = ?, specialist_name = ?
+                WHERE original_extraction_id = ?
+                AND (override_reason IS NULL OR override_reason != 'removed')
+                """, arguments: [newType, specialistName, addressId])
+        }
+
+        logger.info("Updated address type for ID \(addressId) to \(newType)")
     }
 }
 

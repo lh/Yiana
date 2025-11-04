@@ -8,6 +8,14 @@
 import Foundation
 import GRDB
 
+/// Type of address extracted
+enum AddressType: String, Codable {
+    case patient
+    case gp
+    case optician
+    case specialist
+}
+
 /// Address information extracted from a medical document
 struct ExtractedAddress: Codable, FetchableRecord, PersistableRecord {
     var id: Int64?
@@ -52,6 +60,11 @@ struct ExtractedAddress: Codable, FetchableRecord, PersistableRecord {
     var rawText: String?
     var ocrJson: String?
 
+    // Prime Address System
+    var addressType: String? // 'patient', 'gp', 'optician', 'specialist'
+    var isPrime: Bool?
+    var specialistName: String? // Only used when addressType is 'specialist'
+
     enum Columns {
         static let id = Column(CodingKeys.id)
         static let documentId = Column(CodingKeys.documentId)
@@ -80,6 +93,9 @@ struct ExtractedAddress: Codable, FetchableRecord, PersistableRecord {
         static let postcodeDistrict = Column(CodingKeys.postcodeDistrict)
         static let rawText = Column(CodingKeys.rawText)
         static let ocrJson = Column(CodingKeys.ocrJson)
+        static let addressType = Column(CodingKeys.addressType)
+        static let isPrime = Column(CodingKeys.isPrime)
+        static let specialistName = Column(CodingKeys.specialistName)
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -110,6 +126,9 @@ struct ExtractedAddress: Codable, FetchableRecord, PersistableRecord {
         case postcodeDistrict = "postcode_district"
         case rawText = "raw_text"
         case ocrJson = "ocr_json"
+        case addressType = "address_type"
+        case isPrime = "is_prime"
+        case specialistName = "specialist_name"
     }
 }
 
@@ -144,5 +163,38 @@ extension ExtractedAddress {
     /// Whether this record contains patient information
     var hasPatientInfo: Bool {
         fullName != nil || addressLine1 != nil
+    }
+
+    /// Get the typed address type (with fallback to 'patient')
+    var typedAddressType: AddressType {
+        guard let typeString = addressType,
+              let type = AddressType(rawValue: typeString) else {
+            return .patient
+        }
+        return type
+    }
+
+    /// Icon name for this address type
+    var typeIcon: String {
+        switch typedAddressType {
+        case .patient:
+            return "person.fill"
+        case .gp:
+            return "cross.fill"
+        case .optician:
+            return "eye.fill"
+        case .specialist:
+            return "stethoscope"
+        }
+    }
+
+    /// Sort order for address type (lower is higher priority)
+    var typeSortOrder: Int {
+        switch typedAddressType {
+        case .patient: return 0
+        case .gp: return 1
+        case .optician: return 2
+        case .specialist: return 3
+        }
     }
 }
