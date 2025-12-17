@@ -14,6 +14,9 @@ struct YianaApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     #endif
     @StateObject private var importHandler = DocumentImportHandler()
+    #if os(macOS)
+    @Environment(\.openWindow) private var openWindow
+    #endif
 
     var body: some Scene {
         WindowGroup {
@@ -40,6 +43,14 @@ struct YianaApp: App {
         #endif
         #if os(macOS)
         .commands {
+            // Export commands
+            CommandGroup(after: .importExport) {
+                Button("Export All Documents as PDFs...") {
+                    openWindow(id: "bulk-export")
+                }
+                .keyboardShortcut("E", modifiers: [.command, .shift])
+            }
+
             // Page operations commands
             CommandGroup(after: .pasteboard) {
                 Divider()
@@ -74,6 +85,15 @@ struct YianaApp: App {
             }
             #endif
         }
+        #endif
+
+        // Bulk export window (macOS only)
+        #if os(macOS)
+        Window("Export Documents", id: "bulk-export") {
+            BulkExportView(repository: DocumentRepository())
+        }
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
         #endif
     }
 

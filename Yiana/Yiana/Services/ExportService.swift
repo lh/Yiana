@@ -78,6 +78,98 @@ class ExportService {
         return (successful, failed)
     }
 
+    // MARK: - Bulk Export with Directory Structure
+
+    /// Result of a bulk export operation
+    struct BulkExportResult {
+        let successfulCount: Int
+        let failedItems: [(relativePath: String, fileName: String, error: Error)]
+        let destinationFolder: URL
+    }
+
+    /// Export documents preserving their directory structure
+    /// - Parameters:
+    ///   - documents: Array of (documentURL, relativePath) tuples from DocumentRepository
+    ///   - destinationFolder: Root folder for exported PDFs
+    ///   - progressHandler: Called with (currentIndex, totalCount, currentFileName)
+    /// - Returns: BulkExportResult with success count and any failures
+    func exportWithStructure(
+        documents: [(url: URL, relativePath: String)],
+        to destinationFolder: URL,
+        progressHandler: ((Int, Int, String) -> Void)? = nil
+    ) -> BulkExportResult {
+        var successCount = 0
+        var failures: [(relativePath: String, fileName: String, error: Error)] = []
+        let fileManager = FileManager.default
+
+        for (index, document) in documents.enumerated() {
+            let fileName = document.url.deletingPathExtension().lastPathComponent
+            progressHandler?(index, documents.count, fileName)
+
+            // Build destination path preserving structure
+            var targetFolder = destinationFolder
+            if !document.relativePath.isEmpty {
+                targetFolder = destinationFolder.appendingPathComponent(document.relativePath)
+            }
+
+            // Create subdirectories if needed
+            do {
+                try fileManager.createDirectory(at: targetFolder, withIntermediateDirectories: true)
+            } catch {
+                failures.append((document.relativePath, fileName, error))
+                continue
+            }
+
+            // Determine final filename, handling conflicts
+            let pdfFileName = availableFileName(
+                baseName: fileName,
+                extension: "pdf",
+                in: targetFolder
+            )
+            let destinationURL = targetFolder.appendingPathComponent(pdfFileName)
+
+            // Export the PDF
+            do {
+                try exportToPDF(from: document.url, to: destinationURL)
+                successCount += 1
+            } catch {
+                failures.append((document.relativePath, fileName, error))
+            }
+        }
+
+        // Final progress update
+        progressHandler?(documents.count, documents.count, "")
+
+        return BulkExportResult(
+            successfulCount: successCount,
+            failedItems: failures,
+            destinationFolder: destinationFolder
+        )
+    }
+
+    /// Find an available filename, appending " 2", " 3" etc. if file exists
+    private func availableFileName(baseName: String, extension ext: String, in folder: URL) -> String {
+        let fileManager = FileManager.default
+        var candidate = "\(baseName).\(ext)"
+        var url = folder.appendingPathComponent(candidate)
+
+        if !fileManager.fileExists(atPath: url.path) {
+            return candidate
+        }
+
+        // File exists, find next available number
+        var counter = 2
+        while fileManager.fileExists(atPath: url.path) {
+            candidate = "\(baseName) \(counter).\(ext)"
+            url = folder.appendingPathComponent(candidate)
+            counter += 1
+        }
+
+        return candidate
+    }
+
+    // MARK: - Utilities
+
     /// Get suggested filename for export
     func suggestedFileName(for documentURL: URL) -> String {
         // Use the document name without extension

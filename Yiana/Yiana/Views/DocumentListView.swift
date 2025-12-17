@@ -32,6 +32,7 @@ struct DocumentListView: View {
     #if os(macOS)
     @State private var pdfImportData: PDFImportData?
     @State private var isDraggingPDFs = false
+    @Environment(\.openWindow) private var openWindow
     #endif
     @State private var currentSortOption: SortOption = .title
     @State private var isAscending = true
@@ -582,6 +583,10 @@ struct DocumentListView: View {
                     Label("Import PDFs...", systemImage: "square.and.arrow.down.on.square")
                 }
                 .keyboardShortcut("I", modifiers: [.command, .shift])
+
+                Button(action: { openWindow(id: "bulk-export") }) {
+                    Label("Export PDFs...", systemImage: "square.and.arrow.up.on.square")
+                }
                 #endif
             } label: {
                 Label("Add", systemImage: "plus")
