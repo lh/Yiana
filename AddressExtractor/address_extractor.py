@@ -49,46 +49,51 @@ class AddressExtractor:
         self.init_database()
         
     def init_database(self):
-        """Initialize the SQLite database"""
+        """Initialize the SQLite database from schema.sql"""
+        schema_path = Path(__file__).parent / "schema.sql"
+
         with sqlite3.connect(self.db_path) as conn:
-            conn.execute('''
-                CREATE TABLE IF NOT EXISTS extracted_addresses (
-                    id INTEGER PRIMARY KEY,
-                    document_id TEXT NOT NULL,
-                    page_number INTEGER,
-                    
-                    full_name TEXT,
-                    date_of_birth TEXT,
-                    
-                    address_line_1 TEXT,
-                    address_line_2 TEXT,
-                    city TEXT,
-                    county TEXT,
-                    postcode TEXT,
-                    country TEXT DEFAULT 'UK',
-                    
-                    phone_home TEXT,
-                    phone_work TEXT,
-                    phone_mobile TEXT,
-                    phone_day TEXT,
-                    phone_night TEXT,
-                    
-                    gp_name TEXT,
-                    gp_practice TEXT,
-                    gp_address TEXT,
-                    gp_postcode TEXT,
-                    
-                    extraction_confidence REAL,
-                    extraction_method TEXT,
-                    extracted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    
-                    postcode_valid BOOLEAN,
-                    postcode_district TEXT,
-                    
-                    raw_text TEXT,
-                    ocr_json TEXT
-                )
-            ''')
+            if schema_path.exists():
+                # Load and execute schema from file
+                schema_sql = schema_path.read_text()
+                conn.executescript(schema_sql)
+            else:
+                # Fallback: create minimal table if schema.sql missing
+                logger.warning(f"schema.sql not found at {schema_path}, using minimal schema")
+                conn.execute('''
+                    CREATE TABLE IF NOT EXISTS extracted_addresses (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        document_id TEXT NOT NULL,
+                        page_number INTEGER,
+                        full_name TEXT,
+                        date_of_birth TEXT,
+                        address_line_1 TEXT,
+                        address_line_2 TEXT,
+                        city TEXT,
+                        county TEXT,
+                        postcode TEXT,
+                        country TEXT DEFAULT 'UK',
+                        phone_home TEXT,
+                        phone_work TEXT,
+                        phone_mobile TEXT,
+                        gp_name TEXT,
+                        gp_practice TEXT,
+                        gp_address TEXT,
+                        gp_postcode TEXT,
+                        gp_ods_code TEXT,
+                        gp_official_name TEXT,
+                        extraction_confidence REAL,
+                        extraction_method TEXT,
+                        extracted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        postcode_valid BOOLEAN,
+                        postcode_district TEXT,
+                        raw_text TEXT,
+                        ocr_json TEXT,
+                        address_type TEXT DEFAULT 'patient',
+                        is_prime BOOLEAN DEFAULT 0,
+                        specialist_name TEXT
+                    )
+                ''')
             conn.commit()
     
     def extract_from_ocr_json(self, ocr_json_path: str, document_id: str) -> List[Dict]:
