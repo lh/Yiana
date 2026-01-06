@@ -28,6 +28,12 @@ struct YianaApp: App {
                 .task {
                     await MainActor.run {
                         UbiquityMonitor.shared.start()
+
+                        // Create welcome document for new users
+                        let repository = DocumentRepository()
+                        if WelcomeDocumentService.shouldCreateWelcomeDocument(repository: repository) {
+                            WelcomeDocumentService.createWelcomeDocument(repository: repository)
+                        }
                     }
                 }
                 #if os(iOS)

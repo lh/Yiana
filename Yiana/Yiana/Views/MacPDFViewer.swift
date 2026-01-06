@@ -236,13 +236,15 @@ struct MacPDFViewer: View {
     @ViewBuilder
     private func thumbnailSidebar() -> some View {
         VStack(spacing: 0) {
-            // Mode switcher at top
-            Picker("", selection: $sidebarMode) {
-                Text("Pages").tag(SidebarMode.pages)
-                Text("Addresses").tag(SidebarMode.addresses)
+            // Mode switcher at top (only show if addresses available)
+            if showAddressesInSidebar {
+                Picker("", selection: $sidebarMode) {
+                    Text("Pages").tag(SidebarMode.pages)
+                    Text("Addresses").tag(SidebarMode.addresses)
+                }
+                .pickerStyle(.segmented)
+                .padding(8)
             }
-            .pickerStyle(.segmented)
-            .padding(8)
 
             Divider()
 
