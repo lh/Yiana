@@ -30,6 +30,10 @@ struct MacPDFViewer: View {
     @State private var sidebarMode: SidebarMode = .pages
     var onRequestPageManagement: (() -> Void)?
 
+    private var showAddressesInSidebar: Bool {
+        AddressRepository.isDatabaseAvailable
+    }
+
     // Computed property for current PDF data
     private var currentPDFData: Data? {
         viewModel.displayPDFData ?? viewModel.pdfData ?? legacyPDFData
