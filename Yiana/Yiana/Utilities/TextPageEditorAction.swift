@@ -1,8 +1,7 @@
+
 //
 //  TextPageEditorAction.swift
 //  Yiana
-//
-//  Created by GPT-5 Codex on 12/01/2026.
 //
 //  Simple enum describing formatting commands that the text page editor can
 //  perform. The UIKit/AppKit bridge picks these up and mutates the underlying

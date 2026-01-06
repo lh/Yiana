@@ -84,6 +84,38 @@ public struct YianaDocument {
     }
 }
 
+/// Tracks processing state for a single page (OCR and address extraction)
+public struct PageProcessingState: Codable {
+    /// Page number (1-based)
+    public let pageNumber: Int
+
+    /// Whether this page needs OCR processing
+    public var needsOCR: Bool
+
+    /// Whether this page needs address extraction (set true after OCR completes)
+    public var needsExtraction: Bool
+
+    /// When OCR was last completed for this page
+    public var ocrProcessedAt: Date?
+
+    /// When address extraction was last completed for this page
+    public var addressExtractedAt: Date?
+
+    public init(
+        pageNumber: Int,
+        needsOCR: Bool = true,
+        needsExtraction: Bool = false,
+        ocrProcessedAt: Date? = nil,
+        addressExtractedAt: Date? = nil
+    ) {
+        self.pageNumber = pageNumber
+        self.needsOCR = needsOCR
+        self.needsExtraction = needsExtraction
+        self.ocrProcessedAt = ocrProcessedAt
+        self.addressExtractedAt = addressExtractedAt
+    }
+}
+
 /// Document metadata structure (matching the iOS app)
 public struct DocumentMetadata: Codable {
     public let id: UUID
@@ -101,7 +133,10 @@ public struct DocumentMetadata: Codable {
     public var ocrEngineVersion: String?
     public var extractedData: Data? // JSON encoded ExtractedFormData
     public var ocrSource: String?
-    
+
+    /// Per-page processing state for incremental OCR and extraction
+    public var pageProcessingStates: [PageProcessingState]
+
     public init(
         id: UUID = UUID(),
         title: String,
@@ -115,7 +150,8 @@ public struct DocumentMetadata: Codable {
         ocrConfidence: Double? = nil,
         ocrEngineVersion: String? = nil,
         extractedData: Data? = nil,
-        ocrSource: String? = nil
+        ocrSource: String? = nil,
+        pageProcessingStates: [PageProcessingState]? = nil
     ) {
         self.id = id
         self.title = title
@@ -130,6 +166,57 @@ public struct DocumentMetadata: Codable {
         self.ocrEngineVersion = ocrEngineVersion
         self.extractedData = extractedData
         self.ocrSource = ocrSource
+        // Use provided states or initialize from document-level ocrCompleted
+        self.pageProcessingStates = pageProcessingStates ?? (1...pageCount).map { pageNumber in
+            PageProcessingState(
+                pageNumber: pageNumber,
+                needsOCR: !ocrCompleted,
+                needsExtraction: false,
+                ocrProcessedAt: ocrCompleted ? ocrProcessedAt : nil
+            )
+        }
+    }
+
+    // Custom decoder for migration support
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(UUID.self, forKey: .id)
+        self.title = try container.decode(String.self, forKey: .title)
+        self.created = try container.decode(Date.self, forKey: .created)
+        self.modified = try container.decode(Date.self, forKey: .modified)
+        self.pageCount = try container.decode(Int.self, forKey: .pageCount)
+        self.tags = try container.decode([String].self, forKey: .tags)
+        self.ocrCompleted = try container.decode(Bool.self, forKey: .ocrCompleted)
+        self.fullText = try container.decodeIfPresent(String.self, forKey: .fullText)
+        self.ocrProcessedAt = try container.decodeIfPresent(Date.self, forKey: .ocrProcessedAt)
+        self.ocrConfidence = try container.decodeIfPresent(Double.self, forKey: .ocrConfidence)
+        self.ocrEngineVersion = try container.decodeIfPresent(String.self, forKey: .ocrEngineVersion)
+        self.extractedData = try container.decodeIfPresent(Data.self, forKey: .extractedData)
+        self.ocrSource = try container.decodeIfPresent(String.self, forKey: .ocrSource)
+
+        // Migration: if pageProcessingStates is missing, initialize based on ocrCompleted
+        if let states = try container.decodeIfPresent([PageProcessingState].self, forKey: .pageProcessingStates) {
+            self.pageProcessingStates = states
+        } else {
+            // Use local variables to avoid capturing self before initialization
+            let count = self.pageCount
+            let completed = self.ocrCompleted
+            let processedAt = self.ocrProcessedAt
+            self.pageProcessingStates = (1...count).map { pageNumber in
+                PageProcessingState(
+                    pageNumber: pageNumber,
+                    needsOCR: !completed,
+                    needsExtraction: false,
+                    ocrProcessedAt: completed ? processedAt : nil
+                )
+            }
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, title, created, modified, pageCount, tags, ocrCompleted, fullText
+        case ocrProcessedAt, ocrConfidence, ocrEngineVersion, extractedData, ocrSource
+        case pageProcessingStates
     }
 }
 

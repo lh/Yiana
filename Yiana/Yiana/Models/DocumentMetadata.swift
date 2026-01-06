@@ -7,6 +7,38 @@
 
 import Foundation
 
+/// Tracks processing state for a single page (OCR and address extraction)
+struct PageProcessingState: Codable, Equatable {
+    /// Page number (1-based)
+    let pageNumber: Int
+
+    /// Whether this page needs OCR processing
+    var needsOCR: Bool
+
+    /// Whether this page needs address extraction (set true after OCR completes)
+    var needsExtraction: Bool
+
+    /// When OCR was last completed for this page
+    var ocrProcessedAt: Date?
+
+    /// When address extraction was last completed for this page
+    var addressExtractedAt: Date?
+
+    init(
+        pageNumber: Int,
+        needsOCR: Bool = true,
+        needsExtraction: Bool = false,
+        ocrProcessedAt: Date? = nil,
+        addressExtractedAt: Date? = nil
+    ) {
+        self.pageNumber = pageNumber
+        self.needsOCR = needsOCR
+        self.needsExtraction = needsExtraction
+        self.ocrProcessedAt = ocrProcessedAt
+        self.addressExtractedAt = addressExtractedAt
+    }
+}
+
 /// Metadata for a document in the Yiana app
 struct DocumentMetadata: Codable, Equatable {
     /// Unique identifier for the document
@@ -45,6 +77,9 @@ struct DocumentMetadata: Codable, Equatable {
     /// Whether the document has an in-progress text page draft
     var hasPendingTextPage: Bool
 
+    /// Per-page processing state for incremental OCR and extraction
+    var pageProcessingStates: [PageProcessingState]
+
     init(
         id: UUID,
         title: String,
@@ -57,7 +92,8 @@ struct DocumentMetadata: Codable, Equatable {
         ocrProcessedAt: Date? = nil,
         ocrConfidence: Double? = nil,
         ocrSource: OCRSource? = nil,
-        hasPendingTextPage: Bool = false
+        hasPendingTextPage: Bool = false,
+        pageProcessingStates: [PageProcessingState] = []
     ) {
         self.id = id
         self.title = title
@@ -71,6 +107,7 @@ struct DocumentMetadata: Codable, Equatable {
         self.ocrConfidence = ocrConfidence
         self.ocrSource = ocrSource
         self.hasPendingTextPage = hasPendingTextPage
+        self.pageProcessingStates = pageProcessingStates
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -86,6 +123,7 @@ struct DocumentMetadata: Codable, Equatable {
         case ocrConfidence
         case ocrSource
         case hasPendingTextPage
+        case pageProcessingStates
     }
 
     init(from decoder: Decoder) throws {
@@ -102,6 +140,26 @@ struct DocumentMetadata: Codable, Equatable {
         self.ocrConfidence = try container.decodeIfPresent(Double.self, forKey: .ocrConfidence)
         self.ocrSource = try container.decodeIfPresent(OCRSource.self, forKey: .ocrSource)
         self.hasPendingTextPage = try container.decodeIfPresent(Bool.self, forKey: .hasPendingTextPage) ?? false
+
+        // Migration: if pageProcessingStates is missing, initialize based on ocrCompleted
+        if let states = try container.decodeIfPresent([PageProcessingState].self, forKey: .pageProcessingStates) {
+            self.pageProcessingStates = states
+        } else {
+            // Existing document without page-level tracking - initialize from document-level state
+            // Use local variables to avoid capturing self before initialization
+            let count = self.pageCount
+            let completed = self.ocrCompleted
+            let processedAt = self.ocrProcessedAt
+            self.pageProcessingStates = (1...count).map { pageNumber in
+                PageProcessingState(
+                    pageNumber: pageNumber,
+                    needsOCR: !completed,
+                    needsExtraction: false,
+                    ocrProcessedAt: completed ? processedAt : nil,
+                    addressExtractedAt: nil
+                )
+            }
+        }
     }
 
     func encode(to encoder: Encoder) throws {
@@ -119,6 +177,9 @@ struct DocumentMetadata: Codable, Equatable {
         try container.encodeIfPresent(ocrSource, forKey: .ocrSource)
         if hasPendingTextPage {
             try container.encode(true, forKey: .hasPendingTextPage)
+        }
+        if !pageProcessingStates.isEmpty {
+            try container.encode(pageProcessingStates, forKey: .pageProcessingStates)
         }
     }
 }

@@ -12,9 +12,19 @@ import PDFKit
 
 struct DocumentInfoPanel: View {
     let document: NoteDocument
-    @State private var selectedTab = "addresses"
+    @State private var selectedTab: String
     @State private var isLoadingOCR = false
     @State private var showingRawJSON = false
+
+    private var showAddressesTab: Bool {
+        AddressRepository.isDatabaseAvailable
+    }
+
+    init(document: NoteDocument) {
+        self.document = document
+        // Default to addresses tab if available, otherwise metadata
+        _selectedTab = State(initialValue: AddressRepository.isDatabaseAvailable ? "addresses" : "metadata")
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -38,7 +48,9 @@ struct DocumentInfoPanel: View {
 
             // Tab selector
             Picker("Info Type", selection: $selectedTab) {
-                Text("Addresses").tag("addresses")
+                if showAddressesTab {
+                    Text("Addresses").tag("addresses")
+                }
                 Text("Metadata").tag("metadata")
                 Text("Text").tag("ocr")
                 Text("Debug").tag("debug")

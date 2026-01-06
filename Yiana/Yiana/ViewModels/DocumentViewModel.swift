@@ -204,37 +204,59 @@ class DocumentViewModel: ObservableObject {
     }
 
     func removePages(at indices: [Int]) async {
-        guard let currentData = pdfData, let document = PDFDocument(data: currentData) else { return }
+        guard let currentData = pdfData, let pdfDocument = PDFDocument(data: currentData) else { return }
 
         let sortedIndices = indices.sorted(by: >)
-        for index in sortedIndices where index >= 0 && index < document.pageCount {
-            document.removePage(at: index)
+        for index in sortedIndices where index >= 0 && index < pdfDocument.pageCount {
+            pdfDocument.removePage(at: index)
         }
 
-        guard let updatedData = document.dataRepresentation() else { return }
+        guard let updatedData = pdfDocument.dataRepresentation() else { return }
 
         pdfData = updatedData
+
+        // Update page processing states: remove deleted pages and renumber remaining
+        // Convert 0-based indices to 1-based page numbers for removal
+        let removedPageNumbers = Set(indices.map { $0 + 1 })
+        var newStates = document.metadata.pageProcessingStates.filter { !removedPageNumbers.contains($0.pageNumber) }
+        // Renumber remaining states sequentially
+        for i in 0..<newStates.count {
+            newStates[i] = PageProcessingState(
+                pageNumber: i + 1,
+                needsOCR: newStates[i].needsOCR,
+                needsExtraction: newStates[i].needsExtraction,
+                ocrProcessedAt: newStates[i].ocrProcessedAt,
+                addressExtractedAt: newStates[i].addressExtractedAt
+            )
+        }
+        document.metadata.pageProcessingStates = newStates
+        document.metadata.pageCount = pdfDocument.pageCount
+        document.metadata.modified = Date()
+        hasChanges = true
+
         await refreshDisplayPDF()
     }
 
     func duplicatePages(at indices: [Int]) async {
-        guard let currentData = pdfData, let document = PDFDocument(data: currentData) else { return }
+        guard let currentData = pdfData, let pdfDocument = PDFDocument(data: currentData) else { return }
 
         let sortedIndices = indices.sorted()
         var insertedCount = 0
+        var insertedPositions: [Int] = [] // Track where new pages are inserted (0-based)
         #if DEBUG
         print("DEBUG Sidebar: duplicating pages", sortedIndices)
-        print("DEBUG Sidebar: initial page count", document.pageCount)
+        print("DEBUG Sidebar: initial page count", pdfDocument.pageCount)
         #endif
 
         for index in sortedIndices {
             let adjustedIndex = index + insertedCount
-            guard adjustedIndex >= 0 && adjustedIndex < document.pageCount,
-                  let original = document.page(at: adjustedIndex) else { continue }
+            guard adjustedIndex >= 0 && adjustedIndex < pdfDocument.pageCount,
+                  let original = pdfDocument.page(at: adjustedIndex) else { continue }
 
-            let insertIndex = min(adjustedIndex + 1, document.pageCount)
+            let insertIndex = min(adjustedIndex + 1, pdfDocument.pageCount)
             if let copy = original.copy() as? PDFPage {
-                document.insert(copy, at: insertIndex)
+                pdfDocument.insert(copy, at: insertIndex)
+                insertedPositions.append(insertIndex)
                 insertedCount += 1
                 #if DEBUG
                 print("DEBUG Sidebar: inserted copy of page", adjustedIndex, "at", insertIndex)
@@ -242,13 +264,51 @@ class DocumentViewModel: ObservableObject {
             }
         }
 
-        guard let updatedData = document.dataRepresentation() else { return }
+        guard let updatedData = pdfDocument.dataRepresentation() else { return }
 
         #if DEBUG
-        print("DEBUG Sidebar: new page count", document.pageCount)
+        print("DEBUG Sidebar: new page count", pdfDocument.pageCount)
         #endif
 
         pdfData = updatedData
+
+        // Update page processing states: insert new states for duplicated pages
+        var newStates: [PageProcessingState] = []
+        let newPageCount = pdfDocument.pageCount
+        var oldStateIndex = 0
+        let insertedSet = Set(insertedPositions)
+
+        for pageIndex in 0..<newPageCount {
+            if insertedSet.contains(pageIndex) {
+                // This is a duplicated page - mark as needing OCR
+                newStates.append(PageProcessingState(
+                    pageNumber: pageIndex + 1,
+                    needsOCR: true,
+                    needsExtraction: false
+                ))
+            } else {
+                // Existing page - preserve state with updated page number
+                if oldStateIndex < document.metadata.pageProcessingStates.count {
+                    let oldState = document.metadata.pageProcessingStates[oldStateIndex]
+                    newStates.append(PageProcessingState(
+                        pageNumber: pageIndex + 1,
+                        needsOCR: oldState.needsOCR,
+                        needsExtraction: oldState.needsExtraction,
+                        ocrProcessedAt: oldState.ocrProcessedAt,
+                        addressExtractedAt: oldState.addressExtractedAt
+                    ))
+                    oldStateIndex += 1
+                } else {
+                    // Fallback for missing state
+                    newStates.append(PageProcessingState(pageNumber: pageIndex + 1, needsOCR: true))
+                }
+            }
+        }
+        document.metadata.pageProcessingStates = newStates
+        document.metadata.pageCount = newPageCount
+        document.metadata.modified = Date()
+        hasChanges = true
+
         await refreshDisplayPDF()
     }
 
@@ -415,8 +475,41 @@ class DocumentViewModel: ObservableObject {
 
         pdfData = updatedData
 
+        // Update page processing states: insert new states for added pages
+        var newStates: [PageProcessingState] = []
+        let newPageCount = targetPDF.pageCount
+
+        for pageIndex in 0..<newPageCount {
+            let pageNumber = pageIndex + 1
+            if pageIndex >= insertAt && pageIndex < insertAt + insertedCount {
+                // This is a newly inserted page - mark as needing OCR
+                newStates.append(PageProcessingState(
+                    pageNumber: pageNumber,
+                    needsOCR: true,
+                    needsExtraction: false
+                ))
+            } else {
+                // Existing page - find and preserve its state
+                let oldPageIndex = pageIndex < insertAt ? pageIndex : pageIndex - insertedCount
+                if oldPageIndex < document.metadata.pageProcessingStates.count {
+                    let oldState = document.metadata.pageProcessingStates[oldPageIndex]
+                    newStates.append(PageProcessingState(
+                        pageNumber: pageNumber,
+                        needsOCR: oldState.needsOCR,
+                        needsExtraction: oldState.needsExtraction,
+                        ocrProcessedAt: oldState.ocrProcessedAt,
+                        addressExtractedAt: oldState.addressExtractedAt
+                    ))
+                } else {
+                    // Fallback for missing state
+                    newStates.append(PageProcessingState(pageNumber: pageNumber, needsOCR: true))
+                }
+            }
+        }
+
         // Update metadata
-        document.metadata.pageCount = targetPDF.pageCount
+        document.metadata.pageProcessingStates = newStates
+        document.metadata.pageCount = newPageCount
         document.metadata.modified = Date()
         hasChanges = true
 
@@ -673,16 +766,35 @@ final class DocumentViewModel: ObservableObject {
 
     private func removePages(at indices: [Int]) async {
         guard let currentData = pdfData,
-              let document = PDFDocument(data: currentData) else { return }
+              let pdfDocument = PDFDocument(data: currentData) else { return }
 
         // Sort indices in descending order to remove from end to beginning
         let sortedIndices = indices.sorted(by: >)
-        for index in sortedIndices where index >= 0 && index < document.pageCount {
-            document.removePage(at: index)
+        for index in sortedIndices where index >= 0 && index < pdfDocument.pageCount {
+            pdfDocument.removePage(at: index)
         }
 
-        guard let updatedData = document.dataRepresentation() else { return }
+        guard let updatedData = pdfDocument.dataRepresentation() else { return }
         pdfData = updatedData
+
+        // Update page processing states: remove deleted pages and renumber remaining
+        if let document = document {
+            let removedPageNumbers = Set(indices.map { $0 + 1 })
+            var newStates = document.metadata.pageProcessingStates.filter { !removedPageNumbers.contains($0.pageNumber) }
+            for i in 0..<newStates.count {
+                newStates[i] = PageProcessingState(
+                    pageNumber: i + 1,
+                    needsOCR: newStates[i].needsOCR,
+                    needsExtraction: newStates[i].needsExtraction,
+                    ocrProcessedAt: newStates[i].ocrProcessedAt,
+                    addressExtractedAt: newStates[i].addressExtractedAt
+                )
+            }
+            document.metadata.pageProcessingStates = newStates
+            document.metadata.pageCount = pdfDocument.pageCount
+            document.metadata.modified = Date()
+            hasChanges = true
+        }
     }
 
     // MARK: - Page Copy/Cut/Paste Operations
@@ -803,9 +915,41 @@ final class DocumentViewModel: ObservableObject {
 
         pdfData = updatedData
 
-        // Update metadata
+        // Update page processing states: insert new states for added pages
         if let document = document {
-            document.metadata.pageCount = targetPDF.pageCount
+            var newStates: [PageProcessingState] = []
+            let newPageCount = targetPDF.pageCount
+
+            for pageIndex in 0..<newPageCount {
+                let pageNumber = pageIndex + 1
+                if pageIndex >= insertAt && pageIndex < insertAt + insertedCount {
+                    // This is a newly inserted page - mark as needing OCR
+                    newStates.append(PageProcessingState(
+                        pageNumber: pageNumber,
+                        needsOCR: true,
+                        needsExtraction: false
+                    ))
+                } else {
+                    // Existing page - find and preserve its state
+                    let oldPageIndex = pageIndex < insertAt ? pageIndex : pageIndex - insertedCount
+                    if oldPageIndex < document.metadata.pageProcessingStates.count {
+                        let oldState = document.metadata.pageProcessingStates[oldPageIndex]
+                        newStates.append(PageProcessingState(
+                            pageNumber: pageNumber,
+                            needsOCR: oldState.needsOCR,
+                            needsExtraction: oldState.needsExtraction,
+                            ocrProcessedAt: oldState.ocrProcessedAt,
+                            addressExtractedAt: oldState.addressExtractedAt
+                        ))
+                    } else {
+                        // Fallback for missing state
+                        newStates.append(PageProcessingState(pageNumber: pageNumber, needsOCR: true))
+                    }
+                }
+            }
+
+            document.metadata.pageProcessingStates = newStates
+            document.metadata.pageCount = newPageCount
             document.metadata.modified = Date()
         }
 
