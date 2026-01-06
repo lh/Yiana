@@ -129,6 +129,7 @@ struct AddressCard: View {
 
     @State private var isEditingPatient = false
     @StateObject private var repository = AddressRepository()
+    @StateObject private var configManager = AddressTypeConfigurationManager.shared
 
     // Editable fields
     @State private var fullName: String
@@ -150,10 +151,10 @@ struct AddressCard: View {
     @State private var patientCopied = false
 
     // Prime address system
-    @State private var selectedType: AddressType
+    @State private var selectedType: String
     @State private var isPrime: Bool
-    @State private var specialistName: String
-    @State private var showingSpecialistNameInput = false
+    @State private var subtypeName: String
+    @State private var showingSubtypeNameInput = false
 
     init(address: ExtractedAddress, documentId: String, onSave: @escaping () -> Void) {
         self.address = address
@@ -173,9 +174,9 @@ struct AddressCard: View {
         _gpPractice = State(initialValue: address.gpPractice ?? "")
         _gpAddress = State(initialValue: address.gpAddress ?? "")
         _gpPostcode = State(initialValue: address.gpPostcode ?? "")
-        _selectedType = State(initialValue: address.typedAddressType)
+        _selectedType = State(initialValue: address.addressType ?? "patient")
         _isPrime = State(initialValue: address.isPrime ?? false)
-        _specialistName = State(initialValue: address.specialistName ?? "")
+        _subtypeName = State(initialValue: address.specialistName ?? "")
     }
 
     var body: some View {
@@ -183,8 +184,8 @@ struct AddressCard: View {
             // Header with type/prime controls
             VStack(spacing: 8) {
                 HStack {
-                    Image(systemName: address.typeIcon)
-                        .foregroundColor(typeColor)
+                    Image(systemName: currentTypeDefinition?.icon ?? "folder.fill")
+                        .foregroundColor(currentTypeDefinition?.color ?? .gray)
                         .opacity(isPrime ? 1.0 : 0.5)
                     Text(addressTypeLabel)
                         .font(.headline)
@@ -202,24 +203,24 @@ struct AddressCard: View {
                 HStack {
                     // Type selector
                     Picker("Type", selection: $selectedType) {
-                        Text("Patient").tag(AddressType.patient)
-                        Text("GP").tag(AddressType.gp)
-                        Text("Optician").tag(AddressType.optician)
-                        Text("Specialist").tag(AddressType.specialist)
+                        ForEach(configManager.currentConfiguration.types) { typeDef in
+                            Text(typeDef.name).tag(typeDef.name.lowercased())
+                        }
                     }
                     .pickerStyle(.menu)
                     .onChange(of: selectedType) { _, newType in
-                        if newType == .specialist && specialistName.isEmpty {
-                            showingSpecialistNameInput = true
+                        if let typeDef = configManager.currentConfiguration.type(named: newType),
+                           typeDef.requiresSubtype && subtypeName.isEmpty {
+                            showingSubtypeNameInput = true
                         }
                         Task {
                             await updateAddressType()
                         }
                     }
 
-                    // Specialist name input (if specialist)
-                    if selectedType == .specialist {
-                        TextField("Specialist name", text: $specialistName)
+                    // Subtype name input (if type requires it)
+                    if let typeDef = currentTypeDefinition, typeDef.requiresSubtype {
+                        TextField("\(typeDef.name) name", text: $subtypeName)
                             .textFieldStyle(.roundedBorder)
                             .frame(maxWidth: 150)
                             .onSubmit {
@@ -507,33 +508,18 @@ struct AddressCard: View {
 
     // MARK: - Prime Address System Helpers
 
-    private var typeColor: Color {
-        switch selectedType {
-        case .patient:
-            return .blue
-        case .gp:
-            return .red
-        case .optician:
-            return .purple
-        case .specialist:
-            return .green
-        }
+    private var currentTypeDefinition: AddressTypeDefinition? {
+        configManager.currentConfiguration.type(named: selectedType)
     }
 
     private var addressTypeLabel: String {
-        switch selectedType {
-        case .patient:
-            return "Patient Information"
-        case .gp:
-            return "GP Information"
-        case .optician:
-            return "Optician Information"
-        case .specialist:
-            if !specialistName.isEmpty {
-                return "\(specialistName) (Specialist)"
+        if let typeDef = currentTypeDefinition {
+            if typeDef.requiresSubtype && !subtypeName.isEmpty {
+                return "\(subtypeName) (\(typeDef.name))"
             }
-            return "Specialist Information"
+            return "\(typeDef.name) Information"
         }
+        return "Address Information"
     }
 
     private func togglePrimeStatus(_ newValue: Bool) async {
@@ -543,7 +529,7 @@ struct AddressCard: View {
             try await repository.togglePrime(
                 addressId: addressId,
                 documentId: documentId,
-                addressType: selectedType.rawValue,
+                addressType: selectedType,
                 makePrime: newValue
             )
             onSave() // Trigger refresh
@@ -558,10 +544,11 @@ struct AddressCard: View {
         guard let addressId = address.id else { return }
 
         do {
+            let subtypeValue = currentTypeDefinition?.requiresSubtype == true ? subtypeName : nil
             try await repository.updateAddressType(
                 addressId: addressId,
-                newType: selectedType.rawValue,
-                specialistName: selectedType == .specialist ? specialistName : nil
+                newType: selectedType,
+                specialistName: subtypeValue
             )
             onSave() // Trigger refresh
         } catch {

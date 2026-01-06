@@ -48,6 +48,17 @@ struct SettingsView: View {
                     }
                 }
 #endif
+
+                Section(header: Text("Address Types")) {
+                    NavigationLink {
+                        AddressTypeSettingsView()
+                    } label: {
+                        HStack {
+                            Image(systemName: "person.3.fill")
+                            Text("Manage Address Types")
+                        }
+                    }
+                }
             }
             .navigationTitle("Settings")
             .toolbar {

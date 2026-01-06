@@ -27,6 +27,15 @@ final class AddressRepository: ObservableObject {
             .appendingPathComponent("addresses.db")
     }
 
+    /// Check if the address database is available (exists and accessible)
+    /// Use this to conditionally show/hide address-related UI
+    static var isDatabaseAvailable: Bool {
+        guard let dbURL = databaseURL else {
+            return false
+        }
+        return FileManager.default.fileExists(atPath: dbURL.path)
+    }
+
     init() {
         guard let dbURL = Self.databaseURL else {
             logger.error("Failed to locate iCloud container")
@@ -98,13 +107,13 @@ final class AddressRepository: ObservableObject {
                     CASE WHEN ao.id IS NOT NULL THEN ao.is_prime ELSE ea.is_prime END as is_prime,
                     CASE WHEN ao.id IS NOT NULL THEN ao.specialist_name ELSE ea.specialist_name END as specialist_name
                 FROM extracted_addresses ea
-                LEFT JOIN address_overrides ao ON ea.id = ao.original_extraction_id
+                LEFT JOIN address_overrides ao ON ea.id = ao.original_id
                     AND (ao.override_reason IS NULL OR ao.override_reason != 'removed')
                     AND ao.id = (
                         SELECT id FROM address_overrides
-                        WHERE original_extraction_id = ea.id
+                        WHERE original_id = ea.id
                         AND (override_reason IS NULL OR override_reason != 'removed')
-                        ORDER BY overridden_at DESC
+                        ORDER BY override_date DESC
                         LIMIT 1
                     )
                 WHERE ea.document_id = ?
@@ -182,7 +191,7 @@ final class AddressRepository: ObservableObject {
                 INSERT INTO address_overrides (
                     document_id,
                     page_number,
-                    original_extraction_id,
+                    original_id,
                     full_name,
                     date_of_birth,
                     address_line_1,
@@ -202,9 +211,8 @@ final class AddressRepository: ObservableObject {
                     is_prime,
                     specialist_name,
                     override_reason,
-                    is_training_candidate,
-                    training_used
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
+                    override_date
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
                 """,
                 arguments: [
                     updatedAddress.documentId,
@@ -262,7 +270,7 @@ final class AddressRepository: ObservableObject {
                 try db.execute(sql: """
                     UPDATE address_overrides
                     SET is_prime = 0
-                    WHERE document_id = ? AND address_type = ? AND original_extraction_id != ?
+                    WHERE document_id = ? AND address_type = ? AND original_id != ?
                     """, arguments: [documentId, addressType, addressId])
             }
 
@@ -277,7 +285,7 @@ final class AddressRepository: ObservableObject {
             try db.execute(sql: """
                 UPDATE address_overrides
                 SET is_prime = ?
-                WHERE original_extraction_id = ?
+                WHERE original_id = ?
                 AND (override_reason IS NULL OR override_reason != 'removed')
                 """, arguments: [makePrime ? 1 : 0, addressId])
         }
@@ -308,7 +316,7 @@ final class AddressRepository: ObservableObject {
             try db.execute(sql: """
                 UPDATE address_overrides
                 SET address_type = ?, specialist_name = ?
-                WHERE original_extraction_id = ?
+                WHERE original_id = ?
                 AND (override_reason IS NULL OR override_reason != 'removed')
                 """, arguments: [newType, specialistName, addressId])
         }
