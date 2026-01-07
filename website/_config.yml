@@ -9,6 +9,7 @@ theme: minima
 header_pages:
   - index.md
   - guide.md
+  - your-data.md
   - privacy.md
   - support.md
 

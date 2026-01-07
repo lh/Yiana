@@ -29,6 +29,9 @@ Your documents sync automatically across all your Apple devices. Start a scan on
 ### Privacy First
 Your documents stay yours. Everything is stored in your personal iCloud account — we never see your data.
 
+### No Vendor Lock-In
+Your documents are stored as standard ZIP files containing PDFs. Extract them anytime, with or without Yiana. [Learn more →](/Yiana/your-data/)
+
 ---
 
 <p style="text-align: center; margin-top: 3rem;">

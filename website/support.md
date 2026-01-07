@@ -19,7 +19,12 @@ Syncing happens automatically via iCloud. Just make sure:
 
 ### Can I access my documents outside of Yiana?
 
-Yes! Your documents are stored in iCloud Drive. You can find them in the Files app under iCloud Drive → Yiana.
+Yes! Your documents are stored in iCloud Drive as standard ZIP files. You can:
+- Browse them in the Files app under iCloud Drive → Yiana
+- Rename any `.yianazip` to `.zip` and extract to get your PDF
+- Use the bulk export feature on Mac to export all documents as PDFs
+
+See [Your Data](/your-data/) for detailed instructions.
 
 ### How do I search for text in my documents?
 
