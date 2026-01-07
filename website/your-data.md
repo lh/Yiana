@@ -71,11 +71,48 @@ Yiana also includes a bulk export feature (Mac only) that lets you export all yo
 3. Choose a destination folder
 4. All documents will be exported as regular PDF files
 
+## What If Yiana Disappears?
+
+We hope you'll use Yiana for years to come. But if the app ever becomes unavailable — whether we stop development, Apple changes their policies, or you simply decide to move on — **your documents remain fully accessible**.
+
+Everything you need is already on your device:
+
+- Your PDFs are in standard ZIP files in your iCloud Drive
+- No server connection required to access them
+- No account to log into
+- No subscription to maintain
+
+Just rename, extract, and your PDFs are there. Always.
+
+## Optional: Advanced Features
+
+Yiana works great on its own, but power users can extend it with optional components:
+
+### Mac App
+
+Yiana for Mac is available on the Mac App Store, giving you the same document management experience on your desktop. Your documents sync seamlessly between all your devices via iCloud.
+
+### OCR Processing Backend
+
+For users who want searchable text in their scanned documents, we offer an open-source backend service that runs on your own Mac. It:
+
+- Processes documents entirely on your hardware
+- Adds searchable text to your scans
+- Runs automatically in the background
+- Keeps everything private — no cloud processing
+
+### Address Extraction
+
+An optional open-source tool can extract address information from your documents into a local database. Useful for medical practices, legal offices, or anyone who regularly processes correspondence.
+
+Both backend components are available as open-source projects for technically-minded users who want to self-host these capabilities.
+
 ## Our Promise
 
-- **No lock-in** — Your PDFs are always accessible
+- **No lock-in** — Your PDFs are always accessible, with or without Yiana
 - **Standard formats** — ZIP and PDF, nothing proprietary
 - **Your iCloud** — We never have access to your files
 - **Export anytime** — Bulk export to standard PDFs whenever you want
+- **Future-proof** — Your data survives even if the app doesn't
 
 We believe your documents belong to you, and you should never be trapped by the software you use.
