@@ -1,0 +1,27 @@
+title: Yiana
+description: Document scanning and management for iOS and macOS
+url: "https://lh.github.io"
+baseurl: "/Yiana"
+
+theme: minima
+
+# Navigation
+header_pages:
+  - index.md
+  - guide.md
+  - privacy.md
+  - support.md
+
+# Social links (optional)
+# twitter_username: yourusername
+# github_username: lh
+
+# Build settings
+markdown: kramdown
+permalink: pretty
+
+# Exclude from processing
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
