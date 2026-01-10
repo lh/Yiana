@@ -8,6 +8,7 @@ theme: minima
 # Navigation
 header_pages:
   - index.md
+  - about.md
   - guide.md
   - your-data.md
   - privacy.md

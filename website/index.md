@@ -3,11 +3,16 @@ layout: home
 title: Home
 ---
 
+<div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 1rem; margin-bottom: 2rem;">
+<strong>Beta Release</strong><br>
+Yiana is currently in beta testing. Some features may not work as expected. Please do not use for mission-critical documents until the full release. We'd love your <a href="/Yiana/support/">feedback</a>.
+</div>
+
 # Yiana
 
 **Simple, private document scanning for iOS and macOS.**
 
-Yiana helps you scan, organise, and search your documents — all synced securely through your personal iCloud account.
+Yiana helps you scan, organise, and search your documents — all synced securely through your personal iCloud account. [Why we built it →](/Yiana/about/)
 
 ## Features
 
