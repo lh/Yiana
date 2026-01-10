@@ -11,8 +11,18 @@ Yiana helps you scan, organise, and search your documents — all synced securel
 
 ## Features
 
-### Scan Documents
-Use your iPhone or iPad camera to capture documents. Yiana automatically detects page edges and enhances image quality for clear, readable scans.
+### One-Tap Scanning
+Two dedicated buttons for the scans you need:
+- **Monochrome** — Perfect for text documents, forms, and receipts. Clean, sharp, smaller files.
+- **Colour** — For photos, diagrams, or anything where colour matters.
+
+Yiana automatically detects page edges and enhances quality. No fiddling with settings.
+
+### Text Notes
+Create text documents directly in Yiana. Write notes, draft letters, or compose any text content. When you're done, your note is saved as a PDF — creating a permanent, tamper-evident record just like your scans.
+
+### Add Text to Pages
+Need to fill in a form? Add text directly onto any page with precise positioning controls. Nudge text pixel-by-pixel to line up exactly where you need it — perfect for forms, annotations, or adding notes to existing documents.
 
 ### Import PDFs
 Already have PDF files? Import them directly into Yiana to keep all your documents in one place.
