@@ -20,10 +20,11 @@ from address_extractor import AddressExtractor
 from llm_extractor import HybridExtractor
 from spire_form_extractor import extract_from_spire_form
 
-# Configuration
-OCR_DIR = os.getenv('OCR_DIR', '/Users/rose/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/.ocr_results/OCR')
+# Configuration - iCloud container paths
+ICLOUD_CONTAINER = os.path.expanduser('~/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents')
+OCR_DIR = os.getenv('OCR_DIR', os.path.join(ICLOUD_CONTAINER, '.ocr_results'))
 JSON_OUTPUT_DIR = os.getenv('JSON_OUTPUT', '/Users/rose/Code/Yiana/AddressExtractor/api_output')
-DB_PATH = os.getenv('DB_PATH', 'addresses.db')
+DB_PATH = os.getenv('DB_PATH', os.path.join(ICLOUD_CONTAINER, 'addresses.db'))
 USE_LLM = os.getenv('USE_LLM', 'false').lower() == 'true'
 OUTPUT_FORMAT = os.getenv('OUTPUT_FORMAT', 'both')  # 'db', 'json', 'both'
 
