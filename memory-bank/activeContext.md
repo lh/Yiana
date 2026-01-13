@@ -1,60 +1,55 @@
 # Active Context
 
-## Current State
-- ✅ Xcode project created with multiplatform support
-- ✅ Git repository initialized and pushed to GitHub
-- ✅ Project builds successfully
-- ✅ Memory-bank structure created
-- ✅ Phase 1 of PLAN.md completed!
-- ✅ Refactored to protocol-based architecture for better maintainability
-- ⚠️ Project currently uses Core Data (needs to be replaced with UIDocument)
+## Current State (January 2025)
 
-## What We're Doing Now
-Completed Phase 1 - Project Structure & Core Models:
-- ✅ Created folder structure (Models, ViewModels, Views, Services, Utilities, Tests)
-- ✅ Created DocumentMetadataTests.swift with comprehensive tests
-- ✅ Implemented DocumentMetadata struct - all tests passing!
-- ✅ Created NoteDocumentTests.swift with failing tests
-- ✅ Implemented simple NoteDocument class extending UIDocument (iOS only)
-- ✅ Wrapped NoteDocument in #if os(iOS) for platform-specific compilation
-- ✅ Both iOS and macOS targets now build successfully
+### App Status: Beta on TestFlight
+- ✅ Build 49 uploaded to TestFlight
+- ✅ iOS and macOS app fully functional
+- ✅ Website live at https://lh.github.io/Yiana/
+- ⏳ Awaiting user feedback before App Store release
 
-Completed Phase 2 - Remove Core Data & Setup Document Repository:
-- ✅ Removed Core Data references from YianaApp.swift and ContentView.swift
-- ✅ Created DocumentRepositoryTests.swift with comprehensive tests
-- ✅ Implemented DocumentRepository - simple URL manager for .yianazip files
-- ✅ Added integration test between NoteDocument and DocumentRepository
-- ✅ Repository provides: list URLs, generate unique URLs, delete files
-- ✅ No iCloud yet - just local file management (simpler!)
+### Core Features Complete
+- ✅ One-tap scanning (monochrome and colour)
+- ✅ Text notes (save as permanent PDF on exit)
+- ✅ Add text to pages with precise positioning
+- ✅ Import PDFs
+- ✅ Folder organisation
+- ✅ iCloud sync across iPhone, iPad, Mac
+- ✅ Search (with optional OCR backend)
+- ✅ Bulk PDF export (Mac)
 
-Completed Phase 3 - ViewModels with TDD:
-- ✅ Created DocumentListViewModelTests with comprehensive test coverage
-- ✅ Implemented DocumentListViewModel - manages document URLs from repository
-- ✅ Created DocumentViewModelTests for single document editing (iOS only)
-- ✅ Implemented DocumentViewModel - wraps NoteDocument for UI editing
-- ✅ Added auto-save support with debouncing
-- ✅ Platform-specific: iOS gets full editing, macOS gets placeholder
+### App Store Readiness
+- ✅ Privacy policy at https://lh.github.io/Yiana/privacy/
+- ✅ Support page at https://lh.github.io/Yiana/support/
+- ✅ Entitlements set to production
+- ✅ Camera usage description configured
+- ✅ No data collection (App Privacy: "Data Not Collected")
+- ✅ Beta disclaimer on website
+- 📋 Checklist at docs/AppStoreSubmissionChecklist.md
 
-Ready for Phase 4 - Basic UI Implementation
+### Recent Session (January 2025)
+- Added graceful degradation when backends unavailable
+- Created WelcomeDocumentService for new users
+- Built GitHub Pages website with Jekyll
+- Added "Why Yiana" story page
+- Added beta disclaimer
+- Deployed Build 49 to TestFlight
 
-## Next Immediate Steps
-Phase 2 Tasks:
-1. Delete Core Data files (Persistence.swift, Yiana.xcdatamodeld)
-2. Remove Core Data references from YianaApp.swift
-3. Write failing tests for DocumentRepository
-4. Implement DocumentRepository to manage documents in iCloud
+## What's Next
+1. Gather TestFlight feedback
+2. Fix any reported issues
+3. Take App Store screenshots
+4. Submit to App Store
 
-## Recent Technical Decisions
-- ABANDONED protocol-based architecture after realizing it was overengineered
-- Decided to keep iOS and macOS implementations separate
-- They will share data format but not code
-- Each platform uses native document patterns (UIDocument vs NSDocument)
-- Simpler, cleaner, more maintainable
+## Architecture Summary
+- **Document format:** .yianazip (standard ZIP containing content.pdf + metadata.json)
+- **Storage:** User's personal iCloud Drive
+- **No server:** All data stays on user's devices
+- **Optional backends:** OCR service and address extraction (open source, self-hosted)
 
-## Important Context
-- The app is called "Yiana" (Yiana is another notes app)
-- Focus on document scanning and PDF management
-- Mac mini will handle OCR processing (not on-device)
-- Must maintain iOS/iPadOS/macOS compatibility
-- Document packages will use `.yianazip` extension
-- Using TDD methodology throughout development
+## Key Files
+- `docs/AppStoreSubmissionChecklist.md` — Steps for App Store release
+- `website/` — GitHub Pages site (Jekyll)
+- `Yiana/deploy-to-testflight.sh` — Deployment script
+- `YianaOCRService/` — Optional OCR backend
+- `AddressExtractor/` — Optional address extraction
