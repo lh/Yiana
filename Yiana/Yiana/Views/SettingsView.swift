@@ -14,10 +14,20 @@ import UIKit
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var devMode = DevModeManager.shared
     @State private var selectedPaperSize: TextPagePaperSize = .a4
     @State private var selectedSidebarPosition: SidebarPosition = .right
     @State private var selectedThumbnailSize: SidebarThumbnailSize = .medium
     @State private var isLoading = true
+    @State private var showingDevMenu = false
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+    }
+
+    private var buildNumber: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+    }
 
     var body: some View {
         NavigationStack {
@@ -61,12 +71,55 @@ struct SettingsView: View {
                         }
                     }
                 }
+
+                // Developer Mode section (only visible when enabled)
+                if devMode.isEnabled {
+                    Section(header: Text("Developer")) {
+                        Button {
+                            showingDevMenu = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "hammer.fill")
+                                Text("Developer Tools")
+                            }
+                        }
+
+                        Button(role: .destructive) {
+                            devMode.disable()
+                        } label: {
+                            HStack {
+                                Image(systemName: "xmark.circle.fill")
+                                Text("Disable Developer Mode")
+                            }
+                        }
+                    }
+                }
+
+                // Version section with tap-to-unlock
+                Section {
+                    HStack {
+                        Text("Version")
+                        Spacer()
+                        Text("\(appVersion) (\(buildNumber))")
+                            .foregroundColor(.secondary)
+                    }
+                    .contentShape(Rectangle())
+                    .devModeTapTarget()
+                } footer: {
+                    if devMode.isEnabled {
+                        Text("Developer mode is enabled")
+                            .foregroundColor(.orange)
+                    }
+                }
             }
             .navigationTitle("Settings")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
+            }
+            .sheet(isPresented: $showingDevMenu) {
+                DeveloperMenuSheet()
             }
         }
         .task { await loadPreferences() }
@@ -103,5 +156,23 @@ struct SettingsView: View {
         Text("Applies to rendered text pages and newly scanned documents.")
             .font(.footnote)
             .foregroundColor(.secondary)
+    }
+}
+
+// MARK: - Developer Menu Sheet (works in Release builds when dev mode enabled)
+
+struct DeveloperMenuSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            DeveloperToolsView()
+                .navigationTitle("Developer Tools")
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { dismiss() }
+                    }
+                }
+        }
     }
 }

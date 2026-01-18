@@ -32,7 +32,7 @@ struct PageProcessingState: Codable, Equatable {
         addressExtractedAt: Date? = nil
     ) {
         self.pageNumber = pageNumber
-        self.needsOCR = needsOCR
+            self.needsOCR = needsOCR
         self.needsExtraction = needsExtraction
         self.ocrProcessedAt = ocrProcessedAt
         self.addressExtractedAt = addressExtractedAt

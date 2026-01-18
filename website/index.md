@@ -14,6 +14,15 @@ Yiana is currently in beta testing. Some features may not work as expected. Plea
 
 Yiana helps you scan, organise, and search your documents — all synced securely through your personal iCloud account. [Why we built it →](/Yiana/about/)
 
+<p style="text-align: center; margin: 2rem 0;">
+  <a href="https://testflight.apple.com/join/YOUR_CODE_HERE" style="display: inline-block; background: #0071e3; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Join the Beta on TestFlight</a>
+</p>
+
+<!-- Hero screenshot: Show document list on iPad -->
+<p style="text-align: center; margin: 2rem 0;">
+  <img src="assets/images/hero-ipad.png" alt="Yiana document list on iPad" style="max-width: 100%; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+</p>
+
 ## Features
 
 ### One-Tap Scanning
@@ -22,6 +31,11 @@ Two dedicated buttons for the scans you need:
 - **Colour** — For photos, diagrams, or anything where colour matters.
 
 Yiana automatically detects page edges and enhances quality. No fiddling with settings.
+
+<!-- Screenshot: Scanning view with edge detection -->
+<p style="text-align: center; margin: 1.5rem 0;">
+  <img src="assets/images/scanning.png" alt="Document scanning with edge detection" style="max-width: 350px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+</p>
 
 ### Text Notes
 Create text documents directly in Yiana. Write notes, draft letters, or compose any text content. When you're done, your note is saved as a PDF — creating a permanent, tamper-evident record just like your scans.
@@ -35,8 +49,18 @@ Already have PDF files? Import them directly into Yiana to keep all your documen
 ### Organise with Folders
 Create folders to organise your documents however you like. Keep work separate from personal, or organise by project, client, or date.
 
+<!-- Screenshot: Folder organisation -->
+<p style="text-align: center; margin: 1.5rem 0;">
+  <img src="assets/images/folders.png" alt="Document folders" style="max-width: 350px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+</p>
+
 ### Search Your Documents
 Find any document instantly. Yiana processes your scanned documents so you can search through their text content.
+
+<!-- Screenshot: Search results -->
+<p style="text-align: center; margin: 1.5rem 0;">
+  <img src="assets/images/search.png" alt="Full-text search results" style="max-width: 350px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+</p>
 
 ### iCloud Sync
 Your documents sync automatically across all your Apple devices. Start a scan on your iPhone, continue on your iPad, review on your Mac.
@@ -50,7 +74,11 @@ Your documents are stored as standard ZIP files containing PDFs. Extract them an
 ---
 
 <p style="text-align: center; margin-top: 3rem;">
-  <a href="https://apps.apple.com/app/yiana/id0000000000" style="display: inline-block;">
+  <a href="https://testflight.apple.com/join/YOUR_CODE_HERE" style="display: inline-block; background: #0071e3; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Join the Beta on TestFlight</a>
+</p>
+
+<p style="text-align: center; margin-top: 1rem;">
+  <a href="https://apps.apple.com/app/yiana/id6751235230" style="display: inline-block;">
     <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" style="height: 50px;">
   </a>
 </p>
