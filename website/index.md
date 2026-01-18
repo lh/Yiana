@@ -15,7 +15,7 @@ Yiana is currently in beta testing. Some features may not work as expected. Plea
 Yiana helps you scan, organise, and search your documents — all synced securely through your personal iCloud account. [Why we built it →](/Yiana/about/)
 
 <p style="text-align: center; margin: 2rem 0;">
-  <a href="https://testflight.apple.com/join/YOUR_CODE_HERE" style="display: inline-block; background: #0071e3; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Join the Beta on TestFlight</a>
+  <a href="https://www.reddit.com/r/TestFlight/comments/TODO" style="display: inline-block; background: #0071e3; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Request Beta Access on Reddit</a>
 </p>
 
 <!-- Hero screenshot: Show document list on iPad -->
@@ -35,6 +35,11 @@ Yiana automatically detects page edges and enhances quality. No fiddling with se
 <!-- Screenshot: Scanning view with edge detection -->
 <p style="text-align: center; margin: 1.5rem 0;">
   <img src="assets/images/scanning.png" alt="Document scanning with edge detection" style="max-width: 350px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+</p>
+
+<!-- Screenshot: Scanned document result -->
+<p style="text-align: center; margin: 1.5rem 0;">
+  <img src="assets/images/document-view.png" alt="Clean scanned document" style="max-width: 350px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
 </p>
 
 ### Text Notes
@@ -57,11 +62,6 @@ Create folders to organise your documents however you like. Keep work separate f
 ### Search Your Documents
 Find any document instantly. Yiana processes your scanned documents so you can search through their text content.
 
-<!-- Screenshot: Search results -->
-<p style="text-align: center; margin: 1.5rem 0;">
-  <img src="assets/images/search.png" alt="Full-text search results" style="max-width: 350px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
-</p>
-
 ### iCloud Sync
 Your documents sync automatically across all your Apple devices. Start a scan on your iPhone, continue on your iPad, review on your Mac.
 
@@ -74,7 +74,7 @@ Your documents are stored as standard ZIP files containing PDFs. Extract them an
 ---
 
 <p style="text-align: center; margin-top: 3rem;">
-  <a href="https://testflight.apple.com/join/YOUR_CODE_HERE" style="display: inline-block; background: #0071e3; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Join the Beta on TestFlight</a>
+  <a href="https://www.reddit.com/r/TestFlight/comments/TODO" style="display: inline-block; background: #0071e3; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Request Beta Access on Reddit</a>
 </p>
 
 <p style="text-align: center; margin-top: 1rem;">
