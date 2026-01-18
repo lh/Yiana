@@ -150,7 +150,8 @@ struct DocumentMetadata: Codable, Equatable {
             let count = self.pageCount
             let completed = self.ocrCompleted
             let processedAt = self.ocrProcessedAt
-            self.pageProcessingStates = (1...count).map { pageNumber in
+            // Handle documents with 0 pages (1...0 would crash)
+            self.pageProcessingStates = count > 0 ? (1...count).map { pageNumber in
                 PageProcessingState(
                     pageNumber: pageNumber,
                     needsOCR: !completed,
@@ -158,7 +159,7 @@ struct DocumentMetadata: Codable, Equatable {
                     ocrProcessedAt: completed ? processedAt : nil,
                     addressExtractedAt: nil
                 )
-            }
+            } : []
         }
     }
 
