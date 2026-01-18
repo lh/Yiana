@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.vitygas.yiana-ocr</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/devon/bin/yiana-ocr</string>
+        <string>watch</string>
+        <string>--path</string>
+        <string>/Users/devon/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents</string>
+    </array>
+
+    <!-- Run as devon user to access iCloud documents -->
+    <key>UserName</key>
+    <string>devon</string>
+
+    <key>GroupName</key>
+    <string>staff</string>
+
+    <!-- Start at system boot, not user login -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Restart if it crashes -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Logs (must be writable by devon) -->
+    <key>StandardOutPath</key>
+    <string>/Users/devon/Library/Logs/yiana-ocr.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/devon/Library/Logs/yiana-ocr-error.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>/Users/devon</string>
+    </dict>
+
+    <!-- Working directory -->
+    <key>WorkingDirectory</key>
+    <string>/Users/devon</string>
+</dict>
+</plist>
