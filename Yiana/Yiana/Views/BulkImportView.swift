@@ -25,12 +25,11 @@ struct BulkImportView: View {
     @State private var showingWarning = false
 
     private let maxFilesWithoutWarning = 50
-    private let absoluteMaxFiles = 500
 
     init(pdfURLs: [URL], folderPath: String = "", isPresented: Binding<Bool>, onDismiss: (() -> Void)? = nil) {
-        // Limit the number of files
-        let limitedURLs = Array(pdfURLs.prefix(absoluteMaxFiles))
-        print("BulkImportView init with \(limitedURLs.count) PDFs (original: \(pdfURLs.count))")
+        // No file limit - handle as many as the user provides
+        let limitedURLs = pdfURLs
+        print("BulkImportView init with \(limitedURLs.count) PDFs")
 
         self.pdfURLs = limitedURLs
         self.folderPath = folderPath
@@ -169,13 +168,13 @@ struct BulkImportView: View {
                 self.importResult = result
                 self.isImporting = false
 
-                if result.failed.isEmpty && result.timedOut.isEmpty {
-                    // All successful - save folder preference and close
+                if result.failed.isEmpty && result.timedOut.isEmpty && result.skippedDuplicates.isEmpty {
+                    // All successful with no issues - save folder preference and close
                     lastUsedImportFolder = folderPath
                     isPresented = false
                     onDismiss?()
                 } else {
-                    // Some failures or timeouts - still save preference but show results
+                    // Some failures, timeouts, or duplicates - still save preference but show results
                     if !result.successful.isEmpty {
                         lastUsedImportFolder = folderPath
                     }
@@ -300,6 +299,10 @@ struct BulkImportResultsView: View {
         result.failed.count + result.timedOut.count
     }
 
+    private var hasDuplicates: Bool {
+        !result.skippedDuplicates.isEmpty
+    }
+
     var body: some View {
         VStack(spacing: 20) {
             // Summary
@@ -315,11 +318,50 @@ struct BulkImportResultsView: View {
                 Text("\(result.successful.count) of \(result.totalProcessed) files imported successfully")
                     .foregroundColor(.secondary)
 
+                if hasDuplicates {
+                    Text("\(result.skippedDuplicates.count) duplicate files skipped")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+
                 if !result.timedOut.isEmpty {
                     Text("\(result.timedOut.count) files timed out (may be corrupted or too large)")
                         .font(.caption)
                         .foregroundColor(.orange)
                 }
+            }
+
+            // Skipped duplicates list
+            if hasDuplicates {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Duplicates skipped (\(result.skippedDuplicates.count)):")
+                            .font(.headline)
+                        Spacer()
+                        Image(systemName: "doc.on.doc")
+                            .foregroundColor(.blue)
+                    }
+
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(result.skippedDuplicates, id: \.url) { duplicate in
+                                HStack {
+                                    Image(systemName: "arrow.right.doc.on.clipboard")
+                                        .foregroundColor(.blue)
+                                        .font(.caption)
+
+                                    Text(duplicate.url.lastPathComponent)
+                                        .font(.caption)
+                                        .lineLimit(1)
+                                }
+                            }
+                        }
+                    }
+                    .frame(maxHeight: 100)
+                }
+                .padding()
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(8)
             }
 
             // Timed out files list
@@ -396,8 +438,8 @@ struct BulkImportResultsView: View {
 
             // Action buttons
             HStack(spacing: 12) {
-                if hasProblems {
-                    Button("Export Problem Files") {
+                if hasProblems || hasDuplicates {
+                    Button("Export Report") {
                         exportProblemFiles()
                     }
                 }
@@ -418,13 +460,22 @@ struct BulkImportResultsView: View {
     private func exportProblemFiles() {
         let savePanel = NSSavePanel()
         savePanel.allowedContentTypes = [.plainText]
-        savePanel.nameFieldStringValue = "failed-imports.txt"
-        savePanel.title = "Export Problem Files"
-        savePanel.message = "Save a list of files that failed to import"
+        savePanel.nameFieldStringValue = "import-report.txt"
+        savePanel.title = "Export Import Report"
+        savePanel.message = "Save import report including duplicates and failed files"
 
         if savePanel.runModal() == .OK, let url = savePanel.url {
-            var content = "# Failed Import Report\n"
+            var content = "# Import Report\n"
             content += "# Generated: \(Date())\n\n"
+
+            if hasDuplicates {
+                content += "## Skipped Duplicates (\(result.skippedDuplicates.count))\n"
+                content += "# These files already exist in the library with identical content\n\n"
+                for duplicate in result.skippedDuplicates {
+                    content += "\(duplicate.url.path)\n"
+                    content += "  Already exists as: \(duplicate.existingURL.lastPathComponent)\n\n"
+                }
+            }
 
             if !result.timedOut.isEmpty {
                 content += "## Timed Out Files (\(result.timedOut.count))\n"
@@ -443,14 +494,16 @@ struct BulkImportResultsView: View {
                 }
             }
 
-            // Write just the paths for easy re-import
-            content += "\n## File Paths Only (for re-import)\n"
-            content += "# Copy these paths to a text file and use 'Import from File List'\n\n"
-            for timedOutURL in result.timedOut {
-                content += "\(timedOutURL.path)\n"
-            }
-            for failed in result.failed {
-                content += "\(failed.url.path)\n"
+            // Write just the paths for easy re-import (excluding duplicates since they're already imported)
+            if !result.timedOut.isEmpty || !result.failed.isEmpty {
+                content += "\n## File Paths for Re-import\n"
+                content += "# Copy these paths to a text file and use 'Import from File List'\n\n"
+                for timedOutURL in result.timedOut {
+                    content += "\(timedOutURL.path)\n"
+                }
+                for failed in result.failed {
+                    content += "\(failed.url.path)\n"
+                }
             }
 
             try? content.write(to: url, atomically: true, encoding: .utf8)

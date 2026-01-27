@@ -8,6 +8,7 @@
 import Foundation
 import PDFKit
 import Combine
+import CryptoKit
 
 enum BulkImportError: LocalizedError {
     case timedOut(URL)
@@ -27,9 +28,14 @@ struct BulkImportResult {
     let successful: [ImportResult]
     let failed: [(url: URL, error: Error)]
     let timedOut: [URL]
+    let skippedDuplicates: [(url: URL, existingURL: URL)]
 
     var totalProcessed: Int {
         successful.count + failed.count + timedOut.count
+    }
+
+    var totalSkipped: Int {
+        skippedDuplicates.count
     }
 
     var successRate: Double {
@@ -39,6 +45,10 @@ struct BulkImportResult {
 
     var hasTimedOutFiles: Bool {
         !timedOut.isEmpty
+    }
+
+    var hasDuplicates: Bool {
+        !skippedDuplicates.isEmpty
     }
 }
 
@@ -64,9 +74,60 @@ class BulkImportService: ObservableObject {
     /// Timeout for individual file imports (30 seconds)
     private let importTimeout: UInt64 = 30_000_000_000
 
+    /// Cache of existing document hashes (filename -> hash)
+    private var existingDocumentHashes: [String: String] = [:]
+
     init(folderPath: String = "") {
         self.folderPath = folderPath
         self.importService = ImportService(folderPath: folderPath)
+    }
+
+    /// Compute SHA256 hash of a file
+    private func computeFileHash(at url: URL) -> String? {
+        guard let data = try? Data(contentsOf: url) else {
+            return nil
+        }
+        let hash = SHA256.hash(data: data)
+        return hash.compactMap { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Find existing document URL that matches the given filename (by title)
+    private func findExistingDocument(withTitle title: String) -> URL? {
+        let repository = DocumentRepository()
+        if !folderPath.isEmpty {
+            repository.navigateToFolder(folderPath)
+        }
+
+        let existingDocs = repository.documentURLs()
+        for docURL in existingDocs {
+            // Check if the document title matches (filename without extension)
+            let existingTitle = docURL.deletingPathExtension().lastPathComponent
+            if existingTitle == title {
+                return docURL
+            }
+        }
+        return nil
+    }
+
+    /// Check if a file is a duplicate of an existing document
+    /// Returns the existing document URL if duplicate, nil otherwise
+    private func checkForDuplicate(url: URL, title: String) -> URL? {
+        // First check if there's an existing document with the same title
+        guard let existingURL = findExistingDocument(withTitle: title) else {
+            return nil
+        }
+
+        // Compute hashes to confirm they're identical
+        guard let newHash = computeFileHash(at: url),
+              let existingHash = computeFileHash(at: existingURL) else {
+            return nil
+        }
+
+        if newHash == existingHash {
+            return existingURL
+        }
+
+        return nil
     }
 
     var progressPublisher: AnyPublisher<BulkImportProgress, Never> {
@@ -108,7 +169,7 @@ class BulkImportService: ObservableObject {
         withTitles titles: [String]? = nil
     ) async -> BulkImportResult {
         guard !urls.isEmpty else {
-            return BulkImportResult(successful: [], failed: [], timedOut: [])
+            return BulkImportResult(successful: [], failed: [], timedOut: [], skippedDuplicates: [])
         }
 
         await MainActor.run {
@@ -118,6 +179,7 @@ class BulkImportService: ObservableObject {
         var successful: [ImportResult] = []
         var failed: [(URL, Error)] = []
         var timedOut: [URL] = []
+        var skippedDuplicates: [(url: URL, existingURL: URL)] = []
 
         // Process in batches for better performance with large numbers
         let batchSize = 10
@@ -148,6 +210,13 @@ class BulkImportService: ObservableObject {
                 await MainActor.run {
                     self.currentProgress = progress
                     self.progressSubject.send(progress)
+                }
+
+                // Check for duplicates before importing
+                if let existingURL = checkForDuplicate(url: url, title: title) {
+                    skippedDuplicates.append((url: url, existingURL: existingURL))
+                    print("⏭️ Skipped duplicate: \(url.lastPathComponent)")
+                    continue
                 }
 
                 // Import the PDF with timeout protection
@@ -189,11 +258,14 @@ class BulkImportService: ObservableObject {
         }
 
         // Log summary
+        if !skippedDuplicates.isEmpty {
+            print("⏭️ \(skippedDuplicates.count) duplicate files skipped")
+        }
         if !timedOut.isEmpty {
             print("⚠️ \(timedOut.count) files timed out during import")
         }
 
-        return BulkImportResult(successful: successful, failed: failed, timedOut: timedOut)
+        return BulkImportResult(successful: successful, failed: failed, timedOut: timedOut, skippedDuplicates: skippedDuplicates)
     }
 
     /// Validate that all URLs are valid PDFs before importing
