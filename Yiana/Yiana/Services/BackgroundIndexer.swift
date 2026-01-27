@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import YianaDocumentArchive
 
 /// Service that indexes all documents in the background on app launch
 @MainActor
@@ -48,37 +49,44 @@ class BackgroundIndexer: ObservableObject {
 
         print("🔍 Starting background document indexing...")
 
-        // Get all documents recursively
-        let repository = DocumentRepository()
-        let allDocuments = repository.allDocumentsRecursive()
+        // Move heavy file I/O off the main actor to avoid blocking UI
+        let documentsToIndex: [(url: URL, metadata: DocumentMetadata)] = await Task.detached(priority: .utility) {
+            // Get all documents recursively (file system scan)
+            let repository = DocumentRepository()
+            let allDocuments = repository.allDocumentsRecursive()
 
-        totalCount = allDocuments.count
-        print("📚 Found \(totalCount) documents to index")
+            // Check which documents are already indexed
+            var needsIndexing: [(url: URL, metadata: DocumentMetadata)] = []
 
-        // Check which documents are already indexed
-        var documentsToIndex: [(url: URL, metadata: DocumentMetadata)] = []
+            for item in allDocuments {
+                // Check if task was cancelled
+                if Task.isCancelled { return [] }
 
-        for item in allDocuments {
-            // Check if task was cancelled
-            if Task.isCancelled {
-                print("⚠️ Indexing cancelled by user")
-                isIndexing = false
-                return
+                // Extract metadata directly using DocumentArchive (not MainActor-isolated)
+                guard let (metadataData, _) = try? DocumentArchive.readMetadata(from: item.url),
+                      let metadata = try? JSONDecoder().decode(DocumentMetadata.self, from: metadataData) else {
+                    continue
+                }
+
+                // Check if already indexed
+                let isIndexed = (try? await self.searchIndex.isDocumentIndexed(id: metadata.id)) ?? false
+
+                if !isIndexed {
+                    needsIndexing.append((url: item.url, metadata: metadata))
+                }
             }
 
-            // Extract metadata
-            guard let metadata = try? NoteDocument.extractMetadata(from: item.url) else {
-                continue
-            }
+            return needsIndexing
+        }.value
 
-            // Check if already indexed
-            let isIndexed = (try? await searchIndex.isDocumentIndexed(id: metadata.id)) ?? false
-
-            if !isIndexed {
-                documentsToIndex.append((url: item.url, metadata: metadata))
-            }
+        // Check if cancelled during file scan
+        if Task.isCancelled {
+            print("⚠️ Indexing cancelled by user")
+            isIndexing = false
+            return
         }
 
+        totalCount = documentsToIndex.count
         print("📝 \(documentsToIndex.count) documents need indexing")
 
         // Index documents in batches to avoid overwhelming the system
