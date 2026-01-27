@@ -32,6 +32,7 @@ struct DocumentListView: View {
     #if os(macOS)
     @State private var pdfImportData: PDFImportData?
     @State private var isDraggingPDFs = false
+    @State private var showingDuplicateScanner = false
     @Environment(\.openWindow) private var openWindow
     #endif
     @State private var currentSortOption: SortOption = .title
@@ -91,6 +92,11 @@ struct DocumentListView: View {
         .sheet(isPresented: $showingSettings) {
             SettingsView()
         }
+        #if os(macOS)
+        .sheet(isPresented: $showingDuplicateScanner) {
+            DuplicateScannerView(isPresented: $showingDuplicateScanner)
+        }
+        #endif
     }
 
     private var emptyStateView: some View {
@@ -592,6 +598,13 @@ struct DocumentListView: View {
                 Button(action: { openWindow(id: "bulk-export") }) {
                     Label("Export PDFs...", systemImage: "square.and.arrow.up.on.square")
                 }
+
+                Divider()
+
+                Button(action: { showingDuplicateScanner = true }) {
+                    Label("Find Duplicates...", systemImage: "doc.on.doc")
+                }
+                .help("Scan library for duplicate documents")
                 #endif
             } label: {
                 Label("Add", systemImage: "plus")
