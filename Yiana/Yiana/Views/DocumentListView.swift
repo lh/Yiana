@@ -409,6 +409,11 @@ struct DocumentListView: View {
                 Divider()
             }
 
+            // Show subtle sync indicator when iCloud placeholders are being filtered
+            if viewModel.isSyncing {
+                iCloudSyncIndicator
+            }
+
             #if os(iOS)
             if viewModel.isSearchInProgress {
                 iosSearchProgress
@@ -425,6 +430,20 @@ struct DocumentListView: View {
             .listStyle(.insetGrouped)
             #endif
         }
+    }
+
+    private var iCloudSyncIndicator: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "icloud.and.arrow.down")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Text("Syncing \(viewModel.syncingDocumentCount) document\(viewModel.syncingDocumentCount == 1 ? "" : "s") from iCloud…")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity)
+        .background(Color.secondary.opacity(0.1))
     }
 
     #if os(iOS)

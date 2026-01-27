@@ -44,6 +44,12 @@ class DocumentListViewModel: ObservableObject {
     @Published var currentFolderName: String = "Documents"
     @Published var folderPath: [String] = []
 
+    /// Number of documents being filtered out due to iCloud sync (UUID placeholders)
+    @Published var syncingDocumentCount: Int = 0
+
+    /// Whether iCloud sync is in progress (has placeholder files)
+    var isSyncing: Bool { syncingDocumentCount > 0 }
+
     // Search results
     @Published var otherFolderResults: [(url: URL, path: String)] = []
     @Published var isSearching = false
@@ -64,6 +70,20 @@ class DocumentListViewModel: ObservableObject {
     private var searchTask: Task<Void, Never>?
     private var searchDebounceTask: Task<Void, Never>?
 
+    /// Regex pattern for UUID-like filenames (iCloud placeholders)
+    /// Matches patterns like: 8-4-4-4-12 hex characters with optional separators
+    private static let uuidPattern = try! NSRegularExpression(
+        pattern: #"^[A-Fa-f0-9]{8}[-_]?[A-Fa-f0-9]{4}[-_]?[A-Fa-f0-9]{4}[-_]?[A-Fa-f0-9]{4}[-_]?[A-Fa-f0-9]{12}(\.yianazip)?$"#,
+        options: []
+    )
+
+    /// Check if a filename looks like a UUID placeholder (iCloud sync in progress)
+    private func isPlaceholderFilename(_ filename: String) -> Bool {
+        let name = filename.replacingOccurrences(of: ".yianazip", with: "")
+        let range = NSRange(location: 0, length: name.utf16.count)
+        return Self.uuidPattern.firstMatch(in: name, range: range) != nil
+    }
+
     init(repository: DocumentRepository? = nil) {
         self.repository = repository ?? DocumentRepository()
     }
@@ -75,7 +95,12 @@ class DocumentListViewModel: ObservableObject {
         // Simulate async work (file system is actually sync)
         await Task.yield()
 
-        allDocumentURLs = repository.documentURLs()
+        let rawDocumentURLs = repository.documentURLs()
+
+        // Filter out UUID placeholder files (iCloud sync in progress)
+        let (validDocs, placeholderCount) = filterPlaceholders(rawDocumentURLs)
+        allDocumentURLs = validDocs
+        syncingDocumentCount = placeholderCount
 
         allFolderURLs = repository.folderURLs()
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
@@ -83,19 +108,38 @@ class DocumentListViewModel: ObservableObject {
         currentFolderName = repository.currentFolderName
         folderPath = repository.folderPathComponents
 
-        // Load all documents globally for search
-        allDocumentsGlobal = repository.allDocumentsRecursive()
+        // Load all documents globally for search (also filter placeholders)
+        let rawGlobal = repository.allDocumentsRecursive()
+        allDocumentsGlobal = rawGlobal.filter { !isPlaceholderFilename($0.url.lastPathComponent) }
+
         #if DEBUG
+        if placeholderCount > 0 {
+            print("DEBUG: Filtering \(placeholderCount) iCloud placeholder files")
+        }
         print("DEBUG: Loaded \(allDocumentsGlobal.count) documents globally")
-#endif
-        #if DEBUG
         print("DEBUG: Current folder: \(repository.currentFolderPath)")
-#endif
+        #endif
 
         // Apply current filter (which will internally apply sorting)
         await applyFilter()
 
         isLoading = false
+    }
+
+    /// Filter out placeholder files and return valid URLs plus count of filtered
+    private func filterPlaceholders(_ urls: [URL]) -> (valid: [URL], placeholderCount: Int) {
+        var valid: [URL] = []
+        var placeholderCount = 0
+
+        for url in urls {
+            if isPlaceholderFilename(url.lastPathComponent) {
+                placeholderCount += 1
+            } else {
+                valid.append(url)
+            }
+        }
+
+        return (valid, placeholderCount)
     }
 
     func createNewDocument(title: String) async -> URL? {
