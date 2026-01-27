@@ -9,6 +9,7 @@ import Foundation
 import PDFKit
 import Combine
 import CryptoKit
+import YianaDocumentArchive
 
 enum BulkImportError: LocalizedError {
     case timedOut(URL)
@@ -82,49 +83,54 @@ class BulkImportService: ObservableObject {
         self.importService = ImportService(folderPath: folderPath)
     }
 
-    /// Compute SHA256 hash of a file
-    private func computeFileHash(at url: URL) -> String? {
-        guard let data = try? Data(contentsOf: url) else {
-            return nil
-        }
+    /// Compute SHA256 hash of data
+    private func computeDataHash(_ data: Data) -> String {
         let hash = SHA256.hash(data: data)
         return hash.compactMap { String(format: "%02x", $0) }.joined()
     }
 
-    /// Find existing document URL that matches the given filename (by title)
-    private func findExistingDocument(withTitle title: String) -> URL? {
+    /// Find existing document URLs that might match the given title
+    private func findExistingDocuments(withTitle title: String) -> [URL] {
         let repository = DocumentRepository()
         if !folderPath.isEmpty {
             repository.navigateToFolder(folderPath)
         }
 
         let existingDocs = repository.documentURLs()
-        for docURL in existingDocs {
+        return existingDocs.filter { docURL in
             // Check if the document title matches (filename without extension)
             let existingTitle = docURL.deletingPathExtension().lastPathComponent
-            if existingTitle == title {
-                return docURL
-            }
+            return existingTitle == title || existingTitle.hasPrefix(title + " ")
         }
-        return nil
     }
 
     /// Check if a file is a duplicate of an existing document
     /// Returns the existing document URL if duplicate, nil otherwise
     private func checkForDuplicate(url: URL, title: String) -> URL? {
-        // First check if there's an existing document with the same title
-        guard let existingURL = findExistingDocument(withTitle: title) else {
+        // First check if there are existing documents with the same or similar title
+        let existingURLs = findExistingDocuments(withTitle: title)
+        guard !existingURLs.isEmpty else {
             return nil
         }
 
-        // Compute hashes to confirm they're identical
-        guard let newHash = computeFileHash(at: url),
-              let existingHash = computeFileHash(at: existingURL) else {
+        // Compute hash of the new PDF
+        guard let newPDFData = try? Data(contentsOf: url) else {
             return nil
         }
+        let newHash = computeDataHash(newPDFData)
 
-        if newHash == existingHash {
-            return existingURL
+        // Check each existing document
+        for existingURL in existingURLs {
+            // Extract PDF data from the .yianazip archive
+            guard let payload = try? DocumentArchive.read(from: existingURL),
+                  let existingPDFData = payload.pdfData else {
+                continue
+            }
+
+            let existingHash = computeDataHash(existingPDFData)
+            if newHash == existingHash {
+                return existingURL
+            }
         }
 
         return nil
