@@ -584,6 +584,11 @@ struct DocumentListView: View {
                 }
                 .keyboardShortcut("I", modifiers: [.command, .shift])
 
+                Button(action: importFromFileList) {
+                    Label("Import from File List...", systemImage: "list.bullet.rectangle")
+                }
+                .help("Import PDFs from a text file containing file paths")
+
                 Button(action: { openWindow(id: "bulk-export") }) {
                     Label("Export PDFs...", systemImage: "square.and.arrow.up.on.square")
                 }
@@ -804,6 +809,73 @@ struct DocumentListView: View {
                 // Create PDFImportData which will trigger the sheet
                 DispatchQueue.main.async {
                     self.pdfImportData = PDFImportData(urls: panel.urls)
+                }
+            }
+        }
+    }
+
+    private func importFromFileList() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.plainText]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.message = "Select a text file containing PDF paths (one per line)"
+        panel.prompt = "Open"
+
+        panel.begin { response in
+            if response == .OK, let url = panel.url {
+                do {
+                    let content = try String(contentsOf: url, encoding: .utf8)
+                    let lines = content.components(separatedBy: .newlines)
+
+                    // Parse file paths, skipping comments and empty lines
+                    let pdfURLs: [URL] = lines.compactMap { line in
+                        let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+                        // Skip empty lines and comments
+                        guard !trimmed.isEmpty, !trimmed.hasPrefix("#") else {
+                            return nil
+                        }
+
+                        let fileURL = URL(fileURLWithPath: trimmed)
+
+                        // Verify file exists and is a PDF
+                        guard FileManager.default.fileExists(atPath: fileURL.path),
+                              fileURL.pathExtension.lowercased() == "pdf" else {
+                            print("Skipping invalid path: \(trimmed)")
+                            return nil
+                        }
+
+                        return fileURL
+                    }
+
+                    if !pdfURLs.isEmpty {
+                        DispatchQueue.main.async {
+                            print("Importing \(pdfURLs.count) PDFs from file list")
+                            self.pdfImportData = PDFImportData(urls: pdfURLs)
+                        }
+                    } else {
+                        // Show alert if no valid PDFs found
+                        DispatchQueue.main.async {
+                            let alert = NSAlert()
+                            alert.messageText = "No Valid PDFs Found"
+                            alert.informativeText = "The file list did not contain any valid PDF file paths. Make sure each line contains a full path to an existing PDF file."
+                            alert.alertStyle = .warning
+                            alert.addButton(withTitle: "OK")
+                            alert.runModal()
+                        }
+                    }
+                } catch {
+                    print("Failed to read file list: \(error)")
+                    DispatchQueue.main.async {
+                        let alert = NSAlert()
+                        alert.messageText = "Failed to Read File"
+                        alert.informativeText = error.localizedDescription
+                        alert.alertStyle = .warning
+                        alert.addButton(withTitle: "OK")
+                        alert.runModal()
+                    }
                 }
             }
         }

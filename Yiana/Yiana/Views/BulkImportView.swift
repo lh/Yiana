@@ -169,13 +169,13 @@ struct BulkImportView: View {
                 self.importResult = result
                 self.isImporting = false
 
-                if result.failed.isEmpty {
+                if result.failed.isEmpty && result.timedOut.isEmpty {
                     // All successful - save folder preference and close
                     lastUsedImportFolder = folderPath
                     isPresented = false
                     onDismiss?()
                 } else {
-                    // Some failures - still save preference but show results
+                    // Some failures or timeouts - still save preference but show results
                     if !result.successful.isEmpty {
                         lastUsedImportFolder = folderPath
                     }
@@ -292,13 +292,21 @@ struct BulkImportResultsView: View {
     @Binding var isPresented: Bool
     let onDismiss: () -> Void
 
+    private var hasProblems: Bool {
+        !result.failed.isEmpty || !result.timedOut.isEmpty
+    }
+
+    private var problemCount: Int {
+        result.failed.count + result.timedOut.count
+    }
+
     var body: some View {
         VStack(spacing: 20) {
             // Summary
             VStack(spacing: 8) {
-                Image(systemName: result.failed.isEmpty ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                Image(systemName: hasProblems ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
                     .font(.system(size: 48))
-                    .foregroundColor(result.failed.isEmpty ? .green : .orange)
+                    .foregroundColor(hasProblems ? .orange : .green)
 
                 Text("Import Complete")
                     .font(.title2)
@@ -306,13 +314,57 @@ struct BulkImportResultsView: View {
 
                 Text("\(result.successful.count) of \(result.totalProcessed) files imported successfully")
                     .foregroundColor(.secondary)
+
+                if !result.timedOut.isEmpty {
+                    Text("\(result.timedOut.count) files timed out (may be corrupted or too large)")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+            }
+
+            // Timed out files list
+            if !result.timedOut.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Timed out (\(result.timedOut.count)):")
+                            .font(.headline)
+                        Spacer()
+                        Image(systemName: "clock.badge.exclamationmark")
+                            .foregroundColor(.orange)
+                    }
+
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(result.timedOut, id: \.self) { url in
+                                HStack {
+                                    Image(systemName: "clock.fill")
+                                        .foregroundColor(.orange)
+                                        .font(.caption)
+
+                                    Text(url.lastPathComponent)
+                                        .font(.caption)
+                                        .lineLimit(1)
+                                }
+                            }
+                        }
+                    }
+                    .frame(maxHeight: 100)
+                }
+                .padding()
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(8)
             }
 
             // Failed files list
             if !result.failed.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Failed imports:")
-                        .font(.headline)
+                    HStack {
+                        Text("Failed (\(result.failed.count)):")
+                            .font(.headline)
+                        Spacer()
+                        Image(systemName: "xmark.circle")
+                            .foregroundColor(.red)
+                    }
 
                     ScrollView {
                         VStack(alignment: .leading, spacing: 4) {
@@ -325,29 +377,87 @@ struct BulkImportResultsView: View {
                                     VStack(alignment: .leading) {
                                         Text(failed.url.lastPathComponent)
                                             .font(.caption)
+                                            .lineLimit(1)
                                         Text(failed.error.localizedDescription)
                                             .font(.caption2)
                                             .foregroundColor(.secondary)
+                                            .lineLimit(1)
                                     }
                                 }
                             }
                         }
                     }
-                    .frame(maxHeight: 150)
+                    .frame(maxHeight: 100)
                 }
                 .padding()
                 .background(Color(NSColor.controlBackgroundColor))
                 .cornerRadius(8)
             }
 
-            Button("Done") {
-                isPresented = false
-                onDismiss()
+            // Action buttons
+            HStack(spacing: 12) {
+                if hasProblems {
+                    Button("Export Problem Files") {
+                        exportProblemFiles()
+                    }
+                }
+
+                Spacer()
+
+                Button("Done") {
+                    isPresented = false
+                    onDismiss()
+                }
+                .keyboardShortcut(.return)
             }
-            .keyboardShortcut(.return)
         }
         .padding()
-        .frame(width: 400)
+        .frame(width: 450)
+    }
+
+    private func exportProblemFiles() {
+        let savePanel = NSSavePanel()
+        savePanel.allowedContentTypes = [.plainText]
+        savePanel.nameFieldStringValue = "failed-imports.txt"
+        savePanel.title = "Export Problem Files"
+        savePanel.message = "Save a list of files that failed to import"
+
+        if savePanel.runModal() == .OK, let url = savePanel.url {
+            var content = "# Failed Import Report\n"
+            content += "# Generated: \(Date())\n\n"
+
+            if !result.timedOut.isEmpty {
+                content += "## Timed Out Files (\(result.timedOut.count))\n"
+                content += "# These files took too long to import and may be corrupted or too large\n\n"
+                for timedOutURL in result.timedOut {
+                    content += "\(timedOutURL.path)\n"
+                }
+                content += "\n"
+            }
+
+            if !result.failed.isEmpty {
+                content += "## Failed Files (\(result.failed.count))\n\n"
+                for failed in result.failed {
+                    content += "\(failed.url.path)\n"
+                    content += "  Error: \(failed.error.localizedDescription)\n\n"
+                }
+            }
+
+            // Write just the paths for easy re-import
+            content += "\n## File Paths Only (for re-import)\n"
+            content += "# Copy these paths to a text file and use 'Import from File List'\n\n"
+            for timedOutURL in result.timedOut {
+                content += "\(timedOutURL.path)\n"
+            }
+            for failed in result.failed {
+                content += "\(failed.url.path)\n"
+            }
+
+            try? content.write(to: url, atomically: true, encoding: .utf8)
+
+            // Open in Finder
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        }
     }
 }
 
