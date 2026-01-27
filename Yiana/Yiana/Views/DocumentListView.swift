@@ -862,7 +862,7 @@ struct DocumentListView: View {
                     let lines = content.components(separatedBy: .newlines)
 
                     // Parse file paths, skipping comments and empty lines
-                    let pdfURLs: [URL] = lines.compactMap { line in
+                    let pdfPaths: [String] = lines.compactMap { line in
                         let trimmed = line.trimmingCharacters(in: .whitespaces)
 
                         // Skip empty lines and comments
@@ -870,33 +870,29 @@ struct DocumentListView: View {
                             return nil
                         }
 
-                        let fileURL = URL(fileURLWithPath: trimmed)
-
-                        // Verify file exists and is a PDF
-                        guard FileManager.default.fileExists(atPath: fileURL.path),
-                              fileURL.pathExtension.lowercased() == "pdf" else {
-                            print("Skipping invalid path: \(trimmed)")
-                            return nil
-                        }
-
-                        return fileURL
+                        return trimmed
                     }
 
-                    if !pdfURLs.isEmpty {
-                        DispatchQueue.main.async {
-                            print("Importing \(pdfURLs.count) PDFs from file list")
-                            self.pdfImportData = PDFImportData(urls: pdfURLs)
-                        }
-                    } else {
-                        // Show alert if no valid PDFs found
+                    guard !pdfPaths.isEmpty else {
                         DispatchQueue.main.async {
                             let alert = NSAlert()
-                            alert.messageText = "No Valid PDFs Found"
-                            alert.informativeText = "The file list did not contain any valid PDF file paths. Make sure each line contains a full path to an existing PDF file."
+                            alert.messageText = "No Paths Found"
+                            alert.informativeText = "The file list did not contain any file paths."
                             alert.alertStyle = .warning
                             alert.addButton(withTitle: "OK")
                             alert.runModal()
                         }
+                        return
+                    }
+
+                    // Find the common parent folder to request access
+                    let parentFolders = Set(pdfPaths.map { (path: String) -> String in
+                        (path as NSString).deletingLastPathComponent
+                    })
+
+                    // Request access to the folder containing the PDFs
+                    DispatchQueue.main.async {
+                        self.requestFolderAccessForImport(pdfPaths: pdfPaths, folders: Array(parentFolders))
                     }
                 } catch {
                     print("Failed to read file list: \(error)")
@@ -909,6 +905,59 @@ struct DocumentListView: View {
                         alert.runModal()
                     }
                 }
+            }
+        }
+    }
+
+    private func requestFolderAccessForImport(pdfPaths: [String], folders: [String]) {
+        // If there's just one folder, we can be more specific
+        let folderToRequest = folders.count == 1 ? folders[0] : (folders.first.map { ($0 as NSString).deletingLastPathComponent } ?? "/")
+
+        let folderPanel = NSOpenPanel()
+        folderPanel.canChooseDirectories = true
+        folderPanel.canChooseFiles = false
+        folderPanel.allowsMultipleSelection = false
+        folderPanel.directoryURL = URL(fileURLWithPath: folderToRequest)
+        folderPanel.message = "Grant access to the folder containing the PDFs to import"
+        folderPanel.prompt = "Grant Access"
+
+        folderPanel.begin { response in
+            if response == .OK, let folderURL = folderPanel.url {
+                // Now we have access to this folder - verify and collect PDFs
+                let pdfURLs: [URL] = pdfPaths.compactMap { path in
+                    let fileURL = URL(fileURLWithPath: path)
+
+                    // Verify file exists and is a PDF
+                    guard FileManager.default.fileExists(atPath: fileURL.path),
+                          fileURL.pathExtension.lowercased() == "pdf" else {
+                        print("Skipping invalid path: \(path)")
+                        return nil
+                    }
+
+                    // Start accessing security-scoped resource
+                    _ = folderURL.startAccessingSecurityScopedResource()
+
+                    return fileURL
+                }
+
+                if !pdfURLs.isEmpty {
+                    DispatchQueue.main.async {
+                        print("Importing \(pdfURLs.count) PDFs from file list (with folder access)")
+                        self.pdfImportData = PDFImportData(urls: pdfURLs)
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        let alert = NSAlert()
+                        alert.messageText = "No Valid PDFs Found"
+                        alert.informativeText = "No valid PDF files were found at the paths in the list. Make sure the files exist and the paths are correct."
+                        alert.alertStyle = .warning
+                        alert.addButton(withTitle: "OK")
+                        alert.runModal()
+                    }
+                }
+
+                // Stop accessing when done (this will happen after import completes)
+                folderURL.stopAccessingSecurityScopedResource()
             }
         }
     }
