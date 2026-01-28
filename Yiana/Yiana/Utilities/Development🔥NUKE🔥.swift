@@ -16,11 +16,14 @@ struct DevelopmentNuke {
     /// Completely wipes all app data
     @MainActor
     func nukeEverything() async {
-        // Only allow if dev mode is enabled
+        // Only allow if dev mode is enabled (in Release builds)
+        // DEBUG builds can always nuke
+        #if !DEBUG
         guard DevModeManager.shared.isEnabled else {
             print("Nuke blocked: Dev mode not enabled")
             return
         }
+        #endif
 
         print("NUKE INITIATED - DELETING ALL DATA")
 

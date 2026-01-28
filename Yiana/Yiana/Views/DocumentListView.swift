@@ -13,6 +13,8 @@ import UniformTypeIdentifiers
 struct PDFImportData: Identifiable {
     let id = UUID()
     let urls: [URL]
+    /// Folder URL that granted security scope access - must be released when import completes
+    var securityScopedFolderURL: URL?
 }
 #endif
 
@@ -370,7 +372,11 @@ struct DocumentListView: View {
             pdfURLs: data.urls,
             folderPath: viewModel.folderPath.joined(separator: "/"),
             isPresented: .constant(false),
-            onDismiss: { pdfImportData = nil }
+            onDismiss: {
+                // Release security-scoped resource access if we had it
+                data.securityScopedFolderURL?.stopAccessingSecurityScopedResource()
+                pdfImportData = nil
+            }
         )
     }
 
@@ -923,6 +929,12 @@ struct DocumentListView: View {
 
         folderPanel.begin { response in
             if response == .OK, let folderURL = folderPanel.url {
+                // Start security scope access ONCE for the folder
+                let didStartAccess = folderURL.startAccessingSecurityScopedResource()
+                if !didStartAccess {
+                    print("Warning: Could not start security-scoped access to folder")
+                }
+
                 // Now we have access to this folder - verify and collect PDFs
                 let pdfURLs: [URL] = pdfPaths.compactMap { path in
                     let fileURL = URL(fileURLWithPath: path)
@@ -934,18 +946,18 @@ struct DocumentListView: View {
                         return nil
                     }
 
-                    // Start accessing security-scoped resource
-                    _ = folderURL.startAccessingSecurityScopedResource()
-
                     return fileURL
                 }
 
                 if !pdfURLs.isEmpty {
                     DispatchQueue.main.async {
                         print("Importing \(pdfURLs.count) PDFs from file list (with folder access)")
-                        self.pdfImportData = PDFImportData(urls: pdfURLs)
+                        // Pass the folder URL so scope can be released when import completes
+                        self.pdfImportData = PDFImportData(urls: pdfURLs, securityScopedFolderURL: folderURL)
                     }
                 } else {
+                    // No valid PDFs - release scope immediately
+                    folderURL.stopAccessingSecurityScopedResource()
                     DispatchQueue.main.async {
                         let alert = NSAlert()
                         alert.messageText = "No Valid PDFs Found"
@@ -955,9 +967,7 @@ struct DocumentListView: View {
                         alert.runModal()
                     }
                 }
-
-                // Stop accessing when done (this will happen after import completes)
-                folderURL.stopAccessingSecurityScopedResource()
+                // NOTE: Don't release scope here - it's released when import completes via onDismiss
             }
         }
     }
