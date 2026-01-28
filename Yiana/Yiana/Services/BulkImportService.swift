@@ -183,29 +183,14 @@ class BulkImportService: ObservableObject {
         }
     }
 
-    /// Check if a file is a duplicate using cached hashes
+    /// Check if a hash already exists in the cache
     /// Returns the existing document URL if duplicate, nil otherwise
-    private func checkForDuplicateFast(url: URL, title: String) -> URL? {
-        // Quick check: if no similar title exists, definitely not a duplicate
-        let hasMatchingTitle = existingTitleCache.contains(title) ||
-            existingTitleCache.contains { $0.hasPrefix(title + " ") }
-
-        guard hasMatchingTitle else {
-            return nil
-        }
-
-        // Compute hash of the new PDF and check cache
-        guard let newPDFData = try? Data(contentsOf: url) else {
-            return nil
-        }
-
-        let newHash = computeDataHash(newPDFData)
-        return existingHashCache[newHash]
+    private func existingDocument(forHash hash: String) -> URL? {
+        return existingHashCache[hash]
     }
 
-    /// Add a newly imported document to the cache
-    private func addToCache(url: URL, pdfData: Data, title: String) {
-        let hash = computeDataHash(pdfData)
+    /// Add a newly imported document to the cache using pre-computed hash
+    private func addToCache(url: URL, hash: String, title: String) {
         existingHashCache[hash] = url
         existingTitleCache.insert(title)
     }
@@ -318,10 +303,17 @@ class BulkImportService: ObservableObject {
                 self.progressSubject.send(progress)
             }
 
-            // Check for duplicates using cached hashes (fast!)
-            if let existingURL = checkForDuplicateFast(url: url, title: title) {
+            // Read PDF data and compute hash ONCE for this file
+            guard let pdfData = try? Data(contentsOf: url) else {
+                failed.append((url, NSError(domain: "BulkImport", code: -1, userInfo: [NSLocalizedDescriptionKey: "Could not read file"])))
+                continue
+            }
+            let pdfHash = computeDataHash(pdfData)
+
+            // Check for duplicates using pre-computed hash (O(1) lookup)
+            if let existingURL = existingDocument(forHash: pdfHash) {
                 skippedDuplicates.append((url: url, existingURL: existingURL))
-                print("⏭️ Skipped duplicate: \(url.lastPathComponent)")
+                print("Skipped duplicate: \(url.lastPathComponent)")
                 continue
             }
 
@@ -330,10 +322,8 @@ class BulkImportService: ObservableObject {
                 let result = try await importWithTimeout(url: url, title: title)
                 successful.append(result)
 
-                // Add to cache so we can detect duplicates within this import batch too
-                if let pdfData = try? Data(contentsOf: url) {
-                    addToCache(url: result.url, pdfData: pdfData, title: title)
-                }
+                // Add to cache using pre-computed hash (no re-read needed)
+                addToCache(url: result.url, hash: pdfHash, title: title)
 
                 // Clean up temporary file if it's in the temp directory
                 if url.path.contains(NSTemporaryDirectory()) {
