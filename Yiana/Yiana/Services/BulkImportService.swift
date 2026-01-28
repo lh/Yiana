@@ -57,7 +57,7 @@ enum ImportPhase {
     case preparing
     case indexingLibrary(current: Int, total: Int)
     case importing(current: Int, total: Int, file: String)
-    case takingBreather(resumeIn: Int)
+    case takingBreather
     case finishing
 
     var description: String {
@@ -69,8 +69,8 @@ enum ImportPhase {
         case .importing(let current, let total, let file):
             let shortName = file.count > 30 ? String(file.prefix(27)) + "..." : file
             return "Importing \(current) of \(total): \(shortName)"
-        case .takingBreather(let seconds):
-            return "Taking a breather... \(seconds)s"
+        case .takingBreather:
+            return "Brief pause..."
         case .finishing:
             return "Wrapping up..."
         }
@@ -119,10 +119,10 @@ class BulkImportService: ObservableObject {
     private let importTimeout: UInt64 = 30_000_000_000
 
     /// How often to take a breather (every N files)
-    private let breatherInterval = 100
+    private let breatherInterval = 25
 
-    /// How long to pause during breather (seconds)
-    private let breatherDuration: UInt64 = 2
+    /// How long to pause during breather (milliseconds)
+    private let breatherDurationMs: UInt64 = 500
 
     /// Cache of existing document hashes (hash -> URL)
     private var existingHashCache: [String: URL] = [:]
@@ -256,21 +256,19 @@ class BulkImportService: ObservableObject {
 
         // Phase 3: Import files
         for (index, url) in urls.enumerated() {
-            // Take a breather every N files
+            // Take a brief breather every N files
             if index > 0 && index % breatherInterval == 0 {
-                for remaining in stride(from: Int(breatherDuration), through: 1, by: -1) {
-                    let breatherProgress = BulkImportProgress(
-                        phase: .takingBreather(resumeIn: remaining),
-                        currentIndex: index,
-                        totalFiles: urls.count,
-                        progress: Double(index) / Double(urls.count)
-                    )
-                    await MainActor.run {
-                        self.currentProgress = breatherProgress
-                        self.progressSubject.send(breatherProgress)
-                    }
-                    try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                let breatherProgress = BulkImportProgress(
+                    phase: .takingBreather,
+                    currentIndex: index,
+                    totalFiles: urls.count,
+                    progress: Double(index) / Double(urls.count)
+                )
+                await MainActor.run {
+                    self.currentProgress = breatherProgress
+                    self.progressSubject.send(breatherProgress)
                 }
+                try? await Task.sleep(nanoseconds: breatherDurationMs * 1_000_000)
             }
 
             // Determine title
@@ -324,7 +322,7 @@ class BulkImportService: ObservableObject {
                 // Handle timeout separately for better reporting
                 if case .timedOut = error {
                     timedOut.append(url)
-                    print("⚠️ Import timed out for: \(url.lastPathComponent)")
+                    print("Import timed out for: \(url.lastPathComponent)")
                 } else {
                     failed.append((url, error))
                 }
