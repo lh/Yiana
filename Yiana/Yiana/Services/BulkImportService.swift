@@ -127,9 +127,6 @@ class BulkImportService: ObservableObject {
     /// Cache of existing document hashes (hash -> URL)
     private var existingHashCache: [String: URL] = [:]
 
-    /// Cache of existing document titles for quick lookup
-    private var existingTitleCache: Set<String> = []
-
     init(folderPath: String = "") {
         self.folderPath = folderPath
         self.importService = ImportService(folderPath: folderPath)
@@ -163,10 +160,6 @@ class BulkImportService: ObservableObject {
                 self.progressSubject.send(progress)
             }
 
-            // Cache the title
-            let title = docURL.deletingPathExtension().lastPathComponent
-            existingTitleCache.insert(title)
-
             // Extract and cache the hash
             autoreleasepool {
                 if let payload = try? DocumentArchive.read(from: docURL),
@@ -190,9 +183,8 @@ class BulkImportService: ObservableObject {
     }
 
     /// Add a newly imported document to the cache using pre-computed hash
-    private func addToCache(url: URL, hash: String, title: String) {
+    private func addToCache(url: URL, hash: String) {
         existingHashCache[hash] = url
-        existingTitleCache.insert(title)
     }
 
     var progressPublisher: AnyPublisher<BulkImportProgress, Never> {
@@ -255,7 +247,6 @@ class BulkImportService: ObservableObject {
 
         // Phase 2: Build hash cache for duplicate detection
         existingHashCache.removeAll()
-        existingTitleCache.removeAll()
         await buildHashCache()
 
         var successful: [ImportResult] = []
@@ -323,7 +314,7 @@ class BulkImportService: ObservableObject {
                 successful.append(result)
 
                 // Add to cache using pre-computed hash (no re-read needed)
-                addToCache(url: result.url, hash: pdfHash, title: title)
+                addToCache(url: result.url, hash: pdfHash)
 
                 // Clean up temporary file if it's in the temp directory
                 if url.path.contains(NSTemporaryDirectory()) {
