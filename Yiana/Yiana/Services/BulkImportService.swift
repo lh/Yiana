@@ -53,14 +53,57 @@ struct BulkImportResult {
     }
 }
 
+enum ImportPhase {
+    case preparing
+    case indexingLibrary(current: Int, total: Int)
+    case importing(current: Int, total: Int, file: String)
+    case takingBreather(resumeIn: Int)
+    case finishing
+
+    var description: String {
+        switch self {
+        case .preparing:
+            return "Warming up..."
+        case .indexingLibrary(let current, let total):
+            return "Checking library (\(current)/\(total))..."
+        case .importing(let current, let total, let file):
+            let shortName = file.count > 30 ? String(file.prefix(27)) + "..." : file
+            return "Importing \(current) of \(total): \(shortName)"
+        case .takingBreather(let seconds):
+            return "Taking a breather... \(seconds)s"
+        case .finishing:
+            return "Wrapping up..."
+        }
+    }
+
+    var funMessage: String? {
+        switch self {
+        case .preparing:
+            return "Brewing..."
+        case .indexingLibrary:
+            return "Memorizing your library..."
+        case .takingBreather:
+            return "Catching breath..."
+        case .finishing:
+            return "Almost there..."
+        default:
+            return nil
+        }
+    }
+}
+
 struct BulkImportProgress {
-    let currentFile: String
+    let phase: ImportPhase
     let currentIndex: Int
     let totalFiles: Int
     let progress: Double
 
     var progressDescription: String {
-        "Processing \(currentIndex) of \(totalFiles): \(currentFile)"
+        phase.description
+    }
+
+    var funDescription: String? {
+        phase.funMessage
     }
 }
 
@@ -75,8 +118,17 @@ class BulkImportService: ObservableObject {
     /// Timeout for individual file imports (30 seconds)
     private let importTimeout: UInt64 = 30_000_000_000
 
-    /// Cache of existing document hashes (filename -> hash)
-    private var existingDocumentHashes: [String: String] = [:]
+    /// How often to take a breather (every N files)
+    private let breatherInterval = 100
+
+    /// How long to pause during breather (seconds)
+    private let breatherDuration: UInt64 = 2
+
+    /// Cache of existing document hashes (hash -> URL)
+    private var existingHashCache: [String: URL] = [:]
+
+    /// Cache of existing document titles for quick lookup
+    private var existingTitleCache: Set<String> = []
 
     init(folderPath: String = "") {
         self.folderPath = folderPath
@@ -89,51 +141,73 @@ class BulkImportService: ObservableObject {
         return hash.compactMap { String(format: "%02x", $0) }.joined()
     }
 
-    /// Find existing document URLs that might match the given title
-    private func findExistingDocuments(withTitle title: String) -> [URL] {
+    /// Pre-scan all existing documents and cache their hashes
+    private func buildHashCache() async {
         let repository = DocumentRepository()
         if !folderPath.isEmpty {
             repository.navigateToFolder(folderPath)
         }
 
         let existingDocs = repository.documentURLs()
-        return existingDocs.filter { docURL in
-            // Check if the document title matches (filename without extension)
-            let existingTitle = docURL.deletingPathExtension().lastPathComponent
-            return existingTitle == title || existingTitle.hasPrefix(title + " ")
+
+        for (index, docURL) in existingDocs.enumerated() {
+            // Update progress
+            let progress = BulkImportProgress(
+                phase: .indexingLibrary(current: index + 1, total: existingDocs.count),
+                currentIndex: index + 1,
+                totalFiles: existingDocs.count,
+                progress: Double(index + 1) / Double(existingDocs.count)
+            )
+            await MainActor.run {
+                self.currentProgress = progress
+                self.progressSubject.send(progress)
+            }
+
+            // Cache the title
+            let title = docURL.deletingPathExtension().lastPathComponent
+            existingTitleCache.insert(title)
+
+            // Extract and cache the hash
+            autoreleasepool {
+                if let payload = try? DocumentArchive.read(from: docURL),
+                   let pdfData = payload.pdfData {
+                    let hash = computeDataHash(pdfData)
+                    existingHashCache[hash] = docURL
+                }
+            }
+
+            // Small yield every 50 to keep UI responsive
+            if index % 50 == 0 {
+                try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
+            }
         }
     }
 
-    /// Check if a file is a duplicate of an existing document
+    /// Check if a file is a duplicate using cached hashes
     /// Returns the existing document URL if duplicate, nil otherwise
-    private func checkForDuplicate(url: URL, title: String) -> URL? {
-        // First check if there are existing documents with the same or similar title
-        let existingURLs = findExistingDocuments(withTitle: title)
-        guard !existingURLs.isEmpty else {
+    private func checkForDuplicateFast(url: URL, title: String) -> URL? {
+        // Quick check: if no similar title exists, definitely not a duplicate
+        let hasMatchingTitle = existingTitleCache.contains(title) ||
+            existingTitleCache.contains { $0.hasPrefix(title + " ") }
+
+        guard hasMatchingTitle else {
             return nil
         }
 
-        // Compute hash of the new PDF
+        // Compute hash of the new PDF and check cache
         guard let newPDFData = try? Data(contentsOf: url) else {
             return nil
         }
+
         let newHash = computeDataHash(newPDFData)
+        return existingHashCache[newHash]
+    }
 
-        // Check each existing document
-        for existingURL in existingURLs {
-            // Extract PDF data from the .yianazip archive
-            guard let payload = try? DocumentArchive.read(from: existingURL),
-                  let existingPDFData = payload.pdfData else {
-                continue
-            }
-
-            let existingHash = computeDataHash(existingPDFData)
-            if newHash == existingHash {
-                return existingURL
-            }
-        }
-
-        return nil
+    /// Add a newly imported document to the cache
+    private func addToCache(url: URL, pdfData: Data, title: String) {
+        let hash = computeDataHash(pdfData)
+        existingHashCache[hash] = url
+        existingTitleCache.insert(title)
     }
 
     var progressPublisher: AnyPublisher<BulkImportProgress, Never> {
@@ -182,75 +256,117 @@ class BulkImportService: ObservableObject {
             isProcessing = true
         }
 
+        // Phase 1: Prepare - show we're starting
+        let prepProgress = BulkImportProgress(
+            phase: .preparing,
+            currentIndex: 0,
+            totalFiles: urls.count,
+            progress: 0
+        )
+        await MainActor.run {
+            self.currentProgress = prepProgress
+            self.progressSubject.send(prepProgress)
+        }
+
+        // Phase 2: Build hash cache for duplicate detection
+        existingHashCache.removeAll()
+        existingTitleCache.removeAll()
+        await buildHashCache()
+
         var successful: [ImportResult] = []
         var failed: [(URL, Error)] = []
         var timedOut: [URL] = []
         var skippedDuplicates: [(url: URL, existingURL: URL)] = []
 
-        // Process in batches for better performance with large numbers
-        let batchSize = 10
-        let batches = stride(from: 0, to: urls.count, by: batchSize).map {
-            Array(urls[$0..<min($0 + batchSize, urls.count)])
-        }
+        // Phase 3: Import files
+        for (index, url) in urls.enumerated() {
+            // Take a breather every N files
+            if index > 0 && index % breatherInterval == 0 {
+                for remaining in stride(from: Int(breatherDuration), through: 1, by: -1) {
+                    let breatherProgress = BulkImportProgress(
+                        phase: .takingBreather(resumeIn: remaining),
+                        currentIndex: index,
+                        totalFiles: urls.count,
+                        progress: Double(index) / Double(urls.count)
+                    )
+                    await MainActor.run {
+                        self.currentProgress = breatherProgress
+                        self.progressSubject.send(breatherProgress)
+                    }
+                    try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                }
+            }
 
-        for (batchIndex, batch) in batches.enumerated() {
-            for (indexInBatch, url) in batch.enumerated() {
-                let index = batchIndex * batchSize + indexInBatch
+            // Determine title
+            let title: String
+            if let titles = titles, index < titles.count {
+                title = titles[index]
+            } else {
+                title = url.deletingPathExtension().lastPathComponent
+            }
 
-                // Determine title
-                let title: String
-                if let titles = titles, index < titles.count {
-                    title = titles[index]
+            // Update progress
+            let progress = BulkImportProgress(
+                phase: .importing(current: index + 1, total: urls.count, file: url.lastPathComponent),
+                currentIndex: index + 1,
+                totalFiles: urls.count,
+                progress: Double(index + 1) / Double(urls.count)
+            )
+
+            await MainActor.run {
+                self.currentProgress = progress
+                self.progressSubject.send(progress)
+            }
+
+            // Check for duplicates using cached hashes (fast!)
+            if let existingURL = checkForDuplicateFast(url: url, title: title) {
+                skippedDuplicates.append((url: url, existingURL: existingURL))
+                print("⏭️ Skipped duplicate: \(url.lastPathComponent)")
+                continue
+            }
+
+            // Import the PDF with timeout protection
+            do {
+                let result = try await importWithTimeout(url: url, title: title)
+                successful.append(result)
+
+                // Add to cache so we can detect duplicates within this import batch too
+                if let pdfData = try? Data(contentsOf: url) {
+                    addToCache(url: result.url, pdfData: pdfData, title: title)
+                }
+
+                // Clean up temporary file if it's in the temp directory
+                if url.path.contains(NSTemporaryDirectory()) {
+                    try? FileManager.default.removeItem(at: url)
+                }
+            } catch let error as BulkImportError {
+                // Handle timeout separately for better reporting
+                if case .timedOut = error {
+                    timedOut.append(url)
+                    print("⚠️ Import timed out for: \(url.lastPathComponent)")
                 } else {
-                    title = url.deletingPathExtension().lastPathComponent
-                }
-
-                // Update progress
-                let progress = BulkImportProgress(
-                    currentFile: url.lastPathComponent,
-                    currentIndex: index + 1,
-                    totalFiles: urls.count,
-                    progress: Double(index + 1) / Double(urls.count)
-                )
-
-                await MainActor.run {
-                    self.currentProgress = progress
-                    self.progressSubject.send(progress)
-                }
-
-                // Check for duplicates before importing
-                if let existingURL = checkForDuplicate(url: url, title: title) {
-                    skippedDuplicates.append((url: url, existingURL: existingURL))
-                    print("⏭️ Skipped duplicate: \(url.lastPathComponent)")
-                    continue
-                }
-
-                // Import the PDF with timeout protection
-                do {
-                    let result = try await importWithTimeout(url: url, title: title)
-                    successful.append(result)
-
-                    // Clean up temporary file if it's in the temp directory
-                    if url.path.contains(NSTemporaryDirectory()) {
-                        try? FileManager.default.removeItem(at: url)
-                    }
-                } catch let error as BulkImportError {
-                    // Handle timeout separately for better reporting
-                    if case .timedOut = error {
-                        timedOut.append(url)
-                        print("⚠️ Import timed out for: \(url.lastPathComponent)")
-                    } else {
-                        failed.append((url, error))
-                    }
-                } catch {
                     failed.append((url, error))
                 }
+            } catch {
+                failed.append((url, error))
             }
 
-            // Small delay between batches to prevent overwhelming the system
-            if batchIndex < batches.count - 1 {
-                try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds between batches
+            // Small yield every 10 files to keep things smooth
+            if index % 10 == 0 {
+                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
             }
+        }
+
+        // Phase 4: Finishing up
+        let finishProgress = BulkImportProgress(
+            phase: .finishing,
+            currentIndex: urls.count,
+            totalFiles: urls.count,
+            progress: 1.0
+        )
+        await MainActor.run {
+            self.currentProgress = finishProgress
+            self.progressSubject.send(finishProgress)
         }
 
         await MainActor.run {

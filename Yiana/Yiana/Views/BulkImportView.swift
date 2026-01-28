@@ -97,22 +97,7 @@ struct BulkImportView: View {
             // Progress or Action buttons
             VStack(spacing: 12) {
                 if isImporting {
-                    if let progress = importService.currentProgress {
-                        VStack(spacing: 8) {
-                            ProgressView(value: progress.progress) {
-                                Text(progress.progressDescription)
-                                    .font(.caption)
-                            }
-                            .progressViewStyle(.linear)
-
-                            Text("\(Int(progress.progress * 100))%")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    } else {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                    }
+                    ImportProgressView(progress: importService.currentProgress)
                 } else {
                     HStack(spacing: 12) {
                         Button("Cancel") {
@@ -181,6 +166,35 @@ struct BulkImportView: View {
                     showingResults = true
                 }
             }
+        }
+    }
+}
+
+struct ImportProgressView: View {
+    let progress: BulkImportProgress?
+
+    var body: some View {
+        if let progress = progress {
+            VStack(spacing: 8) {
+                if let funMessage = progress.funDescription {
+                    Text(funMessage)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+
+                ProgressView(value: progress.progress) {
+                    Text(progress.progressDescription)
+                        .font(.caption)
+                }
+                .progressViewStyle(.linear)
+
+                Text("\(Int(progress.progress * 100))%")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        } else {
+            ProgressView()
+                .scaleEffect(0.8)
         }
     }
 }
