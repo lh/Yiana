@@ -143,13 +143,13 @@ struct DocumentListView: View {
     @ViewBuilder
     private var mainContent: some View {
         if downloadManager.isDownloading &&
-            viewModel.documentURLs.isEmpty &&
+            viewModel.documents.isEmpty &&
             viewModel.folderURLs.isEmpty &&
             viewModel.otherFolderResults.isEmpty {
             downloadingStateView
-        } else if viewModel.isLoading && viewModel.documentURLs.isEmpty && viewModel.folderURLs.isEmpty {
+        } else if viewModel.isLoading && viewModel.documents.isEmpty && viewModel.folderURLs.isEmpty {
             downloadingStateView
-        } else if viewModel.isSearchInProgress && viewModel.documentURLs.isEmpty && viewModel.folderURLs.isEmpty && viewModel.otherFolderResults.isEmpty {
+        } else if viewModel.isSearchInProgress && viewModel.documents.isEmpty && viewModel.folderURLs.isEmpty && viewModel.otherFolderResults.isEmpty {
             VStack(spacing: 20) {
                 ProgressView()
                     .scaleEffect(1.5)
@@ -158,7 +158,7 @@ struct DocumentListView: View {
                     .foregroundColor(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if viewModel.documentURLs.isEmpty && viewModel.folderURLs.isEmpty && viewModel.otherFolderResults.isEmpty && !viewModel.isSearchInProgress {
+        } else if viewModel.documents.isEmpty && viewModel.folderURLs.isEmpty && viewModel.otherFolderResults.isEmpty && !viewModel.isSearchInProgress {
             emptyStateView
         } else {
             documentList
@@ -166,7 +166,7 @@ struct DocumentListView: View {
     }
 
     private var contentCountKey: Int {
-        viewModel.documentURLs.count + viewModel.folderURLs.count + viewModel.otherFolderResults.count
+        viewModel.documents.count + viewModel.folderURLs.count + viewModel.otherFolderResults.count
     }
 
     private var downloadingStateView: some View {
@@ -241,10 +241,10 @@ struct DocumentListView: View {
     private func deleteDocuments(at offsets: IndexSet) {
         Task {
             for index in offsets {
-                let url = viewModel.documentURLs[index]
+                let item = viewModel.documents[index]
                 do {
-                    try await viewModel.deleteDocument(at: url)
-                    AccessibilityAnnouncer.shared.post("Deleted document \(url.deletingPathExtension().lastPathComponent)")
+                    try await viewModel.deleteDocument(at: item.url)
+                    AccessibilityAnnouncer.shared.post("Deleted document \(item.title)")
                 } catch {
                     viewModel.errorMessage = error.localizedDescription
                     showingError = true
@@ -478,13 +478,13 @@ struct DocumentListView: View {
 
     @ViewBuilder
     private var documentsSection: some View {
-        if !viewModel.documentURLs.isEmpty {
+        if !viewModel.documents.isEmpty {
             Section(viewModel.isSearching ? "In This Folder" : "Documents") {
-                ForEach(viewModel.documentURLs, id: \.self) { url in
-                    documentNavigationRow(for: url)
+                ForEach(viewModel.documents) { item in
+                    documentNavigationRow(for: item)
                         .swipeActions(edge: .leading, allowsFullSwipe: true) {
                             Button {
-                                duplicateDocument(url)
+                                duplicateDocument(item.url)
                             } label: {
                                 Label("Duplicate", systemImage: "doc.on.doc")
                             }
@@ -492,7 +492,7 @@ struct DocumentListView: View {
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
-                                documentToDelete = url
+                                documentToDelete = item.url
                                 showingDeleteConfirmation = true
                             } label: {
                                 Label("Delete", systemImage: "trash")
@@ -508,11 +508,11 @@ struct DocumentListView: View {
     private var otherFoldersSection: some View {
         if viewModel.isSearching && !viewModel.otherFolderResults.isEmpty {
             Section("In Other Folders") {
-                ForEach(viewModel.otherFolderResults, id: \.url) { result in
-                    let searchResult = viewModel.searchResults.first { $0.documentURL == result.url }
-                    NavigationLink(value: DocumentNavigationData(url: result.url, searchResult: searchResult)) {
+                ForEach(viewModel.otherFolderResults, id: \.item.id) { result in
+                    let searchResult = viewModel.searchResults.first { $0.documentURL == result.item.url }
+                    NavigationLink(value: DocumentNavigationData(url: result.item.url, searchResult: searchResult)) {
                         DocumentRow(
-                            url: result.url,
+                            item: result.item,
                             searchResult: searchResult,
                             secondaryText: result.path
                         )
@@ -567,15 +567,24 @@ struct DocumentListView: View {
     }
 
     @ViewBuilder
-    private func documentNavigationRow(for url: URL) -> some View {
-        let searchResult = viewModel.searchResults.first { $0.documentURL == url }
-        if let result = searchResult {
-            NavigationLink(value: DocumentNavigationData(url: url, searchResult: result)) {
-                DocumentRow(url: url, searchResult: result)
+    private func documentNavigationRow(for item: DocumentListItem) -> some View {
+        if item.isPlaceholder {
+            Button {
+                try? FileManager.default.startDownloadingUbiquitousItem(at: item.url)
+            } label: {
+                DocumentRow(item: item, searchResult: nil)
             }
+            .buttonStyle(.plain)
         } else {
-            NavigationLink(value: url) {
-                DocumentRow(url: url, searchResult: nil)
+            let searchResult = viewModel.searchResults.first { $0.documentURL == item.url }
+            if let result = searchResult {
+                NavigationLink(value: DocumentNavigationData(url: item.url, searchResult: result)) {
+                    DocumentRow(item: item, searchResult: result)
+                }
+            } else {
+                NavigationLink(value: item.url) {
+                    DocumentRow(item: item, searchResult: nil)
+                }
             }
         }
     }
@@ -614,6 +623,13 @@ struct DocumentListView: View {
                     Label("Import PDFs...", systemImage: "square.and.arrow.down.on.square")
                 }
                 .keyboardShortcut("I", modifiers: [.command, .shift])
+                .help("Import up to 10 PDF files")
+
+                Button(action: selectFolderForImport) {
+                    Label("Import from Folder...", systemImage: "folder.badge.plus")
+                }
+                .keyboardShortcut("I", modifiers: [.command, .option])
+                .help("Import all PDFs from a folder (for bulk imports)")
 
                 Button(action: importFromFileList) {
                     Label("Import from File List...", systemImage: "list.bullet.rectangle")
@@ -838,11 +854,22 @@ struct DocumentListView: View {
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
-        panel.message = "Select PDF files to import"
+        panel.message = "Select up to 10 PDF files to import (use 'Import from Folder' for more)"
         panel.prompt = "Import"
 
         panel.begin { response in
             if response == .OK && !panel.urls.isEmpty {
+                if panel.urls.count > 10 {
+                    // Show alert guiding user to folder import
+                    DispatchQueue.main.async {
+                        let alert = NSAlert()
+                        alert.messageText = "Too Many Files Selected"
+                        alert.informativeText = "For importing more than 10 files, please use 'Import from Folder' instead. This ensures reliable importing of large collections."
+                        alert.addButton(withTitle: "OK")
+                        alert.runModal()
+                    }
+                    return
+                }
                 print("Selected PDFs: \(panel.urls)")
                 // Create PDFImportData which will trigger the sheet
                 DispatchQueue.main.async {
@@ -850,6 +877,74 @@ struct DocumentListView: View {
                 }
             }
         }
+    }
+
+    /// Import PDFs from a folder (for bulk imports > 10 files)
+    /// Uses a single folder-level sandbox extension, avoiding per-file limits
+    private func selectFolderForImport() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.message = "Select a folder containing PDF files to import"
+        panel.prompt = "Import Folder"
+
+        panel.begin { response in
+            if response == .OK, let folderURL = panel.url {
+                // Start security-scoped access to folder
+                guard folderURL.startAccessingSecurityScopedResource() else {
+                    DispatchQueue.main.async {
+                        let alert = NSAlert()
+                        alert.messageText = "Access Denied"
+                        alert.informativeText = "Could not access the selected folder. Please try again."
+                        alert.addButton(withTitle: "OK")
+                        alert.runModal()
+                    }
+                    return
+                }
+
+                // Scan folder for PDF files (top-level only)
+                let pdfURLs = self.findPDFs(in: folderURL)
+
+                if pdfURLs.isEmpty {
+                    folderURL.stopAccessingSecurityScopedResource()
+                    DispatchQueue.main.async {
+                        let alert = NSAlert()
+                        alert.messageText = "No PDFs Found"
+                        alert.informativeText = "The selected folder does not contain any PDF files."
+                        alert.addButton(withTitle: "OK")
+                        alert.runModal()
+                    }
+                    return
+                }
+
+                print("Found \(pdfURLs.count) PDFs in folder: \(folderURL.path)")
+
+                DispatchQueue.main.async {
+                    // Pass folder URL for cleanup when import completes
+                    self.pdfImportData = PDFImportData(
+                        urls: pdfURLs,
+                        securityScopedFolderURL: folderURL
+                    )
+                }
+            }
+        }
+    }
+
+    /// Find all PDF files in a folder (non-recursive)
+    private func findPDFs(in folderURL: URL) -> [URL] {
+        let fileManager = FileManager.default
+        guard let contents = try? fileManager.contentsOfDirectory(
+            at: folderURL,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return []
+        }
+
+        return contents.filter { url in
+            url.pathExtension.lowercased() == "pdf"
+        }.sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
     private func importFromFileList() {
@@ -1017,40 +1112,15 @@ struct DocumentListView: View {
     #endif
 }
 
-// Simple row view for document
+// Simple row view for document -- driven entirely by DocumentListItem (no ZIP opens)
 struct DocumentRow: View {
-    let url: URL
+    let item: DocumentListItem
     let searchResult: SearchResult?
     let secondaryText: String?
     @State private var statusColor: Color = Color.gray.opacity(0.5)
-    private let pinnedTag = "pinned"
 
-    private var metadata: DocumentMetadata? {
-        try? NoteDocument.extractMetadata(from: url)
-    }
-
-    private var accessibilityTitle: String {
-        metadata?.title ?? url.deletingPathExtension().lastPathComponent
-    }
-
-    private var accessibilityModifiedDate: Date {
-        if let metadataDate = metadata?.modified {
-            return metadataDate
-        }
-        if let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
-           let modDate = attributes[.modificationDate] as? Date {
-            return modDate
-        }
-        return Date.distantPast
-    }
-
-    private var isPinned: Bool {
-        let tags = metadata?.tags ?? []
-        return tags.contains { $0.caseInsensitiveCompare(pinnedTag) == .orderedSame }
-    }
-
-    init(url: URL, searchResult: SearchResult? = nil, secondaryText: String? = nil) {
-        self.url = url
+    init(item: DocumentListItem, searchResult: SearchResult? = nil, secondaryText: String? = nil) {
+        self.item = item
         self.searchResult = searchResult
         self.secondaryText = secondaryText
     }
@@ -1063,21 +1133,23 @@ struct DocumentRow: View {
                     .fill(statusColor)
                     .frame(width: 1.5)
             } else {
-                // No status indicator during search
                 Color.clear
                     .frame(width: 1.5)
             }
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 4) {
-                    // Search indicator
-                    if let result = searchResult {
+                    if item.isPlaceholder {
+                        Image(systemName: "icloud.and.arrow.down")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else if let result = searchResult {
                         Image(systemName: result.matchType == .content ? "doc.text.magnifyingglass" : "textformat")
                             .font(.caption)
                             .foregroundColor(.blue)
                     }
 
-                    Text(url.deletingPathExtension().lastPathComponent)
+                    Text(item.url.deletingPathExtension().lastPathComponent)
                         .font(.headline)
                         .lineLimit(1)
                 }
@@ -1113,29 +1185,25 @@ struct DocumentRow: View {
         }
         .task {
             if searchResult == nil {
-                await loadStatus()
+                loadStatus()
             }
         }
         .documentRowAccessibility(
-            title: accessibilityTitle,
-            modified: accessibilityModifiedDate,
-            pageCount: metadata?.pageCount,
-            isPinned: isPinned,
-            hasUnsavedChanges: metadata?.hasPendingTextPage ?? false
+            title: item.title,
+            modified: item.modifiedDate,
+            pageCount: item.pageCount,
+            isPinned: item.isPinned,
+            hasUnsavedChanges: item.hasPendingTextPage
         )
     }
 
     private var formattedDate: String {
-        // Get file modification date if available
-        if let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
-           let modDate = attributes[.modificationDate] as? Date {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .medium
-            formatter.timeStyle = .short
-            return formatter.string(from: modDate)
-        }
-        return url.lastPathComponent
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: item.modifiedDate)
     }
+
     private func highlightedSnippet(_ snippet: String, searchTerm: String?) -> AttributedString {
         var attributed = AttributedString(snippet)
 
@@ -1143,13 +1211,11 @@ struct DocumentRow: View {
             return attributed
         }
 
-        // Case-insensitive search for all occurrences
         let lowercasedSnippet = snippet.lowercased()
         let lowercasedTerm = searchTerm.lowercased()
         var searchStartIndex = lowercasedSnippet.startIndex
 
         while searchStartIndex < lowercasedSnippet.endIndex {
-            // Find next occurrence from current position
             guard let range = lowercasedSnippet.range(
                 of: lowercasedTerm,
                 options: [],
@@ -1158,23 +1224,20 @@ struct DocumentRow: View {
                 break
             }
 
-            // Convert String.Index to AttributedString.Index
             if let attrRange = Range(range, in: attributed) {
                 attributed[attrRange].foregroundColor = .blue
                 attributed[attrRange].backgroundColor = .blue.opacity(0.1)
                 attributed[attrRange].font = .caption.bold()
             }
 
-            // Move search position forward
             searchStartIndex = range.upperBound
         }
 
         return attributed
     }
 
-    @MainActor
-    private func loadStatus() async {
-        let state = downloadState(for: url)
+    private func loadStatus() {
+        let state = downloadState(for: item.url)
         switch state {
         case .pending, .downloading:
             statusColor = Color.gray.opacity(0.5)
@@ -1186,22 +1249,10 @@ struct DocumentRow: View {
             break
         }
 
-        guard let metadata = try? NoteDocument.extractMetadata(from: url) else {
-            statusColor = .red
-            return
-        }
-
-        if metadata.pageCount == 0 {
+        if item.pageCount == 0 {
             statusColor = .gray
-            return
-        }
-
-        let isIndexed = (try? await SearchIndexService.shared.isDocumentIndexed(id: metadata.id)) ?? false
-
-        if metadata.ocrCompleted && isIndexed {
+        } else if item.ocrCompleted {
             statusColor = .green
-        } else if metadata.ocrCompleted && !isIndexed {
-            statusColor = .orange
         } else {
             statusColor = .red
         }

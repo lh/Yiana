@@ -11,6 +11,7 @@ import Foundation
 extension Notification.Name {
     static let yianaOpenURL = Notification.Name("yianaOpenURL")
     static let yianaDocumentsChanged = Notification.Name("yianaDocumentsChanged")
+    static let yianaDocumentsDownloaded = Notification.Name("yianaDocumentsDownloaded")
 }
 
 #if os(iOS)

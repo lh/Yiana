@@ -55,6 +55,7 @@ struct DuplicateScanProgress {
 
 class DuplicateScanner: ObservableObject {
     @Published var isScanning = false
+    @Published var hasScanned = false
     @Published var progress: DuplicateScanProgress?
     @Published var duplicateGroups: [DuplicateGroup] = []
 
@@ -135,6 +136,7 @@ class DuplicateScanner: ObservableObject {
         await MainActor.run {
             self.duplicateGroups = finalGroups
             self.isScanning = false
+            self.hasScanned = true
             self.progress = nil
         }
     }
@@ -147,6 +149,7 @@ class DuplicateScanner: ObservableObject {
         for doc in documents {
             do {
                 try FileManager.default.removeItem(at: doc.url)
+                try? await SearchIndexService.shared.removeDocumentByURL(doc.url)
                 deleted += 1
             } catch {
                 print("Failed to delete \(doc.url.lastPathComponent): \(error)")

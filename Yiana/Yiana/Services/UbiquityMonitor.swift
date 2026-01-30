@@ -19,6 +19,8 @@ final class UbiquityMonitor: NSObject {
     private var queryObservers: [NSObjectProtocol] = []
     private var identityObserver: NSObjectProtocol?
     private var knownDocuments: Set<URL> = []
+    /// Tracks per-file download status across query updates
+    private var downloadStates: [URL: String] = [:]
     private var retryWorkItem: DispatchWorkItem?
     private var isRunningInternal = false
 
@@ -117,6 +119,7 @@ final class UbiquityMonitor: NSObject {
 
         queryObservers = [finishObserver, updateObserver]
         knownDocuments.removeAll()
+        downloadStates.removeAll()
 
         log("Starting metadata query")
         query.start()
@@ -138,6 +141,7 @@ final class UbiquityMonitor: NSObject {
         query?.stop()
         query = nil
         knownDocuments.removeAll()
+        downloadStates.removeAll()
 
         queryObservers.forEach { notificationCenter.removeObserver($0) }
         queryObservers.removeAll()
@@ -167,6 +171,7 @@ final class UbiquityMonitor: NSObject {
         defer { query.enableUpdates() }
 
         var currentDocuments: Set<URL> = []
+        var newlyDownloadedURLs: [URL] = []
 
         for case let item as NSMetadataItem in query.results {
             guard
@@ -174,22 +179,55 @@ final class UbiquityMonitor: NSObject {
                 url.pathExtension == "yianazip"
             else { continue }
 
-            currentDocuments.insert(url.standardizedFileURL)
+            let standardURL = url.standardizedFileURL
+            currentDocuments.insert(standardURL)
+
+            // Track download state transitions
+            let statusString = (item.value(forAttribute: NSMetadataUbiquitousItemDownloadingStatusKey) as? String) ?? ""
+            let previousStatus = downloadStates[standardURL]
+            downloadStates[standardURL] = statusString
+
+            let isDownloaded = statusString == NSMetadataUbiquitousItemDownloadingStatusCurrent
+                || statusString == NSMetadataUbiquitousItemDownloadingStatusDownloaded
+            let wasNotDownloaded = previousStatus == nil
+                || previousStatus == NSMetadataUbiquitousItemDownloadingStatusNotDownloaded
+                || previousStatus == ""
+
+            if isDownloaded && wasNotDownloaded && previousStatus != nil {
+                newlyDownloadedURLs.append(standardURL)
+            }
+        }
+
+        // Clean up download states for removed files
+        let removed = knownDocuments.subtracting(currentDocuments)
+        for url in removed {
+            downloadStates.removeValue(forKey: url)
         }
 
         let added = currentDocuments.subtracting(knownDocuments)
-        let removed = knownDocuments.subtracting(currentDocuments)
 
-        if added.isEmpty && removed.isEmpty {
+        if added.isEmpty && removed.isEmpty && newlyDownloadedURLs.isEmpty {
             return
         }
 
         knownDocuments = currentDocuments
 
-        log("Documents changed (added: \(added.count), removed: \(removed.count))")
+        if !added.isEmpty || !removed.isEmpty {
+            log("Documents changed (added: \(added.count), removed: \(removed.count))")
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .yianaDocumentsChanged, object: nil)
+            }
+        }
 
-        DispatchQueue.main.async {
-            NotificationCenter.default.post(name: .yianaDocumentsChanged, object: nil)
+        if !newlyDownloadedURLs.isEmpty {
+            log("Documents downloaded: \(newlyDownloadedURLs.count)")
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(
+                    name: .yianaDocumentsDownloaded,
+                    object: nil,
+                    userInfo: ["urls": newlyDownloadedURLs]
+                )
+            }
         }
     }
 
