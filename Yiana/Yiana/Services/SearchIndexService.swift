@@ -20,6 +20,9 @@ enum SortColumn: String {
 class SearchIndexService {
     static let shared = SearchIndexService()
 
+    /// Public reader for ValueObservation consumers
+    var reader: any DatabaseReader { dbQueue }
+
     private var dbQueue: DatabaseQueue
     private let databaseURL: URL
 
@@ -408,6 +411,49 @@ class SearchIndexService {
                 isPlaceholder: true
             )
             try metadataRecord.insert(database, onConflict: .ignore)
+        }
+    }
+
+    /// Batch-insert placeholder documents in a single transaction.
+    /// Uses INSERT OR IGNORE so existing entries (placeholder or real) are not overwritten.
+    func indexPlaceholdersBatch(_ placeholders: [(id: UUID, url: URL, title: String, folderPath: String)]) async throws {
+        guard !placeholders.isEmpty else { return }
+        try await dbQueue.write { database in
+            for p in placeholders {
+                let existingCount = try Int.fetchOne(
+                    database,
+                    sql: "SELECT COUNT(*) FROM documents_metadata WHERE url = ?",
+                    arguments: [p.url.path]
+                ) ?? 0
+
+                guard existingCount == 0 else { continue }
+
+                let ftsRecord = DocumentFTSRecord(
+                    documentId: p.id.uuidString,
+                    title: p.title,
+                    fullText: "",
+                    tags: ""
+                )
+                try ftsRecord.insert(database, onConflict: .ignore)
+
+                let now = Date().timeIntervalSince1970
+                let metadataRecord = DocumentMetadataRecord(
+                    documentId: p.id.uuidString,
+                    url: p.url.path,
+                    createdDate: now,
+                    modifiedDate: now,
+                    pageCount: 0,
+                    ocrCompleted: false,
+                    indexedDate: now,
+                    title: p.title,
+                    folderPath: p.folderPath,
+                    fileSize: 0,
+                    hasPendingTextPage: false,
+                    tagsCsv: "",
+                    isPlaceholder: true
+                )
+                try metadataRecord.insert(database, onConflict: .ignore)
+            }
         }
     }
 

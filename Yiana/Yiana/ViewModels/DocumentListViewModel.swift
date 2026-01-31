@@ -7,8 +7,8 @@ import Foundation
 import SwiftUI
 import PDFKit
 import YianaDocumentArchive
-
 import Combine
+import GRDB
 
 enum SortOption: String, CaseIterable {
     case title = "Title"
@@ -69,6 +69,9 @@ class DocumentListViewModel: ObservableObject {
     private var currentSortAscending = true
     private let searchIndex = SearchIndexService.shared
 
+    // GRDB ValueObservation for automatic list updates
+    private var observationCancellable: AnyDatabaseCancellable?
+
     // Search debouncing and cancellation
     private var searchTask: Task<Void, Never>?
     private var searchDebounceTask: Task<Void, Never>?
@@ -89,54 +92,61 @@ class DocumentListViewModel: ObservableObject {
 
         currentFolderName = repository.currentFolderName
         folderPath = repository.folderPathComponents
+        folderURLs = allFolderURLs
 
-        // Query documents from the DB for the current folder
-        let dbFolderPath = repository.currentFolderPath
-
-        // Count iCloud placeholders from DB
-        let placeholderCount = (try? await searchIndex.placeholderCount(folderPath: dbFolderPath)) ?? 0
-        syncingDocumentCount = placeholderCount
-        do {
-            let records = try await searchIndex.documentsInFolder(
-                folderPath: dbFolderPath,
-                sortBy: currentSortOption.sortColumn,
-                ascending: currentSortAscending
-            )
-            let items = records.map { DocumentListItem(record: $0) }
-
-            if currentSearchText.isEmpty {
-                documents = items
-                folderURLs = allFolderURLs
-                otherFolderResults = []
-                searchResults = []
-                isSearching = false
-            } else {
-                // Re-apply active search filter
-                await applyFilter()
-            }
-
-            // If DB returned no non-placeholder items but folder has real documents, trigger indexing
-            let nonPlaceholderCount = items.filter { !$0.isPlaceholder }.count
-            if nonPlaceholderCount == 0 && placeholderCount > 0 {
-                #if DEBUG
-                print("DB has only placeholders (\(placeholderCount)) -- BackgroundIndexer should rebuild when downloads complete")
-                #endif
-            }
-        } catch {
-            #if DEBUG
-            print("Failed to load documents from DB: \(error)")
-            #endif
-            documents = []
-        }
-
-        #if DEBUG
-        if placeholderCount > 0 {
-            print("DEBUG: Filtering \(placeholderCount) iCloud placeholder files")
-        }
-        print("DEBUG: Current folder: \(repository.currentFolderPath), documents: \(documents.count)")
-        #endif
+        // Start GRDB ValueObservation -- it will push document updates automatically
+        observeDocuments()
 
         isLoading = false
+    }
+
+    /// Start (or restart) a ValueObservation that pushes document list updates
+    /// whenever the underlying DB rows change. GRDB coalesces rapid writes
+    /// so we get far fewer callbacks than raw notification-based reloads.
+    private func observeDocuments() {
+        observationCancellable?.cancel()
+
+        // Don't observe while searching -- search has its own query path
+        guard currentSearchText.isEmpty else { return }
+
+        let folder = repository.currentFolderPath
+        let sort = currentSortOption.sortColumn
+        let asc = currentSortAscending
+
+        let orderColumn: String
+        switch sort {
+        case .title: orderColumn = "title"
+        case .dateModified: orderColumn = "modified_date"
+        case .dateCreated: orderColumn = "created_date"
+        case .fileSize: orderColumn = "file_size"
+        }
+        let orderDirection = asc ? "ASC" : "DESC"
+
+        let observation = ValueObservation.tracking { db in
+            let sql = """
+                SELECT * FROM documents_metadata
+                WHERE folder_path = ?
+                ORDER BY \(orderColumn) \(orderDirection)
+                """
+            return try SearchIndexService.DocumentMetadataRecord
+                .fetchAll(db, sql: sql, arguments: [folder])
+        }
+
+        observationCancellable = observation.start(
+            in: SearchIndexService.shared.reader,
+            scheduling: .immediate
+        ) { error in
+            #if DEBUG
+            print("ValueObservation error: \(error)")
+            #endif
+        } onChange: { [weak self] records in
+            guard let self else { return }
+            #if DEBUG
+            SyncPerfLog.shared.countObservation()
+            #endif
+            self.documents = records.map { DocumentListItem(record: $0) }
+            self.syncingDocumentCount = records.filter(\.isPlaceholder).count
+        }
     }
 
     func createNewDocument(title: String) async -> URL? {
@@ -174,8 +184,13 @@ class DocumentListViewModel: ObservableObject {
         }
     }
 
+    /// Refresh folder list only. Document list updates automatically via ValueObservation.
     func refresh() async {
-        await loadDocuments()
+        allFolderURLs = repository.folderURLs()
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+        if currentSearchText.isEmpty {
+            folderURLs = allFolderURLs
+        }
     }
 
     // MARK: - Sorting
@@ -184,20 +199,9 @@ class DocumentListViewModel: ObservableObject {
         currentSortOption = option
         currentSortAscending = ascending
 
-        // Re-query from DB with new sort order (no in-memory sorting needed)
+        // Restart observation with new sort order
         if !isSearching {
-            do {
-                let records = try await searchIndex.documentsInFolder(
-                    folderPath: repository.currentFolderPath,
-                    sortBy: option.sortColumn,
-                    ascending: ascending
-                )
-                documents = records.map { DocumentListItem(record: $0) }
-            } catch {
-                #if DEBUG
-                print("Failed to re-sort from DB: \(error)")
-                #endif
-            }
+            observeDocuments()
         }
     }
 
@@ -478,6 +482,10 @@ class DocumentListViewModel: ObservableObject {
             return
         }
 
+        // Cancel observation while searching -- search has its own query path
+        observationCancellable?.cancel()
+        observationCancellable = nil
+
         // Bypass debounce in tests
         if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
             await performSearch(searchText: searchText)
@@ -513,25 +521,13 @@ class DocumentListViewModel: ObservableObject {
 
     private func applyFilter() async {
         if currentSearchText.isEmpty {
-            // No filter -- re-query the DB for current folder
-            do {
-                let records = try await searchIndex.documentsInFolder(
-                    folderPath: repository.currentFolderPath,
-                    sortBy: currentSortOption.sortColumn,
-                    ascending: currentSortAscending
-                )
-                await MainActor.run {
-                    isSearching = false
-                    documents = records.map { DocumentListItem(record: $0) }
-                    folderURLs = allFolderURLs
-                    otherFolderResults = []
-                    searchResults = []
-                }
-            } catch {
-                #if DEBUG
-                print("Failed to query DB: \(error)")
-                #endif
-            }
+            // No filter -- restart observation for automatic updates
+            isSearching = false
+            folderURLs = allFolderURLs
+            otherFolderResults = []
+            searchResults = []
+            observeDocuments()
+            return
         } else {
             guard !Task.isCancelled else { return }
 
