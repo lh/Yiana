@@ -22,6 +22,8 @@ final class UbiquityMonitor: NSObject {
     private var knownDocuments: Set<URL> = []
     /// Tracks per-file download status across query updates
     private var downloadStates: [URL: String] = [:]
+    /// Tracks per-file content version to detect remote content updates
+    private var contentVersions: [URL: Date] = [:]
     private var retryWorkItem: DispatchWorkItem?
     private var isRunningInternal = false
     /// After the initial gather seeds all placeholders, subsequent updates only seed newly added items
@@ -301,7 +303,7 @@ final class UbiquityMonitor: NSObject {
             downloadStates[standardURL] = statusString
         }
 
-        // Process changed items — only care about download state transitions
+        // Process changed items — reindex on download state transitions or content updates
         for item in changedItems {
             guard
                 let url = item.value(forAttribute: NSMetadataItemURLKey) as? URL,
@@ -320,7 +322,16 @@ final class UbiquityMonitor: NSObject {
                 || previousStatus == ""
 
             if isDownloaded && wasNotDownloaded {
+                // New download — always reindex
                 newlyDownloadedURLs.append(standardURL)
+            } else if isDownloaded {
+                // Already downloaded — only reindex if content actually changed
+                let modDate = item.value(forAttribute: NSMetadataItemFSContentChangeDateKey) as? Date
+                let previousDate = contentVersions[standardURL]
+                if let modDate, modDate != previousDate {
+                    contentVersions[standardURL] = modDate
+                    newlyDownloadedURLs.append(standardURL)
+                }
             }
         }
 
