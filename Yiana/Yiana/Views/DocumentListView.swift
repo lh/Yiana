@@ -629,7 +629,7 @@ struct DocumentListView: View {
                     Label("Import PDFs...", systemImage: "square.and.arrow.down.on.square")
                 }
                 .keyboardShortcut("I", modifiers: [.command, .shift])
-                .help("Import up to 10 PDF files")
+                .help("Import up to 100 PDF files")
 
                 Button(action: selectFolderForImport) {
                     Label("Import from Folder...", systemImage: "folder.badge.plus")
@@ -860,17 +860,17 @@ struct DocumentListView: View {
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
-        panel.message = "Select up to 10 PDF files to import (use 'Import from Folder' for more)"
+        panel.message = "Select up to 100 PDF files to import (use 'Import from Folder' for more)"
         panel.prompt = "Import"
 
         panel.begin { response in
             if response == .OK && !panel.urls.isEmpty {
-                if panel.urls.count > 10 {
+                if panel.urls.count > 100 {
                     // Show alert guiding user to folder import
                     DispatchQueue.main.async {
                         let alert = NSAlert()
                         alert.messageText = "Too Many Files Selected"
-                        alert.informativeText = "For importing more than 10 files, please use 'Import from Folder' instead. This ensures reliable importing of large collections."
+                        alert.informativeText = "For importing more than 100 files, please use 'Import from Folder' instead. This ensures reliable importing of large collections."
                         alert.addButton(withTitle: "OK")
                         alert.runModal()
                     }
@@ -885,7 +885,7 @@ struct DocumentListView: View {
         }
     }
 
-    /// Import PDFs from a folder (for bulk imports > 10 files)
+    /// Import PDFs from a folder (for bulk imports > 100 files)
     /// Uses a single folder-level sandbox extension, avoiding per-file limits
     private func selectFolderForImport() {
         let panel = NSOpenPanel()
