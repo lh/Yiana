@@ -408,18 +408,32 @@ struct DocumentListView: View {
 
         // Coordinated read forces high-priority download
         let startTime = CFAbsoluteTimeGetCurrent()
+        let standardURL = url.standardizedFileURL
         print("[Download] Starting coordinated read for \(filename)...")
         Task.detached(priority: .userInitiated) {
             let coordinator = NSFileCoordinator()
-            var error: NSError?
-            coordinator.coordinate(readingItemAt: url, options: [], error: &error) { readURL in
+            var coordError: NSError?
+            var succeeded = false
+            coordinator.coordinate(readingItemAt: url, options: [], error: &coordError) { readURL in
                 let elapsed = CFAbsoluteTimeGetCurrent() - startTime
                 let size = (try? readURL.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
                 print("[Download] Coordinated read completed for \(filename) in \(String(format: "%.1f", elapsed))s, size: \(size) bytes")
+                succeeded = true
             }
-            if let error {
+            if let coordError {
                 let elapsed = CFAbsoluteTimeGetCurrent() - startTime
-                print("[Download] Coordinated read FAILED for \(filename) after \(String(format: "%.1f", elapsed))s: \(error.localizedDescription)")
+                print("[Download] Coordinated read FAILED for \(filename) after \(String(format: "%.1f", elapsed))s: \(coordError.localizedDescription)")
+            }
+            // Post notification to clear spinner — don't wait for UbiquityMonitor round-trip
+            if succeeded {
+                await MainActor.run {
+                    NotificationCenter.default.post(
+                        name: .yianaDocumentsDownloaded,
+                        object: nil,
+                        userInfo: ["urls": [standardURL]]
+                    )
+                    print("[Download] Cleared spinner for \(filename)")
+                }
             }
         }
     }
