@@ -210,6 +210,19 @@ class SearchIndexService {
         try database.execute(sql: """
             CREATE INDEX IF NOT EXISTS idx_folder_path ON documents_metadata(folder_path)
             """)
+
+        // One-time fix: clear entries with corrupted folder_path values caused by
+        // /private symlink mismatch in earlier builds. These have full paths like
+        // "var/mobile/Library/..." instead of relative paths like "" or "Subfolder".
+        let badCount = try Int.fetchOne(
+            database,
+            sql: "SELECT COUNT(*) FROM documents_metadata WHERE folder_path LIKE '%Mobile Documents%'"
+        ) ?? 0
+        if badCount > 0 {
+            try database.execute(sql: "DELETE FROM documents_fts")
+            try database.execute(sql: "DELETE FROM documents_metadata")
+            print("[SearchIndex] Cleared \(badCount) entries with corrupted folder_path (will re-index)")
+        }
     }
 
     // MARK: - Indexing Operations
@@ -345,7 +358,12 @@ class SearchIndexService {
     /// Remove documents whose URLs are not in the valid set (cache pruning)
     func removeStaleDocuments(validPaths: Set<String>) async throws {
         try await dbQueue.write { database in
-            let allRows = try Row.fetchAll(database, sql: "SELECT document_id, url FROM documents_metadata")
+            // Only prune non-placeholder entries — placeholders are seeded by
+            // UbiquityMonitor from NSMetadataQuery and may not be on the local filesystem.
+            let allRows = try Row.fetchAll(
+                database,
+                sql: "SELECT document_id, url FROM documents_metadata WHERE is_placeholder = 0"
+            )
             var staleIds: [String] = []
             for row in allRows {
                 guard let docId: String = row["document_id"],
@@ -354,6 +372,12 @@ class SearchIndexService {
                     staleIds.append(docId)
                 }
             }
+
+            let placeholderCount = try Int.fetchOne(database, sql: "SELECT COUNT(*) FROM documents_metadata WHERE is_placeholder = 1") ?? 0
+            let totalBefore = try Int.fetchOne(database, sql: "SELECT COUNT(*) FROM documents_metadata") ?? 0
+            #if DEBUG
+            print("[SearchIndex] removeStaleDocuments: checked \(allRows.count) non-placeholder rows, found \(staleIds.count) stale, \(placeholderCount) placeholders preserved, totalDB=\(totalBefore)")
+            #endif
 
             guard !staleIds.isEmpty else { return }
 
@@ -368,8 +392,9 @@ class SearchIndexService {
                 )
             }
 
+            let totalAfter = try Int.fetchOne(database, sql: "SELECT COUNT(*) FROM documents_metadata") ?? 0
             #if DEBUG
-            print("Pruned \(staleIds.count) stale documents from search index")
+            print("[SearchIndex] removeStaleDocuments: pruned \(staleIds.count), totalDB now=\(totalAfter)")
             #endif
         }
     }
@@ -416,9 +441,11 @@ class SearchIndexService {
 
     /// Batch-insert placeholder documents in a single transaction.
     /// Uses INSERT OR IGNORE so existing entries (placeholder or real) are not overwritten.
-    func indexPlaceholdersBatch(_ placeholders: [(id: UUID, url: URL, title: String, folderPath: String)]) async throws {
-        guard !placeholders.isEmpty else { return }
-        try await dbQueue.write { database in
+    @discardableResult
+    func indexPlaceholdersBatch(_ placeholders: [(id: UUID, url: URL, title: String, folderPath: String)]) async throws -> Int {
+        guard !placeholders.isEmpty else { return 0 }
+        return try await dbQueue.write { database in
+            var inserted = 0
             for p in placeholders {
                 let existingCount = try Int.fetchOne(
                     database,
@@ -453,7 +480,9 @@ class SearchIndexService {
                     isPlaceholder: true
                 )
                 try metadataRecord.insert(database, onConflict: .ignore)
+                inserted += 1
             }
+            return inserted
         }
     }
 
@@ -475,6 +504,30 @@ class SearchIndexService {
                     sql: "DELETE FROM documents_metadata WHERE document_id = ?",
                     arguments: [docId]
                 )
+            }
+        }
+    }
+
+    /// Remove multiple documents from the search index by their URLs in a single transaction
+    func removeDocumentsByURLsBatch(_ urls: [URL]) async throws {
+        guard !urls.isEmpty else { return }
+        try await dbQueue.write { database in
+            for url in urls {
+                let docIds = try String.fetchAll(
+                    database,
+                    sql: "SELECT document_id FROM documents_metadata WHERE url = ?",
+                    arguments: [url.path]
+                )
+                for docId in docIds {
+                    try database.execute(
+                        sql: "DELETE FROM documents_fts WHERE document_id = ?",
+                        arguments: [docId]
+                    )
+                    try database.execute(
+                        sql: "DELETE FROM documents_metadata WHERE document_id = ?",
+                        arguments: [docId]
+                    )
+                }
             }
         }
     }
@@ -648,6 +701,28 @@ class SearchIndexService {
                 arguments: [id.uuidString]
             ) ?? 0
             return count > 0
+        }
+    }
+
+    /// Diagnostic: get count of documents per folder_path
+    func folderPathDistribution() async throws -> [(path: String, total: Int, placeholders: Int)] {
+        return try await dbQueue.read { database in
+            let rows = try Row.fetchAll(database, sql: """
+                SELECT folder_path,
+                       COUNT(*) as total,
+                       SUM(CASE WHEN is_placeholder = 1 THEN 1 ELSE 0 END) as placeholders
+                FROM documents_metadata
+                GROUP BY folder_path
+                ORDER BY total DESC
+                LIMIT 20
+                """)
+            return rows.map { row in
+                (
+                    path: (row["folder_path"] as String?) ?? "<null>",
+                    total: (row["total"] as Int?) ?? 0,
+                    placeholders: (row["placeholders"] as Int?) ?? 0
+                )
+            }
         }
     }
 

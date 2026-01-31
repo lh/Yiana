@@ -97,6 +97,18 @@ class DocumentListViewModel: ObservableObject {
         folderPath = repository.folderPathComponents
         folderURLs = allFolderURLs
 
+        // Diagnostic: show folder_path distribution in DB
+        #if DEBUG
+        Task {
+            do {
+                let dist = try await searchIndex.folderPathDistribution()
+                print("[DB Diagnostic] folder_path distribution: \(dist)")
+            } catch {
+                print("[DB Diagnostic] error: \(error)")
+            }
+        }
+        #endif
+
         // Start GRDB ValueObservation -- it will push document updates automatically
         observeDocuments()
 
@@ -149,6 +161,8 @@ class DocumentListViewModel: ObservableObject {
             guard let self else { return }
             #if DEBUG
             SyncPerfLog.shared.countObservation()
+            let placeholders = records.filter(\.isPlaceholder).count
+            print("[ValueObs] folder='\(folder)' records=\(records.count) placeholders=\(placeholders) real=\(records.count - placeholders)")
             #endif
             self.documents = records.map { DocumentListItem(record: $0) }
             self.syncingDocumentCount = records.filter(\.isPlaceholder).count

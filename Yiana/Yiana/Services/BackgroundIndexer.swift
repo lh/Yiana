@@ -70,7 +70,7 @@ class BackgroundIndexer: ObservableObject {
                 continue
             }
 
-            let folderPath = Self.folderPath(for: url)
+            let folderPath = url.relativeFolderPath(relativeTo: DocumentRepository().documentsDirectory)
             let fileSize: Int64 = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64) ?? 0
             let fullText = metadata.fullText ?? ""
 
@@ -264,17 +264,6 @@ class BackgroundIndexer: ObservableObject {
         indexProgress = 1.0
     }
 
-    /// Derive the folder path for a URL relative to the documents directory
-    private static func folderPath(for url: URL) -> String {
-        let repository = DocumentRepository()
-        let documentsDir = repository.documentsDirectory
-        let relativePath = url.deletingLastPathComponent().path
-            .replacingOccurrences(of: documentsDir.path, with: "")
-        if relativePath.hasPrefix("/") {
-            return String(relativePath.dropFirst())
-        }
-        return relativePath
-    }
 }
 
 extension UUID {

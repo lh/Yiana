@@ -621,7 +621,6 @@ struct DocumentEditView: View {
                     if success {
                         self.document = loadedDocument
                         self.viewModel = DocumentViewModel(document: loadedDocument)
-
                         let metadata = loadedDocument.metadata
                         let textVM = TextPageEditorViewModel(documentURL: documentURL, metadata: metadata)
                         textVM.onDraftStateChange = { hasDraft in

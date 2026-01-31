@@ -40,6 +40,7 @@ struct DocumentListView: View {
     @State private var isAscending = true
     @State private var hasLoadedAnyContent = false
     @State private var showingSettings = false
+    @State private var downloadingURLs: Set<URL> = []
 
     // Build date string for version display
     private var buildDateString: String {
@@ -49,10 +50,19 @@ struct DocumentListView: View {
         return formatter.string(from: Date())
     }
 
+    private var documentListTitle: String {
+        let total = viewModel.documents.count
+        let downloaded = total - viewModel.syncingDocumentCount
+        if viewModel.syncingDocumentCount > 0 {
+            return "\(viewModel.currentFolderName) (\(downloaded)/\(total))"
+        }
+        return "\(viewModel.currentFolderName) (\(total))"
+    }
+
     var body: some View {
         NavigationStack(path: $navigationPath) {
             mainContent
-                .navigationTitle(viewModel.currentFolderName)
+                .navigationTitle(documentListTitle)
                 .toolbar { toolbarContent }
                 .alert("New Document", isPresented: $showingCreateAlert, actions: newDocumentAlertActions)
                 .alert("Error", isPresented: $showingError, actions: errorAlertActions, message: errorAlertMessage)
@@ -78,6 +88,14 @@ struct DocumentListView: View {
             SyncPerfLog.shared.countNotification()
             #endif
             Task { await viewModel.refresh() }
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(for: .yianaDocumentsDownloaded)
+        ) { notification in
+            guard let urls = notification.userInfo?["urls"] as? [URL] else { return }
+            for url in urls {
+                downloadingURLs.remove(url.standardizedFileURL)
+            }
         }
         .refreshable { await refreshDocuments() }
 #if os(iOS)
@@ -366,6 +384,67 @@ struct DocumentListView: View {
         await viewModel.refresh()
     }
 
+    /// Force a high-priority iCloud download using NSFileCoordinator.
+    /// Unlike startDownloadingUbiquitousItem (which is a low-priority hint),
+    /// a coordinated read tells the FileProvider to download NOW.
+    private func prioritizeDownload(for url: URL) {
+        let filename = url.lastPathComponent
+        print("[Download] User tapped: \(filename)")
+
+        // Check current download status
+        let values = try? url.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey, .ubiquitousItemIsDownloadingKey])
+        let status = values?.ubiquitousItemDownloadingStatus
+        let isDownloading = values?.ubiquitousItemIsDownloading ?? false
+        print("[Download] Current status: \(status?.rawValue ?? "nil"), isDownloading: \(isDownloading)")
+
+        // Kick off the hint immediately so the system knows we want it
+        do {
+            try FileManager.default.startDownloadingUbiquitousItem(at: url)
+            print("[Download] startDownloadingUbiquitousItem succeeded for \(filename)")
+        } catch {
+            print("[Download] startDownloadingUbiquitousItem FAILED for \(filename): \(error.localizedDescription)")
+        }
+        scheduleDownloadTimeout(for: url)
+
+        // Coordinated read forces high-priority download
+        let startTime = CFAbsoluteTimeGetCurrent()
+        print("[Download] Starting coordinated read for \(filename)...")
+        Task.detached(priority: .userInitiated) {
+            let coordinator = NSFileCoordinator()
+            var error: NSError?
+            coordinator.coordinate(readingItemAt: url, options: [], error: &error) { readURL in
+                let elapsed = CFAbsoluteTimeGetCurrent() - startTime
+                let size = (try? readURL.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+                print("[Download] Coordinated read completed for \(filename) in \(String(format: "%.1f", elapsed))s, size: \(size) bytes")
+            }
+            if let error {
+                let elapsed = CFAbsoluteTimeGetCurrent() - startTime
+                print("[Download] Coordinated read FAILED for \(filename) after \(String(format: "%.1f", elapsed))s: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func scheduleDownloadTimeout(for url: URL) {
+        let standardURL = url.standardizedFileURL
+        let filename = url.lastPathComponent
+        Task {
+            try? await Task.sleep(nanoseconds: 60_000_000_000) // 60 seconds
+            guard downloadingURLs.contains(standardURL) else {
+                print("[Download] Timeout check: \(filename) already cleared (download succeeded)")
+                return
+            }
+            // Re-check actual download status
+            let values = try? standardURL.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey])
+            let status = values?.ubiquitousItemDownloadingStatus
+            if status != .current && status != .downloaded {
+                downloadingURLs.remove(standardURL)
+                print("[Download] Timeout: \(filename) still not downloaded (status: \(status?.rawValue ?? "nil")), clearing spinner")
+            } else {
+                print("[Download] Timeout check: \(filename) is now downloaded")
+            }
+        }
+    }
+
     private func handleSearchChange(_ newValue: String) {
         Task {
             await viewModel.filterDocuments(searchText: newValue)
@@ -576,9 +655,17 @@ struct DocumentListView: View {
     private func documentNavigationRow(for item: DocumentListItem) -> some View {
         if item.isPlaceholder {
             Button {
-                try? FileManager.default.startDownloadingUbiquitousItem(at: item.url)
+                let standardURL = item.url.standardizedFileURL
+                downloadingURLs.insert(standardURL)
+                prioritizeDownload(for: item.url)
             } label: {
                 DocumentRow(item: item, searchResult: nil)
+                    .overlay(alignment: .trailing) {
+                        if downloadingURLs.contains(item.url.standardizedFileURL) {
+                            ProgressView()
+                                .padding(.trailing, 16)
+                        }
+                    }
             }
             .buttonStyle(.plain)
         } else {
