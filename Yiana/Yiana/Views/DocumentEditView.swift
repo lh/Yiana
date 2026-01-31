@@ -50,7 +50,7 @@ struct DocumentEditView: View {
     @State private var pdfFitMode: FitMode = .height
     @State private var textAppendErrorMessage: String?
     @State private var showingTextAppendError = false
-    @State private var isSidebarVisible = false
+    @State private var isSidebarVisible = UIDevice.current.userInterfaceIdiom == .pad
     @State private var sidebarPosition: SidebarPosition = .right
     @State private var thumbnailSize: SidebarThumbnailSize = .medium
     @State private var sidebarDocument: PDFDocument?
