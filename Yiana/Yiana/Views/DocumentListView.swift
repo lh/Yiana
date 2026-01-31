@@ -41,6 +41,8 @@ struct DocumentListView: View {
     @State private var hasLoadedAnyContent = false
     @State private var showingSettings = false
     @State private var downloadingURLs: Set<URL> = []
+    /// URL to auto-open once its download completes
+    @State private var pendingOpenURL: URL?
 
     // Build date string for version display
     private var buildDateString: String {
@@ -94,7 +96,13 @@ struct DocumentListView: View {
         ) { notification in
             guard let urls = notification.userInfo?["urls"] as? [URL] else { return }
             for url in urls {
-                downloadingURLs.remove(url.standardizedFileURL)
+                let standardURL = url.standardizedFileURL
+                downloadingURLs.remove(standardURL)
+                // Auto-open if this was a user-initiated download
+                if standardURL == pendingOpenURL {
+                    pendingOpenURL = nil
+                    navigationPath.append(standardURL)
+                }
             }
         }
         .refreshable { await refreshDocuments() }
@@ -671,15 +679,14 @@ struct DocumentListView: View {
             Button {
                 let standardURL = item.url.standardizedFileURL
                 downloadingURLs.insert(standardURL)
+                pendingOpenURL = standardURL
                 prioritizeDownload(for: item.url)
             } label: {
-                DocumentRow(item: item, searchResult: nil)
-                    .overlay(alignment: .trailing) {
-                        if downloadingURLs.contains(item.url.standardizedFileURL) {
-                            ProgressView()
-                                .padding(.trailing, 16)
-                        }
-                    }
+                DocumentRow(
+                    item: item,
+                    searchResult: nil,
+                    isDownloading: downloadingURLs.contains(item.url.standardizedFileURL)
+                )
             }
             .buttonStyle(.plain)
         } else {
@@ -1224,12 +1231,15 @@ struct DocumentRow: View {
     let item: DocumentListItem
     let searchResult: SearchResult?
     let secondaryText: String?
+    let isDownloading: Bool
     @State private var statusColor: Color = Color.gray.opacity(0.5)
+    @State private var isPulsing = false
 
-    init(item: DocumentListItem, searchResult: SearchResult? = nil, secondaryText: String? = nil) {
+    init(item: DocumentListItem, searchResult: SearchResult? = nil, secondaryText: String? = nil, isDownloading: Bool = false) {
         self.item = item
         self.searchResult = searchResult
         self.secondaryText = secondaryText
+        self.isDownloading = isDownloading
     }
 
     var body: some View {
@@ -1237,8 +1247,21 @@ struct DocumentRow: View {
             // Status indicator line (hidden during search)
             if searchResult == nil {
                 Rectangle()
-                    .fill(statusColor)
-                    .frame(width: 1.5)
+                    .fill(isDownloading ? Color.red : statusColor)
+                    .frame(width: isDownloading ? 3 : 1.5)
+                    .opacity(isDownloading ? (isPulsing ? 1.0 : 0.2) : 1.0)
+                    .animation(
+                        isDownloading
+                            ? .easeInOut(duration: 0.6).repeatForever(autoreverses: true)
+                            : .default,
+                        value: isPulsing
+                    )
+                    .onChange(of: isDownloading) {
+                        isPulsing = isDownloading
+                    }
+                    .onAppear {
+                        if isDownloading { isPulsing = true }
+                    }
             } else {
                 Color.clear
                     .frame(width: 1.5)
