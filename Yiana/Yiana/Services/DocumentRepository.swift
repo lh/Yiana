@@ -219,16 +219,14 @@ class DocumentRepository {
         }
 
         for url in urls {
-            var isDirectory: ObjCBool = false
-            if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) {
-                if isDirectory.boolValue {
-                    // Recurse into subdirectory
-                    let newPath = relativePath.isEmpty ? url.lastPathComponent : relativePath + "/" + url.lastPathComponent
-                    searchRecursive(at: url, relativePath: newPath, results: &results)
-                } else if url.pathExtension == "yianazip" {
-                    // Found a document
-                    results.append((url, relativePath))
-                }
+            // Use resource values instead of fileExists — fileExists returns false
+            // for iCloud placeholder files that haven't been downloaded yet
+            let resourceValues = try? url.resourceValues(forKeys: [.isDirectoryKey])
+            if resourceValues?.isDirectory == true {
+                let newPath = relativePath.isEmpty ? url.lastPathComponent : relativePath + "/" + url.lastPathComponent
+                searchRecursive(at: url, relativePath: newPath, results: &results)
+            } else if url.pathExtension == "yianazip" {
+                results.append((url, relativePath))
             }
         }
     }
