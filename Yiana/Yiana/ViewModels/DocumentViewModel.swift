@@ -121,25 +121,36 @@ class DocumentViewModel: ObservableObject {
     /// Index the document in the search database
     private func indexDocument() async {
         do {
-            // Extract OCR text if available
             let ocrText = extractOCRText(for: document.fileURL)
-
-            // Get tags as string array
             let tags = document.metadata.tags
 
-            // Index the document
+            // Compute folder path relative to documents root
+            let repository = DocumentRepository()
+            let docsPath = repository.documentsDirectory.standardizedFileURL.path
+            let parentPath = document.fileURL.deletingLastPathComponent().standardizedFileURL.path
+            let folderPath: String
+            if parentPath.hasPrefix(docsPath) {
+                let relative = String(parentPath.dropFirst(docsPath.count))
+                    .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                folderPath = relative
+            } else {
+                folderPath = ""
+            }
+
+            let fileSize: Int64 = (try? FileManager.default.attributesOfItem(atPath: document.fileURL.path)[.size] as? Int64) ?? 0
+
             try await SearchIndexService.shared.indexDocument(
                 id: document.metadata.id,
                 url: document.fileURL,
                 title: document.metadata.title,
                 fullText: ocrText,
                 tags: tags,
-                metadata: document.metadata
+                metadata: document.metadata,
+                folderPath: folderPath,
+                fileSize: fileSize
             )
-
-            print("✓ Indexed document for search: \(document.metadata.title)")
         } catch {
-            print("⚠️ Failed to index document: \(error)")
+            print("Failed to index document: \(error)")
         }
     }
 

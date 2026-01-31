@@ -9,6 +9,7 @@
 import UIKit
 import UniformTypeIdentifiers
 import YianaDocumentArchive
+import CryptoKit
 
 /// A document containing a PDF and associated metadata
 class NoteDocument: UIDocument {
@@ -45,6 +46,12 @@ class NoteDocument: UIDocument {
     }
 
     override func contents(forType typeName: String) throws -> Any {
+        // Compute and store PDF hash before saving
+        if let pdfData = pdfData {
+            let hash = SHA256.hash(data: pdfData)
+            metadata.pdfHash = hash.compactMap { String(format: "%02x", $0) }.joined()
+        }
+
         let encoder = JSONEncoder()
         let metadataData = try encoder.encode(metadata)
 
@@ -98,6 +105,7 @@ extension UTType {
 import AppKit
 import UniformTypeIdentifiers
 import YianaDocumentArchive
+import CryptoKit
 
 /// A document containing a PDF and associated metadata (macOS version)
 class NoteDocument: NSDocument {
@@ -144,6 +152,12 @@ class NoteDocument: NSDocument {
     }
 
     override func data(ofType typeName: String) throws -> Data {
+        // Compute and store PDF hash before saving
+        if let pdfData = pdfData {
+            let hash = SHA256.hash(data: pdfData)
+            metadata.pdfHash = hash.compactMap { String(format: "%02x", $0) }.joined()
+        }
+
         let encoder = JSONEncoder()
         let metadataData = try encoder.encode(metadata)
 

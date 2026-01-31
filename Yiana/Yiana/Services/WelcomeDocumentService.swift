@@ -19,12 +19,7 @@ struct WelcomeDocumentService {
 
     /// Check if user needs a welcome document (first launch with no documents)
     static func shouldCreateWelcomeDocument(repository: DocumentRepository) -> Bool {
-        // Check if we've already created one
-        if UserDefaults.standard.bool(forKey: hasCreatedWelcomeDocumentKey) {
-            return false
-        }
-
-        // Check if user already has documents
+        // Only create when the library is empty
         let existingDocuments = repository.allDocumentsRecursive()
         return existingDocuments.isEmpty
     }
@@ -57,7 +52,6 @@ struct WelcomeDocumentService {
 
         // Encode metadata
         let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
         guard let metadataData = try? encoder.encode(metadata) else {
             print("Failed to encode welcome document metadata")
             return
@@ -131,18 +125,14 @@ struct WelcomeDocumentService {
         UIGraphicsEndPDFContext()
         #elseif os(macOS)
         // macOS PDF creation
-        let pdfInfo = [
-            kCGPDFContextTitle as String: "Welcome to Yiana",
-            kCGPDFContextCreator as String: "Yiana"
-        ] as CFDictionary
+        var mediaBox = pageRect
 
         guard let consumer = CGDataConsumer(data: pdfData),
-              let context = CGContext(consumer: consumer, mediaBox: nil, pdfInfo) else {
+              let context = CGContext(consumer: consumer, mediaBox: &mediaBox, nil) else {
             return nil
         }
 
-        var mediaBox = pageRect
-        context.beginPDFPage([kCGPDFContextMediaBox as String: NSValue(rect: mediaBox)] as CFDictionary)
+        context.beginPDFPage(nil)
 
         // Flip coordinate system for macOS
         context.translateBy(x: 0, y: pageRect.height)

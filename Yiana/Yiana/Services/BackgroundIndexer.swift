@@ -95,7 +95,7 @@ class BackgroundIndexer: ObservableObject {
             #if DEBUG
             print("Re-indexed \(reindexedCount) downloaded documents")
             #endif
-            NotificationCenter.default.post(name: .yianaDocumentsChanged, object: nil)
+            // No notification needed -- ValueObservation picks up DB changes automatically
         }
     }
 
@@ -154,30 +154,26 @@ class BackgroundIndexer: ObservableObject {
             return
         }
 
-        // Index placeholders so they appear in the document list immediately
+        // Index placeholders in a single batch transaction so they appear immediately
+        // via ValueObservation (no notification needed)
         if !scanResult.placeholders.isEmpty {
-            for placeholder in scanResult.placeholders {
-                if Task.isCancelled { break }
-                let title = placeholder.url.deletingPathExtension().lastPathComponent
-                let stableId = UUID(stableFromPath: placeholder.url.path)
-                do {
-                    try await searchIndex.indexPlaceholderDocument(
-                        id: stableId,
-                        url: placeholder.url,
-                        title: title,
-                        folderPath: placeholder.folderPath
-                    )
-                } catch {
-                    print("Failed to index placeholder \(title): \(error)")
-                }
+            let batch = scanResult.placeholders.map { placeholder in
+                (
+                    id: UUID(stableFromPath: placeholder.url.path),
+                    url: placeholder.url,
+                    title: placeholder.url.deletingPathExtension().lastPathComponent,
+                    folderPath: placeholder.folderPath
+                )
             }
-
-            #if DEBUG
-            print("Indexed \(scanResult.placeholders.count) placeholder documents")
-            #endif
-
-            // Notify UI so placeholders appear immediately
-            NotificationCenter.default.post(name: .yianaDocumentsChanged, object: nil)
+            do {
+                try await searchIndex.indexPlaceholdersBatch(batch)
+                #if DEBUG
+                SyncPerfLog.shared.countPlaceholderBatch()
+                print("Batch-indexed \(scanResult.placeholders.count) placeholder documents")
+                #endif
+            } catch {
+                print("Failed to batch-index placeholders: \(error)")
+            }
         }
 
         let documentsToIndex = scanResult.toIndex

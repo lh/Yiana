@@ -97,7 +97,9 @@ struct BulkImportView: View {
             // Progress or Action buttons
             VStack(spacing: 12) {
                 if isImporting {
-                    ImportProgressView(progress: importService.currentProgress)
+                    ImportProgressView(progress: importService.currentProgress, onCancel: {
+                        importService.cancel()
+                    })
                 } else {
                     HStack(spacing: 12) {
                         Button("Cancel") {
@@ -153,18 +155,11 @@ struct BulkImportView: View {
                 self.importResult = result
                 self.isImporting = false
 
-                if result.failed.isEmpty && result.timedOut.isEmpty && result.skippedDuplicates.isEmpty {
-                    // All successful with no issues - save folder preference and close
+                if !result.successful.isEmpty {
                     lastUsedImportFolder = folderPath
-                    isPresented = false
-                    onDismiss?()
-                } else {
-                    // Some failures, timeouts, or duplicates - still save preference but show results
-                    if !result.successful.isEmpty {
-                        lastUsedImportFolder = folderPath
-                    }
-                    showingResults = true
                 }
+                // Always show results so user can see performance summary
+                showingResults = true
             }
         }
     }
@@ -172,6 +167,7 @@ struct BulkImportView: View {
 
 struct ImportProgressView: View {
     let progress: BulkImportProgress?
+    var onCancel: (() -> Void)?
 
     var body: some View {
         if let progress = progress {
@@ -188,9 +184,20 @@ struct ImportProgressView: View {
                 }
                 .progressViewStyle(.linear)
 
-                Text("\(Int(progress.progress * 100))%")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                HStack {
+                    Text("\(Int(progress.progress * 100))%")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Spacer()
+
+                    if let onCancel = onCancel {
+                        Button("Cancel Import") {
+                            onCancel()
+                        }
+                        .foregroundColor(.red)
+                    }
+                }
             }
         } else {
             ProgressView()
@@ -317,20 +324,46 @@ struct BulkImportResultsView: View {
         !result.skippedDuplicates.isEmpty
     }
 
+    private var showExportButton: Bool {
+        hasProblems || hasDuplicates || result.wasCancelled
+    }
+
     var body: some View {
         VStack(spacing: 20) {
             // Summary
             VStack(spacing: 8) {
-                Image(systemName: hasProblems ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
-                    .font(.system(size: 48))
-                    .foregroundColor(hasProblems ? .orange : .green)
+                if result.wasCancelled {
+                    Image(systemName: "stop.circle.fill")
+                        .font(.system(size: 48))
+                        .foregroundColor(.orange)
+                } else {
+                    Image(systemName: hasProblems ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                        .font(.system(size: 48))
+                        .foregroundColor(hasProblems ? .orange : .green)
+                }
 
-                Text("Import Complete")
+                Text(result.wasCancelled ? "Import Cancelled" : "Import Complete")
                     .font(.title2)
                     .fontWeight(.semibold)
 
                 Text("\(result.successful.count) of \(result.totalProcessed) files imported successfully")
                     .foregroundColor(.secondary)
+
+                // Performance summary
+                HStack(spacing: 16) {
+                    Label(result.formattedElapsed, systemImage: "clock")
+                    if result.averageSecondsPerFile > 0 {
+                        Label(String(format: "%.2fs/file", result.averageSecondsPerFile), systemImage: "gauge.with.needle")
+                    }
+                }
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+                if result.wasCancelled && result.hasRemainingFiles {
+                    Text("\(result.remainingURLs.count) files not yet imported")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
 
                 if hasDuplicates {
                     Text("\(result.skippedDuplicates.count) duplicate files skipped")
@@ -343,6 +376,39 @@ struct BulkImportResultsView: View {
                         .font(.caption)
                         .foregroundColor(.orange)
                 }
+            }
+
+            // Remaining files list (when cancelled)
+            if result.wasCancelled && result.hasRemainingFiles {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Not imported (\(result.remainingURLs.count)):")
+                            .font(.headline)
+                        Spacer()
+                        Image(systemName: "pause.circle")
+                            .foregroundColor(.orange)
+                    }
+
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(result.remainingURLs, id: \.self) { url in
+                                HStack {
+                                    Image(systemName: "doc")
+                                        .foregroundColor(.orange)
+                                        .font(.caption)
+
+                                    Text(url.lastPathComponent)
+                                        .font(.caption)
+                                        .lineLimit(1)
+                                }
+                            }
+                        }
+                    }
+                    .frame(maxHeight: 100)
+                }
+                .padding()
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(8)
             }
 
             // Skipped duplicates list
@@ -452,9 +518,9 @@ struct BulkImportResultsView: View {
 
             // Action buttons
             HStack(spacing: 12) {
-                if hasProblems || hasDuplicates {
-                    Button("Export Report") {
-                        exportProblemFiles()
+                if showExportButton {
+                    Button(result.wasCancelled && result.hasRemainingFiles ? "Export Remaining Files" : "Export Report") {
+                        exportFiles()
                     }
                 }
 
@@ -471,52 +537,72 @@ struct BulkImportResultsView: View {
         .frame(width: 450)
     }
 
-    private func exportProblemFiles() {
+    private func exportFiles() {
         let savePanel = NSSavePanel()
         savePanel.allowedContentTypes = [.plainText]
-        savePanel.nameFieldStringValue = "import-report.txt"
-        savePanel.title = "Export Import Report"
-        savePanel.message = "Save import report including duplicates and failed files"
+
+        if result.wasCancelled && result.hasRemainingFiles {
+            savePanel.nameFieldStringValue = "remaining-files.txt"
+            savePanel.title = "Export Remaining Files"
+            savePanel.message = "Save list of files for re-import later"
+        } else {
+            savePanel.nameFieldStringValue = "import-report.txt"
+            savePanel.title = "Export Import Report"
+            savePanel.message = "Save import report including duplicates and failed files"
+        }
 
         if savePanel.runModal() == .OK, let url = savePanel.url {
-            var content = "# Import Report\n"
-            content += "# Generated: \(Date())\n\n"
+            var content = ""
 
-            if hasDuplicates {
-                content += "## Skipped Duplicates (\(result.skippedDuplicates.count))\n"
-                content += "# These files already exist in the library with identical content\n\n"
-                for duplicate in result.skippedDuplicates {
-                    content += "\(duplicate.url.path)\n"
-                    content += "  Already exists as: \(duplicate.existingURL.lastPathComponent)\n\n"
+            // If cancelled with remaining files, export them in a simple format for re-import
+            if result.wasCancelled && result.hasRemainingFiles {
+                content += "# Remaining files for import\n"
+                content += "# Use 'Import from File List' to continue importing these files\n"
+                content += "# Generated: \(Date())\n\n"
+                for remainingURL in result.remainingURLs {
+                    content += "\(remainingURL.path)\n"
                 }
-            }
+            } else {
+                // Full report format
+                content = "# Import Report\n"
+                content += "# Generated: \(Date())\n\n"
 
-            if !result.timedOut.isEmpty {
-                content += "## Timed Out Files (\(result.timedOut.count))\n"
-                content += "# These files took too long to import and may be corrupted or too large\n\n"
-                for timedOutURL in result.timedOut {
-                    content += "\(timedOutURL.path)\n"
+                if hasDuplicates {
+                    content += "## Skipped Duplicates (\(result.skippedDuplicates.count))\n"
+                    content += "# These files already exist in the library with identical content\n\n"
+                    for duplicate in result.skippedDuplicates {
+                        content += "\(duplicate.url.path)\n"
+                        content += "  Already exists as: \(duplicate.existingURL.lastPathComponent)\n\n"
+                    }
                 }
-                content += "\n"
-            }
 
-            if !result.failed.isEmpty {
-                content += "## Failed Files (\(result.failed.count))\n\n"
-                for failed in result.failed {
-                    content += "\(failed.url.path)\n"
-                    content += "  Error: \(failed.error.localizedDescription)\n\n"
+                if !result.timedOut.isEmpty {
+                    content += "## Timed Out Files (\(result.timedOut.count))\n"
+                    content += "# These files took too long to import and may be corrupted or too large\n\n"
+                    for timedOutURL in result.timedOut {
+                        content += "\(timedOutURL.path)\n"
+                    }
+                    content += "\n"
                 }
-            }
 
-            // Write just the paths for easy re-import (excluding duplicates since they're already imported)
-            if !result.timedOut.isEmpty || !result.failed.isEmpty {
-                content += "\n## File Paths for Re-import\n"
-                content += "# Copy these paths to a text file and use 'Import from File List'\n\n"
-                for timedOutURL in result.timedOut {
-                    content += "\(timedOutURL.path)\n"
+                if !result.failed.isEmpty {
+                    content += "## Failed Files (\(result.failed.count))\n\n"
+                    for failed in result.failed {
+                        content += "\(failed.url.path)\n"
+                        content += "  Error: \(failed.error.localizedDescription)\n\n"
+                    }
                 }
-                for failed in result.failed {
-                    content += "\(failed.url.path)\n"
+
+                // Write just the paths for easy re-import (excluding duplicates since they're already imported)
+                if !result.timedOut.isEmpty || !result.failed.isEmpty {
+                    content += "\n## File Paths for Re-import\n"
+                    content += "# Copy these paths to a text file and use 'Import from File List'\n\n"
+                    for timedOutURL in result.timedOut {
+                        content += "\(timedOutURL.path)\n"
+                    }
+                    for failed in result.failed {
+                        content += "\(failed.url.path)\n"
+                    }
                 }
             }
 

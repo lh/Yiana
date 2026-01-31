@@ -2,10 +2,9 @@
 //  DocumentListView.swift
 //  Yiana
 //
-//  Created by Claude on 15/07/2025.
-//
 
 import SwiftUI
+import Combine
 import YianaDocumentArchive
 #if os(macOS)
 import UniformTypeIdentifiers
@@ -70,7 +69,11 @@ struct DocumentListView: View {
                 }
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name.yianaDocumentsChanged)) { _ in
+        .onReceive(
+            NotificationCenter.default.publisher(for: Notification.Name.yianaDocumentsChanged)
+                .throttle(for: .seconds(2), scheduler: DispatchQueue.main, latest: true)
+        ) { _ in
+            // Document list updates via ValueObservation; this only refreshes folders
             #if DEBUG
             SyncPerfLog.shared.countNotification()
             #endif
@@ -1240,9 +1243,16 @@ struct DocumentRow: View {
     }
 
     private func loadStatus() {
+        // Short-circuit for placeholders -- no filesystem I/O needed
+        if item.isPlaceholder {
+            statusColor = Color.gray.opacity(0.5)
+            return
+        }
+
         #if DEBUG
         SyncPerfLog.shared.countDownloadStateCheck()
         #endif
+
         let state = downloadState(for: item.url)
         switch state {
         case .pending, .downloading:

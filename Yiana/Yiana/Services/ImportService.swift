@@ -7,10 +7,12 @@
 
 import Foundation
 import PDFKit
+import CryptoKit
 import YianaDocumentArchive
 
 struct ImportResult {
     let url: URL
+    var metadata: DocumentMetadata? = nil
 }
 
 enum ImportMode {
@@ -48,9 +50,15 @@ class ImportService {
         }
     }
 
+    /// Import a PDF from pre-read data, avoiding redundant file reads and PDFDocument parsing.
+    /// Used by BulkImportService which has already read and validated the data.
+    func importPDFData(_ pdfData: Data, title: String, pageCount: Int, skipIndexing: Bool = false) throws -> ImportResult {
+        return try createNewDocument(from: pdfData, title: title, pageCount: pageCount, skipIndexing: skipIndexing)
+    }
+
     // MARK: - Private
 
-    private func createNewDocument(from pdfData: Data, title: String) throws -> ImportResult {
+    private func createNewDocument(from pdfData: Data, title: String, pageCount: Int? = nil, skipIndexing: Bool = false) throws -> ImportResult {
         let repository = DocumentRepository()
         // Set the folder path if provided
         if !folderPath.isEmpty {
@@ -62,18 +70,23 @@ class ImportService {
         }
         let targetURL = repository.newDocumentURL(title: title)
 
-        let pageCount = PDFDocument(data: pdfData)?.pageCount ?? 0
+        let resolvedPageCount = pageCount ?? (PDFDocument(data: pdfData)?.pageCount ?? 0)
+
+        // Compute PDF hash for duplicate detection
+        let hash = SHA256.hash(data: pdfData)
+        let pdfHash = hash.compactMap { String(format: "%02x", $0) }.joined()
 
         let metadata = DocumentMetadata(
             id: UUID(),
             title: title,
             created: Date(),
             modified: Date(),
-            pageCount: pageCount,
+            pageCount: resolvedPageCount,
             tags: [],
             ocrCompleted: false,
             fullText: nil,
-            hasPendingTextPage: false
+            hasPendingTextPage: false,
+            pdfHash: pdfHash
         )
 
         let encoder = JSONEncoder()
@@ -87,24 +100,28 @@ class ImportService {
                 formatVersion: DocumentArchive.currentFormatVersion
             )
 
-            // Index the newly created document
-            Task {
-                do {
-                    try await SearchIndexService.shared.indexDocument(
-                        id: metadata.id,
-                        url: targetURL,
-                        title: metadata.title,
-                        fullText: "", // No OCR text yet
-                        tags: metadata.tags,
-                        metadata: metadata
-                    )
-                    print("✓ Indexed new document: \(metadata.title)")
-                } catch {
-                    print("⚠️ Failed to index new document: \(error)")
+            if !skipIndexing {
+                let indexFolderPath = self.folderPath
+                let indexFileSize: Int64 = (try? FileManager.default.attributesOfItem(atPath: targetURL.path)[.size] as? Int64) ?? 0
+                Task {
+                    do {
+                        try await SearchIndexService.shared.indexDocument(
+                            id: metadata.id,
+                            url: targetURL,
+                            title: metadata.title,
+                            fullText: "",
+                            tags: metadata.tags,
+                            metadata: metadata,
+                            folderPath: indexFolderPath,
+                            fileSize: indexFileSize
+                        )
+                    } catch {
+                        print("Failed to index new document: \(error)")
+                    }
                 }
             }
 
-            return ImportResult(url: targetURL)
+            return ImportResult(url: targetURL, metadata: metadata)
         } catch {
             throw ImportError.ioFailed
         }
@@ -169,20 +186,22 @@ class ImportService {
                 formatVersion: DocumentArchive.currentFormatVersion
             )
 
-            // Re-index the updated document (OCR will be stale until backend processes it)
+            let indexFolderPath = self.folderPath
+            let indexFileSize: Int64 = (try? FileManager.default.attributesOfItem(atPath: documentURL.path)[.size] as? Int64) ?? 0
             Task {
                 do {
                     try await SearchIndexService.shared.indexDocument(
                         id: updatedMetadata.id,
                         url: documentURL,
                         title: updatedMetadata.title,
-                        fullText: "", // OCR text will be updated when backend reprocesses
+                        fullText: "",
                         tags: updatedMetadata.tags,
-                        metadata: updatedMetadata
+                        metadata: updatedMetadata,
+                        folderPath: indexFolderPath,
+                        fileSize: indexFileSize
                     )
-                    print("✓ Re-indexed appended document: \(updatedMetadata.title)")
                 } catch {
-                    print("⚠️ Failed to re-index appended document: \(error)")
+                    print("Failed to re-index appended document: \(error)")
                 }
             }
 
