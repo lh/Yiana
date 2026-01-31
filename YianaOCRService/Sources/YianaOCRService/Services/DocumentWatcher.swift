@@ -1,6 +1,7 @@
 import Foundation
 import Logging
 import PDFKit
+import YianaDocumentArchive
 
 private enum OCRSource: String {
     case embedded
@@ -20,6 +21,7 @@ public class DocumentWatcher {
     private let cleanupInterval: TimeInterval = 60 * 60
     private var isScanning = false  // Prevent concurrent scans
     private var processingDocuments = Set<String>()  // Track documents currently being processed
+    private var failedDocuments: [String: (count: Int, lastAttempt: Date)] = [:]  // Error backoff tracking
     
     public init(logger: Logger, customPath: String? = nil) {
         self.logger = logger
@@ -192,6 +194,48 @@ public class DocumentWatcher {
         }
     }
     
+    private func coordinatedRead<T>(at url: URL, body: (URL) throws -> T) throws -> T {
+        var coordinatorError: NSError?
+        var result: Result<T, Error>!
+        let coordinator = NSFileCoordinator()
+        coordinator.coordinate(readingItemAt: url, options: .withoutChanges, error: &coordinatorError) { coordinatedURL in
+            do {
+                result = .success(try body(coordinatedURL))
+            } catch {
+                result = .failure(error)
+            }
+        }
+        if let coordinatorError { throw coordinatorError }
+        return try result.get()
+    }
+
+    private func coordinatedWrite<T>(at url: URL, body: (URL) throws -> T) throws -> T {
+        var coordinatorError: NSError?
+        var result: Result<T, Error>!
+        let coordinator = NSFileCoordinator()
+        coordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordinatorError) { coordinatedURL in
+            do {
+                result = .success(try body(coordinatedURL))
+            } catch {
+                result = .failure(error)
+            }
+        }
+        if let coordinatorError { throw coordinatorError }
+        return try result.get()
+    }
+
+    private func shouldBackOff(fileIdentifier: String) -> Bool {
+        guard let failure = failedDocuments[fileIdentifier] else { return false }
+        let backoffSeconds: TimeInterval
+        switch failure.count {
+        case 1: backoffSeconds = 5 * 60       // 5 minutes
+        case 2: backoffSeconds = 15 * 60      // 15 minutes
+        case 3: backoffSeconds = 60 * 60      // 1 hour
+        default: backoffSeconds = 6 * 60 * 60 // 6 hours
+        }
+        return Date().timeIntervalSince(failure.lastAttempt) < backoffSeconds
+    }
+
     private func checkAndProcessDocument(at url: URL) async {
         let fileName = url.lastPathComponent
         let fileIdentifier = getFileIdentifier(for: url)
@@ -212,31 +256,48 @@ public class DocumentWatcher {
             return
         }
 
+        // Check error backoff before attempting
+        if shouldBackOff(fileIdentifier: fileIdentifier) {
+            let failure = failedDocuments[fileIdentifier]!
+            logger.debug("Skipping backed-off document", metadata: [
+                "file": .string(fileName),
+                "failureCount": .stringConvertible(failure.count)
+            ])
+            return
+        }
+
         // Mark as being processed
         processingDocuments.insert(fileIdentifier)
         defer { processingDocuments.remove(fileIdentifier) }
-        
+
         logger.info("Checking document", metadata: [
             "file": .string(fileName)
         ])
-        
+
         do {
-            // Load document data
-            let documentData = try Data(contentsOf: url)
-            
-            // Parse document
-            let document = try YianaDocument(data: documentData)
-            
-            // Check if OCR is needed
-            if document.metadata.ocrCompleted {
+            // Read metadata only first (no PDF loaded) via coordinated read
+            let (metadataData, _) = try coordinatedRead(at: url) { coordinatedURL in
+                try DocumentArchive.readMetadata(from: coordinatedURL)
+            }
+            let metadata = try JSONDecoder().decode(DocumentMetadata.self, from: metadataData)
+
+            // Check if OCR is already completed — skip loading the full document
+            if metadata.ocrCompleted {
                 logger.info("Document already has OCR", metadata: [
                     "file": .string(fileName)
                 ])
                 processedDocuments.insert(fileIdentifier)
                 saveProcessedDocuments()
+                failedDocuments.removeValue(forKey: fileIdentifier)
                 return
             }
-            
+
+            // OCR needed — load full document via coordinated read
+            let document: YianaDocument = try coordinatedRead(at: url) { coordinatedURL in
+                let data = try Data(contentsOf: coordinatedURL)
+                return try YianaDocument(data: data)
+            }
+
             if let pdfData = document.pdfData,
                let embeddedResult = embeddedOCRResult(from: pdfData, document: document) {
                 logger.info("PDF already has embedded text", metadata: [
@@ -247,9 +308,10 @@ public class DocumentWatcher {
                 try await saveOCRResults(embeddedResult, for: document, at: url)
                 processedDocuments.insert(fileIdentifier)
                 saveProcessedDocuments()
+                failedDocuments.removeValue(forKey: fileIdentifier)
                 return
             }
-            
+
             // Check if PDF data exists (might be syncing from iCloud)
             guard let pdfData = document.pdfData, !pdfData.isEmpty else {
                 logger.warning("No PDF data found yet, will retry", metadata: [
@@ -258,11 +320,11 @@ public class DocumentWatcher {
                 // Don't mark as processed, will retry on next scan
                 return
             }
-            
+
             logger.info("Processing OCR", metadata: [
                 "file": .string(fileName)
             ])
-            
+
             // Process OCR with options from document
             let options = ProcessingOptions(
                 recognitionLevel: .accurate,
@@ -273,24 +335,31 @@ public class DocumentWatcher {
                 customDataHints: nil
             )
             let result = try await processor.processDocument(document, options: options)
-            
+
             // Save OCR results
             try await saveOCRResults(result, for: document, at: url)
-            
-            // Mark as processed
+
+            // Mark as processed and clear any failure record
             processedDocuments.insert(fileIdentifier)
             saveProcessedDocuments()
-            
+            failedDocuments.removeValue(forKey: fileIdentifier)
+
             logger.info("OCR completed successfully", metadata: [
                 "file": .string(fileName),
                 "pages": .stringConvertible(result.pages.count),
                 "confidence": .stringConvertible(result.confidence)
             ])
-            
+
         } catch {
+            // Record failure for backoff
+            let existing = failedDocuments[fileIdentifier]
+            let newCount = (existing?.count ?? 0) + 1
+            failedDocuments[fileIdentifier] = (count: newCount, lastAttempt: Date())
+
             logger.error("Failed to process document", metadata: [
                 "file": .string(fileName),
-                "error": .string(error.localizedDescription)
+                "error": .string(error.localizedDescription),
+                "failureCount": .stringConvertible(newCount)
             ])
             health.recordError("processDocument: \(fileName): \(error.localizedDescription)")
         }
@@ -411,8 +480,10 @@ public class DocumentWatcher {
             pdfData: pdfDataWithText
         )
         
-        // Save updated document
-        try updatedDocument.save(to: url)
+        // Save updated document via coordinated write
+        try coordinatedWrite(at: url) { coordinatedURL in
+            try updatedDocument.save(to: coordinatedURL)
+        }
         
         // Save OCR results in multiple formats
         // Preserve the folder structure within .ocr_results
