@@ -96,20 +96,34 @@ struct DuplicateScannerView: View {
 
     private var emptyView: some View {
         VStack(spacing: 16) {
-            Image(systemName: "checkmark.circle")
-                .font(.system(size: 48))
-                .foregroundColor(.green)
+            if scanner.hasScanned {
+                Image(systemName: "checkmark.circle")
+                    .font(.system(size: 48))
+                    .foregroundColor(.green)
 
-            Text("No Duplicates Found")
-                .font(.headline)
+                Text("No Duplicates Found")
+                    .font(.headline)
 
-            Text("Your library is clean!")
-                .foregroundColor(.secondary)
+                Text("Your library is clean!")
+                    .foregroundColor(.secondary)
 
-            Button("Scan Again") {
-                Task {
-                    await scanner.scanForDuplicates()
+                Button("Scan Again") {
+                    Task {
+                        await scanner.scanForDuplicates()
+                    }
                 }
+            } else {
+                Image(systemName: "doc.on.doc")
+                    .font(.system(size: 48))
+                    .foregroundColor(.secondary)
+
+                Text("Duplicate Scanner")
+                    .font(.headline)
+
+                Text("Scan your library to find documents with identical PDF content.")
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 300)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

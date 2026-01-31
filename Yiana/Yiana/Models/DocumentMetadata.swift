@@ -80,6 +80,9 @@ struct DocumentMetadata: Codable, Equatable {
     /// Per-page processing state for incremental OCR and extraction
     var pageProcessingStates: [PageProcessingState]
 
+    /// SHA256 hash of the PDF content for duplicate detection
+    var pdfHash: String?
+
     init(
         id: UUID,
         title: String,
@@ -93,7 +96,8 @@ struct DocumentMetadata: Codable, Equatable {
         ocrConfidence: Double? = nil,
         ocrSource: OCRSource? = nil,
         hasPendingTextPage: Bool = false,
-        pageProcessingStates: [PageProcessingState] = []
+        pageProcessingStates: [PageProcessingState] = [],
+        pdfHash: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -108,6 +112,7 @@ struct DocumentMetadata: Codable, Equatable {
         self.ocrSource = ocrSource
         self.hasPendingTextPage = hasPendingTextPage
         self.pageProcessingStates = pageProcessingStates
+        self.pdfHash = pdfHash
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -124,6 +129,7 @@ struct DocumentMetadata: Codable, Equatable {
         case ocrSource
         case hasPendingTextPage
         case pageProcessingStates
+        case pdfHash
     }
 
     init(from decoder: Decoder) throws {
@@ -140,6 +146,7 @@ struct DocumentMetadata: Codable, Equatable {
         self.ocrConfidence = try container.decodeIfPresent(Double.self, forKey: .ocrConfidence)
         self.ocrSource = try container.decodeIfPresent(OCRSource.self, forKey: .ocrSource)
         self.hasPendingTextPage = try container.decodeIfPresent(Bool.self, forKey: .hasPendingTextPage) ?? false
+        self.pdfHash = try container.decodeIfPresent(String.self, forKey: .pdfHash)
 
         // Migration: if pageProcessingStates is missing, initialize based on ocrCompleted
         if let states = try container.decodeIfPresent([PageProcessingState].self, forKey: .pageProcessingStates) {
@@ -182,6 +189,7 @@ struct DocumentMetadata: Codable, Equatable {
         if !pageProcessingStates.isEmpty {
             try container.encode(pageProcessingStates, forKey: .pageProcessingStates)
         }
+        try container.encodeIfPresent(pdfHash, forKey: .pdfHash)
     }
 }
 

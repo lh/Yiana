@@ -30,6 +30,9 @@ struct BulkImportResult {
     let failed: [(url: URL, error: Error)]
     let timedOut: [URL]
     let skippedDuplicates: [(url: URL, existingURL: URL)]
+    let cancelled: Bool
+    let remainingURLs: [URL]
+    let elapsedSeconds: Double
 
     var totalProcessed: Int {
         successful.count + failed.count + timedOut.count
@@ -50,6 +53,34 @@ struct BulkImportResult {
 
     var hasDuplicates: Bool {
         !skippedDuplicates.isEmpty
+    }
+
+    var wasCancelled: Bool {
+        cancelled
+    }
+
+    var hasRemainingFiles: Bool {
+        !remainingURLs.isEmpty
+    }
+
+    var averageSecondsPerFile: Double {
+        let total = totalProcessed + skippedDuplicates.count
+        guard total > 0 else { return 0 }
+        return elapsedSeconds / Double(total)
+    }
+
+    var formattedElapsed: String {
+        if elapsedSeconds < 60 {
+            return String(format: "%.1f seconds", elapsedSeconds)
+        } else if elapsedSeconds < 3600 {
+            let minutes = Int(elapsedSeconds) / 60
+            let seconds = Int(elapsedSeconds) % 60
+            return "\(minutes)m \(seconds)s"
+        } else {
+            let hours = Int(elapsedSeconds) / 3600
+            let minutes = (Int(elapsedSeconds) % 3600) / 60
+            return "\(hours)h \(minutes)m"
+        }
     }
 }
 
@@ -109,6 +140,7 @@ struct BulkImportProgress {
 
 class BulkImportService: ObservableObject {
     @Published var isProcessing = false
+    @Published var isCancelled = false
     @Published var currentProgress: BulkImportProgress?
 
     private let folderPath: String
@@ -132,6 +164,11 @@ class BulkImportService: ObservableObject {
         self.importService = ImportService(folderPath: folderPath)
     }
 
+    /// Cancel the current import operation
+    func cancel() {
+        isCancelled = true
+    }
+
     /// Compute SHA256 hash of data
     private func computeDataHash(_ data: Data) -> String {
         let hash = SHA256.hash(data: data)
@@ -146,6 +183,7 @@ class BulkImportService: ObservableObject {
         }
 
         let existingDocs = repository.documentURLs()
+        var missingHashCount = 0
 
         for (index, docURL) in existingDocs.enumerated() {
             // Update progress
@@ -160,19 +198,35 @@ class BulkImportService: ObservableObject {
                 self.progressSubject.send(progress)
             }
 
-            // Extract and cache the hash
-            autoreleasepool {
+            // Try fast path: read pdfHash from metadata
+            let hash: String? = await MainActor.run {
+                if let metadata = try? NoteDocument.extractMetadata(from: docURL) {
+                    return metadata.pdfHash
+                }
+                return nil
+            }
+
+            if let hash = hash {
+                existingHashCache[hash] = docURL
+            } else {
+                // Slow path: document was created before pdfHash was stored.
+                // Read the PDF data and compute hash on the fly.
                 if let payload = try? DocumentArchive.read(from: docURL),
                    let pdfData = payload.pdfData {
-                    let hash = computeDataHash(pdfData)
-                    existingHashCache[hash] = docURL
+                    let computed = computeDataHash(pdfData)
+                    existingHashCache[computed] = docURL
+                    missingHashCount += 1
                 }
             }
 
-            // Small yield every 50 to keep UI responsive
-            if index % 50 == 0 {
+            // Yield every 100 files to keep UI responsive
+            if index % 100 == 0 {
                 try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
             }
+        }
+
+        if missingHashCount > 0 {
+            print("Hash cache: \(missingHashCount) documents required PDF read (no stored pdfHash)")
         }
     }
 
@@ -193,22 +247,25 @@ class BulkImportService: ObservableObject {
 
     /// Import a single PDF with timeout protection
     private func importWithTimeout(
-        url: URL,
-        title: String
+        pdfData: Data,
+        title: String,
+        pageCount: Int
     ) async throws -> ImportResult {
         try await withThrowingTaskGroup(of: ImportResult.self) { group in
-            // Task 1: The actual import
+            // Task 1: The actual import using pre-read data
             group.addTask {
-                try self.importService.importPDF(
-                    from: url,
-                    mode: .createNew(title: title)
+                try self.importService.importPDFData(
+                    pdfData,
+                    title: title,
+                    pageCount: pageCount,
+                    skipIndexing: true // Bulk import batches indexing separately
                 )
             }
 
             // Task 2: Timeout watchdog
             group.addTask {
                 try await Task.sleep(nanoseconds: self.importTimeout)
-                throw BulkImportError.timedOut(url)
+                throw BulkImportError.timedOut(URL(fileURLWithPath: title))
             }
 
             // Return first result (success or timeout), cancel the other
@@ -226,11 +283,14 @@ class BulkImportService: ObservableObject {
         withTitles titles: [String]? = nil
     ) async -> BulkImportResult {
         guard !urls.isEmpty else {
-            return BulkImportResult(successful: [], failed: [], timedOut: [], skippedDuplicates: [])
+            return BulkImportResult(successful: [], failed: [], timedOut: [], skippedDuplicates: [], cancelled: false, remainingURLs: [], elapsedSeconds: 0)
         }
+
+        let startTime = CFAbsoluteTimeGetCurrent()
 
         await MainActor.run {
             isProcessing = true
+            isCancelled = false
         }
 
         // Phase 1: Prepare - show we're starting
@@ -253,9 +313,23 @@ class BulkImportService: ObservableObject {
         var failed: [(URL, Error)] = []
         var timedOut: [URL] = []
         var skippedDuplicates: [(url: URL, existingURL: URL)] = []
+        var remainingURLs: [URL] = []
+        var wasCancelled = false
+
+        // Batch indexing: collect documents to index in bulk
+        var pendingIndexBatch: [(url: URL, metadata: DocumentMetadata, folderPath: String, fileSize: Int64)] = []
+        let indexBatchSize = 50
 
         // Phase 3: Import files
         for (index, url) in urls.enumerated() {
+            // Check for cancellation
+            if await MainActor.run(body: { isCancelled }) {
+                wasCancelled = true
+                remainingURLs = Array(urls.dropFirst(index))
+                print("Import cancelled at file \(index + 1) of \(urls.count)")
+                break
+            }
+
             // Take a brief breather every N files
             if index > 0 && index % breatherInterval == 0 {
                 let breatherProgress = BulkImportProgress(
@@ -292,7 +366,15 @@ class BulkImportService: ObservableObject {
                 self.progressSubject.send(progress)
             }
 
-            // Read PDF data and compute hash ONCE for this file
+            // Start security-scoped access for this file
+            let didStartAccess = url.startAccessingSecurityScopedResource()
+            defer {
+                if didStartAccess {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+
+            // Read PDF data ONCE for this file
             guard let pdfData = try? Data(contentsOf: url) else {
                 failed.append((url, NSError(domain: "BulkImport", code: -1, userInfo: [NSLocalizedDescriptionKey: "Could not read file"])))
                 continue
@@ -306,20 +388,48 @@ class BulkImportService: ObservableObject {
                 continue
             }
 
-            // Import the PDF with timeout protection
+            // Validate PDF and get page count in one parse
+            guard let pdfDoc = PDFDocument(data: pdfData) else {
+                failed.append((url, NSError(domain: "BulkImport", code: -2, userInfo: [NSLocalizedDescriptionKey: "Invalid PDF"])))
+                continue
+            }
+            let pageCount = pdfDoc.pageCount
+
+            // Import the PDF with timeout protection, passing pre-read data
             do {
-                let result = try await importWithTimeout(url: url, title: title)
+                let result = try await importWithTimeout(
+                    pdfData: pdfData,
+                    title: title,
+                    pageCount: pageCount
+                )
                 successful.append(result)
 
-                // Add to cache using pre-computed hash (no re-read needed)
+                // Add to hash cache
                 addToCache(url: result.url, hash: pdfHash)
+
+                // Queue for batch indexing
+                if let metadata = result.metadata {
+                    let batchFileSize: Int64 = (try? FileManager.default.attributesOfItem(atPath: result.url.path)[.size] as? Int64) ?? 0
+                    pendingIndexBatch.append((url: result.url, metadata: metadata, folderPath: self.folderPath, fileSize: batchFileSize))
+                }
+
+                // Flush index batch periodically
+                if pendingIndexBatch.count >= indexBatchSize {
+                    let batch = pendingIndexBatch
+                    pendingIndexBatch.removeAll()
+                    do {
+                        try await SearchIndexService.shared.indexDocumentsBatch(batch)
+                        print("Batch indexed \(batch.count) documents")
+                    } catch {
+                        print("Failed to batch index: \(error)")
+                    }
+                }
 
                 // Clean up temporary file if it's in the temp directory
                 if url.path.contains(NSTemporaryDirectory()) {
                     try? FileManager.default.removeItem(at: url)
                 }
             } catch let error as BulkImportError {
-                // Handle timeout separately for better reporting
                 if case .timedOut = error {
                     timedOut.append(url)
                     print("Import timed out for: \(url.lastPathComponent)")
@@ -329,12 +439,19 @@ class BulkImportService: ObservableObject {
             } catch {
                 failed.append((url, error))
             }
+        }
 
-            // Small yield every 10 files to keep things smooth
-            if index % 10 == 0 {
-                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        // Flush remaining index batch
+        if !pendingIndexBatch.isEmpty {
+            do {
+                try await SearchIndexService.shared.indexDocumentsBatch(pendingIndexBatch)
+                print("Batch indexed final \(pendingIndexBatch.count) documents")
+            } catch {
+                print("Failed to batch index final batch: \(error)")
             }
         }
+
+        let elapsed = CFAbsoluteTimeGetCurrent() - startTime
 
         // Phase 4: Finishing up
         let finishProgress = BulkImportProgress(
@@ -359,14 +476,19 @@ class BulkImportService: ObservableObject {
         }
 
         // Log summary
+        let totalHandled = successful.count + failed.count + timedOut.count + skippedDuplicates.count
+        print("Import finished: \(totalHandled) files in \(String(format: "%.1f", elapsed))s (avg \(String(format: "%.2f", totalHandled > 0 ? elapsed / Double(totalHandled) : 0))s/file)")
+        if wasCancelled {
+            print("Import cancelled with \(remainingURLs.count) files remaining")
+        }
         if !skippedDuplicates.isEmpty {
-            print("⏭️ \(skippedDuplicates.count) duplicate files skipped")
+            print("\(skippedDuplicates.count) duplicate files skipped")
         }
         if !timedOut.isEmpty {
-            print("⚠️ \(timedOut.count) files timed out during import")
+            print("\(timedOut.count) files timed out during import")
         }
 
-        return BulkImportResult(successful: successful, failed: failed, timedOut: timedOut, skippedDuplicates: skippedDuplicates)
+        return BulkImportResult(successful: successful, failed: failed, timedOut: timedOut, skippedDuplicates: skippedDuplicates, cancelled: wasCancelled, remainingURLs: remainingURLs, elapsedSeconds: elapsed)
     }
 
     /// Validate that all URLs are valid PDFs before importing

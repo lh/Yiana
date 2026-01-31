@@ -613,7 +613,7 @@ struct DocumentEditView: View {
     }
 
     private func loadDocument() async {
-        let loadedDocument = NoteDocument(fileURL: documentURL)
+        nonisolated(unsafe) let loadedDocument = NoteDocument(fileURL: documentURL)
 
         await withCheckedContinuation { continuation in
             loadedDocument.open { success in
