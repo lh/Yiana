@@ -153,6 +153,7 @@ public class DocumentWatcher {
                     "folder": .string(fileURL.deletingLastPathComponent().lastPathComponent)
                 ])
                 await checkAndProcessDocument(at: fileURL)
+                health.touchHeartbeat(note: "processing")
             }
         }
 
