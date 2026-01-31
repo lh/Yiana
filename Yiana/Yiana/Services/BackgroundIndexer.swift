@@ -105,6 +105,9 @@ class BackgroundIndexer: ObservableObject {
         totalCount = 0
         indexProgress = 0.0
 
+        #if DEBUG
+        SyncPerfLog.shared.start()
+        #endif
         print("Starting background document indexing...")
 
         // Move heavy file I/O off the main actor to avoid blocking UI
@@ -256,6 +259,10 @@ class BackgroundIndexer: ObservableObject {
         }
 
         print("Background indexing complete: \(indexedCount) documents indexed")
+
+        #if DEBUG
+        SyncPerfLog.shared.stop()
+        #endif
 
         isIndexing = false
         indexProgress = 1.0

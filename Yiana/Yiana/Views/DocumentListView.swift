@@ -71,6 +71,9 @@ struct DocumentListView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name.yianaDocumentsChanged)) { _ in
+            #if DEBUG
+            SyncPerfLog.shared.countNotification()
+            #endif
             Task { await viewModel.refresh() }
         }
         .refreshable { await refreshDocuments() }
@@ -1237,6 +1240,9 @@ struct DocumentRow: View {
     }
 
     private func loadStatus() {
+        #if DEBUG
+        SyncPerfLog.shared.countDownloadStateCheck()
+        #endif
         let state = downloadState(for: item.url)
         switch state {
         case .pending, .downloading:

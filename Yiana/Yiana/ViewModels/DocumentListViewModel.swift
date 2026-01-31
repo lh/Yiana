@@ -78,6 +78,9 @@ class DocumentListViewModel: ObservableObject {
     }
 
     func loadDocuments() async {
+        #if DEBUG
+        let loadStart = CFAbsoluteTimeGetCurrent()
+        #endif
         isLoading = true
         errorMessage = nil
 
@@ -137,6 +140,9 @@ class DocumentListViewModel: ObservableObject {
         #endif
 
         isLoading = false
+        #if DEBUG
+        SyncPerfLog.shared.countLoadDocuments(ms: (CFAbsoluteTimeGetCurrent() - loadStart) * 1000)
+        #endif
     }
 
     func createNewDocument(title: String) async -> URL? {
@@ -175,6 +181,9 @@ class DocumentListViewModel: ObservableObject {
     }
 
     func refresh() async {
+        #if DEBUG
+        SyncPerfLog.shared.countRefresh()
+        #endif
         await loadDocuments()
     }
 
