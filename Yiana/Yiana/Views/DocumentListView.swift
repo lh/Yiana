@@ -74,6 +74,9 @@ struct DocumentListView: View {
                 .throttle(for: .seconds(2), scheduler: DispatchQueue.main, latest: true)
         ) { _ in
             // Document list updates via ValueObservation; this only refreshes folders
+            #if DEBUG
+            SyncPerfLog.shared.countNotification()
+            #endif
             Task { await viewModel.refresh() }
         }
         .refreshable { await refreshDocuments() }
