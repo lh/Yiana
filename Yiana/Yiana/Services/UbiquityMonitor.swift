@@ -324,6 +324,10 @@ final class UbiquityMonitor: NSObject {
             if isDownloaded && wasNotDownloaded {
                 // New download — always reindex
                 newlyDownloadedURLs.append(standardURL)
+                // Record content version so future changes are detected
+                if let modDate = item.value(forAttribute: NSMetadataItemFSContentChangeDateKey) as? Date {
+                    contentVersions[standardURL] = modDate
+                }
             } else if isDownloaded {
                 // Already downloaded — only reindex if content actually changed
                 let modDate = item.value(forAttribute: NSMetadataItemFSContentChangeDateKey) as? Date

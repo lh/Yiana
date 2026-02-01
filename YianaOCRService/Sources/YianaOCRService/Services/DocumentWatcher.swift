@@ -118,7 +118,7 @@ public class DocumentWatcher {
     }
     
     private func processPriorityQueue() async {
-        let priorityFile = documentsURL.appendingPathComponent(".ocr_priority")
+        let priorityFile = documentsURL.appendingPathComponent("ocr_priority.txt")
         guard FileManager.default.fileExists(atPath: priorityFile.path) else { return }
 
         let content: String
@@ -193,7 +193,7 @@ public class DocumentWatcher {
         var documentCount = 0
         var documentURLs: [URL] = []
 
-        for fileURL in enumerator {
+        for (index, fileURL) in enumerator.enumerated() {
             logger.debug("Checking file", metadata: [
                 "file": .string(fileURL.lastPathComponent),
                 "path": .string(fileURL.path),
@@ -209,6 +209,12 @@ public class DocumentWatcher {
                 ])
                 await checkAndProcessDocument(at: fileURL)
                 health.touchHeartbeat(note: "processing")
+            }
+
+            // Check priority queue every 20 documents so priority items
+            // don't have to wait for the full scan to finish
+            if (index + 1) % 20 == 0 {
+                await processPriorityQueue()
             }
         }
 

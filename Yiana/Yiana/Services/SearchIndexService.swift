@@ -223,6 +223,28 @@ class SearchIndexService {
             try database.execute(sql: "DELETE FROM documents_metadata")
             print("[SearchIndex] Cleared \(badCount) entries with corrupted folder_path (will re-index)")
         }
+
+        // One-time fix: remove duplicate FTS rows (FTS5 has no primary key, so
+        // earlier code using onConflict: .replace silently created duplicates).
+        // Keep only the most recent row (MAX rowid) per document_id.
+        let dupCount = try Int.fetchOne(
+            database,
+            sql: """
+                SELECT COUNT(*) FROM documents_fts
+                WHERE rowid NOT IN (
+                    SELECT MAX(rowid) FROM documents_fts GROUP BY document_id
+                )
+                """
+        ) ?? 0
+        if dupCount > 0 {
+            try database.execute(sql: """
+                DELETE FROM documents_fts
+                WHERE rowid NOT IN (
+                    SELECT MAX(rowid) FROM documents_fts GROUP BY document_id
+                )
+                """)
+            print("[SearchIndex] Removed \(dupCount) duplicate FTS rows")
+        }
     }
 
     // MARK: - Indexing Operations
@@ -256,6 +278,13 @@ class SearchIndexService {
                 )
             }
 
+            // Delete any existing FTS rows for this document (FTS5 has no primary key,
+            // so onConflict: .replace is a no-op and would create duplicates)
+            try database.execute(
+                sql: "DELETE FROM documents_fts WHERE document_id = ?",
+                arguments: [id.uuidString]
+            )
+
             // Insert FTS record
             let ftsRecord = DocumentFTSRecord(
                 documentId: id.uuidString,
@@ -263,7 +292,7 @@ class SearchIndexService {
                 fullText: fullText,
                 tags: tags.joined(separator: " ")
             )
-            try ftsRecord.insert(database, onConflict: .replace)
+            try ftsRecord.insert(database)
 
             // Insert metadata record
             let metadataRecord = DocumentMetadataRecord(
@@ -291,13 +320,19 @@ class SearchIndexService {
         guard !documents.isEmpty else { return }
         try await dbQueue.write { database in
             for doc in documents {
+                // Delete any existing FTS rows for this document (FTS5 has no primary key)
+                try database.execute(
+                    sql: "DELETE FROM documents_fts WHERE document_id = ?",
+                    arguments: [doc.metadata.id.uuidString]
+                )
+
                 let ftsRecord = DocumentFTSRecord(
                     documentId: doc.metadata.id.uuidString,
                     title: doc.metadata.title,
                     fullText: "",
                     tags: doc.metadata.tags.joined(separator: " ")
                 )
-                try ftsRecord.insert(database, onConflict: .replace)
+                try ftsRecord.insert(database)
 
                 // Remove any placeholder row for this URL
                 let placeholderIds = try String.fetchAll(
@@ -704,25 +739,27 @@ class SearchIndexService {
         }
     }
 
-    /// Diagnostic: get count of documents per folder_path
-    func folderPathDistribution() async throws -> [(path: String, total: Int, placeholders: Int)] {
-        return try await dbQueue.read { database in
-            let rows = try Row.fetchAll(database, sql: """
-                SELECT folder_path,
-                       COUNT(*) as total,
-                       SUM(CASE WHEN is_placeholder = 1 THEN 1 ELSE 0 END) as placeholders
-                FROM documents_metadata
-                GROUP BY folder_path
-                ORDER BY total DESC
-                LIMIT 20
-                """)
-            return rows.map { row in
-                (
-                    path: (row["folder_path"] as String?) ?? "<null>",
-                    total: (row["total"] as Int?) ?? 0,
-                    placeholders: (row["placeholders"] as Int?) ?? 0
-                )
-            }
+    func isDocumentIndexedByURL(path: String) async throws -> Bool {
+        try await dbQueue.read { database in
+            let count = try Int.fetchOne(
+                database,
+                sql: "SELECT COUNT(*) FROM documents_metadata WHERE url = ? AND is_placeholder = 0",
+                arguments: [path]
+            ) ?? 0
+            return count > 0
+        }
+    }
+
+    /// Check if a document is indexed with OCR already completed.
+    /// Returns false if not indexed, or indexed but OCR is still pending.
+    func isDocumentFullyIndexed(path: String) async throws -> Bool {
+        try await dbQueue.read { database in
+            let count = try Int.fetchOne(
+                database,
+                sql: "SELECT COUNT(*) FROM documents_metadata WHERE url = ? AND is_placeholder = 0 AND ocr_completed = 1",
+                arguments: [path]
+            ) ?? 0
+            return count > 0
         }
     }
 

@@ -9,6 +9,7 @@
 #if os(macOS)
 import SwiftUI
 import PDFKit
+import UniformTypeIdentifiers
 
 struct DocumentInfoPanel: View {
     let document: NoteDocument
@@ -72,7 +73,7 @@ struct DocumentInfoPanel: View {
                         MetadataView(metadata: document.metadata)
                             .padding()
                     case "ocr":
-                        OCRView(metadata: document.metadata, isLoading: $isLoadingOCR)
+                        OCRView(document: document, isLoading: $isLoadingOCR)
                             .padding()
                     case "debug":
                         DebugView(document: document)
@@ -136,8 +137,10 @@ struct MetadataView: View {
 
 // MARK: - OCR View
 struct OCRView: View {
-    let metadata: DocumentMetadata
+    let document: NoteDocument
     @Binding var isLoading: Bool
+
+    private var metadata: DocumentMetadata { document.metadata }
     @State private var searchText = ""
 
     var body: some View {
@@ -217,11 +220,16 @@ struct OCRView: View {
                         Text("\(fullText.count) characters")
                             .font(.caption)
                             .foregroundColor(.secondary)
+
+                        reprocessOCRButton
                     }
                 } else {
-                    Text("OCR completed but no text found")
-                        .foregroundColor(.secondary)
-                        .italic()
+                    VStack(spacing: 10) {
+                        Text("OCR completed but no text found")
+                            .foregroundColor(.secondary)
+                            .italic()
+                        reprocessOCRButton
+                    }
                 }
             } else {
                 VStack(spacing: 15) {
@@ -232,15 +240,122 @@ struct OCRView: View {
                         .foregroundColor(.secondary)
 
                     Button("Process OCR") {
-                        // TODO: Trigger OCR processing
                         isLoading = true
-                        print("TODO: Trigger OCR processing")
+
+                        // Reset OCR metadata so the service picks it up again
+                        document.metadata.ocrCompleted = false
+                        document.metadata.fullText = nil
+                        document.metadata.ocrProcessedAt = nil
+                        document.metadata.ocrConfidence = nil
+                        document.metadata.ocrSource = nil
+                        document.metadata.pageProcessingStates = (1...document.metadata.pageCount).map {
+                            PageProcessingState(pageNumber: $0, needsOCR: true)
+                        }
+                        document.metadata.modified = Date()
+
+                        // Save to update the file's modification date, which
+                        // causes the OCR service to reprocess it.
+                        guard let fileURL = document.fileURL else {
+                            print("[Process OCR] No fileURL, cannot save")
+                            isLoading = false
+                            return
+                        }
+                        let typeName = document.fileType ?? UTType.yianaDocument.identifier
+                        document.save(to: fileURL, ofType: typeName, for: .saveOperation) { error in
+                            if let error {
+                                print("[Process OCR] Save failed: \(error)")
+                            } else {
+                                print("[Process OCR] Document saved, OCR service should pick it up")
+
+                                // Write to priority queue so OCR service processes this file first
+                                let fileName = fileURL.lastPathComponent
+                                let priorityFileURL = fileURL
+                                    .deletingLastPathComponent()
+                                    .appendingPathComponent("ocr_priority.txt")
+                                let coordinator = NSFileCoordinator()
+                                var coordinatorError: NSError?
+                                coordinator.coordinate(writingItemAt: priorityFileURL, options: .forMerging, error: &coordinatorError) { coordURL in
+                                    if let existing = try? String(contentsOf: coordURL, encoding: .utf8) {
+                                        let lines = existing.components(separatedBy: .newlines).filter { !$0.isEmpty }
+                                        if !lines.contains(fileName) {
+                                            try? (existing.trimmingCharacters(in: .whitespacesAndNewlines) + "\n" + fileName)
+                                                .write(to: coordURL, atomically: true, encoding: .utf8)
+                                        }
+                                    } else {
+                                        try? fileName.write(to: coordURL, atomically: true, encoding: .utf8)
+                                    }
+                                }
+                                if let coordinatorError {
+                                    print("[Process OCR] Priority file write failed: \(coordinatorError)")
+                                }
+                            }
+                            Task { @MainActor in
+                                isLoading = false
+                            }
+                        }
                     }
+                    .disabled(isLoading)
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
             }
         }
+    }
+
+    private var reprocessOCRButton: some View {
+        Button("Reprocess OCR") {
+            isLoading = true
+
+            document.metadata.ocrCompleted = false
+            document.metadata.fullText = nil
+            document.metadata.ocrProcessedAt = nil
+            document.metadata.ocrConfidence = nil
+            document.metadata.ocrSource = nil
+            document.metadata.pageProcessingStates = (1...document.metadata.pageCount).map {
+                PageProcessingState(pageNumber: $0, needsOCR: true)
+            }
+            document.metadata.modified = Date()
+
+            guard let fileURL = document.fileURL else {
+                print("[Reprocess OCR] No fileURL, cannot save")
+                isLoading = false
+                return
+            }
+            let typeName = document.fileType ?? UTType.yianaDocument.identifier
+            document.save(to: fileURL, ofType: typeName, for: .saveOperation) { error in
+                if let error {
+                    print("[Reprocess OCR] Save failed: \(error)")
+                } else {
+                    print("[Reprocess OCR] Document saved, OCR service should pick it up")
+
+                    let fileName = fileURL.lastPathComponent
+                    let priorityFileURL = fileURL
+                        .deletingLastPathComponent()
+                        .appendingPathComponent("ocr_priority.txt")
+                    let coordinator = NSFileCoordinator()
+                    var coordinatorError: NSError?
+                    coordinator.coordinate(writingItemAt: priorityFileURL, options: .forMerging, error: &coordinatorError) { coordURL in
+                        if let existing = try? String(contentsOf: coordURL, encoding: .utf8) {
+                            let lines = existing.components(separatedBy: .newlines).filter { !$0.isEmpty }
+                            if !lines.contains(fileName) {
+                                try? (existing.trimmingCharacters(in: .whitespacesAndNewlines) + "\n" + fileName)
+                                    .write(to: coordURL, atomically: true, encoding: .utf8)
+                            }
+                        } else {
+                            try? fileName.write(to: coordURL, atomically: true, encoding: .utf8)
+                        }
+                    }
+                    if let coordinatorError {
+                        print("[Reprocess OCR] Priority file write failed: \(coordinatorError)")
+                    }
+                }
+                Task { @MainActor in
+                    isLoading = false
+                }
+            }
+        }
+        .disabled(isLoading)
+        .font(.caption)
     }
 
     func highlightedText(_ text: String, search: String) -> AttributedString {

@@ -60,34 +60,50 @@ class BackgroundIndexer: ObservableObject {
         isIndexing = false
     }
 
-    /// Re-index documents that have finished downloading from iCloud
+    /// Re-index documents that have finished downloading from iCloud.
+    /// File I/O (readMetadata) runs off the main thread to avoid blocking the UI.
     func reindexDownloadedDocuments(urls: [URL]) async {
-        var reindexedCount = 0
+        let searchIndex = self.searchIndex
 
-        for url in urls {
-            guard let (metadataData, _) = try? DocumentArchive.readMetadata(from: url),
-                  let metadata = try? JSONDecoder().decode(DocumentMetadata.self, from: metadataData) else {
-                continue
+        // Read all file metadata off the main thread
+        let results = await Task.detached(priority: .utility) {
+            let repository = DocumentRepository()
+            var items: [(url: URL, metadata: DocumentMetadata, folderPath: String, fileSize: Int64)] = []
+
+            for (index, url) in urls.enumerated() {
+                guard let (metadataData, _) = try? DocumentArchive.readMetadata(from: url),
+                      let metadata = try? JSONDecoder().decode(DocumentMetadata.self, from: metadataData) else {
+                    continue
+                }
+                let folderPath = url.relativeFolderPath(relativeTo: repository.documentsDirectory)
+                let fileSize: Int64 = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64) ?? 0
+                items.append((url: url, metadata: metadata, folderPath: folderPath, fileSize: fileSize))
+
+                // Throttle file access to avoid exhausting sandbox extensions
+                if (index + 1) % 10 == 0 {
+                    try? await Task.sleep(nanoseconds: 50_000_000) // 50ms breather
+                }
             }
+            return items
+        }.value
 
-            let folderPath = url.relativeFolderPath(relativeTo: DocumentRepository().documentsDirectory)
-            let fileSize: Int64 = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64) ?? 0
-            let fullText = metadata.fullText ?? ""
-
+        // DB writes (lightweight, no file I/O) happen back on MainActor
+        var reindexedCount = 0
+        for item in results {
             do {
                 try await searchIndex.indexDocument(
-                    id: metadata.id,
-                    url: url,
-                    title: metadata.title,
-                    fullText: fullText,
-                    tags: metadata.tags,
-                    metadata: metadata,
-                    folderPath: folderPath,
-                    fileSize: fileSize
+                    id: item.metadata.id,
+                    url: item.url,
+                    title: item.metadata.title,
+                    fullText: item.metadata.fullText ?? "",
+                    tags: item.metadata.tags,
+                    metadata: item.metadata,
+                    folderPath: item.folderPath,
+                    fileSize: item.fileSize
                 )
                 reindexedCount += 1
             } catch {
-                print("Failed to reindex downloaded document \(url.lastPathComponent): \(error)")
+                print("Failed to reindex downloaded document \(item.url.lastPathComponent): \(error)")
             }
         }
 
@@ -95,7 +111,6 @@ class BackgroundIndexer: ObservableObject {
             #if DEBUG
             print("Re-indexed \(reindexedCount) downloaded documents")
             #endif
-            // No notification needed -- ValueObservation picks up DB changes automatically
         }
     }
 
@@ -111,7 +126,7 @@ class BackgroundIndexer: ObservableObject {
         print("Starting background document indexing...")
 
         // Move heavy file I/O off the main actor to avoid blocking UI
-        let scanResult: (toIndex: [(url: URL, metadata: DocumentMetadata, folderPath: String, fileSize: Int64)], allPaths: Set<String>, placeholders: [(url: URL, folderPath: String)]) = await Task.detached(priority: .utility) {
+        let scanResult: (toIndex: [(url: URL, metadata: DocumentMetadata, folderPath: String, fileSize: Int64)], allPaths: Set<String>, placeholders: [(url: URL, folderPath: String)], ocrUpdates: [(url: URL, metadata: DocumentMetadata, folderPath: String, fileSize: Int64)]) = await Task.detached(priority: .utility) {
             // Get all documents recursively (file system scan)
             let repository = DocumentRepository()
             let allDocuments = repository.allDocumentsRecursive()
@@ -119,14 +134,22 @@ class BackgroundIndexer: ObservableObject {
             // Collect all valid paths for stale pruning
             var allPaths = Set<String>()
             var needsIndexing: [(url: URL, metadata: DocumentMetadata, folderPath: String, fileSize: Int64)] = []
+            var ocrUpdates: [(url: URL, metadata: DocumentMetadata, folderPath: String, fileSize: Int64)] = []
             var placeholders: [(url: URL, folderPath: String)] = []
 
             for item in allDocuments {
-                if Task.isCancelled { return ([], Set<String>(), []) }
+                if Task.isCancelled { return ([], Set<String>(), [], []) }
 
                 allPaths.insert(item.url.path)
 
-                // Extract metadata directly using DocumentArchive (not MainActor-isolated)
+                // Skip files already fully indexed (with OCR complete) — avoids
+                // opening iCloud files and exhausting sandbox extensions.
+                // Documents with pending OCR are re-read in case the OCR service
+                // has since updated the file.
+                let fullyIndexed = (try? await self.searchIndex.isDocumentFullyIndexed(path: item.url.path)) ?? false
+                if fullyIndexed { continue }
+
+                // Not indexed — need to read metadata
                 guard let (metadataData, _) = try? DocumentArchive.readMetadata(from: item.url),
                       let metadata = try? JSONDecoder().decode(DocumentMetadata.self, from: metadataData) else {
                     // File exists but can't be read — likely an iCloud placeholder
@@ -134,24 +157,52 @@ class BackgroundIndexer: ObservableObject {
                     continue
                 }
 
-                // Check if already indexed
-                let isIndexed = (try? await self.searchIndex.isDocumentIndexed(id: metadata.id)) ?? false
+                let fileSize: Int64 = (try? FileManager.default.attributesOfItem(atPath: item.url.path)[.size] as? Int64) ?? 0
 
-                if !isIndexed {
-                    // Compute file size
-                    let fileSize: Int64 = (try? FileManager.default.attributesOfItem(atPath: item.url.path)[.size] as? Int64) ?? 0
-
-                    needsIndexing.append((url: item.url, metadata: metadata, folderPath: item.relativePath, fileSize: fileSize))
+                // If this document was indexed without OCR but now has it,
+                // index it immediately so the UI updates right away
+                if metadata.ocrCompleted {
+                    let wasIndexedWithoutOCR = (try? await self.searchIndex.isDocumentIndexedByURL(path: item.url.path)) ?? false
+                    if wasIndexedWithoutOCR {
+                        ocrUpdates.append((url: item.url, metadata: metadata, folderPath: item.relativePath, fileSize: fileSize))
+                        continue
+                    }
                 }
+
+                needsIndexing.append((url: item.url, metadata: metadata, folderPath: item.relativePath, fileSize: fileSize))
             }
 
-            return (needsIndexing, allPaths, placeholders)
+            return (needsIndexing, allPaths, placeholders, ocrUpdates)
         }.value
 
         // Check if cancelled during file scan
         if Task.isCancelled {
             isIndexing = false
             return
+        }
+
+        // Fast-track: immediately re-index documents whose OCR status changed
+        // since last index, so stripes update without waiting for the full batch
+        if !scanResult.ocrUpdates.isEmpty {
+            for item in scanResult.ocrUpdates {
+                do {
+                    try await searchIndex.indexDocument(
+                        id: item.metadata.id,
+                        url: item.url,
+                        title: item.metadata.title,
+                        fullText: item.metadata.fullText ?? "",
+                        tags: item.metadata.tags,
+                        metadata: item.metadata,
+                        folderPath: item.folderPath,
+                        fileSize: item.fileSize
+                    )
+                } catch {
+                    print("Failed to fast-track OCR update for \(item.url.lastPathComponent): \(error)")
+                }
+            }
+            #if DEBUG
+            print("[Indexer] Fast-tracked \(scanResult.ocrUpdates.count) OCR-updated documents")
+            #endif
         }
 
         // Index placeholders in a single batch transaction so they appear immediately

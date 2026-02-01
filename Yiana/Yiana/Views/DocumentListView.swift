@@ -396,43 +396,23 @@ struct DocumentListView: View {
     /// Unlike startDownloadingUbiquitousItem (which is a low-priority hint),
     /// a coordinated read tells the FileProvider to download NOW.
     private func prioritizeDownload(for url: URL) {
-        let filename = url.lastPathComponent
-        print("[Download] User tapped: \(filename)")
-
-        // Check current download status
-        let values = try? url.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey, .ubiquitousItemIsDownloadingKey])
-        let status = values?.ubiquitousItemDownloadingStatus
-        let isDownloading = values?.ubiquitousItemIsDownloading ?? false
-        print("[Download] Current status: \(status?.rawValue ?? "nil"), isDownloading: \(isDownloading)")
-
         // Kick off the hint immediately so the system knows we want it
-        do {
-            try FileManager.default.startDownloadingUbiquitousItem(at: url)
-            print("[Download] startDownloadingUbiquitousItem succeeded for \(filename)")
-        } catch {
-            print("[Download] startDownloadingUbiquitousItem FAILED for \(filename): \(error.localizedDescription)")
-        }
+        try? FileManager.default.startDownloadingUbiquitousItem(at: url)
         scheduleDownloadTimeout(for: url)
 
         // Coordinated read forces high-priority download
-        let startTime = CFAbsoluteTimeGetCurrent()
         let standardURL = url.standardizedFileURL
-        print("[Download] Starting coordinated read for \(filename)...")
         Task.detached(priority: .userInitiated) {
             let coordinator = NSFileCoordinator()
             var coordError: NSError?
             var succeeded = false
-            coordinator.coordinate(readingItemAt: url, options: [], error: &coordError) { readURL in
-                let elapsed = CFAbsoluteTimeGetCurrent() - startTime
-                let size = (try? readURL.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
-                print("[Download] Coordinated read completed for \(filename) in \(String(format: "%.1f", elapsed))s, size: \(size) bytes")
+            coordinator.coordinate(readingItemAt: url, options: [], error: &coordError) { _ in
                 succeeded = true
             }
             if let coordError {
-                let elapsed = CFAbsoluteTimeGetCurrent() - startTime
-                print("[Download] Coordinated read FAILED for \(filename) after \(String(format: "%.1f", elapsed))s: \(coordError.localizedDescription)")
+                print("[Download] Failed: \(url.lastPathComponent): \(coordError.localizedDescription)")
             }
-            // Post notification to clear spinner — don't wait for UbiquityMonitor round-trip
+            // Post notification to clear download indicator — don't wait for UbiquityMonitor round-trip
             if succeeded {
                 await MainActor.run {
                     NotificationCenter.default.post(
@@ -440,7 +420,6 @@ struct DocumentListView: View {
                         object: nil,
                         userInfo: ["urls": [standardURL]]
                     )
-                    print("[Download] Cleared spinner for \(filename)")
                 }
             }
         }
@@ -448,21 +427,13 @@ struct DocumentListView: View {
 
     private func scheduleDownloadTimeout(for url: URL) {
         let standardURL = url.standardizedFileURL
-        let filename = url.lastPathComponent
         Task {
             try? await Task.sleep(nanoseconds: 60_000_000_000) // 60 seconds
-            guard downloadingURLs.contains(standardURL) else {
-                print("[Download] Timeout check: \(filename) already cleared (download succeeded)")
-                return
-            }
-            // Re-check actual download status
+            guard downloadingURLs.contains(standardURL) else { return }
             let values = try? standardURL.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey])
             let status = values?.ubiquitousItemDownloadingStatus
             if status != .current && status != .downloaded {
                 downloadingURLs.remove(standardURL)
-                print("[Download] Timeout: \(filename) still not downloaded (status: \(status?.rawValue ?? "nil")), clearing spinner")
-            } else {
-                print("[Download] Timeout check: \(filename) is now downloaded")
             }
         }
     }
@@ -1317,6 +1288,9 @@ struct DocumentRow: View {
             if searchResult == nil {
                 loadStatus()
             }
+        }
+        .onChange(of: item.ocrCompleted) {
+            loadStatus()
         }
         .documentRowAccessibility(
             title: item.title,
