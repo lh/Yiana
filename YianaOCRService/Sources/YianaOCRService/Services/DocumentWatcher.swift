@@ -8,13 +8,18 @@ private enum OCRSource: String {
     case service
 }
 
+private struct TrackedDocument: Codable {
+    let modDate: TimeInterval      // last-seen modification date
+    let processedAt: TimeInterval  // when we marked it processed
+}
+
 /// Watches for new or modified Yiana documents in the iCloud Documents folder
 public class DocumentWatcher {
     private let logger: Logger
     private let documentsURL: URL
     private let processor: OCRProcessor
     private var directoryMonitor: DirectoryMonitor?
-    private var processedDocuments = Set<String>()
+    private var processedDocuments = [String: TrackedDocument]()
     private let processedDocumentsFile: URL
     private let health: HealthMonitor
     private var lastCleanupTime: Date = .distantPast
@@ -22,6 +27,8 @@ public class DocumentWatcher {
     private var isScanning = false  // Prevent concurrent scans
     private var processingDocuments = Set<String>()  // Track documents currently being processed
     private var failedDocuments: [String: (count: Int, lastAttempt: Date)] = [:]  // Error backoff tracking
+    private var lastFullVerificationTime: Date = .distantPast
+    private let fullVerificationInterval: TimeInterval = 10 * 60  // 10 minutes
     
     public init(logger: Logger, customPath: String? = nil) {
         self.logger = logger
@@ -110,6 +117,51 @@ public class DocumentWatcher {
         saveProcessedDocuments()
     }
     
+    private func processPriorityQueue() async {
+        let priorityFile = documentsURL.appendingPathComponent(".ocr_priority")
+        guard FileManager.default.fileExists(atPath: priorityFile.path) else { return }
+
+        let content: String
+        do {
+            content = try coordinatedRead(at: priorityFile) { url in
+                try String(contentsOf: url, encoding: .utf8)
+            }
+        } catch {
+            logger.debug("Could not read priority file", metadata: ["error": .string(error.localizedDescription)])
+            return
+        }
+
+        let filenames = content.components(separatedBy: .newlines).filter { !$0.isEmpty }
+        guard !filenames.isEmpty else { return }
+
+        logger.info("Processing priority queue", metadata: ["count": .stringConvertible(filenames.count)])
+
+        for filename in filenames {
+            let fileURL = documentsURL.appendingPathComponent(filename)
+            guard FileManager.default.fileExists(atPath: fileURL.path) else {
+                logger.warning("Priority file not found, skipping", metadata: ["file": .string(filename)])
+                continue
+            }
+            // Remove from processed/failed sets so it won't be skipped
+            let name = fileURL.lastPathComponent
+            processedDocuments.removeValue(forKey: name)
+            failedDocuments.removeValue(forKey: name)
+            await checkAndProcessDocument(at: fileURL)
+            health.touchHeartbeat(note: "priority-processing")
+        }
+
+        // Remove the priority file after processing
+        do {
+            try coordinatedWrite(at: priorityFile) { url in
+                try FileManager.default.removeItem(at: url)
+            }
+        } catch {
+            logger.warning("Could not remove priority file", metadata: ["error": .string(error.localizedDescription)])
+        }
+
+        saveProcessedDocuments()
+    }
+
     private func scanExistingDocuments() async {
         // Prevent concurrent scans from piling up
         guard !isScanning else {
@@ -119,6 +171,9 @@ public class DocumentWatcher {
 
         isScanning = true
         defer { isScanning = false }
+
+        // Process priority queue first
+        await processPriorityQueue()
 
         logger.info("Scanning existing documents")
         health.touchHeartbeat(note: "scan")
@@ -174,6 +229,29 @@ public class DocumentWatcher {
         }
 
         performCleanupIfNeeded(existingDocuments: documentURLs)
+
+        // Periodic full verification — check all tracked documents still have OCR
+        if Date().timeIntervalSince(lastFullVerificationTime) >= fullVerificationInterval {
+            lastFullVerificationTime = Date()
+            var evicted = 0
+            for (trackedFileName, _) in processedDocuments {
+                guard let matchURL = documentURLs.first(where: { $0.lastPathComponent == trackedFileName }) else { continue }
+                if let (metadataData, _) = try? coordinatedRead(at: matchURL, body: { url in
+                    try DocumentArchive.readMetadata(from: url)
+                }),
+                   let metadata = try? JSONDecoder().decode(DocumentMetadata.self, from: metadataData),
+                   !metadata.ocrCompleted {
+                    processedDocuments.removeValue(forKey: trackedFileName)
+                    evicted += 1
+                }
+            }
+            if evicted > 0 {
+                logger.info("Full verification evicted documents", metadata: [
+                    "count": .stringConvertible(evicted)
+                ])
+                saveProcessedDocuments()
+            }
+        }
     }
     
     private func setupDirectoryMonitor() {
@@ -184,6 +262,14 @@ public class DocumentWatcher {
             }
         }
         directoryMonitor?.start()
+
+        // Fast priority queue check — runs independently of full scans
+        Task {
+            while true {
+                try? await Task.sleep(nanoseconds: 5_000_000_000) // Check every 5 seconds
+                await processPriorityQueue()
+            }
+        }
 
         // Also set up a periodic scan to catch any missed changes in subdirectories
         // Reduced frequency to prevent concurrent scan deadlocks
@@ -239,18 +325,45 @@ public class DocumentWatcher {
 
     private func checkAndProcessDocument(at url: URL) async {
         let fileName = url.lastPathComponent
-        let fileIdentifier = getFileIdentifier(for: url)
 
-        // Check if already processed
-        if processedDocuments.contains(fileIdentifier) {
-            logger.debug("Document already processed", metadata: [
-                "file": .string(fileName)
-            ])
-            return
+        // Check if already processed (keyed by filename only)
+        if let tracked = processedDocuments[fileName] {
+            // Check if mod date changed since we last saw it
+            if let currentModDate = getModDate(for: url), currentModDate != tracked.modDate {
+                // File changed — verify OCR is still intact
+                logger.info("Mod date changed for tracked document, verifying", metadata: [
+                    "file": .string(fileName)
+                ])
+                if let (metadataData, _) = try? coordinatedRead(at: url, body: { url in
+                    try DocumentArchive.readMetadata(from: url)
+                }),
+                   let metadata = try? JSONDecoder().decode(DocumentMetadata.self, from: metadataData),
+                   metadata.ocrCompleted {
+                    // OCR still intact, update tracked mod date
+                    processedDocuments[fileName] = TrackedDocument(
+                        modDate: currentModDate,
+                        processedAt: tracked.processedAt
+                    )
+                    saveProcessedDocuments()
+                    return
+                }
+                // OCR lost — evict and fall through to reprocess
+                logger.warning("OCR lost after mod date change, reprocessing", metadata: [
+                    "file": .string(fileName)
+                ])
+                processedDocuments.removeValue(forKey: fileName)
+                failedDocuments.removeValue(forKey: fileName)
+            } else {
+                // Mod date unchanged — still processed
+                logger.debug("Document already processed", metadata: [
+                    "file": .string(fileName)
+                ])
+                return
+            }
         }
 
         // Check if currently being processed by another scan
-        if processingDocuments.contains(fileIdentifier) {
+        if processingDocuments.contains(fileName) {
             logger.debug("Document currently being processed, skipping", metadata: [
                 "file": .string(fileName)
             ])
@@ -258,8 +371,8 @@ public class DocumentWatcher {
         }
 
         // Check error backoff before attempting
-        if shouldBackOff(fileIdentifier: fileIdentifier) {
-            let failure = failedDocuments[fileIdentifier]!
+        if shouldBackOff(fileIdentifier: fileName) {
+            let failure = failedDocuments[fileName]!
             logger.debug("Skipping backed-off document", metadata: [
                 "file": .string(fileName),
                 "failureCount": .stringConvertible(failure.count)
@@ -268,8 +381,8 @@ public class DocumentWatcher {
         }
 
         // Mark as being processed
-        processingDocuments.insert(fileIdentifier)
-        defer { processingDocuments.remove(fileIdentifier) }
+        processingDocuments.insert(fileName)
+        defer { processingDocuments.remove(fileName) }
 
         logger.info("Checking document", metadata: [
             "file": .string(fileName)
@@ -287,9 +400,13 @@ public class DocumentWatcher {
                 logger.info("Document already has OCR", metadata: [
                     "file": .string(fileName)
                 ])
-                processedDocuments.insert(fileIdentifier)
+                let modDate = getModDate(for: url) ?? Date().timeIntervalSince1970
+                processedDocuments[fileName] = TrackedDocument(
+                    modDate: modDate,
+                    processedAt: Date().timeIntervalSince1970
+                )
                 saveProcessedDocuments()
-                failedDocuments.removeValue(forKey: fileIdentifier)
+                failedDocuments.removeValue(forKey: fileName)
                 return
             }
 
@@ -307,9 +424,13 @@ public class DocumentWatcher {
                     "textLength": .stringConvertible(embeddedResult.fullText.count)
                 ])
                 try await saveOCRResults(embeddedResult, for: document, at: url)
-                processedDocuments.insert(fileIdentifier)
+                let modDate = getModDate(for: url) ?? Date().timeIntervalSince1970
+                processedDocuments[fileName] = TrackedDocument(
+                    modDate: modDate,
+                    processedAt: Date().timeIntervalSince1970
+                )
                 saveProcessedDocuments()
-                failedDocuments.removeValue(forKey: fileIdentifier)
+                failedDocuments.removeValue(forKey: fileName)
                 return
             }
 
@@ -341,9 +462,13 @@ public class DocumentWatcher {
             try await saveOCRResults(result, for: document, at: url)
 
             // Mark as processed and clear any failure record
-            processedDocuments.insert(fileIdentifier)
+            let modDate = getModDate(for: url) ?? Date().timeIntervalSince1970
+            processedDocuments[fileName] = TrackedDocument(
+                modDate: modDate,
+                processedAt: Date().timeIntervalSince1970
+            )
             saveProcessedDocuments()
-            failedDocuments.removeValue(forKey: fileIdentifier)
+            failedDocuments.removeValue(forKey: fileName)
 
             logger.info("OCR completed successfully", metadata: [
                 "file": .string(fileName),
@@ -353,9 +478,9 @@ public class DocumentWatcher {
 
         } catch {
             // Record failure for backoff
-            let existing = failedDocuments[fileIdentifier]
+            let existing = failedDocuments[fileName]
             let newCount = (existing?.count ?? 0) + 1
-            failedDocuments[fileIdentifier] = (count: newCount, lastAttempt: Date())
+            failedDocuments[fileName] = (count: newCount, lastAttempt: Date())
 
             logger.error("Failed to process document", metadata: [
                 "file": .string(fileName),
@@ -535,14 +660,9 @@ public class DocumentWatcher {
         ])
     }
 
-    private func getFileIdentifier(for url: URL) -> String {
-        // Use file name and modification date as identifier
-        let fileName = url.lastPathComponent
-        if let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
-           let modDate = attributes[.modificationDate] as? Date {
-            return "\(fileName)_\(modDate.timeIntervalSince1970)"
-        }
-        return fileName
+    private func getModDate(for url: URL) -> TimeInterval? {
+        (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate]
+            .flatMap { ($0 as? Date)?.timeIntervalSince1970 }
     }
 
     private func performCleanupIfNeeded(existingDocuments: [URL]? = nil) {
@@ -595,9 +715,9 @@ public class DocumentWatcher {
     }
 
     private func cleanupProcessedEntries(using documents: [URL]) -> Int {
-        let existingIdentifiers = Set(documents.map(getFileIdentifier))
+        let existingFileNames = Set(documents.map(\.lastPathComponent))
         let before = processedDocuments.count
-        processedDocuments.formIntersection(existingIdentifiers)
+        processedDocuments = processedDocuments.filter { existingFileNames.contains($0.key) }
         let removed = before - processedDocuments.count
         if removed > 0 {
             saveProcessedDocuments()
@@ -677,10 +797,32 @@ public class DocumentWatcher {
     
     private func loadProcessedDocuments() {
         guard FileManager.default.fileExists(atPath: processedDocumentsFile.path) else { return }
-        
+
         do {
             let data = try Data(contentsOf: processedDocumentsFile)
-            processedDocuments = try JSONDecoder().decode(Set<String>.self, from: data)
+            // Try new format first
+            if let dict = try? JSONDecoder().decode([String: TrackedDocument].self, from: data) {
+                processedDocuments = dict
+            } else if let oldSet = try? JSONDecoder().decode(Set<String>.self, from: data) {
+                // Migrate from old Set<String> format
+                logger.info("Migrating processed.json from old format", metadata: [
+                    "count": .stringConvertible(oldSet.count)
+                ])
+                let now = Date().timeIntervalSince1970
+                for entry in oldSet {
+                    // Old format: "filename_modDate" — extract filename
+                    let parts = entry.split(separator: "_")
+                    // Filename may contain underscores; mod date is the last component
+                    if parts.count >= 2,
+                       let _ = Double(String(parts.last!)) {
+                        let fileName = parts.dropLast().joined(separator: "_")
+                        processedDocuments[fileName] = TrackedDocument(modDate: 0, processedAt: now)
+                    } else {
+                        processedDocuments[entry] = TrackedDocument(modDate: 0, processedAt: now)
+                    }
+                }
+                saveProcessedDocuments()
+            }
             logger.info("Loaded processed documents", metadata: [
                 "count": .stringConvertible(processedDocuments.count)
             ])
