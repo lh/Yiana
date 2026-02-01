@@ -40,8 +40,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `mcp__serena__list_dir` - Explore directories
 - `mcp__serena__replace_symbol_body` - Replace entire functions
 - `mcp__serena__insert_before_symbol` / `insert_after_symbol` - Add code
-- `mcp__serena__write_memory` / `read_memory` - Track project state
+- `mcp__serena__write_memory` / `read_memory` / `edit_memory` - Track project state
 - Only use basic Read/Edit for non-code files or tiny edits
+
+### Ideas & Problems Log
+When a problem is deferred or an idea comes up mid-task, save it to the Serena memory `ideas_and_problems` using `mcp__serena__edit_memory`. Do NOT use Vestige for this — use the Serena memory so everything stays in one place. Format: numbered list under `## Problems` or `## Ideas`.
 
 ## Project Overview
 
