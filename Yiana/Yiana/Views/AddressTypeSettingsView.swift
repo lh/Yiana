@@ -211,7 +211,7 @@ struct TemplatePickerView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             List(AddressTypeConfiguration.allTemplates) { template in
                 Button {
                     configManager.loadTemplate(template)
@@ -285,7 +285,7 @@ struct AddressTypeEditorView: View {
     ]
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section("Type Information") {
                     TextField("Name", text: $name)
@@ -373,7 +373,7 @@ struct AddressTypeEditorView: View {
 }
 
 #Preview {
-    NavigationView {
+    NavigationStack {
         AddressTypeSettingsView()
     }
 }

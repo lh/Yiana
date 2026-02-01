@@ -27,7 +27,7 @@ struct DocumentInfoSheet: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 // Tab selector
                 Picker("Info Type", selection: $selectedTab) {
