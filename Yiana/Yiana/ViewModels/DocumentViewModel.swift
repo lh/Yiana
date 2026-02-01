@@ -119,7 +119,7 @@ class DocumentViewModel: ObservableObject {
     }
 
     /// Index the document in the search database
-    private func indexDocument() async {
+    func indexDocument() async {
         do {
             let ocrText = extractOCRText(for: document.fileURL)
             let tags = document.metadata.tags

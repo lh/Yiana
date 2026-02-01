@@ -647,6 +647,11 @@ struct DocumentEditView: View {
                         self.exitSidebarSelection()
 #endif
 
+                        // Index immediately so placeholder is replaced in the list
+                        if let vm = self.viewModel {
+                            Task { await vm.indexDocument() }
+                        }
+
                         Task {
                             await textVM.loadDraftIfAvailable()
                             let manager = TextPageDraftManager.shared

@@ -122,9 +122,14 @@ struct DocumentReadView: View {
             self.documentTitle = noteDocument.metadata.title
 
             // Create view model for document operations
+            let vm = DocumentViewModel(document: noteDocument)
             await MainActor.run {
-                self.viewModel = DocumentViewModel(document: noteDocument)
+                self.viewModel = vm
             }
+
+            // Immediately index so the placeholder entry is replaced —
+            // the user opened this file, no need to wait for background indexer
+            await vm.indexDocument()
 
         } catch {
             // If loading as NoteDocument fails, try legacy approach
@@ -151,9 +156,11 @@ struct DocumentReadView: View {
                         self.document = noteDoc
 
                         // Create view model
+                        let vm = DocumentViewModel(document: noteDoc)
                         await MainActor.run {
-                            self.viewModel = DocumentViewModel(document: noteDoc)
+                            self.viewModel = vm
                         }
+                        await vm.indexDocument()
                     } else {
                         throw YianaError.invalidFormat
                     }

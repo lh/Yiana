@@ -149,7 +149,10 @@ class DocumentRepository {
 
         return urls.filter { url in
             var isDirectory: ObjCBool = false
-            return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) && isDirectory.boolValue
+            guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
+                  isDirectory.boolValue else { return false }
+            // Exclude iCloud sync placeholder directories (UUID-named)
+            return UUID(uuidString: url.lastPathComponent) == nil
         }
     }
 
@@ -226,7 +229,9 @@ class DocumentRepository {
                 let newPath = relativePath.isEmpty ? url.lastPathComponent : relativePath + "/" + url.lastPathComponent
                 searchRecursive(at: url, relativePath: newPath, results: &results)
             } else if url.pathExtension == "yianazip" {
-                results.append((url, relativePath))
+                // Resolve symlinks so /var/mobile ↔ /private/var/mobile paths
+                // match the URLs stored by UbiquityMonitor (via NSMetadataQuery)
+                results.append((url.resolvingSymlinksInPath(), relativePath))
             }
         }
     }

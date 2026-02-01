@@ -65,12 +65,30 @@ class BackgroundIndexer: ObservableObject {
     func reindexDownloadedDocuments(urls: [URL]) async {
         let searchIndex = self.searchIndex
 
+        // Skip files already fully indexed — avoids redundant reads
+        // during bulk transitions (e.g. initial gather reports all as "downloaded")
+        var urlsToProcess: [URL] = []
+        for url in urls {
+            let fullyIndexed = (try? await searchIndex.isDocumentFullyIndexed(path: url.path)) ?? false
+            if !fullyIndexed {
+                urlsToProcess.append(url)
+            }
+        }
+
+        guard !urlsToProcess.isEmpty else { return }
+
+        #if DEBUG
+        if urlsToProcess.count != urls.count {
+            print("reindexDownloadedDocuments: \(urls.count) URLs, \(urlsToProcess.count) need reindexing")
+        }
+        #endif
+
         // Read all file metadata off the main thread
         let results = await Task.detached(priority: .utility) {
             let repository = DocumentRepository()
             var items: [(url: URL, metadata: DocumentMetadata, folderPath: String, fileSize: Int64)] = []
 
-            for (index, url) in urls.enumerated() {
+            for (index, url) in urlsToProcess.enumerated() {
                 guard let (metadataData, _) = try? DocumentArchive.readMetadata(from: url),
                       let metadata = try? JSONDecoder().decode(DocumentMetadata.self, from: metadataData) else {
                     continue
@@ -149,6 +167,16 @@ class BackgroundIndexer: ObservableObject {
                 let fullyIndexed = (try? await self.searchIndex.isDocumentFullyIndexed(path: item.url.path)) ?? false
                 if fullyIndexed { continue }
 
+                // Skip iCloud placeholders — don't trigger on-demand downloads.
+                // Both .current and .downloaded mean local data is available;
+                // only .notDownloaded is a true placeholder.
+                let resourceValues = try? item.url.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey])
+                let downloadStatus = resourceValues?.ubiquitousItemDownloadingStatus
+                if downloadStatus == .notDownloaded {
+                    placeholders.append((url: item.url, folderPath: item.relativePath))
+                    continue
+                }
+
                 // Not indexed — need to read metadata
                 guard let (metadataData, _) = try? DocumentArchive.readMetadata(from: item.url),
                       let metadata = try? JSONDecoder().decode(DocumentMetadata.self, from: metadataData) else {
@@ -205,10 +233,9 @@ class BackgroundIndexer: ObservableObject {
             #endif
         }
 
-        // Index placeholders in a single batch transaction so they appear immediately
-        // via ValueObservation (no notification needed)
+        // Index placeholders in chunks so the main thread stays responsive
         if !scanResult.placeholders.isEmpty {
-            let batch = scanResult.placeholders.map { placeholder in
+            let allPlaceholders = scanResult.placeholders.map { placeholder in
                 (
                     id: UUID(stableFromPath: placeholder.url.path),
                     url: placeholder.url,
@@ -216,15 +243,24 @@ class BackgroundIndexer: ObservableObject {
                     folderPath: placeholder.folderPath
                 )
             }
-            do {
-                try await searchIndex.indexPlaceholdersBatch(batch)
-                #if DEBUG
-                SyncPerfLog.shared.countPlaceholderBatch()
-                print("Batch-indexed \(scanResult.placeholders.count) placeholder documents")
-                #endif
-            } catch {
-                print("Failed to batch-index placeholders: \(error)")
+            let chunkSize = 200
+            var totalInserted = 0
+            for chunkStart in stride(from: 0, to: allPlaceholders.count, by: chunkSize) {
+                if Task.isCancelled { break }
+                let chunkEnd = min(chunkStart + chunkSize, allPlaceholders.count)
+                let chunk = Array(allPlaceholders[chunkStart..<chunkEnd])
+                do {
+                    let inserted = try await searchIndex.indexPlaceholdersBatch(chunk)
+                    totalInserted += inserted
+                } catch {
+                    print("Failed to batch-index placeholder chunk: \(error)")
+                }
+                await Task.yield()
             }
+            #if DEBUG
+            SyncPerfLog.shared.countPlaceholderBatch()
+            print("Batch-indexed \(totalInserted) placeholder documents (of \(scanResult.placeholders.count) candidates)")
+            #endif
         }
 
         let documentsToIndex = scanResult.toIndex

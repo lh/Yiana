@@ -222,7 +222,7 @@ final class UbiquityMonitor: NSObject {
                 url.pathExtension == "yianazip"
             else { continue }
 
-            let standardURL = url.standardizedFileURL
+            let standardURL = url.resolvingSymlinksInPath()
             knownDocuments.insert(standardURL)
 
             let filename = (item.value(forAttribute: NSMetadataItemFSNameKey) as? String) ?? standardURL.lastPathComponent
@@ -293,7 +293,7 @@ final class UbiquityMonitor: NSObject {
                 url.pathExtension == "yianazip"
             else { continue }
 
-            let standardURL = url.standardizedFileURL
+            let standardURL = url.resolvingSymlinksInPath()
             knownDocuments.insert(standardURL)
 
             let filename = (item.value(forAttribute: NSMetadataItemFSNameKey) as? String) ?? standardURL.lastPathComponent
@@ -310,7 +310,7 @@ final class UbiquityMonitor: NSObject {
                 url.pathExtension == "yianazip"
             else { continue }
 
-            let standardURL = url.standardizedFileURL
+            let standardURL = url.resolvingSymlinksInPath()
             let statusString = (item.value(forAttribute: NSMetadataUbiquitousItemDownloadingStatusKey) as? String) ?? ""
             let previousStatus = downloadStates[standardURL]
             downloadStates[standardURL] = statusString
@@ -346,7 +346,7 @@ final class UbiquityMonitor: NSObject {
                 url.pathExtension == "yianazip"
             else { continue }
 
-            let standardURL = url.standardizedFileURL
+            let standardURL = url.resolvingSymlinksInPath()
             knownDocuments.remove(standardURL)
             downloadStates.removeValue(forKey: standardURL)
             removedURLs.append(standardURL)
@@ -380,18 +380,24 @@ final class UbiquityMonitor: NSObject {
         }
 
         if !newlyDownloadedURLs.isEmpty {
-            DispatchQueue.main.async {
-                NotificationCenter.default.post(
-                    name: .yianaDocumentsDownloaded,
-                    object: nil,
-                    userInfo: ["urls": newlyDownloadedURLs]
-                )
+            // Guard against bulk transitions (e.g. first delta after initial gather
+            // reporting all items as "downloaded") — the background indexer handles these
+            if knownDocuments.count > 0 && newlyDownloadedURLs.count < knownDocuments.count / 2 {
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(
+                        name: .yianaDocumentsDownloaded,
+                        object: nil,
+                        userInfo: ["urls": newlyDownloadedURLs]
+                    )
+                }
+            } else {
+                log("Suppressed bulk download notification (\(newlyDownloadedURLs.count) items) — background indexer will handle")
             }
         }
     }
 
     private func seedPlaceholders(_ items: [(url: URL, filename: String)]) async {
-        let batch = items.map { item in
+        let allEntries = items.map { item in
             let title = (item.filename as NSString).deletingPathExtension
             return (
                 id: UUID(stableFromPath: item.url.path),
@@ -400,13 +406,26 @@ final class UbiquityMonitor: NSObject {
                 folderPath: item.url.relativeFolderPath(relativeTo: documentsDirectory)
             )
         }
-        do {
-            let inserted = try await searchIndex.indexPlaceholdersBatch(batch)
-            if inserted > 0 {
-                log("Seeded \(inserted) new placeholders (of \(batch.count) candidates)")
+
+        // Process in chunks so the main thread can handle gestures/rendering
+        // between database transactions
+        let chunkSize = 200
+        var totalInserted = 0
+        for chunkStart in stride(from: 0, to: allEntries.count, by: chunkSize) {
+            let chunkEnd = min(chunkStart + chunkSize, allEntries.count)
+            let chunk = Array(allEntries[chunkStart..<chunkEnd])
+            do {
+                let inserted = try await searchIndex.indexPlaceholdersBatch(chunk)
+                totalInserted += inserted
+            } catch {
+                log("Failed to seed placeholder chunk: \(error)")
             }
-        } catch {
-            log("Failed to seed placeholders: \(error)")
+            // Yield to let the main run loop process events
+            await Task.yield()
+        }
+
+        if totalInserted > 0 {
+            log("Seeded \(totalInserted) new placeholders (of \(allEntries.count) candidates)")
         }
     }
 
