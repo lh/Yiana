@@ -757,6 +757,29 @@ final class DocumentViewModel: ObservableObject {
         return false
     }
 
+    /// Index the document in the search database
+    func indexDocument() async {
+        guard let document = document, let fileURL = document.fileURL else { return }
+        do {
+            let repository = DocumentRepository()
+            let folderPath = fileURL.relativeFolderPath(relativeTo: repository.documentsDirectory)
+            let fileSize: Int64 = (try? FileManager.default.attributesOfItem(atPath: fileURL.path)[.size] as? Int64) ?? 0
+
+            try await SearchIndexService.shared.indexDocument(
+                id: document.metadata.id,
+                url: fileURL,
+                title: document.metadata.title,
+                fullText: document.metadata.fullText ?? "",
+                tags: document.metadata.tags,
+                metadata: document.metadata,
+                folderPath: folderPath,
+                fileSize: fileSize
+            )
+        } catch {
+            print("Failed to index document: \(error)")
+        }
+    }
+
     private func scheduleAutosave() {
         autosaveTask?.cancel()
 
