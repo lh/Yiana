@@ -2,15 +2,11 @@
 //  DevelopmentMenu.swift
 //  Yiana
 //
-//  Created by Claude on 15/07/2025.
-//
 //  Development tools menu - DEBUG builds only
 //
 
 import SwiftUI
-#if os(macOS)
-import Foundation
-#endif
+import YianaDocumentArchive
 
 #if DEBUG
 struct DevelopmentMenu: View {
@@ -28,27 +24,15 @@ struct DevelopmentMenu: View {
             Divider()
 
             Button(action: {
-                print("DEBUG: Force OCR re-run requested")
-                // Could trigger OCR service to re-process all documents
-                NotificationCenter.default.post(
-                    name: Notification.Name("ForceOCRReprocess"),
-                    object: nil
-                )
+                Task { await forceOCRRerun() }
             }) {
                 Label("Force OCR Re-run", systemImage: "doc.text.magnifyingglass")
             }
 
             Button(action: {
-                triggerOCRCleanup()
-            }) {
-                Label("Run OCR Cleanup", systemImage: "trash.slash")
-            }
-
-            Button(action: {
-                // Just delete OCR cache, less destructive than nuke
                 deleteOCRCache()
             }) {
-                Label("Clear OCR Cache Only", systemImage: "xmark.circle")
+                Label("Clear OCR Cache", systemImage: "xmark.circle")
             }
 
             Button(action: {
@@ -117,61 +101,75 @@ struct DevelopmentMenu: View {
         }
     }
 
-    private func deleteOCRCache() {
-        let fileManager = FileManager.default
-        let paths = [
-            "/Users/rose/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/.ocr_results",
-            "/Users/rose/Documents/Yiana/.ocr_results"
-        ]
+    private func forceOCRRerun() async {
+        print("Resetting OCR status on all documents...")
 
-        var deleted = false
-        for path in paths {
-            let url = URL(fileURLWithPath: path)
-            if fileManager.fileExists(atPath: url.path) {
-                do {
-                    try fileManager.removeItem(at: url)
-                    print("✅ Deleted OCR cache at: \(path)")
-                    deleted = true
-                } catch {
-                    print("❌ Failed to delete OCR cache at \(path): \(error)")
+        let repository = DocumentRepository()
+        let allDocs = repository.allDocumentsRecursive()
+        var resetCount = 0
+        var errorCount = 0
+
+        for item in allDocs {
+            do {
+                let payload = try DocumentArchive.read(from: item.url)
+                let decoder = JSONDecoder()
+                var metadata = try decoder.decode(DocumentMetadata.self, from: payload.metadata)
+
+                guard metadata.ocrCompleted else { continue }
+
+                metadata.ocrCompleted = false
+                metadata.fullText = nil
+                metadata.ocrProcessedAt = nil
+                metadata.ocrConfidence = nil
+                metadata.ocrSource = nil
+                metadata.pageProcessingStates = (1...metadata.pageCount).map {
+                    PageProcessingState(pageNumber: $0, needsOCR: true)
                 }
+                metadata.modified = Date()
+
+                let encoder = JSONEncoder()
+                let metadataData = try encoder.encode(metadata)
+                let pdfSource: ArchiveDataSource? = payload.pdfData.map { .data($0) }
+                try DocumentArchive.write(
+                    metadata: metadataData,
+                    pdf: pdfSource,
+                    to: item.url,
+                    formatVersion: payload.formatVersion
+                )
+
+                resetCount += 1
+            } catch {
+                errorCount += 1
+                print("Failed: \(item.url.lastPathComponent): \(error.localizedDescription)")
             }
         }
 
-        if deleted {
-            print("OCR cache cleared. Documents will be re-OCR'd on next access.")
-        } else {
-            print("No OCR cache found to delete.")
-        }
+        print("Done. Reset \(resetCount) document(s), \(errorCount) error(s).")
+        print("Re-indexing...")
+        BackgroundIndexer.shared.cancelIndexing()
+        try? await Task.sleep(nanoseconds: 500_000_000)
+        try? await SearchIndexService.shared.resetDatabase()
+        BackgroundIndexer.shared.indexAllDocuments()
     }
 
-    private func triggerOCRCleanup() {
-#if os(macOS)
-        let commands = [
-            "cd ~/Code/YianaOCRService",
-            "swift run yiana-ocr cleanup"
-        ].joined(separator: " && ")
+    private func deleteOCRCache() {
+        let fileManager = FileManager.default
 
-        let process = Process()
-        process.launchPath = "/bin/bash"
-        process.arguments = ["-lc", commands]
-
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
-
-        do {
-            try process.run()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            if let output = String(data: data, encoding: .utf8) {
-                print(output)
+        if let iCloudURL = fileManager.url(forUbiquityContainerIdentifier: "iCloud.com.vitygas.Yiana") {
+            let ocrPath = iCloudURL.appendingPathComponent("Documents/.ocr_results")
+            if fileManager.fileExists(atPath: ocrPath.path) {
+                do {
+                    try fileManager.removeItem(at: ocrPath)
+                    print("Deleted OCR cache at: \(ocrPath.path)")
+                } catch {
+                    print("Failed to delete OCR cache: \(error)")
+                }
+            } else {
+                print("No OCR cache found at: \(ocrPath.path)")
             }
-        } catch {
-            print("❌ Failed to run OCR cleanup: \(error)")
+        } else {
+            print("iCloud container not available")
         }
-#else
-        print("OCR cleanup command is only available on macOS.")
-#endif
     }
 
     private func resetSearchIndex() async {
