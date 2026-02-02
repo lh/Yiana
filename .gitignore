@@ -98,6 +98,15 @@ venv/
 *.pyc
 __pycache__/
 
+# AddressExtractor data files (databases, output, generated letters)
+AddressExtractor/*.db
+AddressExtractor/api_output/
+AddressExtractor/gp_data/
+AddressExtractor/letters/
+AddressExtractor/test_*.txt
+AddressExtractor/test_*.db
+AddressExtractor/my_clinic_notes.txt
+
 # Debug PDF sync logs
 temp-debug-files/debug-pdf-sync.log
 temp-debug-files/debug-pdf-sync.error.log
