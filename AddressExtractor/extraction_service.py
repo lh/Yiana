@@ -25,6 +25,7 @@ ICLOUD_CONTAINER = os.path.expanduser('~/Library/Mobile Documents/iCloud~com~vit
 OCR_DIR = os.getenv('OCR_DIR', os.path.join(ICLOUD_CONTAINER, '.ocr_results'))
 JSON_OUTPUT_DIR = os.getenv('JSON_OUTPUT', '/Users/rose/Code/Yiana/AddressExtractor/api_output')
 DB_PATH = os.getenv('DB_PATH', os.path.join(ICLOUD_CONTAINER, 'addresses.db'))
+ADDRESSES_DIR = os.getenv('ADDRESSES_DIR', os.path.join(ICLOUD_CONTAINER, '.addresses'))
 USE_LLM = os.getenv('USE_LLM', 'false').lower() == 'true'
 OUTPUT_FORMAT = os.getenv('OUTPUT_FORMAT', 'both')  # 'db', 'json', 'both'
 
@@ -45,17 +46,26 @@ class OCRFileHandler(FileSystemEventHandler):
         self.hybrid_extractor = HybridExtractor(use_llm=USE_LLM) if USE_LLM else None
         self.processed_files = self.load_processed_files()
         
-        # Ensure output directory exists
+        # Ensure output directories exist
         Path(JSON_OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
+        Path(ADDRESSES_DIR).mkdir(parents=True, exist_ok=True)
     
     def load_processed_files(self) -> set:
-        """Load list of already processed files from database"""
+        """Load list of already processed files from .addresses/ dir and database"""
+        processed = set()
+        # Check .addresses/ directory (primary source of truth)
+        addresses_dir = Path(ADDRESSES_DIR)
+        if addresses_dir.exists():
+            for f in addresses_dir.glob('*.json'):
+                processed.add(f.stem)
+        # Also check legacy database
         try:
             with sqlite3.connect(DB_PATH) as conn:
                 cursor = conn.execute("SELECT DISTINCT document_id FROM extracted_addresses")
-                return {row[0] for row in cursor.fetchall()}
-        except:
-            return set()
+                processed.update(row[0] for row in cursor.fetchall())
+        except Exception:
+            pass
+        return processed
     
     def on_created(self, event):
         """Handle new file creation"""
@@ -124,15 +134,18 @@ class OCRFileHandler(FileSystemEventHandler):
             
             # Save results
             if all_results:
-                # Save to database
+                # Always save to .addresses/ (iCloud-synced JSON)
+                self.save_addresses_json(doc_id, all_results)
+                self.processed_files.add(doc_id)
+
+                # Save to database (legacy, kept for backward compatibility)
                 if OUTPUT_FORMAT in ['db', 'both']:
                     self.extractor.save_to_database(all_results)
-                    self.processed_files.add(doc_id)
-                
-                # Save to JSON
+
+                # Save to api_output/ JSON (legacy, kept for backward compatibility)
                 if OUTPUT_FORMAT in ['json', 'both']:
                     self.save_json_output(doc_id, all_results)
-                
+
                 logger.info(f"Saved {len(all_results)} records from {doc_id}")
             else:
                 logger.warning(f"No data extracted from {doc_id}")
@@ -190,6 +203,93 @@ class OCRFileHandler(FileSystemEventHandler):
             json.dump(output, f, indent=2)
         
         logger.info(f"JSON output saved to {output_file}")
+
+    def save_addresses_json(self, doc_id: str, results: List[Dict]):
+        """Save extraction results to .addresses/ directory as iCloud-synced JSON.
+
+        If a file already exists for this document, preserves the overrides[] array
+        (owned by the Swift app) and only replaces pages[] (owned by Devon).
+        Uses atomic write (temp file + rename) to prevent partial writes.
+        """
+        output_file = Path(ADDRESSES_DIR) / f"{doc_id}.json"
+        tmp_file = Path(ADDRESSES_DIR) / f"{doc_id}.json.tmp"
+
+        # Preserve existing overrides if file already exists
+        existing_overrides = []
+        if output_file.exists():
+            try:
+                with open(output_file, 'r') as f:
+                    existing = json.load(f)
+                existing_overrides = existing.get('overrides', [])
+                logger.info(f"Preserving {len(existing_overrides)} existing overrides for {doc_id}")
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"Could not read existing file for {doc_id}, overrides lost: {e}")
+
+        # Build pages array with address_type and is_prime defaults
+        pages = []
+        for i, result in enumerate(results):
+            # Default: first result per page is patient+prime, subsequent are not prime
+            default_type = result.get('address_type', 'patient')
+            default_prime = result.get('is_prime', i == 0)
+
+            page_data = {
+                'page_number': result.get('page_number'),
+                'patient': {
+                    'full_name': result.get('full_name'),
+                    'date_of_birth': result.get('date_of_birth'),
+                    'phones': {
+                        'home': result.get('phone_home'),
+                        'work': result.get('phone_work'),
+                        'mobile': result.get('phone_mobile')
+                    }
+                },
+                'address': {
+                    'line_1': result.get('address_line_1'),
+                    'line_2': result.get('address_line_2'),
+                    'city': result.get('city'),
+                    'county': result.get('county'),
+                    'postcode': result.get('postcode'),
+                    'postcode_valid': result.get('postcode_valid'),
+                    'postcode_district': result.get('postcode_district')
+                },
+                'gp': {
+                    'name': result.get('gp_name'),
+                    'practice': result.get('gp_practice'),
+                    'address': result.get('gp_address'),
+                    'postcode': result.get('gp_postcode')
+                },
+                'extraction': {
+                    'method': result.get('extraction_method'),
+                    'confidence': result.get('extraction_confidence')
+                },
+                'address_type': default_type,
+                'is_prime': default_prime,
+                'specialist_name': result.get('specialist_name')
+            }
+            pages.append(page_data)
+
+        output = {
+            'schema_version': 1,
+            'document_id': doc_id,
+            'extracted_at': datetime.now().isoformat(),
+            'page_count': len(pages),
+            'pages': pages,
+            'overrides': existing_overrides
+        }
+
+        # Atomic write: write to temp, then rename
+        try:
+            with open(tmp_file, 'w') as f:
+                json.dump(output, f, indent=2)
+            os.replace(str(tmp_file), str(output_file))
+            logger.info(f"Addresses JSON saved to {output_file}")
+        except OSError as e:
+            logger.error(f"Failed to write addresses JSON for {doc_id}: {e}")
+            # Clean up temp file if it exists
+            try:
+                tmp_file.unlink(missing_ok=True)
+            except OSError:
+                pass
 
 
 def process_existing_files(handler: OCRFileHandler):

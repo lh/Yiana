@@ -6,9 +6,9 @@
 //
 
 import Foundation
-import GRDB
 
-/// Type of address extracted
+// MARK: - Address Type
+
 enum AddressType: String, Codable {
     case patient
     case gp
@@ -16,9 +16,135 @@ enum AddressType: String, Codable {
     case specialist
 }
 
-/// Address information extracted from a medical document
-struct ExtractedAddress: Codable, FetchableRecord, PersistableRecord {
-    var id: Int64?
+// MARK: - JSON File Schema (matches .addresses/*.json)
+
+/// Top-level structure of a document address JSON file
+struct DocumentAddressFile: Codable {
+    var schemaVersion: Int
+    var documentId: String
+    var extractedAt: String
+    var pageCount: Int
+    var pages: [AddressPageEntry]
+    var overrides: [AddressOverrideEntry]
+
+    private enum CodingKeys: String, CodingKey {
+        case schemaVersion = "schema_version"
+        case documentId = "document_id"
+        case extractedAt = "extracted_at"
+        case pageCount = "page_count"
+        case pages
+        case overrides
+    }
+}
+
+/// Patient information nested object
+struct PatientInfo: Codable {
+    var fullName: String?
+    var dateOfBirth: String?
+    var phones: PhoneInfo?
+
+    private enum CodingKeys: String, CodingKey {
+        case fullName = "full_name"
+        case dateOfBirth = "date_of_birth"
+        case phones
+    }
+}
+
+/// Phone numbers nested object
+struct PhoneInfo: Codable {
+    var home: String?
+    var work: String?
+    var mobile: String?
+}
+
+/// Address nested object
+struct AddressInfo: Codable {
+    var line1: String?
+    var line2: String?
+    var city: String?
+    var county: String?
+    var postcode: String?
+    var postcodeValid: Bool?
+    var postcodeDistrict: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case line1 = "line_1"
+        case line2 = "line_2"
+        case city
+        case county
+        case postcode
+        case postcodeValid = "postcode_valid"
+        case postcodeDistrict = "postcode_district"
+    }
+}
+
+/// GP information nested object
+struct GPInfo: Codable {
+    var name: String?
+    var practice: String?
+    var address: String?
+    var postcode: String?
+}
+
+/// Extraction metadata nested object
+struct ExtractionInfo: Codable {
+    var method: String?
+    var confidence: Double?
+}
+
+/// One entry in the pages[] array
+struct AddressPageEntry: Codable {
+    var pageNumber: Int
+    var patient: PatientInfo?
+    var address: AddressInfo?
+    var gp: GPInfo?
+    var extraction: ExtractionInfo?
+    var addressType: String?
+    var isPrime: Bool?
+    var specialistName: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case pageNumber = "page_number"
+        case patient
+        case address
+        case gp
+        case extraction
+        case addressType = "address_type"
+        case isPrime = "is_prime"
+        case specialistName = "specialist_name"
+    }
+}
+
+/// One entry in the overrides[] array
+struct AddressOverrideEntry: Codable {
+    var pageNumber: Int
+    var matchAddressType: String
+    var patient: PatientInfo?
+    var address: AddressInfo?
+    var gp: GPInfo?
+    var addressType: String?
+    var isPrime: Bool?
+    var specialistName: String?
+    var overrideReason: String?
+    var overrideDate: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case pageNumber = "page_number"
+        case matchAddressType = "match_address_type"
+        case patient
+        case address
+        case gp
+        case addressType = "address_type"
+        case isPrime = "is_prime"
+        case specialistName = "specialist_name"
+        case overrideReason = "override_reason"
+        case overrideDate = "override_date"
+    }
+}
+
+// MARK: - View-Facing Model (flat structure for UI)
+
+struct ExtractedAddress {
     var documentId: String
     var pageNumber: Int?
 
@@ -61,83 +187,83 @@ struct ExtractedAddress: Codable, FetchableRecord, PersistableRecord {
     var ocrJson: String?
 
     // Prime Address System
-    var addressType: String? // 'patient', 'gp', 'optician', 'specialist'
+    var addressType: String?
     var isPrime: Bool?
-    var specialistName: String? // Only used when addressType is 'specialist'
+    var specialistName: String?
+}
 
-    enum Columns {
-        static let id = Column(CodingKeys.id)
-        static let documentId = Column(CodingKeys.documentId)
-        static let pageNumber = Column(CodingKeys.pageNumber)
-        static let fullName = Column(CodingKeys.fullName)
-        static let dateOfBirth = Column(CodingKeys.dateOfBirth)
-        static let addressLine1 = Column(CodingKeys.addressLine1)
-        static let addressLine2 = Column(CodingKeys.addressLine2)
-        static let city = Column(CodingKeys.city)
-        static let county = Column(CodingKeys.county)
-        static let postcode = Column(CodingKeys.postcode)
-        static let country = Column(CodingKeys.country)
-        static let phoneHome = Column(CodingKeys.phoneHome)
-        static let phoneWork = Column(CodingKeys.phoneWork)
-        static let phoneMobile = Column(CodingKeys.phoneMobile)
-        static let gpName = Column(CodingKeys.gpName)
-        static let gpPractice = Column(CodingKeys.gpPractice)
-        static let gpAddress = Column(CodingKeys.gpAddress)
-        static let gpPostcode = Column(CodingKeys.gpPostcode)
-        static let gpOdsCode = Column(CodingKeys.gpOdsCode)
-        static let gpOfficialName = Column(CodingKeys.gpOfficialName)
-        static let extractionConfidence = Column(CodingKeys.extractionConfidence)
-        static let extractionMethod = Column(CodingKeys.extractionMethod)
-        static let extractedAt = Column(CodingKeys.extractedAt)
-        static let postcodeValid = Column(CodingKeys.postcodeValid)
-        static let postcodeDistrict = Column(CodingKeys.postcodeDistrict)
-        static let rawText = Column(CodingKeys.rawText)
-        static let ocrJson = Column(CodingKeys.ocrJson)
-        static let addressType = Column(CodingKeys.addressType)
-        static let isPrime = Column(CodingKeys.isPrime)
-        static let specialistName = Column(CodingKeys.specialistName)
-    }
+// MARK: - Conversion from JSON structs to view model
 
-    private enum CodingKeys: String, CodingKey {
-        case id
-        case documentId = "document_id"
-        case pageNumber = "page_number"
-        case fullName = "full_name"
-        case dateOfBirth = "date_of_birth"
-        case addressLine1 = "address_line_1"
-        case addressLine2 = "address_line_2"
-        case city
-        case county
-        case postcode
-        case country
-        case phoneHome = "phone_home"
-        case phoneWork = "phone_work"
-        case phoneMobile = "phone_mobile"
-        case gpName = "gp_name"
-        case gpPractice = "gp_practice"
-        case gpAddress = "gp_address"
-        case gpPostcode = "gp_postcode"
-        case gpOdsCode = "gp_ods_code"
-        case gpOfficialName = "gp_official_name"
-        case extractionConfidence = "extraction_confidence"
-        case extractionMethod = "extraction_method"
-        case extractedAt = "extracted_at"
-        case postcodeValid = "postcode_valid"
-        case postcodeDistrict = "postcode_district"
-        case rawText = "raw_text"
-        case ocrJson = "ocr_json"
-        case addressType = "address_type"
-        case isPrime = "is_prime"
-        case specialistName = "specialist_name"
+extension ExtractedAddress {
+    /// Create a flat ExtractedAddress from a page entry, optionally applying an override
+    init(documentId: String, page: AddressPageEntry, override: AddressOverrideEntry? = nil, extractedAt: String? = nil) {
+        self.documentId = documentId
+        self.pageNumber = page.pageNumber
+
+        // Start with page data
+        let patient = override?.patient ?? page.patient
+        let address = override?.address ?? page.address
+        let gp = override?.gp ?? page.gp
+
+        self.fullName = patient?.fullName
+        self.dateOfBirth = patient?.dateOfBirth
+        self.phoneHome = patient?.phones?.home
+        self.phoneWork = patient?.phones?.work
+        self.phoneMobile = patient?.phones?.mobile
+
+        self.addressLine1 = address?.line1
+        self.addressLine2 = address?.line2
+        self.city = address?.city
+        self.county = address?.county
+        self.postcode = address?.postcode
+        self.postcodeValid = address?.postcodeValid
+        self.postcodeDistrict = address?.postcodeDistrict
+
+        self.gpName = gp?.name
+        self.gpPractice = gp?.practice
+        self.gpAddress = gp?.address
+        self.gpPostcode = gp?.postcode
+
+        self.extractionConfidence = page.extraction?.confidence
+        self.extractionMethod = page.extraction?.method
+
+        // Parse extracted_at date
+        if let dateStr = extractedAt {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            self.extractedAt = formatter.date(from: dateStr)
+            if self.extractedAt == nil {
+                // Try without fractional seconds
+                formatter.formatOptions = [.withInternetDateTime]
+                self.extractedAt = formatter.date(from: dateStr)
+            }
+        }
+
+        // Override fields take precedence
+        self.addressType = override?.addressType ?? page.addressType
+        self.isPrime = override?.isPrime ?? page.isPrime
+        self.specialistName = override?.specialistName ?? page.specialistName
+
+        // Fields not in the JSON schema
+        self.country = nil
+        self.gpOdsCode = nil
+        self.gpOfficialName = nil
+        self.rawText = nil
+        self.ocrJson = nil
     }
 }
 
-// MARK: - Table Name
+// MARK: - Identifiable
+
 extension ExtractedAddress {
-    static let databaseTableName = "extracted_addresses"
+    /// Stable identifier for SwiftUI ForEach (composite of documentId + pageNumber + addressType)
+    var stableId: String {
+        "\(documentId)_\(pageNumber ?? 0)_\(addressType ?? "patient")"
+    }
 }
 
 // MARK: - Computed Properties
+
 extension ExtractedAddress {
     /// Formatted full address for patient
     var formattedPatientAddress: String? {

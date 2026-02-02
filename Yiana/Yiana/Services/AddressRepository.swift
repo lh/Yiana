@@ -2,21 +2,20 @@
 //  AddressRepository.swift
 //  Yiana
 //
-//  Provides access to extracted address database
+//  Provides access to extracted address data from .addresses/ JSON files
 //
 
 import Foundation
-import GRDB
 import Combine
+import os
 
-/// Repository for accessing extracted address data
+/// Repository for accessing extracted address data from iCloud-synced JSON files
 @MainActor
 final class AddressRepository: ObservableObject {
-    private let dbQueue: DatabaseQueue?
     private let logger = Logger(subsystem: "com.vitygas.Yiana", category: "AddressRepository")
 
-    /// Database file URL in iCloud container
-    private static var databaseURL: URL? {
+    /// Directory URL for .addresses/ in iCloud container
+    private static var addressesDirectoryURL: URL? {
         guard let iCloudURL = FileManager.default.url(
             forUbiquityContainerIdentifier: "iCloud.com.vitygas.Yiana"
         ) else {
@@ -24,330 +23,326 @@ final class AddressRepository: ObservableObject {
         }
         return iCloudURL
             .appendingPathComponent("Documents")
-            .appendingPathComponent("addresses.db")
+            .appendingPathComponent(".addresses")
     }
 
-    /// Check if the address database is available (exists and accessible)
-    /// Use this to conditionally show/hide address-related UI
+    /// Check if the addresses directory exists and contains files
     static var isDatabaseAvailable: Bool {
-        guard let dbURL = databaseURL else {
+        guard let dirURL = addressesDirectoryURL else { return false }
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: dirURL.path, isDirectory: &isDir),
+              isDir.boolValue else {
             return false
         }
-        return FileManager.default.fileExists(atPath: dbURL.path)
+        // Check that there's at least one .json file
+        let contents = try? FileManager.default.contentsOfDirectory(
+            at: dirURL, includingPropertiesForKeys: nil)
+        return contents?.contains(where: { $0.pathExtension == "json" }) ?? false
+    }
+
+    /// Check if repository is available (instance method)
+    var isDatabaseAvailable: Bool {
+        Self.isDatabaseAvailable
     }
 
     init() {
-        guard let dbURL = Self.databaseURL else {
+        if let dirURL = Self.addressesDirectoryURL {
+            logger.info("Addresses directory: \(dirURL.path)")
+        } else {
             logger.error("Failed to locate iCloud container")
-            self.dbQueue = nil
-            return
-        }
-
-        guard FileManager.default.fileExists(atPath: dbURL.path) else {
-            logger.warning("addresses.db does not exist at \(dbURL.path)")
-            self.dbQueue = nil
-            return
-        }
-
-        do {
-            // Open database in read-write mode for Phase 2 (user editing)
-            var config = Configuration()
-            config.label = "AddressRepository"
-
-            self.dbQueue = try DatabaseQueue(path: dbURL.path, configuration: config)
-            logger.info("Opened addresses.db at \(dbURL.path)")
-        } catch {
-            logger.error("Failed to open database: \(error)")
-            self.dbQueue = nil
         }
     }
 
-    /// Fetch all addresses for a specific document
-    /// - Parameter documentId: The document ID (filename without extension)
-    /// - Returns: Array of extracted addresses, or empty array if none found
-    func addresses(forDocument documentId: String) async throws -> [ExtractedAddress] {
-        guard let dbQueue else {
-            return []
-        }
+    // MARK: - Read Methods
 
-        return try await dbQueue.read { db in
-            // Query with LEFT JOIN to get user overrides when present
-            // Use subquery to get only the most recent override for each address
-            // Use CASE to prefer override values even if they're empty strings
-            try ExtractedAddress.fetchAll(db, sql: """
-                SELECT
-                    ea.id,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.document_id ELSE ea.document_id END as document_id,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.page_number ELSE ea.page_number END as page_number,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.full_name ELSE ea.full_name END as full_name,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.date_of_birth ELSE ea.date_of_birth END as date_of_birth,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.address_line_1 ELSE ea.address_line_1 END as address_line_1,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.address_line_2 ELSE ea.address_line_2 END as address_line_2,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.city ELSE ea.city END as city,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.county ELSE ea.county END as county,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.postcode ELSE ea.postcode END as postcode,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.country ELSE ea.country END as country,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.phone_home ELSE ea.phone_home END as phone_home,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.phone_work ELSE ea.phone_work END as phone_work,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.phone_mobile ELSE ea.phone_mobile END as phone_mobile,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.gp_name ELSE ea.gp_name END as gp_name,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.gp_practice ELSE ea.gp_practice END as gp_practice,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.gp_address ELSE ea.gp_address END as gp_address,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.gp_postcode ELSE ea.gp_postcode END as gp_postcode,
-                    ea.gp_ods_code,
-                    ea.gp_official_name,
-                    ea.extraction_confidence,
-                    ea.extraction_method,
-                    ea.extracted_at,
-                    ea.postcode_valid,
-                    ea.postcode_district,
-                    ea.raw_text,
-                    ea.ocr_json,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.address_type ELSE ea.address_type END as address_type,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.is_prime ELSE ea.is_prime END as is_prime,
-                    CASE WHEN ao.id IS NOT NULL THEN ao.specialist_name ELSE ea.specialist_name END as specialist_name
-                FROM extracted_addresses ea
-                LEFT JOIN address_overrides ao ON ea.id = ao.original_id
-                    AND (ao.override_reason IS NULL OR ao.override_reason != 'removed')
-                    AND ao.id = (
-                        SELECT id FROM address_overrides
-                        WHERE original_id = ea.id
-                        AND (override_reason IS NULL OR override_reason != 'removed')
-                        ORDER BY override_date DESC
-                        LIMIT 1
-                    )
-                WHERE ea.document_id = ?
-                ORDER BY ea.page_number ASC
-                """, arguments: [documentId])
-        }
+    /// Fetch all addresses for a specific document
+    func addresses(forDocument documentId: String) async throws -> [ExtractedAddress] {
+        guard let dirURL = Self.addressesDirectoryURL else { return [] }
+
+        let fileURL = dirURL.appendingPathComponent("\(documentId).json")
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return [] }
+
+        let file = try readAddressFile(at: fileURL)
+        return resolveAddresses(from: file)
     }
 
     /// Fetch all addresses from all documents
-    /// - Returns: Array of all extracted addresses
     func allAddresses() async throws -> [ExtractedAddress] {
-        guard let dbQueue else {
-            return []
+        guard let dirURL = Self.addressesDirectoryURL else { return [] }
+        guard FileManager.default.fileExists(atPath: dirURL.path) else { return [] }
+
+        let fileURLs = try FileManager.default.contentsOfDirectory(
+            at: dirURL, includingPropertiesForKeys: [.contentModificationDateKey])
+            .filter { $0.pathExtension == "json" }
+
+        var allResults: [ExtractedAddress] = []
+        for fileURL in fileURLs {
+            do {
+                let file = try readAddressFile(at: fileURL)
+                allResults.append(contentsOf: resolveAddresses(from: file))
+            } catch {
+                logger.warning("Failed to read \(fileURL.lastPathComponent): \(error)")
+            }
         }
 
-        return try await dbQueue.read { db in
-            try ExtractedAddress
-                .order(ExtractedAddress.Columns.extractedAt.desc)
-                .fetchAll(db)
-        }
+        // Sort by extraction date, most recent first
+        allResults.sort { ($0.extractedAt ?? .distantPast) > ($1.extractedAt ?? .distantPast) }
+        return allResults
     }
 
-    /// Check if database is available
-    var isDatabaseAvailable: Bool {
-        dbQueue != nil
-    }
-
-    /// Get statistics about the address database
+    /// Get statistics about the address data
     func statistics() async throws -> DatabaseStatistics {
-        guard let dbQueue else {
-            return DatabaseStatistics(
-                totalAddresses: 0,
-                documentsWithAddresses: 0,
-                patientsFound: 0,
-                gpsFound: 0
-            )
+        guard let dirURL = Self.addressesDirectoryURL else {
+            return DatabaseStatistics(totalAddresses: 0, documentsWithAddresses: 0, patientsFound: 0, gpsFound: 0)
+        }
+        guard FileManager.default.fileExists(atPath: dirURL.path) else {
+            return DatabaseStatistics(totalAddresses: 0, documentsWithAddresses: 0, patientsFound: 0, gpsFound: 0)
         }
 
-        return try await dbQueue.read { db in
-            let total = try ExtractedAddress.fetchCount(db)
-            let docsWithAddresses = try Int.fetchOne(db, sql: """
-                SELECT COUNT(DISTINCT document_id) FROM extracted_addresses
-                """) ?? 0
-            let patientsFound = try Int.fetchOne(db, sql: """
-                SELECT COUNT(*) FROM extracted_addresses WHERE full_name IS NOT NULL
-                """) ?? 0
-            let gpsFound = try Int.fetchOne(db, sql: """
-                SELECT COUNT(*) FROM extracted_addresses WHERE gp_name IS NOT NULL OR gp_practice IS NOT NULL
-                """) ?? 0
+        let fileURLs = try FileManager.default.contentsOfDirectory(at: dirURL, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "json" }
 
-            return DatabaseStatistics(
-                totalAddresses: total,
-                documentsWithAddresses: docsWithAddresses,
-                patientsFound: patientsFound,
-                gpsFound: gpsFound
-            )
+        var totalAddresses = 0
+        var patientsFound = 0
+        var gpsFound = 0
+
+        for fileURL in fileURLs {
+            do {
+                let file = try readAddressFile(at: fileURL)
+                let addresses = resolveAddresses(from: file)
+                totalAddresses += addresses.count
+                patientsFound += addresses.filter { $0.fullName != nil }.count
+                gpsFound += addresses.filter { $0.gpName != nil || $0.gpPractice != nil }.count
+            } catch {
+                continue
+            }
         }
+
+        return DatabaseStatistics(
+            totalAddresses: totalAddresses,
+            documentsWithAddresses: fileURLs.count,
+            patientsFound: patientsFound,
+            gpsFound: gpsFound
+        )
     }
+
+    // MARK: - Write Methods (all use atomic writes)
 
     /// Save user correction as an override
-    /// - Parameters:
-    ///   - originalId: The ID of the original extracted address
-    ///   - updatedAddress: The corrected address data
-    ///   - reason: Reason for override ("corrected", "added", "removed", "false_positive")
-    func saveOverride(originalId: Int64, updatedAddress: ExtractedAddress, reason: String) async throws {
-        guard let dbQueue else {
-            throw NSError(domain: "AddressRepository", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: "Database not available"
-            ])
-        }
+    func saveOverride(documentId: String, pageNumber: Int, matchAddressType: String,
+                      updatedAddress: ExtractedAddress, reason: String) async throws {
+        let file = try readOrCreateFile(forDocument: documentId)
 
-        try await dbQueue.write { db in
-            // Insert override record
-            try db.execute(sql: """
-                INSERT INTO address_overrides (
-                    document_id,
-                    page_number,
-                    original_id,
-                    full_name,
-                    date_of_birth,
-                    address_line_1,
-                    address_line_2,
-                    city,
-                    county,
-                    postcode,
-                    country,
-                    phone_home,
-                    phone_work,
-                    phone_mobile,
-                    gp_name,
-                    gp_practice,
-                    gp_address,
-                    gp_postcode,
-                    address_type,
-                    is_prime,
-                    specialist_name,
-                    override_reason,
-                    override_date
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-                """,
-                arguments: [
-                    updatedAddress.documentId,
-                    updatedAddress.pageNumber,
-                    originalId,
-                    updatedAddress.fullName,
-                    updatedAddress.dateOfBirth,
-                    updatedAddress.addressLine1,
-                    updatedAddress.addressLine2,
-                    updatedAddress.city,
-                    updatedAddress.county,
-                    updatedAddress.postcode,
-                    updatedAddress.country,
-                    updatedAddress.phoneHome,
-                    updatedAddress.phoneWork,
-                    updatedAddress.phoneMobile,
-                    updatedAddress.gpName,
-                    updatedAddress.gpPractice,
-                    updatedAddress.gpAddress,
-                    updatedAddress.gpPostcode,
-                    updatedAddress.addressType,
-                    updatedAddress.isPrime,
-                    updatedAddress.specialistName,
-                    reason
-                ]
-            )
-        }
+        let override = AddressOverrideEntry(
+            pageNumber: pageNumber,
+            matchAddressType: matchAddressType,
+            patient: PatientInfo(
+                fullName: updatedAddress.fullName,
+                dateOfBirth: updatedAddress.dateOfBirth,
+                phones: PhoneInfo(
+                    home: updatedAddress.phoneHome,
+                    work: updatedAddress.phoneWork,
+                    mobile: updatedAddress.phoneMobile
+                )
+            ),
+            address: AddressInfo(
+                line1: updatedAddress.addressLine1,
+                line2: updatedAddress.addressLine2,
+                city: updatedAddress.city,
+                county: updatedAddress.county,
+                postcode: updatedAddress.postcode,
+                postcodeValid: updatedAddress.postcodeValid,
+                postcodeDistrict: updatedAddress.postcodeDistrict
+            ),
+            gp: GPInfo(
+                name: updatedAddress.gpName,
+                practice: updatedAddress.gpPractice,
+                address: updatedAddress.gpAddress,
+                postcode: updatedAddress.gpPostcode
+            ),
+            addressType: updatedAddress.addressType,
+            isPrime: updatedAddress.isPrime,
+            specialistName: updatedAddress.specialistName,
+            overrideReason: reason,
+            overrideDate: ISO8601DateFormatter().string(from: Date())
+        )
 
-        logger.info("Saved override for address ID \(originalId) with reason '\(reason)'")
+        var updated = file
+        updated.overrides.append(override)
+        try atomicWrite(file: updated)
+
+        logger.info("Saved override for \(documentId) page \(pageNumber) type \(matchAddressType)")
     }
 
     /// Toggle the prime status of an address
-    /// Ensures only one address of the same type (except specialists) is marked as prime per document
-    /// - Parameters:
-    ///   - addressId: The ID of the address to toggle
-    ///   - documentId: The document ID
-    ///   - addressType: The type of the address
-    ///   - makePrime: Whether to make this address prime (true) or non-prime (false)
-    func togglePrime(addressId: Int64, documentId: String, addressType: String, makePrime: Bool) async throws {
-        guard let dbQueue else {
-            throw NSError(domain: "AddressRepository", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: "Database not available"
-            ])
-        }
+    func togglePrime(documentId: String, pageNumber: Int, addressType: String, makePrime: Bool) async throws {
+        var file = try readOrCreateFile(forDocument: documentId)
 
-        try await dbQueue.write { db in
-            if makePrime && addressType != "specialist" {
-                // First, unset prime for all other addresses of this type in the document
-                try db.execute(sql: """
-                    UPDATE extracted_addresses
-                    SET is_prime = 0
-                    WHERE document_id = ? AND address_type = ? AND id != ?
-                    """, arguments: [documentId, addressType, addressId])
-
-                try db.execute(sql: """
-                    UPDATE address_overrides
-                    SET is_prime = 0
-                    WHERE document_id = ? AND address_type = ? AND original_id != ?
-                    """, arguments: [documentId, addressType, addressId])
+        if makePrime && addressType != "specialist" {
+            // Remove prime from other addresses of same type in this document
+            for i in file.overrides.indices {
+                if file.overrides[i].addressType == addressType && file.overrides[i].isPrime == true {
+                    if file.overrides[i].pageNumber != pageNumber || file.overrides[i].matchAddressType != addressType {
+                        file.overrides[i].isPrime = false
+                    }
+                }
             }
-
-            // Now toggle the target address
-            try db.execute(sql: """
-                UPDATE extracted_addresses
-                SET is_prime = ?
-                WHERE id = ?
-                """, arguments: [makePrime ? 1 : 0, addressId])
-
-            // Also update any override for this address
-            try db.execute(sql: """
-                UPDATE address_overrides
-                SET is_prime = ?
-                WHERE original_id = ?
-                AND (override_reason IS NULL OR override_reason != 'removed')
-                """, arguments: [makePrime ? 1 : 0, addressId])
+            // Also check pages that don't have overrides
+            for page in file.pages {
+                if page.addressType == addressType && page.isPrime == true {
+                    let hasOverride = file.overrides.contains {
+                        $0.pageNumber == page.pageNumber && $0.matchAddressType == (page.addressType ?? "patient")
+                    }
+                    if !hasOverride && (page.pageNumber != pageNumber || page.addressType != addressType) {
+                        // Create an override to unset prime
+                        let unprime = AddressOverrideEntry(
+                            pageNumber: page.pageNumber,
+                            matchAddressType: page.addressType ?? "patient",
+                            addressType: page.addressType,
+                            isPrime: false,
+                            overrideReason: "prime_toggled",
+                            overrideDate: ISO8601DateFormatter().string(from: Date())
+                        )
+                        file.overrides.append(unprime)
+                    }
+                }
+            }
         }
 
-        logger.info("Toggled prime status for address ID \(addressId) to \(makePrime)")
+        // Find or create override for the target address
+        let existingIdx = file.overrides.lastIndex {
+            $0.pageNumber == pageNumber && $0.matchAddressType == addressType
+        }
+
+        if let idx = existingIdx {
+            file.overrides[idx].isPrime = makePrime
+            file.overrides[idx].overrideDate = ISO8601DateFormatter().string(from: Date())
+        } else {
+            let override = AddressOverrideEntry(
+                pageNumber: pageNumber,
+                matchAddressType: addressType,
+                addressType: addressType,
+                isPrime: makePrime,
+                overrideReason: "prime_toggled",
+                overrideDate: ISO8601DateFormatter().string(from: Date())
+            )
+            file.overrides.append(override)
+        }
+
+        try atomicWrite(file: file)
+        logger.info("Toggled prime for \(documentId) page \(pageNumber) type \(addressType) to \(makePrime)")
     }
 
     /// Update the address type for an address
-    /// - Parameters:
-    ///   - addressId: The ID of the address
-    ///   - newType: The new address type
-    ///   - specialistName: The specialist name (if type is specialist)
-    func updateAddressType(addressId: Int64, newType: String, specialistName: String?) async throws {
-        guard let dbQueue else {
-            throw NSError(domain: "AddressRepository", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: "Database not available"
-            ])
+    func updateAddressType(documentId: String, pageNumber: Int, currentAddressType: String,
+                           newType: String, specialistName: String?) async throws {
+        var file = try readOrCreateFile(forDocument: documentId)
+
+        let existingIdx = file.overrides.lastIndex {
+            $0.pageNumber == pageNumber && $0.matchAddressType == currentAddressType
         }
 
-        try await dbQueue.write { db in
-            try db.execute(sql: """
-                UPDATE extracted_addresses
-                SET address_type = ?, specialist_name = ?
-                WHERE id = ?
-                """, arguments: [newType, specialistName, addressId])
-
-            // Also update any override for this address
-            try db.execute(sql: """
-                UPDATE address_overrides
-                SET address_type = ?, specialist_name = ?
-                WHERE original_id = ?
-                AND (override_reason IS NULL OR override_reason != 'removed')
-                """, arguments: [newType, specialistName, addressId])
+        if let idx = existingIdx {
+            file.overrides[idx].addressType = newType
+            file.overrides[idx].specialistName = specialistName
+            file.overrides[idx].overrideDate = ISO8601DateFormatter().string(from: Date())
+        } else {
+            let override = AddressOverrideEntry(
+                pageNumber: pageNumber,
+                matchAddressType: currentAddressType,
+                addressType: newType,
+                specialistName: specialistName,
+                overrideReason: "type_changed",
+                overrideDate: ISO8601DateFormatter().string(from: Date())
+            )
+            file.overrides.append(override)
         }
 
-        logger.info("Updated address type for ID \(addressId) to \(newType)")
+        try atomicWrite(file: file)
+        logger.info("Updated address type for \(documentId) page \(pageNumber) to \(newType)")
+    }
+
+    // MARK: - Private Helpers
+
+    /// Read and decode an address JSON file
+    private func readAddressFile(at url: URL) throws -> DocumentAddressFile {
+        let data = try Data(contentsOf: url)
+        return try JSONDecoder().decode(DocumentAddressFile.self, from: data)
+    }
+
+    /// Read existing file or create an empty one for the document
+    private func readOrCreateFile(forDocument documentId: String) throws -> DocumentAddressFile {
+        guard let dirURL = Self.addressesDirectoryURL else {
+            throw NSError(domain: "AddressRepository", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "iCloud container not available"])
+        }
+
+        let fileURL = dirURL.appendingPathComponent("\(documentId).json")
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            return try readAddressFile(at: fileURL)
+        }
+
+        // Create empty file
+        return DocumentAddressFile(
+            schemaVersion: 1,
+            documentId: documentId,
+            extractedAt: ISO8601DateFormatter().string(from: Date()),
+            pageCount: 0,
+            pages: [],
+            overrides: []
+        )
+    }
+
+    /// Resolve pages + overrides into flat ExtractedAddress array
+    private func resolveAddresses(from file: DocumentAddressFile) -> [ExtractedAddress] {
+        file.pages.map { page in
+            // Find the most recent override matching this page
+            let override = file.overrides
+                .filter { $0.pageNumber == page.pageNumber && $0.matchAddressType == (page.addressType ?? "patient") }
+                .sorted { ($0.overrideDate ?? "") > ($1.overrideDate ?? "") }
+                .first
+
+            return ExtractedAddress(
+                documentId: file.documentId,
+                page: page,
+                override: override,
+                extractedAt: file.extractedAt
+            )
+        }
+    }
+
+    /// Atomic write: encode to temp file, then replace
+    private func atomicWrite(file: DocumentAddressFile) throws {
+        guard let dirURL = Self.addressesDirectoryURL else {
+            throw NSError(domain: "AddressRepository", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "iCloud container not available"])
+        }
+
+        // Ensure directory exists
+        try FileManager.default.createDirectory(at: dirURL, withIntermediateDirectories: true)
+
+        let finalURL = dirURL.appendingPathComponent("\(file.documentId).json")
+        let tmpURL = dirURL.appendingPathComponent("\(file.documentId).json.tmp")
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let data = try encoder.encode(file)
+        try data.write(to: tmpURL, options: .atomic)
+
+        // Use FileManager replaceItemAt for atomic replacement
+        if FileManager.default.fileExists(atPath: finalURL.path) {
+            _ = try FileManager.default.replaceItemAt(finalURL, withItemAt: tmpURL)
+        } else {
+            try FileManager.default.moveItem(at: tmpURL, to: finalURL)
+        }
     }
 }
 
 // MARK: - Statistics
+
 struct DatabaseStatistics {
     let totalAddresses: Int
     let documentsWithAddresses: Int
     let patientsFound: Int
     let gpsFound: Int
-}
-
-// MARK: - Logger Placeholder
-// Simple logger implementation (replace with OSLog if needed)
-private struct Logger {
-    let subsystem: String
-    let category: String
-
-    func info(_ message: String) {
-        print("[\(category)] INFO: \(message)")
-    }
-
-    func warning(_ message: String) {
-        print("[\(category)] WARNING: \(message)")
-    }
-
-    func error(_ message: String) {
-        print("[\(category)] ERROR: \(message)")
-    }
 }

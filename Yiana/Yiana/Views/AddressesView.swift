@@ -68,7 +68,7 @@ struct AddressesView: View {
                         let primeAddresses = sortedAddresses.filter { $0.isPrime == true }
                         let nonPrimeAddresses = sortedAddresses.filter { $0.isPrime != true }
 
-                        ForEach(primeAddresses, id: \.id) { address in
+                        ForEach(primeAddresses, id: \.stableId) { address in
                             AddressCard(
                                 address: address,
                                 documentId: documentId,
@@ -84,7 +84,7 @@ struct AddressesView: View {
                                 .padding(.vertical, 8)
                         }
 
-                        ForEach(nonPrimeAddresses, id: \.id) { address in
+                        ForEach(nonPrimeAddresses, id: \.stableId) { address in
                             AddressCard(
                                 address: address,
                                 documentId: documentId,
@@ -420,7 +420,9 @@ struct AddressCard: View {
 
         do {
             try await repository.saveOverride(
-                originalId: address.id!,
+                documentId: documentId,
+                pageNumber: address.pageNumber ?? 1,
+                matchAddressType: address.addressType ?? "patient",
                 updatedAddress: updatedAddress,
                 reason: "corrected"
             )
@@ -523,12 +525,10 @@ struct AddressCard: View {
     }
 
     private func togglePrimeStatus(_ newValue: Bool) async {
-        guard let addressId = address.id else { return }
-
         do {
             try await repository.togglePrime(
-                addressId: addressId,
                 documentId: documentId,
+                pageNumber: address.pageNumber ?? 1,
                 addressType: selectedType,
                 makePrime: newValue
             )
@@ -541,12 +541,12 @@ struct AddressCard: View {
     }
 
     private func updateAddressType() async {
-        guard let addressId = address.id else { return }
-
         do {
             let subtypeValue = currentTypeDefinition?.requiresSubtype == true ? subtypeName : nil
             try await repository.updateAddressType(
-                addressId: addressId,
+                documentId: documentId,
+                pageNumber: address.pageNumber ?? 1,
+                currentAddressType: address.addressType ?? "patient",
                 newType: selectedType,
                 specialistName: subtypeValue
             )
