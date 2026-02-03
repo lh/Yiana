@@ -1,2 +1,2 @@
 watchdog==3.0.0
-sqlite3-utils==3.35
+sqlite-utils==3.35

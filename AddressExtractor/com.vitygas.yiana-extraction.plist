@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.vitygas.yiana-extraction</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/devon/Code/Yiana/AddressExtractor/.venv/bin/python3</string>
+        <string>/Users/devon/Code/Yiana/AddressExtractor/extraction_service.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/devon/Code/Yiana/AddressExtractor</string>
+
+    <!-- Start on login -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Restart if it crashes -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Throttle restarts (default 10s, set explicitly) -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <!-- Logs -->
+    <key>StandardOutPath</key>
+    <string>/Users/devon/Library/Logs/yiana-extraction.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/devon/Library/Logs/yiana-extraction-error.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>/Users/devon</string>
+        <key>JSON_OUTPUT</key>
+        <string>/Users/devon/Code/Yiana/AddressExtractor/api_output</string>
+    </dict>
+</dict>
+</plist>
