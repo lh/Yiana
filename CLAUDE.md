@@ -46,7 +46,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Ideas & Problems Log
 When a problem is deferred or an idea comes up mid-task, save it to the Serena memory `ideas_and_problems` using `mcp__serena__edit_memory`. Do NOT use Vestige for this — use the Serena memory so everything stays in one place. Format: numbered list under `## Problems` or `## Ideas`.
 
+## Code Navigation
+
+Use Serena MCP's search_for_pattern as primary code search. If find_symbol fails to locate class methods or nested symbols, fall back to search_for_pattern or direct file reads immediately — do not retry find_symbol repeatedly.
+
+## Tool Usage Conventions
+
+When logging issues or saving notes, use the correct system: Problems/TODOs go to Serena memory tools, NOT Vestige. Memory/preferences go to Vestige MCP, NOT CLAUDE.md file.
+
 ## Project Overview
+
+This project is a Swift/SwiftUI notes app (Yiana) with iOS and macOS targets, iCloud sync, OCR processing via a remote Mac mini server, and a GRDB/SQLite database. The primary languages are Swift (app) and Python (server services). Always consider iCloud file download state when working with file operations.
 
 Yiana is a document scanning and PDF management app for iOS/iPadOS/macOS. It stores documents as `.yianazip` packages (metadata JSON + PDF data), syncs via iCloud Drive, and offloads OCR processing to a Mac mini backend service.
 
@@ -74,6 +84,16 @@ cd YianaOCRService && swift run yiana-ocr --help
 # Python tools setup
 cd AddressExtractor && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
 ```
+
+Always build for BOTH iOS and macOS targets after any code change. Never assume a change to shared code only affects one platform.
+
+## Bug Fix Protocol
+
+When fixing bugs, always verify the fix doesn't break related functionality. Specifically: after modifying any file processing pipeline (OCR, indexing, sync), trace through the full lifecycle to confirm downstream stages still trigger correctly.
+
+## Deployment
+
+When deploying to the Mac mini server: 1) Stop the launchd service FIRST and wait for confirmation before copying binaries. 2) Check for and handle large log files before attempting verification. 3) Never deploy before user explicitly confirms readiness.
 
 ## Architecture & Key Decisions
 
@@ -152,6 +172,10 @@ memory-bank/           # Project state tracking
 
 ### Planned (📋)
 See `PLAN.md` for detailed implementation phases
+
+## Style Preferences
+
+Never add emoji to UI text, commit messages, or user-facing strings unless explicitly asked. User preference: clean, professional tone.
 
 ## Code Style & Conventions
 
