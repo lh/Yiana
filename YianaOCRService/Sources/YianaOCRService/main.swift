@@ -20,14 +20,24 @@ extension YianaOCR {
         )
         
         @Option(name: .shortAndLong, help: "Log level (trace, debug, info, notice, warning, error, critical)")
-        var logLevel: String = "info"
+        var logLevel: String = "notice"
         
         @Option(name: .shortAndLong, help: "Path to watch for documents")
         var path: String?
         
         mutating func run() async throws {
+            let level = Logger.Level(rawValue: logLevel.lowercased()) ?? .notice
+            
+            LoggingSystem.bootstrap { label in
+                var handler = StreamLogHandler.standardError(label: label)
+                handler.logLevel = level
+                return handler
+            }
+            
             let logger = Logger(label: "com.vitygas.yiana.ocr")
-            logger.info("Starting Yiana OCR service in watch mode")
+            logger.notice("Starting Yiana OCR service in watch mode", metadata: [
+                "logLevel": .string(level.rawValue)
+            ])
             
             let watcher: DocumentWatcher
             if let customPath = path {
@@ -37,12 +47,10 @@ extension YianaOCR {
             }
             await watcher.start()
             
-            // Keep the service running
-            logger.info("Watcher is running. Press Ctrl+C to stop.")
+            logger.notice("Watcher is running. Press Ctrl+C to stop.")
             
-            // Use a continuous sleep loop instead of Task.sleepForever
             while true {
-                try await Task.sleep(nanoseconds: 1_000_000_000 * 60) // Sleep for 60 seconds
+                try await Task.sleep(nanoseconds: 1_000_000_000 * 60)
             }
         }
     }
