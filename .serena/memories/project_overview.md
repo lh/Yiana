@@ -25,6 +25,12 @@ Yiana (Yiana is another notes app) is a document scanning and PDF management app
 - LEGO approach: Use proven Apple frameworks without reinventing
 - Server-side OCR processing on Mac mini (not on device)
 
+## Address Extraction
+- Address data synced via per-document JSON files in `.addresses/` (not SQLite)
+- See memory `json_sync_architecture` for full details
+- Devon deployment uses `git pull` + LaunchAgent (not SCP)
+- SSH to Devon: `ssh devon@Devon-6.local`
+
 ## Current Status
 - Phase 1 completed: Core models and data structures
 - Phase 2 in progress: Removing Core Data, implementing Document Repository
