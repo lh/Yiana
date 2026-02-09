@@ -1,9 +1,15 @@
 {
   "hooks": {
-    "postToolUse": [
+    "PostToolUse": [
       {
         "matcher": "TaskUpdate",
-        "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -q '\"completed\"'; then echo '🔨 Build check triggered — task marked complete'; xcodebuild -project Yiana/Yiana.xcodeproj -scheme Yiana -destination 'generic/platform=iOS' -quiet build 2>&1 | tail -5; xcodebuild -project Yiana/Yiana.xcodeproj -scheme Yiana -destination 'platform=macOS' -quiet build 2>&1 | tail -5; fi"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); if echo \"$INPUT\" | grep -q 'completed'; then echo 'Build check triggered -- task marked complete'; xcodebuild -project Yiana/Yiana.xcodeproj -scheme Yiana -destination 'generic/platform=iOS' -quiet build 2>&1 | tail -5; xcodebuild -project Yiana/Yiana.xcodeproj -scheme Yiana -destination 'platform=macOS' -quiet build 2>&1 | tail -5; fi",
+            "timeout": 120
+          }
+        ]
       }
     ]
   }
