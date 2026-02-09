@@ -571,6 +571,21 @@ class BackendDatabase:
     # Entity resolution
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _find_patient_by_name(cursor, name_norm: str, date_of_birth: str):
+        """Look up a patient by normalized name and optional DOB. Returns row or None."""
+        if date_of_birth and date_of_birth.strip():
+            return cursor.execute(
+                "SELECT id FROM patients WHERE full_name_normalized = ? AND date_of_birth = ?",
+                (name_norm, date_of_birth),
+            ).fetchone()
+        else:
+            rows = cursor.execute(
+                "SELECT id FROM patients WHERE full_name_normalized = ?",
+                (name_norm,),
+            ).fetchall()
+            return rows[0] if len(rows) == 1 else None
+
     def _resolve_patient(
         self, cursor, full_name: str, date_of_birth: str, address: dict, phones: dict
     ) -> int | None:
@@ -581,19 +596,20 @@ class BackendDatabase:
 
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
-        if date_of_birth and date_of_birth.strip():
-            # Exact match on (name_norm, dob)
-            row = cursor.execute(
-                "SELECT id FROM patients WHERE full_name_normalized = ? AND date_of_birth = ?",
-                (name_norm, date_of_birth),
-            ).fetchone()
-        else:
-            # Match only if exactly one patient with that name_norm exists
-            rows = cursor.execute(
-                "SELECT id FROM patients WHERE full_name_normalized = ?",
+        # Try direct match first, then fall back to alias lookup
+        row = self._find_patient_by_name(cursor, name_norm, date_of_birth)
+
+        if not row:
+            # Check if this name is a known alias
+            alias_row = cursor.execute(
+                "SELECT canonical FROM name_aliases WHERE alias = ? AND entity_type = 'patient'",
                 (name_norm,),
-            ).fetchall()
-            row = rows[0] if len(rows) == 1 else None
+            ).fetchone()
+            if alias_row:
+                canonical_norm = alias_row["canonical"]
+                row = self._find_patient_by_name(cursor, canonical_norm, date_of_birth)
+                if row:
+                    logger.debug(f"Alias resolved: \"{name_norm}\" -> \"{canonical_norm}\"")
 
         if row:
             patient_id = row["id"]
@@ -937,7 +953,7 @@ class BackendDatabase:
 
 
     def print_corrections(self):
-        """Show all recorded corrections and name aliases."""
+        """Show all recorded corrections, name aliases, and common issues."""
         rows = self.conn.execute(
             """
             SELECT c.document_id, c.page_number, c.field_name,
@@ -969,6 +985,73 @@ class BackendDatabase:
             print("  (none yet)")
         for a in aliases:
             print(f"  [{a['entity_type']}] \"{a['alias']}\" -> \"{a['canonical']}\" (source: {a['source']})")
+
+        # Common Issues Register
+        if not rows:
+            return
+
+        print(f"\nCommon Issues Register")
+        print("=" * 80)
+
+        # 1. Field error frequency
+        field_counts = {}
+        for r in rows:
+            field_counts[r["field_name"]] = field_counts.get(r["field_name"], 0) + 1
+        print("\n  Error frequency by field:")
+        for field, count in sorted(field_counts.items(), key=lambda x: -x[1]):
+            print(f"    {field}: {count} correction(s)")
+
+        # 2. Detect value concatenation (original contains corrected + extra junk)
+        concat_issues = []
+        for r in rows:
+            orig = r["original_value"] or ""
+            corr = r["corrected_value"] or ""
+            if len(orig) > len(corr) + 3 and corr in orig:
+                junk = orig.replace(corr, "", 1).strip()
+                concat_issues.append((r["field_name"], r["document_id"], corr, junk))
+
+        if concat_issues:
+            print("\n  Value concatenation (OCR merging adjacent fields):")
+            for field, doc, clean_val, junk in concat_issues:
+                print(f"    {field} in {doc}: wanted \"{clean_val}\", got junk appended: \"{junk}\"")
+
+        # 3. Detect form label contamination (field value is a known label/heading)
+        form_labels = {
+            "date of birth", "dob", "d.o.b", "name", "address", "postcode",
+            "telephone", "tel", "phone", "mobile", "email", "nhs number",
+            "hospital number", "signeddate", "signature", "signed", "date",
+            "gp name", "gp address", "gp practice", "referring",
+        }
+        label_issues = []
+        for r in rows:
+            orig = (r["original_value"] or "").strip().lower()
+            if orig in form_labels or any(orig.startswith(l) for l in form_labels if len(l) > 3):
+                label_issues.append((r["field_name"], r["document_id"], r["original_value"], r["corrected_value"]))
+
+        if label_issues:
+            print("\n  Form label contamination (field label extracted as value):")
+            for field, doc, orig, corr in label_issues:
+                print(f"    {field} in {doc}: \"{orig}\" (label) -> \"{corr}\" (actual)")
+
+        # 4. Detect name spelling corrections (Levenshtein-like: same length, few chars different)
+        name_issues = []
+        for r in rows:
+            if "name" in r["field_name"] and r["original_value"] and r["corrected_value"]:
+                orig = r["original_value"].lower()
+                corr = r["corrected_value"].lower()
+                if orig != corr and (
+                    orig in corr or corr in orig  # substring
+                    or abs(len(orig) - len(corr)) <= 2  # similar length
+                ):
+                    name_issues.append((r["field_name"], r["document_id"], r["original_value"], r["corrected_value"]))
+
+        if name_issues:
+            print("\n  Name OCR errors (misspellings/misreads):")
+            for field, doc, orig, corr in name_issues:
+                print(f"    {field} in {doc}: \"{orig}\" -> \"{corr}\"")
+
+        if not concat_issues and not label_issues and not name_issues:
+            print("\n  No systematic patterns detected yet (more corrections needed).")
 
 
 def main():
