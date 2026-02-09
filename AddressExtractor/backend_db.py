@@ -59,6 +59,64 @@ def normalize_name(name: str) -> str:
     return n
 
 
+def parse_patient_filename(filename: str) -> dict | None:
+    """Extract patient name + DOB from a patient-level filename.
+
+    Standard pattern: Surname_Firstname_DDMMYY.json
+    Handles: hyphenated names, apostrophes (straight and curly), trailing text
+    after DOB (copies, DNA markers, etc.), minor spacing issues.
+
+    Returns {"surname": str, "firstname": str, "dob": "DD/MM/YYYY"} or None.
+    """
+    stem = filename.removesuffix(".json")
+
+    # Normalize curly apostrophes to straight
+    stem = stem.replace("\u2018", "'").replace("\u2019", "'")
+
+    # Strip leading/trailing whitespace from underscore-separated parts
+    # Handles: "Brady_Michael _280348" → "Brady_Michael_280348"
+    # Handles: "Gaby__Shirley_120545" → "Gaby_Shirley_120545"
+    parts = [p.strip() for p in stem.split("_") if p.strip()]
+
+    if len(parts) < 3:
+        return None
+
+    surname = parts[0]
+    firstname = parts[1]
+    dob_part = parts[2]
+
+    # Surname and firstname must start with a letter
+    if not surname[0].isalpha() or not firstname[0].isalpha():
+        return None
+
+    # Validate name characters (letters, hyphens, apostrophes)
+    name_pat = re.compile(r"^[A-Za-z][A-Za-z\-']*$")
+    if not name_pat.match(surname) or not name_pat.match(firstname):
+        return None
+
+    # Extract exactly 6 leading digits from dob_part (ignore trailing text)
+    dob_match = re.match(r"(\d{6})", dob_part)
+    if not dob_match:
+        return None
+
+    dob_raw = dob_match.group(1)
+    try:
+        day = int(dob_raw[0:2])
+        month = int(dob_raw[2:4])
+        year_2digit = int(dob_raw[4:6])
+        year = 1900 + year_2digit if year_2digit >= 26 else 2000 + year_2digit
+        # Basic validation
+        if not (1 <= day <= 31 and 1 <= month <= 12):
+            return None
+        return {
+            "surname": surname,
+            "firstname": firstname,
+            "dob": f"{day:02d}/{month:02d}/{year}",
+        }
+    except (ValueError, IndexError):
+        return None
+
+
 def file_hash(path: Path) -> str:
     """Compute SHA256 of a file."""
     h = hashlib.sha256()
@@ -216,6 +274,24 @@ class BackendDatabase:
             page_practitioners = {}  # page_number -> set of (practitioner_id, rel_type)
             seen_patient_practitioner_pairs = set()
 
+            # Resolve canonical patient from filename (high confidence)
+            filename_patient = parse_patient_filename(json_path.name)
+            filename_patient_id = None
+            if filename_patient:
+                canonical_name = f"{filename_patient['firstname']} {filename_patient['surname']}"
+                filename_patient_id = self._resolve_patient(
+                    cursor,
+                    full_name=canonical_name,
+                    date_of_birth=filename_patient["dob"],
+                    address={},
+                    phones={},
+                )
+                if filename_patient_id:
+                    seen_patients.add(filename_patient_id)
+                    logger.debug(
+                        f"Filename patient: {canonical_name} (DOB {filename_patient['dob']}) -> ID {filename_patient_id}"
+                    )
+
             for page in data["pages"]:
                 page_number = page.get("page_number")
                 address_type = page.get("address_type", "patient")
@@ -239,9 +315,25 @@ class BackendDatabase:
                 phones = patient.get("phones") or {}
 
                 # Resolve patient entity
+                # When filename gives us a canonical patient, use that instead of
+                # OCR-extracted names (which are often noise: town names, form labels).
+                # Raw OCR data is still stored verbatim in extraction fields.
                 patient_id = None
                 patient_name = patient.get("full_name")
-                if patient_name and patient_name.strip():
+                if filename_patient_id:
+                    # Filename patient is the document owner — use for all extractions
+                    patient_id = filename_patient_id
+                    # Still update address/phone from OCR if this looks like a real
+                    # patient extraction (not a GP or specialist row)
+                    if eff_address_type == "patient" and patient_name and patient_name.strip():
+                        ocr_name_norm = normalize_name(patient_name)
+                        fn_name_norm = normalize_name(
+                            f"{filename_patient['firstname']} {filename_patient['surname']}"
+                        )
+                        if ocr_name_norm == fn_name_norm:
+                            # OCR agrees with filename — safe to apply address/phone updates
+                            self._update_patient_details(cursor, patient_id, address, phones)
+                elif patient_name and patient_name.strip():
                     patient_id = self._resolve_patient(
                         cursor,
                         full_name=patient_name,
@@ -249,8 +341,8 @@ class BackendDatabase:
                         address=address,
                         phones=phones,
                     )
-                    if patient_id:
-                        seen_patients.add(patient_id)
+                if patient_id:
+                    seen_patients.add(patient_id)
 
                 # Resolve practitioner entity (from GP data)
                 practitioner_id = None
@@ -497,6 +589,40 @@ class BackendDatabase:
                 ),
             )
             return cursor.lastrowid
+
+    def _update_patient_details(self, cursor, patient_id: int, address: dict, phones: dict):
+        """Update address/phone on an existing patient from OCR data (no name/DOB change)."""
+        updates = []
+        params = []
+        for field, json_key in [
+            ("address_line_1", "line_1"),
+            ("address_line_2", "line_2"),
+            ("city", "city"),
+            ("county", "county"),
+            ("postcode", "postcode"),
+            ("postcode_district", "postcode_district"),
+        ]:
+            val = address.get(json_key)
+            if val and val.strip():
+                updates.append(f"{field} = ?")
+                params.append(val)
+        for field, json_key in [
+            ("phone_home", "home"),
+            ("phone_work", "work"),
+            ("phone_mobile", "mobile"),
+        ]:
+            val = phones.get(json_key)
+            if val and val.strip():
+                updates.append(f"{field} = ?")
+                params.append(val)
+        if updates:
+            now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            updates.append("last_seen_at = ?")
+            params.append(now)
+            params.append(patient_id)
+            cursor.execute(
+                f"UPDATE patients SET {', '.join(updates)} WHERE id = ?", params
+            )
 
     def _resolve_practitioner(
         self,
