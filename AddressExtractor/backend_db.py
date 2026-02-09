@@ -13,6 +13,8 @@ Usage:
     python backend_db.py --merge-candidates
 """
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import json
