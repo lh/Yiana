@@ -250,6 +250,9 @@ class BackendDatabase:
             cursor.execute(
                 "DELETE FROM patient_documents WHERE document_id = ?", (document_id,)
             )
+            cursor.execute(
+                "DELETE FROM corrections WHERE document_id = ?", (document_id,)
+            )
             # Note: we don't delete patient_practitioners here — those accumulate across
             # documents and are rebuilt via document_count logic
 
@@ -450,6 +453,82 @@ class BackendDatabase:
                         override.get("override_date") if override else None,
                     ),
                 )
+                extraction_id = cursor.lastrowid
+
+                # Record field-level corrections from overrides
+                if has_override:
+                    orig_patient = page.get("patient") or {}
+                    orig_address = page.get("address") or {}
+                    orig_gp = page.get("gp") or {}
+                    orig_phones = orig_patient.get("phones") or {}
+
+                    corr_patient = override.get("patient") or {}
+                    corr_address = override.get("address") or {}
+                    corr_gp = override.get("gp") or {}
+                    corr_phones = corr_patient.get("phones") or {}
+
+                    override_reason = override.get("override_reason")
+                    override_date = override.get("override_date")
+
+                    # Define field mappings: (field_name, original, corrected)
+                    field_pairs = [
+                        ("patient.full_name", orig_patient.get("full_name"), corr_patient.get("full_name")),
+                        ("patient.date_of_birth", orig_patient.get("date_of_birth"), corr_patient.get("date_of_birth")),
+                        ("patient.phones.home", orig_phones.get("home"), corr_phones.get("home")),
+                        ("patient.phones.work", orig_phones.get("work"), corr_phones.get("work")),
+                        ("patient.phones.mobile", orig_phones.get("mobile"), corr_phones.get("mobile")),
+                        ("address.line_1", orig_address.get("line_1"), corr_address.get("line_1")),
+                        ("address.line_2", orig_address.get("line_2"), corr_address.get("line_2")),
+                        ("address.city", orig_address.get("city"), corr_address.get("city")),
+                        ("address.county", orig_address.get("county"), corr_address.get("county")),
+                        ("address.postcode", orig_address.get("postcode"), corr_address.get("postcode")),
+                        ("gp.name", orig_gp.get("name"), corr_gp.get("name")),
+                        ("gp.practice", orig_gp.get("practice"), corr_gp.get("practice")),
+                        ("gp.address", orig_gp.get("address"), corr_gp.get("address")),
+                        ("gp.postcode", orig_gp.get("postcode"), corr_gp.get("postcode")),
+                    ]
+
+                    # Also compare top-level override fields
+                    if override.get("address_type") and override.get("address_type") != address_type:
+                        field_pairs.append(("address_type", address_type, override.get("address_type")))
+                    if override.get("is_prime") is not None and override.get("is_prime") != page.get("is_prime"):
+                        field_pairs.append(("is_prime", str(page.get("is_prime")), str(override.get("is_prime"))))
+                    if override.get("specialist_name") and override.get("specialist_name") != page.get("specialist_name"):
+                        field_pairs.append(("specialist_name", page.get("specialist_name"), override.get("specialist_name")))
+
+                    for field_name, orig_val, corr_val in field_pairs:
+                        # Normalize: treat None and empty string as equivalent
+                        norm_orig = (orig_val or "").strip() if isinstance(orig_val, str) else orig_val
+                        norm_corr = (corr_val or "").strip() if isinstance(corr_val, str) else corr_val
+                        # Only record if override provides a value and it differs
+                        if norm_corr and norm_orig != norm_corr:
+                            cursor.execute(
+                                """
+                                INSERT INTO corrections (
+                                    extraction_id, document_id, page_number,
+                                    field_name, original_value, corrected_value,
+                                    override_reason, override_date
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    extraction_id, document_id, page_number,
+                                    field_name, str(orig_val) if orig_val else None,
+                                    str(corr_val),
+                                    override_reason, override_date,
+                                ),
+                            )
+
+                            # Name corrections → name_aliases
+                            if field_name == "patient.full_name" and orig_val:
+                                self._upsert_name_alias(
+                                    cursor, normalize_name(orig_val),
+                                    normalize_name(corr_val), "patient",
+                                )
+                            elif field_name == "gp.name" and orig_val:
+                                self._upsert_name_alias(
+                                    cursor, normalize_name(orig_val),
+                                    normalize_name(corr_val), "practitioner",
+                                )
 
             # Cross-row linking: connect patients and practitioners
             # Strategy 1: link entities sharing the same page_number
@@ -623,6 +702,23 @@ class BackendDatabase:
             cursor.execute(
                 f"UPDATE patients SET {', '.join(updates)} WHERE id = ?", params
             )
+
+    def _upsert_name_alias(
+        self, cursor, alias_norm: str, canonical_norm: str, entity_type: str
+    ):
+        """Insert or update a name alias from a correction."""
+        if not alias_norm or not canonical_norm or alias_norm == canonical_norm:
+            return
+        cursor.execute(
+            """
+            INSERT INTO name_aliases (alias, canonical, entity_type, source)
+            VALUES (?, ?, ?, 'correction')
+            ON CONFLICT(alias, entity_type) DO UPDATE SET
+                canonical = excluded.canonical,
+                source = excluded.source
+            """,
+            (alias_norm, canonical_norm, entity_type),
+        )
 
     def _resolve_practitioner(
         self,
@@ -840,6 +936,41 @@ class BackendDatabase:
             )
 
 
+    def print_corrections(self):
+        """Show all recorded corrections and name aliases."""
+        rows = self.conn.execute(
+            """
+            SELECT c.document_id, c.page_number, c.field_name,
+                   c.original_value, c.corrected_value,
+                   c.override_reason, c.override_date
+            FROM corrections c
+            ORDER BY c.document_id, c.page_number, c.field_name
+            """
+        ).fetchall()
+
+        print(f"\nCorrections ({len(rows)} field-level diffs)")
+        print("=" * 80)
+        current_doc = None
+        for r in rows:
+            if r["document_id"] != current_doc:
+                current_doc = r["document_id"]
+                print(f"\n  {current_doc} (page {r['page_number']}):")
+            orig = r["original_value"] or "(empty)"
+            corr = r["corrected_value"]
+            print(f"    {r['field_name']}: {orig} -> {corr}")
+
+        aliases = self.conn.execute(
+            "SELECT alias, canonical, entity_type, source FROM name_aliases ORDER BY entity_type, alias"
+        ).fetchall()
+
+        print(f"\nName Aliases ({len(aliases)})")
+        print("=" * 80)
+        if not aliases:
+            print("  (none yet)")
+        for a in aliases:
+            print(f"  [{a['entity_type']}] \"{a['alias']}\" -> \"{a['canonical']}\" (source: {a['source']})")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Backend Address Database — ingest .addresses/*.json into SQLite"
@@ -866,6 +997,11 @@ def main():
         "--top-links",
         action="store_true",
         help="Show most-attested patient-practitioner links",
+    )
+    parser.add_argument(
+        "--corrections",
+        action="store_true",
+        help="Show field-level corrections and name aliases",
     )
     parser.add_argument(
         "--addresses-dir",
@@ -902,6 +1038,8 @@ def main():
             db.print_top_practitioners()
         elif args.top_links:
             db.print_top_patient_practitioner_links()
+        elif args.corrections:
+            db.print_corrections()
         else:
             # Default: ingest
             db.ingest_directory(args.addresses_dir)
