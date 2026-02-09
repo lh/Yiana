@@ -1,0 +1,194 @@
+# Address Backend Database Guide
+
+## What This Is
+
+A learning system that ingests per-document JSON files from the Yiana app's extraction pipeline, deduplicates patients and practitioners across ~1,400 documents, and learns from manual corrections to improve over time.
+
+**Files:** `backend_db.py` (all logic), `backend_schema.sql` (table definitions)
+
+## Architecture
+
+```
+iOS/macOS App (Swift)
+  ├── Creates .yianazip documents
+  ├── Reads .addresses/*.json (AddressRepository.swift)
+  └── Writes user corrections to overrides[] in .addresses/*.json
+                    ↕ iCloud Sync
+Mac mini "Devon" (Python)
+  1. YianaOCRService    .yianazip → .ocr_results/*.json
+  2. extraction_service  .ocr_results/*.json → .addresses/*.json (pages[])
+  3. backend_db.py       .addresses/*.json → addresses_backend.db (READ-ONLY access to JSON)
+```
+
+**Key principle:** `backend_db.py` never writes to `.addresses/` files. It reads them and populates a local SQLite database. The Swift app and extraction service own the JSON files.
+
+## Data Ownership
+
+| Data | Owner | Written By | Read By |
+|------|-------|-----------|---------|
+| `.yianazip` | Swift app | Swift app | YianaOCRService |
+| `.ocr_results/*.json` | YianaOCRService | YianaOCRService | extraction_service.py |
+| `.addresses/*.json` `pages[]` | extraction_service | extraction_service | Swift app, backend_db.py |
+| `.addresses/*.json` `overrides[]` | Swift app | Swift app | extraction_service (preserves), backend_db.py |
+| `addresses_backend.db` | backend_db.py | backend_db.py | Nothing yet (Phase 1) |
+
+## How Patient Identity Works
+
+### Priority: Filename > OCR
+
+Patient-level documents are named `Surname_Firstname_DDMMYY.json`. This is far more reliable than OCR-extracted names, which often contain form labels ("Date of birth"), town names ("Surrey"), or other noise.
+
+**The rule:** When the filename parses successfully (98.6% of files), the filename-derived patient is the document's canonical patient. OCR-extracted patient names on individual pages are stored verbatim in `extractions` but do NOT create separate patient entities.
+
+**Why this matters:** Before filename parsing, the system created 2,099 "patients" including junk like "Fax", "Signeddate", "Horley". After: 1,409 real patients.
+
+### Filename Parsing Rules
+
+Standard pattern: `Surname_Firstname_DDMMYY.json`
+
+Handles:
+- Hyphenated names: `Anderson-Dixon_Anthony_200461.json`
+- Apostrophes (straight and curly): `O'Neill_Peter_111144.json`
+- Trailing text after DOB: `Abel_Andrew_170462 DNA.json`
+- Spacing issues: `Brady_Michael _280348.json`, `Gaby__Shirley_120545.json`
+
+Does NOT handle (falls back to OCR):
+- No DOB: `Heather_Susan.json`
+- Multi-part surnames: `Morales_Torres_Maria_220664.json`
+- Non-patient files: `Bad referrals.json`, `receipt.json`
+
+Year pivot: `>= 26` → 1900s, `< 26` → 2000s (so `120400` = 12/04/2000).
+
+### Deduplication
+
+- **Patients:** `full_name_normalized + date_of_birth` as dedup key
+- **Practitioners:** `full_name_normalized + type` as dedup key
+- **Name normalization:** lowercase, strip titles (Mr/Mrs/Dr/etc), remove non-alpha except hyphens/apostrophes, collapse whitespace
+
+## The Learning Feedback Loop
+
+```
+1. User corrects OCR error in Yiana app
+   └── Override written to .addresses/Foo_Bar_010180.json overrides[]
+
+2. backend_db.py ingests the file
+   ├── Applies override to get effective values (for entity resolution)
+   ├── Compares override fields vs original page fields
+   ├── Records each diff in corrections table
+   │     e.g. patient.full_name: "zwertlik" → "Czwertlik"
+   └── Name corrections → name_aliases table
+         e.g. "adrian zwertlik" → "adrian czwertlik" (patient)
+
+3. Future ingestion of ANY document
+   └── _resolve_patient tries direct lookup
+       └── If not found, checks name_aliases for canonical name
+           └── Retries lookup with canonical → finds existing patient
+               (no duplicate created)
+```
+
+**The loop is closed:** corrections feed into aliases, aliases feed into entity resolution.
+
+## Corrections and Common Issues
+
+### What Gets Recorded
+
+Field-level diffs between original OCR extraction and user override. Each differing field becomes a row in `corrections`:
+
+```
+document_id | page_number | field_name            | original_value                        | corrected_value
+------------|-------------|-----------------------|---------------------------------------|----------------
+Czwertlik.. | 1           | patient.full_name     | Adrian zwertlik                       | Adrian Czwertlik
+Czwertlik.. | 1           | patient.phones.mobile | 0746022400107460224001RH105AZ         | 07460224001
+Czwertlik.. | 1           | address.city          | Date of birth                         | Crawley
+Kelly_Si..  | 1           | patient.phones.mobile | 0741351240107413512401CR53RD           | 07413512401
+```
+
+### What Does NOT Get Recorded
+
+- Cleared fields (override sets to empty string) — not a learnable correction
+- Fields where override matches original — no diff to record
+
+### Common Issues Register (`--corrections`)
+
+The report automatically detects three patterns:
+
+1. **Value concatenation** — OCR merging adjacent form fields. Example: phone number + postcode read as one string. Detected when original contains corrected value plus extra junk.
+
+2. **Form label contamination** — field labels extracted as values. Example: "Date of birth" appearing as the city. Detected by matching against known label strings.
+
+3. **Name OCR errors** — character-level misreads. Example: "zwertlik" vs "Czwertlik". Detected when name fields have similar-length values that differ.
+
+These patterns grow as more corrections accumulate.
+
+## Schema Overview
+
+| Table | Purpose | Key Columns |
+|-------|---------|-------------|
+| `documents` | One row per JSON file | document_id, json_hash (idempotency) |
+| `patients` | Deduplicated patients | full_name_normalized, date_of_birth (dedup key) |
+| `practitioners` | Deduplicated GPs/specialists | full_name_normalized, type (dedup key) |
+| `extractions` | Raw per-page OCR data (verbatim) | document_id, page_number, address_type |
+| `patient_documents` | Which patients in which docs | patient_id, document_id |
+| `patient_practitioners` | Patient-GP relationships | patient_id, practitioner_id, document_count |
+| `corrections` | Field-level diffs from overrides | field_name, original_value, corrected_value |
+| `name_aliases` | Learned name mappings | alias, canonical, entity_type |
+
+## CLI Usage
+
+```bash
+# Ingest (default action) — idempotent, skips unchanged files
+python3 backend_db.py --ingest
+
+# Show statistics
+python3 backend_db.py --stats
+
+# Show potential patient duplicates
+python3 backend_db.py --merge-candidates
+
+# Show corrections, aliases, and common issues
+python3 backend_db.py --corrections
+
+# Show top practitioners / patient-GP links
+python3 backend_db.py --top-practitioners
+python3 backend_db.py --top-links
+
+# Custom paths
+python3 backend_db.py --db-path /Users/devon/Data/addresses_backend.db --addresses-dir /path/to/.addresses
+
+# Verbose logging
+python3 backend_db.py -v --ingest
+```
+
+## Design Decisions
+
+### Why filename over OCR for patient identity?
+OCR extraction from scanned forms frequently misreads field labels, addresses, and dates as patient names. The filename is manually assigned and far more reliable. 98.6% of files parse successfully.
+
+### Why not modify the JSON files?
+The `.addresses/*.json` files are iCloud-synced and shared between the Swift app and Devon services. backend_db.py is read-only to avoid write conflicts. Future enrichment write-back (Phase 4+) would need careful conflict resolution.
+
+### Why not a separate table for filename patients?
+No need — the filename patient is resolved through the same `_resolve_patient` path as OCR patients. It's just called first, with higher-quality input. Keeps the model simple.
+
+### Why store raw OCR data in extractions?
+The `extractions` table preserves exactly what OCR found, even when it's wrong. This is essential for: (a) debugging extraction quality, (b) computing corrections, (c) training future models.
+
+### Why skip cleared fields in corrections?
+When an override clears a field (sets to empty), that's cleanup, not a learnable pattern. "The city was wrong" is learnable; "I deleted the garbage in line_2" is not.
+
+## Current Numbers (as of 2026-02-09)
+
+| Metric | Count |
+|--------|-------|
+| Documents | 1,401 |
+| Patients (deduplicated) | 1,409 |
+| Practitioners (all GP) | 388 |
+| Patient-GP links | 894 |
+| Corrections | 5 |
+| Name aliases | 1 |
+
+## Future Phases
+
+3. **Enrichment write-back** — canonical patient data back to JSON pages[]
+4. **Advanced learning** — LLM few-shot from corrections, confidence recalibration
+5. **Practitioner alias learning** — same feedback loop for GP names
