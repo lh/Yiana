@@ -338,14 +338,8 @@ class BackendDatabase:
                         if ocr_name_norm == fn_name_norm:
                             # OCR agrees with filename — safe to apply address/phone updates
                             self._update_patient_details(cursor, patient_id, address, phones)
-                elif patient_name and patient_name.strip():
-                    patient_id = self._resolve_patient(
-                        cursor,
-                        full_name=patient_name,
-                        date_of_birth=patient.get("date_of_birth"),
-                        address=address,
-                        phones=phones,
-                    )
+                # No filename patient = non-patient file. Skip patient resolution.
+                # Raw OCR names still stored verbatim in extractions table.
                 if patient_id:
                     seen_patients.add(patient_id)
 

@@ -38,9 +38,9 @@ Mac mini "Devon" (Python)
 
 Patient-level documents are named `Surname_Firstname_DDMMYY.json`. This is far more reliable than OCR-extracted names, which often contain form labels ("Date of birth"), town names ("Surrey"), or other noise.
 
-**The rule:** When the filename parses successfully (98.6% of files), the filename-derived patient is the document's canonical patient. OCR-extracted patient names on individual pages are stored verbatim in `extractions` but do NOT create separate patient entities.
+**The rule:** Only filename-parsed patients create patient entities. If the filename doesn't match `Surname_Firstname_DDMMYY`, no patient resolution is attempted. OCR-extracted patient names are stored verbatim in `extractions` (with `patient_id = NULL`) but never create patient entities on their own.
 
-**Why this matters:** Before filename parsing, the system created 2,099 "patients" including junk like "Fax", "Signeddate", "Horley". After: 1,409 real patients.
+**Why this matters:** OCR-extracted "patient names" from non-patient files are often form labels ("Date of birth"), street names ("Peter Lane"), or sentence fragments. Trusting only filename-derived identity eliminates all junk patient entries.
 
 ### Filename Parsing Rules
 
@@ -52,10 +52,12 @@ Handles:
 - Trailing text after DOB: `Abel_Andrew_170462 DNA.json`
 - Spacing issues: `Brady_Michael _280348.json`, `Gaby__Shirley_120545.json`
 
-Does NOT handle (falls back to OCR):
+Does NOT handle (no patient entity created):
 - No DOB: `Heather_Susan.json`
 - Multi-part surnames: `Morales_Torres_Maria_220664.json`
 - Non-patient files: `Bad referrals.json`, `receipt.json`
+
+These files still have their OCR data stored in `extractions` with `patient_id = NULL`. If the filename parser is extended later, they'll be picked up on re-ingestion.
 
 Year pivot: `>= 26` → 1900s, `< 26` → 2000s (so `120400` = 12/04/2000).
 
