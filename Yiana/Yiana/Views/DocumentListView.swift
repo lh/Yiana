@@ -36,8 +36,8 @@ struct DocumentListView: View {
     @State private var showingDuplicateScanner = false
     @Environment(\.openWindow) private var openWindow
     #endif
-    @State private var currentSortOption: SortOption = .title
-    @State private var isAscending = true
+    @State private var currentSortOption: SortOption = .dateModified
+    @State private var isAscending = false
     @State private var hasLoadedAnyContent = false
     @State private var showingSettings = false
     @State private var downloadingURLs: Set<URL> = []
