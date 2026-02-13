@@ -235,4 +235,132 @@ class DocumentRepository {
             }
         }
     }
+
+    // MARK: - File Management Operations
+
+    struct FolderContents {
+        let documentCount: Int
+        let subfolderCount: Int
+        var isEmpty: Bool { documentCount == 0 && subfolderCount == 0 }
+    }
+
+    /// Move a document to a different folder
+    func moveDocument(at url: URL, toFolder folderPath: String) throws -> URL {
+        let targetDirectory: URL
+        if folderPath.isEmpty {
+            targetDirectory = documentsDirectory
+        } else {
+            targetDirectory = documentsDirectory.appendingPathComponent(folderPath)
+        }
+
+        // Ensure target directory exists
+        try FileManager.default.createDirectory(at: targetDirectory, withIntermediateDirectories: true)
+
+        let targetURL = targetDirectory.appendingPathComponent(url.lastPathComponent)
+
+        guard !FileManager.default.fileExists(atPath: targetURL.path) else {
+            throw NSError(
+                domain: "DocumentRepository", code: 409,
+                userInfo: [NSLocalizedDescriptionKey: "A document with this name already exists in the target folder."]
+            )
+        }
+
+        try FileManager.default.moveItem(at: url, to: targetURL)
+        return targetURL
+    }
+
+    /// Rename a document (stays in the same folder)
+    func renameDocument(at url: URL, newName: String) throws -> URL {
+        let cleanName = newName
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+
+        let parentDirectory = url.deletingLastPathComponent()
+        let newURL = parentDirectory
+            .appendingPathComponent(cleanName)
+            .appendingPathExtension("yianazip")
+
+        guard !FileManager.default.fileExists(atPath: newURL.path) else {
+            throw NSError(
+                domain: "DocumentRepository", code: 409,
+                userInfo: [NSLocalizedDescriptionKey: "A document named \"\(cleanName)\" already exists."]
+            )
+        }
+
+        try FileManager.default.moveItem(at: url, to: newURL)
+        return newURL
+    }
+
+    /// Rename a folder
+    func renameFolder(at url: URL, newName: String) throws -> URL {
+        let cleanName = newName
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: "-")
+
+        let parentDirectory = url.deletingLastPathComponent()
+        let newURL = parentDirectory.appendingPathComponent(cleanName)
+
+        guard !FileManager.default.fileExists(atPath: newURL.path) else {
+            throw NSError(
+                domain: "DocumentRepository", code: 409,
+                userInfo: [NSLocalizedDescriptionKey: "A folder named \"\(cleanName)\" already exists."]
+            )
+        }
+
+        try FileManager.default.moveItem(at: url, to: newURL)
+        return newURL
+    }
+
+    /// Move a folder into a different parent folder
+    func moveFolder(at url: URL, toFolder folderPath: String) throws -> URL {
+        let targetDirectory: URL
+        if folderPath.isEmpty {
+            targetDirectory = documentsDirectory
+        } else {
+            targetDirectory = documentsDirectory.appendingPathComponent(folderPath)
+        }
+
+        try FileManager.default.createDirectory(at: targetDirectory, withIntermediateDirectories: true)
+
+        let targetURL = targetDirectory.appendingPathComponent(url.lastPathComponent)
+
+        guard !FileManager.default.fileExists(atPath: targetURL.path) else {
+            throw NSError(
+                domain: "DocumentRepository", code: 409,
+                userInfo: [NSLocalizedDescriptionKey: "A folder named \"\(url.lastPathComponent)\" already exists in the target location."]
+            )
+        }
+
+        try FileManager.default.moveItem(at: url, to: targetURL)
+        return targetURL
+    }
+
+    /// Delete a folder and all its contents
+    func deleteFolder(at url: URL) throws {
+        try FileManager.default.removeItem(at: url)
+    }
+
+    /// Get counts of documents and subfolders in a folder
+    func folderContents(at url: URL) -> FolderContents {
+        guard let urls = try? FileManager.default.contentsOfDirectory(
+            at: url,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return FolderContents(documentCount: 0, subfolderCount: 0)
+        }
+
+        var docCount = 0
+        var folderCount = 0
+        for item in urls {
+            var isDirectory: ObjCBool = false
+            if FileManager.default.fileExists(atPath: item.path, isDirectory: &isDirectory),
+               isDirectory.boolValue {
+                folderCount += 1
+            } else if item.pathExtension == "yianazip" {
+                docCount += 1
+            }
+        }
+        return FolderContents(documentCount: docCount, subfolderCount: folderCount)
+    }
 }

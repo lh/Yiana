@@ -718,6 +718,121 @@ class SearchIndexService {
         return terms.joined(separator: " ")
     }
 
+    // MARK: - Path Update Operations
+
+    /// Update a single document's path, folder, and title after move or rename
+    func updateDocumentPath(
+        documentId: UUID,
+        newURL: URL,
+        newFolderPath: String,
+        newTitle: String
+    ) async throws {
+        let idString = documentId.uuidString
+        try await dbQueue.write { database in
+            try database.execute(
+                sql: """
+                    UPDATE documents_metadata
+                    SET url = ?, folder_path = ?, title = ?
+                    WHERE document_id = ?
+                    """,
+                arguments: [newURL.path, newFolderPath, newTitle, idString]
+            )
+            try database.execute(
+                sql: """
+                    UPDATE documents_fts
+                    SET title = ?
+                    WHERE document_id = ?
+                    """,
+                arguments: [newTitle, idString]
+            )
+        }
+    }
+
+    /// Update all documents in a folder (and subfolders) after folder rename
+    func updateDocumentsInFolder(
+        oldFolderPath: String,
+        newFolderPath: String,
+        documentsDirectory: URL
+    ) async throws {
+        try await dbQueue.write { database in
+            // Fetch all affected rows: exact match + subfolder match
+            let rows = try Row.fetchAll(
+                database,
+                sql: """
+                    SELECT document_id, url, folder_path
+                    FROM documents_metadata
+                    WHERE folder_path = ? OR folder_path LIKE ?
+                    """,
+                arguments: [oldFolderPath, oldFolderPath + "/%"]
+            )
+
+            for row in rows {
+                guard let docId: String = row["document_id"],
+                      let oldURL: String = row["url"],
+                      let oldFolder: String = row["folder_path"] else { continue }
+
+                // Compute new folder path by replacing the renamed prefix
+                let newFolder: String
+                if oldFolder == oldFolderPath {
+                    newFolder = newFolderPath
+                } else {
+                    newFolder = newFolderPath + oldFolder.dropFirst(oldFolderPath.count)
+                }
+
+                // Compute new URL by replacing the old folder segment in the path
+                let oldDirPath = documentsDirectory.appendingPathComponent(oldFolderPath).path
+                let newDirPath = documentsDirectory.appendingPathComponent(newFolderPath).path
+                let newURLPath = oldURL.replacingOccurrences(of: oldDirPath, with: newDirPath)
+
+                // Derive title from the filename (drop .yianazip extension)
+                let title = (newURLPath as NSString).lastPathComponent
+                    .replacingOccurrences(of: ".yianazip", with: "")
+
+                try database.execute(
+                    sql: """
+                        UPDATE documents_metadata
+                        SET url = ?, folder_path = ?, title = ?
+                        WHERE document_id = ?
+                        """,
+                    arguments: [newURLPath, newFolder, title, docId]
+                )
+                try database.execute(
+                    sql: """
+                        UPDATE documents_fts
+                        SET title = ?
+                        WHERE document_id = ?
+                        """,
+                    arguments: [title, docId]
+                )
+            }
+        }
+    }
+
+    /// Remove all documents in a folder (and subfolders) from the index
+    func removeDocumentsInFolder(folderPath: String) async throws {
+        try await dbQueue.write { database in
+            let docIds = try String.fetchAll(
+                database,
+                sql: """
+                    SELECT document_id FROM documents_metadata
+                    WHERE folder_path = ? OR folder_path LIKE ?
+                    """,
+                arguments: [folderPath, folderPath + "/%"]
+            )
+
+            for docId in docIds {
+                try database.execute(
+                    sql: "DELETE FROM documents_fts WHERE document_id = ?",
+                    arguments: [docId]
+                )
+                try database.execute(
+                    sql: "DELETE FROM documents_metadata WHERE document_id = ?",
+                    arguments: [docId]
+                )
+            }
+        }
+    }
+
     // MARK: - Utility Methods
 
     /// Get count of indexed documents
