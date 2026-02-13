@@ -65,8 +65,8 @@ class DocumentListViewModel: ObservableObject {
     private let repository: DocumentRepository
     private var allFolderURLs: [URL] = []
     private var currentSearchText = ""
-    private var currentSortOption: SortOption = .dateModified
-    private var currentSortAscending = false
+    @Published var currentSortOption: SortOption = .dateModified
+    @Published var currentSortAscending = false
     private let searchIndex = SearchIndexService.shared
 
     // GRDB ValueObservation for automatic list updates

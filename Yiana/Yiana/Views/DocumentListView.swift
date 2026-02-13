@@ -36,8 +36,6 @@ struct DocumentListView: View {
     @State private var showingDuplicateScanner = false
     @Environment(\.openWindow) private var openWindow
     #endif
-    @State private var currentSortOption: SortOption = .dateModified
-    @State private var isAscending = false
     @State private var hasLoadedAnyContent = false
     @State private var showingSettings = false
     @State private var downloadingURLs: Set<URL> = []
@@ -1031,15 +1029,15 @@ struct DocumentListView: View {
 
                     Button(action: toggleSortOrder) {
                         Label(
-                            isAscending ? "Ascending" : "Descending",
-                            systemImage: isAscending ? "arrow.up" : "arrow.down"
+                            viewModel.currentSortAscending ? "Ascending" : "Descending",
+                            systemImage: viewModel.currentSortAscending ? "arrow.up" : "arrow.down"
                         )
                     }
                 } label: {
                     Label("Sort", systemImage: "arrow.up.arrow.down")
                 }
                 .toolbarActionAccessibility(label: "Sort documents")
-                .accessibilityValue("\(currentSortOption.rawValue), \(isAscending ? "ascending" : "descending")")
+                .accessibilityValue("\(viewModel.currentSortOption.rawValue), \(viewModel.currentSortAscending ? "ascending" : "descending")")
             }
 
             ToolbarItem(placement: .automatic) {
@@ -1175,7 +1173,7 @@ struct DocumentListView: View {
         Button(action: { updateSort(option: option) }) {
             HStack {
                 Text(label)
-                if currentSortOption == option {
+                if viewModel.currentSortOption == option {
                     Spacer()
                     Image(systemName: "checkmark")
                 }
@@ -1185,16 +1183,14 @@ struct DocumentListView: View {
     }
 
     private func updateSort(option: SortOption) {
-        currentSortOption = option
         Task {
-            await viewModel.sortDocuments(by: option, ascending: isAscending)
+            await viewModel.sortDocuments(by: option, ascending: viewModel.currentSortAscending)
         }
     }
 
     private func toggleSortOrder() {
-        isAscending.toggle()
         Task {
-            await viewModel.sortDocuments(by: currentSortOption, ascending: isAscending)
+            await viewModel.sortDocuments(by: viewModel.currentSortOption, ascending: !viewModel.currentSortAscending)
         }
     }
 
