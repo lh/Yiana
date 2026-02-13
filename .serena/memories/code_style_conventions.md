@@ -83,6 +83,11 @@ someState = nil
 Task { doSomething(with: captured) }
 ```
 
+### List Selection vs NavigationLink (CRITICAL)
+- `List(selection:)` is silently broken when rows contain `NavigationLink` or `Button` — the interactive element captures the gesture before the selection binding fires
+- When combining selection with navigation, conditionally render: plain view in select mode, NavigationLink-wrapped row in normal mode
+- Applies to both iOS and macOS
+
 ### Error Handling
 - Use proper error types
 - Handle errors gracefully
