@@ -1,3 +1,8 @@
+---
+name: testflight
+description: Bumps the build number, archives, and uploads to TestFlight via App Store Connect. Use when user says "testflight", "upload to testflight", "ship a build", or wants to deploy a new iOS beta.
+---
+
 # Deploy to TestFlight
 
 1. **Check for uncommitted changes** — warn the user and do not proceed until the working tree is clean

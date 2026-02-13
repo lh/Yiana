@@ -1,3 +1,8 @@
+---
+name: check
+description: Builds both iOS and macOS targets and reports pass/fail. Use when user says "check", "build both", "does it compile", "run a build", or wants to verify the project compiles before committing.
+---
+
 # Build Check
 
 Build both platform targets and report results. Run this at logical checkpoints — after completing a subtask, before committing, or whenever you want to verify the project compiles.

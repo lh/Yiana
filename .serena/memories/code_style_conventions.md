@@ -67,6 +67,22 @@ Tests/          - Unit test files
 - Prefer structs over classes unless reference semantics needed
 - Use protocols for dependency injection and testing
 
+### Async State Capture (CRITICAL)
+- **Never read `@State` or `@Published` inside `Task {}` bodies** — the value may change before the Task runs
+- Always capture to a local variable first, then pass the local into the Task
+- Clear the state synchronously after capture, before the Task
+- Post-flight check: grep for `Task {` in Views and verify no @State reads inside
+```swift
+// BAD
+Task { doSomething(with: someState) }
+someState = nil
+
+// GOOD
+let captured = someState
+someState = nil
+Task { doSomething(with: captured) }
+```
+
 ### Error Handling
 - Use proper error types
 - Handle errors gracefully

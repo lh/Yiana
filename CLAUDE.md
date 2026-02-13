@@ -14,6 +14,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 9. **Follow dependency management philosophy (see below)**
 10. **Keep code clean - remove any attributions you come accross and do not add any new attributions**
 
+## Session Handoff Protocol
+At the end of every session, write a detailed handoff note to `HANDOFF.md` covering: what was completed, what's in progress, what's next, and any known issues. Begin each session by reading `HANDOFF.md` if it exists.
+
+## Workflow
+
+### Blast-Radius / Planning Protocol
+When implementing a multi-step feature: 1) Read existing code thoroughly before proposing changes. 2) Write a concrete plan with file-level scope. 3) Get user approval before coding. 4) Implement incrementally, running tests after each file change. Do NOT spend an entire session only planning — balance analysis with implementation.
+
+## Language-Specific Rules
+
+### Rust Project Conventions
+- Target toolchain may be pinned (e.g., Rust 1.80.0) — always check `rust-toolchain.toml` before adding dependencies.
+- Run `cargo clippy` and `cargo test` after every implementation step.
+- Match Knuth's exact algorithms when implementing TeX specification code — do not approximate.
+
+### Swift/iOS/macOS Conventions
+- Always build for BOTH iOS and macOS targets after changes — do not add code to only one platform's ViewModel.
+- When implementing file/document operations, avoid autosave with nil fileType — use explicit save.
+- Test with real iCloud conditions: large file counts, placeholder files, not-yet-downloaded items.
+
+## Conventions
+
+### Problem/Issue Logging
+Only log items as `Problem:` when the user explicitly flags them. Do not infer or promote observations to problem status. Save notes to the correct system (check which memory/notes system the project uses before writing).
+
 ## Dependency Management Philosophy
 
 ### When TO Add Dependencies ✅
@@ -211,6 +236,22 @@ Never add emoji to UI text, commit messages, or user-facing strings unless expli
 ### "Modifying state during view update"
 - Move state changes to `.task` or `.onAppear`
 - Use `DispatchQueue.main.async` for deferred updates
+
+### Async State Capture (CRITICAL)
+- **Never read `@State` or `@Published` inside `Task {}` bodies** — the value may change before the Task runs
+- Always capture to a local variable first, then pass the local into the Task
+- Clear the state synchronously after capture, before the Task
+```swift
+// BAD — state may be nil by the time Task body runs
+Task { doSomething(with: someState) }
+someState = nil
+
+// GOOD — captured before Task, safe to clear
+let captured = someState
+someState = nil
+Task { doSomething(with: captured) }
+```
+- Post-flight check: grep for `Task {` in Views and verify no @State reads inside
 
 ### Page Navigation Issues
 - Verify 1-based indexing throughout
