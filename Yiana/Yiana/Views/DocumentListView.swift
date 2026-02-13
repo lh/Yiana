@@ -816,14 +816,23 @@ struct DocumentListView: View {
             Section("In Other Folders") {
                 ForEach(viewModel.otherFolderResults, id: \.item.id) { result in
                     let searchResult = viewModel.searchResults.first { $0.documentURL == result.item.url }
-                    NavigationLink(value: DocumentNavigationData(url: result.item.url, searchResult: searchResult)) {
+                    if isSelectMode {
                         DocumentRow(
                             item: result.item,
                             searchResult: searchResult,
                             secondaryText: result.path
                         )
+                        .tag(result.item.id)
+                    } else {
+                        NavigationLink(value: DocumentNavigationData(url: result.item.url, searchResult: searchResult)) {
+                            DocumentRow(
+                                item: result.item,
+                                searchResult: searchResult,
+                                secondaryText: result.path
+                            )
+                        }
+                        .tag(result.item.id)
                     }
-                    .tag(result.item.id)
                 }
             }
         }
@@ -878,7 +887,14 @@ struct DocumentListView: View {
     @ViewBuilder
     private func documentNavigationRow(for item: DocumentListItem) -> some View {
         Group {
-            if item.isPlaceholder {
+            if isSelectMode {
+                let searchResult = viewModel.searchResults.first { $0.documentURL == item.url }
+                DocumentRow(
+                    item: item,
+                    searchResult: searchResult,
+                    isDownloading: downloadingURLs.contains(item.url.standardizedFileURL)
+                )
+            } else if item.isPlaceholder {
                 Button {
                     let standardURL = item.url.standardizedFileURL
                     downloadingURLs.insert(standardURL)
