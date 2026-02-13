@@ -253,6 +253,12 @@ Task { doSomething(with: captured) }
 ```
 - Post-flight check: grep for `Task {` in Views and verify no @State reads inside
 
+### List Selection vs NavigationLink (CRITICAL)
+- `List(selection:)` is silently broken when rows contain `NavigationLink` or `Button` — the interactive element captures the gesture before the selection binding fires
+- When combining selection with navigation, conditionally render: plain `DocumentRow` in select mode, `NavigationLink`-wrapped row in normal mode
+- This applies to both iOS and macOS
+- Post-flight check: if using `List(selection:)`, verify no `NavigationLink` or `Button` is active inside selected rows
+
 ### Page Navigation Issues
 - Verify 1-based indexing throughout
 - Check wrapper method usage
