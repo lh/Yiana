@@ -26,7 +26,7 @@ struct MacPDFViewer: View {
     @State private var pageInputText: String = ""
     @State private var showingPageInput = false
     @State private var zoomAction: PDFZoomAction?
-    @State private var fitMode: FitMode = .height
+    @State private var fitMode: FitMode = .width
     @State private var sidebarMode: SidebarMode = .pages
     var onRequestPageManagement: (() -> Void)?
 

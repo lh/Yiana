@@ -346,8 +346,9 @@ struct PDFKitView: ViewRepresentable {
             pdfView.documentView?.needsDisplay = true
             #endif
             pdfView.layoutDocumentView()
-            let applied = self.applyFitToHeight(pdfView, coordinator: context.coordinator)
-            pdfDebug("updateNSView async: layoutDocumentView appliedFit=\(applied) awaitingFit=\(context.coordinator.awaitingInitialFit) bounds=\(pdfView.bounds.size)")
+            // Don't attempt fit here — bounds are likely not final yet (e.g. height=4).
+            // handleLayout will apply fit-to-width once the view has real bounds.
+            pdfDebug("updateNSView async: layoutDocumentView done; deferring fit to handleLayout; bounds=\(pdfView.bounds.size)")
             self.totalPages = pageCount
             if self.currentPage != clamped {
                 self.currentPage = clamped
@@ -642,16 +643,9 @@ struct PDFKitView: ViewRepresentable {
             context.coordinator.pdfDataSignature = pdfData.hashValue
             context.coordinator.awaitingInitialFit = true
             
-            // Set scale limits and initial zoom after document layout completes
+            // Scale limits are set in handleLayout once the view has real bounds
             DispatchQueue.main.async {
                 pdfView.layoutDocumentView()
-
-                // Only set scale limits if we have a valid fit scale
-                let fitScale = pdfView.scaleFactorForSizeToFit
-                guard fitScale > 0 else { return }
-                pdfView.minScaleFactor = fitScale * 0.5
-                pdfView.maxScaleFactor = fitScale * 4.0
-
             }
         }
 
@@ -801,18 +795,21 @@ struct PDFKitView: ViewRepresentable {
             pdfDebug("handleLayout: awaiting=\(awaitingInitialFit) size=\(pdfView.bounds.size) orientation=\(isLandscape ? "landscape" : "portrait") currentFit=\(currentFitMode) parentFit=\(parent.fitMode) reloading=\(isReloadingDocument)")
 
             if awaitingInitialFit {
-                pdfDebug("handleLayout: triggering deferred fit")
-                #if os(iOS)
-                // iOS: Always fit-to-width
-                parent.applyFitToWidth(pdfView, coordinator: self)
-                #else
-                // macOS: Use orientation-aware fit
-                if isLandscape {
-                    parent.applyFitToWidth(pdfView, coordinator: self)
-                } else {
-                    _ = parent.applyFitToHeight(pdfView, coordinator: self)
+                // Wait for real bounds before applying initial fit
+                guard pdfView.bounds.height > 50 else {
+                    pdfDebug("handleLayout: deferring initial fit — bounds too small (\(pdfView.bounds.size))")
+                    return
                 }
-                #endif
+                pdfDebug("handleLayout: triggering deferred fit")
+                // Set scale limits now that we have real bounds
+                let fitScale = pdfView.scaleFactorForSizeToFit
+                if fitScale > 0 {
+                    pdfView.minScaleFactor = fitScale * 0.5
+                    pdfView.maxScaleFactor = fitScale * 8.0
+                    pdfDebug("handleLayout: set scale limits min=\(fitScale * 0.5) max=\(fitScale * 8.0)")
+                }
+                // Both platforms: fit-to-width for readable initial view
+                parent.applyFitToWidth(pdfView, coordinator: self)
                 return
             }
 
