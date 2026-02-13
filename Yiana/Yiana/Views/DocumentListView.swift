@@ -44,6 +44,32 @@ struct DocumentListView: View {
     /// URL to auto-open once its download completes
     @State private var pendingOpenURL: URL?
 
+    // File management state
+    @State private var showingRenameAlert = false
+    @State private var renameTarget: RenameTarget?
+    @State private var renameText = ""
+    @State private var showingFolderPicker = false
+    @State private var moveTarget: MoveTarget?
+    @State private var showingDeleteFolderConfirmation = false
+    @State private var folderToDelete: URL?
+    @State private var folderDeleteContents: DocumentRepository.FolderContents?
+
+    // Multi-select state
+    @State private var isSelectMode = false
+    @State private var selectedDocumentIDs: Set<UUID> = []
+    @State private var showingBulkDeleteConfirmation = false
+
+    enum RenameTarget {
+        case document(DocumentListItem)
+        case folder(URL)
+    }
+
+    enum MoveTarget {
+        case document(DocumentListItem)
+        case folder(URL)
+        case bulkDocuments(Set<UUID>)
+    }
+
     // Build date string for version display
     private var buildDateString: String {
         let formatter = DateFormatter()
@@ -70,6 +96,22 @@ struct DocumentListView: View {
                 .alert("Error", isPresented: $showingError, actions: errorAlertActions, message: errorAlertMessage)
                 .alert("New Folder", isPresented: $showingFolderAlert, actions: newFolderAlertActions)
                 .alert("Delete Document", isPresented: $showingDeleteConfirmation, actions: deleteDocumentAlertActions, message: deleteDocumentAlertMessage)
+                .alert("Rename", isPresented: $showingRenameAlert, actions: renameAlertActions)
+                .alert("Delete Folder", isPresented: $showingDeleteFolderConfirmation, actions: deleteFolderAlertActions, message: deleteFolderAlertMessage)
+                .alert("Delete Documents", isPresented: $showingBulkDeleteConfirmation) {
+                    Button("Cancel", role: .cancel) { }
+                    Button("Delete", role: .destructive) {
+                        let idsToDelete = selectedDocumentIDs
+                        selectedDocumentIDs.removeAll()
+                        isSelectMode = false
+                        Task { try? await viewModel.deleteDocuments(ids: idsToDelete) }
+                    }
+                } message: {
+                    Text("Delete \(selectedDocumentIDs.count) documents? This cannot be undone.")
+                }
+                .sheet(isPresented: $showingFolderPicker) {
+                    folderPickerSheet
+                }
                 .navigationDestination(for: URL.self, destination: navigationDestination)
                 .navigationDestination(for: DocumentNavigationData.self, destination: navigationDestinationForDocument)
         }
@@ -367,6 +409,133 @@ struct DocumentListView: View {
     }
 
     @ViewBuilder
+    private func renameAlertActions() -> some View {
+        TextField("Name", text: $renameText)
+        Button("Cancel", role: .cancel) {
+            renameTarget = nil
+            renameText = ""
+        }
+        Button("Rename") {
+            let newName = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !newName.isEmpty else { return }
+            Task {
+                do {
+                    switch renameTarget {
+                    case .document(let item):
+                        try await viewModel.renameDocument(item, newName: newName)
+                    case .folder(let url):
+                        try await viewModel.renameFolder(url, newName: newName)
+                    case nil:
+                        break
+                    }
+                } catch {
+                    viewModel.errorMessage = error.localizedDescription
+                    showingError = true
+                }
+            }
+            renameTarget = nil
+            renameText = ""
+        }
+    }
+
+    @ViewBuilder
+    private func deleteFolderAlertActions() -> some View {
+        Button("Cancel", role: .cancel) {
+            folderToDelete = nil
+            folderDeleteContents = nil
+        }
+        Button("Delete", role: .destructive) {
+            if let url = folderToDelete {
+                Task {
+                    do {
+                        try await viewModel.deleteFolder(url)
+                    } catch {
+                        viewModel.errorMessage = error.localizedDescription
+                        showingError = true
+                    }
+                }
+            }
+            folderToDelete = nil
+            folderDeleteContents = nil
+        }
+    }
+
+    @ViewBuilder
+    private func deleteFolderAlertMessage() -> some View {
+        if let contents = folderDeleteContents {
+            if contents.isEmpty {
+                Text("Delete this empty folder?")
+            } else {
+                Text("This folder contains \(contents.documentCount) document(s) and \(contents.subfolderCount) subfolder(s). All contents will be permanently deleted.")
+            }
+        } else {
+            Text("Delete this folder and all its contents?")
+        }
+    }
+
+    @ViewBuilder
+    private var folderPickerSheet: some View {
+        let currentPath: String = {
+            switch moveTarget {
+            case .document(let item): return item.folderPath
+            case .folder(let url): return url.relativeFolderPath(relativeTo: viewModel.documentsDirectory)
+            case .bulkDocuments: return viewModel.folderPath.joined(separator: "/")
+            case nil: return ""
+            }
+        }()
+
+        let excludedPath: String? = {
+            switch moveTarget {
+            case .folder(let url):
+                let rel = url.relativeFolderPath(relativeTo: viewModel.documentsDirectory)
+                if rel.isEmpty {
+                    return url.lastPathComponent
+                } else {
+                    return rel + "/" + url.lastPathComponent
+                }
+            default: return nil
+            }
+        }()
+
+        let allFolders = viewModel.allFolderPaths()
+        let filteredFolders: [(name: String, path: String)] = {
+            guard let excluded = excludedPath else { return allFolders }
+            return allFolders.filter { folder in
+                folder.path != excluded && !folder.path.hasPrefix(excluded + "/")
+            }
+        }()
+
+        FolderPickerView(
+            currentFolderPath: currentPath,
+            folders: filteredFolders
+        ) { targetPath in
+            let captured = moveTarget
+            moveTarget = nil
+            if case .bulkDocuments = captured {
+                selectedDocumentIDs.removeAll()
+                isSelectMode = false
+            }
+            Task {
+                do {
+                    switch captured {
+                    case .document(let item):
+                        try await viewModel.moveDocument(item, toFolder: targetPath)
+                    case .folder(let url):
+                        try await viewModel.moveFolder(url, toFolder: targetPath)
+                    case .bulkDocuments(let ids):
+                        try await viewModel.moveDocuments(ids: ids, toFolder: targetPath)
+                    case nil:
+                        break
+                    }
+                } catch {
+                    viewModel.errorMessage = error.localizedDescription
+                    showingError = true
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
     private func navigationDestination(_ url: URL) -> some View {
         #if os(iOS)
         DocumentEditView(documentURL: url)
@@ -504,7 +673,7 @@ struct DocumentListView: View {
             }
             #endif
 
-            List {
+            List(selection: isSelectMode ? $selectedDocumentIDs : nil) {
                 foldersSection
                 documentsSection
                 otherFoldersSection
@@ -512,6 +681,7 @@ struct DocumentListView: View {
             }
             #if os(iOS)
             .listStyle(.insetGrouped)
+            .environment(\.editMode, isSelectMode ? .constant(.active) : .constant(.inactive))
             #endif
         }
     }
@@ -549,6 +719,32 @@ struct DocumentListView: View {
             Section("Folders") {
                 ForEach(viewModel.folderURLs, id: \.self) { folderURL in
                     folderRow(for: folderURL)
+                        .contextMenu {
+                            Button {
+                                renameTarget = .folder(folderURL)
+                                renameText = folderURL.lastPathComponent
+                                showingRenameAlert = true
+                            } label: {
+                                Label("Rename", systemImage: "pencil")
+                            }
+
+                            Button {
+                                moveTarget = .folder(folderURL)
+                                showingFolderPicker = true
+                            } label: {
+                                Label("Move to...", systemImage: "folder")
+                            }
+
+                            Divider()
+
+                            Button(role: .destructive) {
+                                folderToDelete = folderURL
+                                folderDeleteContents = viewModel.folderContents(at: folderURL)
+                                showingDeleteFolderConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                 }
             }
         }
@@ -576,6 +772,38 @@ struct DocumentListView: View {
                                 Label("Delete", systemImage: "trash")
                             }
                         }
+                        .contextMenu {
+                            Button {
+                                renameTarget = .document(item)
+                                renameText = item.title
+                                showingRenameAlert = true
+                            } label: {
+                                Label("Rename", systemImage: "pencil")
+                            }
+
+                            Button {
+                                moveTarget = .document(item)
+                                showingFolderPicker = true
+                            } label: {
+                                Label("Move to...", systemImage: "folder")
+                            }
+                            .disabled(item.isPlaceholder)
+
+                            Button {
+                                duplicateDocument(item.url)
+                            } label: {
+                                Label("Duplicate", systemImage: "doc.on.doc")
+                            }
+
+                            Divider()
+
+                            Button(role: .destructive) {
+                                documentToDelete = item.url
+                                showingDeleteConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                 }
                 .onDelete(perform: deleteDocuments)
             }
@@ -595,6 +823,7 @@ struct DocumentListView: View {
                             secondaryText: result.path
                         )
                     }
+                    .tag(result.item.id)
                 }
             }
         }
@@ -624,6 +853,8 @@ struct DocumentListView: View {
     @ViewBuilder
     private func folderRow(for folderURL: URL) -> some View {
         Button(action: {
+            isSelectMode = false
+            selectedDocumentIDs.removeAll()
             Task {
                 await viewModel.navigateToFolder(folderURL.lastPathComponent)
             }
@@ -646,32 +877,35 @@ struct DocumentListView: View {
 
     @ViewBuilder
     private func documentNavigationRow(for item: DocumentListItem) -> some View {
-        if item.isPlaceholder {
-            Button {
-                let standardURL = item.url.standardizedFileURL
-                downloadingURLs.insert(standardURL)
-                pendingOpenURL = standardURL
-                prioritizeDownload(for: item.url)
-            } label: {
-                DocumentRow(
-                    item: item,
-                    searchResult: nil,
-                    isDownloading: downloadingURLs.contains(item.url.standardizedFileURL)
-                )
-            }
-            .buttonStyle(.plain)
-        } else {
-            let searchResult = viewModel.searchResults.first { $0.documentURL == item.url }
-            if let result = searchResult {
-                NavigationLink(value: DocumentNavigationData(url: item.url, searchResult: result)) {
-                    DocumentRow(item: item, searchResult: result)
+        Group {
+            if item.isPlaceholder {
+                Button {
+                    let standardURL = item.url.standardizedFileURL
+                    downloadingURLs.insert(standardURL)
+                    pendingOpenURL = standardURL
+                    prioritizeDownload(for: item.url)
+                } label: {
+                    DocumentRow(
+                        item: item,
+                        searchResult: nil,
+                        isDownloading: downloadingURLs.contains(item.url.standardizedFileURL)
+                    )
                 }
+                .buttonStyle(.plain)
             } else {
-                NavigationLink(value: item.url) {
-                    DocumentRow(item: item, searchResult: nil)
+                let searchResult = viewModel.searchResults.first { $0.documentURL == item.url }
+                if let result = searchResult {
+                    NavigationLink(value: DocumentNavigationData(url: item.url, searchResult: result)) {
+                        DocumentRow(item: item, searchResult: result)
+                    }
+                } else {
+                    NavigationLink(value: item.url) {
+                        DocumentRow(item: item, searchResult: nil)
+                    }
                 }
             }
         }
+        .tag(item.id)
     }
 
     @ToolbarContentBuilder
@@ -694,127 +928,231 @@ struct DocumentListView: View {
             #endif
         }
 
-        ToolbarItem(placement: .primaryAction) {
-            Menu {
-                Button(action: { showingCreateAlert = true }) {
-                    Label("New Document", systemImage: "doc")
-                }
-                Button(action: { showingFolderAlert = true }) {
-                    Label("New Folder", systemImage: "folder.badge.plus")
-                }
-                #if os(macOS)
-                Divider()
-                Button(action: selectPDFsForImport) {
-                    Label("Import PDFs...", systemImage: "square.and.arrow.down.on.square")
-                }
-                .keyboardShortcut("I", modifiers: [.command, .shift])
-                .help("Import up to 100 PDF files")
-
-                Button(action: selectFolderForImport) {
-                    Label("Import from Folder...", systemImage: "folder.badge.plus")
-                }
-                .keyboardShortcut("I", modifiers: [.command, .option])
-                .help("Import all PDFs from a folder (for bulk imports)")
-
-                Button(action: importFromFileList) {
-                    Label("Import from File List...", systemImage: "list.bullet.rectangle")
-                }
-                .help("Import PDFs from a text file containing file paths")
-
-                Button(action: { openWindow(id: "bulk-export") }) {
-                    Label("Export PDFs...", systemImage: "square.and.arrow.up.on.square")
-                }
-
-                Divider()
-
-                Button(action: { showingDuplicateScanner = true }) {
-                    Label("Find Duplicates...", systemImage: "doc.on.doc")
-                }
-                .help("Scan library for duplicate documents")
-                #endif
-            } label: {
-                Label("Add", systemImage: "plus")
-            }
-            .toolbarActionAccessibility(label: "Add")
-        }
-
-        ToolbarItem(placement: .automatic) {
-            Menu {
-                Section("Sort By") {
-                    sortButton(label: "Title", option: .title)
-                    sortButton(label: "Date Modified", option: .dateModified)
-                    sortButton(label: "Date Created", option: .dateCreated)
-                    sortButton(label: "Size", option: .size)
-                }
-
-                Divider()
-
-                Button(action: toggleSortOrder) {
-                    Label(
-                        isAscending ? "Ascending" : "Descending",
-                        systemImage: isAscending ? "arrow.up" : "arrow.down"
-                    )
-                }
-            } label: {
-                Label("Sort", systemImage: "arrow.up.arrow.down")
-            }
-            .toolbarActionAccessibility(label: "Sort documents")
-            .accessibilityValue("\(currentSortOption.rawValue), \(isAscending ? "ascending" : "descending")")
-        }
-
-        ToolbarItem(placement: .automatic) {
-            Button(action: startDownloadAll) {
-                if downloadManager.isDownloading {
-                    HStack(spacing: 6) {
-                        ProgressView(value: downloadManager.downloadProgress)
-                            .progressViewStyle(.circular)
-                            .scaleEffect(0.9)
-                        Text("\(downloadManager.downloadedCount)/\(downloadManager.totalCount)")
-                            .font(.caption)
-                            .monospacedDigit()
-                    }
-                    .frame(minWidth: 80)
-                } else {
-                    Label("Download All", systemImage: "icloud.and.arrow.down")
-                }
-            }
-            .disabled(downloadManager.isDownloading)
-            .toolbarActionAccessibility(label: downloadManager.isDownloading ? "Downloading documents" : "Download all documents")
-            .accessibilityValue(downloadManager.isDownloading ? "\(downloadManager.downloadedCount) of \(downloadManager.totalCount) downloaded" : "")
-            .accessibilityHint(downloadManager.isDownloading ? "Download in progress" : "Double tap to download all documents")
-        }
-
-        #if os(macOS)
-        ToolbarItem(placement: .automatic) {
-            macSearchToolbar
-        }
-        #endif
-
-        #if DEBUG
-        ToolbarItem(placement: .automatic) {
-            DevelopmentMenu()
-        }
-        #endif
-
-#if os(iOS)
+        // Select / Done toggle
+        #if os(iOS)
         ToolbarItem(placement: .navigationBarTrailing) {
             Button {
-                showingSettings = true
+                if isSelectMode {
+                    selectedDocumentIDs.removeAll()
+                    isSelectMode = false
+                } else {
+                    isSelectMode = true
+                }
             } label: {
-                Image(systemName: "gearshape")
+                Text(isSelectMode ? "Done" : "Select")
             }
-            .toolbarActionAccessibility(label: "Settings")
         }
-#else
+        #else
         ToolbarItem(placement: .automatic) {
             Button {
-                showingSettings = true
+                if isSelectMode {
+                    selectedDocumentIDs.removeAll()
+                    isSelectMode = false
+                } else {
+                    isSelectMode = true
+                }
             } label: {
-                Image(systemName: "gearshape")
+                Text(isSelectMode ? "Done" : "Select")
             }
-            .toolbarActionAccessibility(label: "Settings")
         }
+        #endif
+
+        if !isSelectMode {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button(action: { showingCreateAlert = true }) {
+                        Label("New Document", systemImage: "doc")
+                    }
+                    Button(action: { showingFolderAlert = true }) {
+                        Label("New Folder", systemImage: "folder.badge.plus")
+                    }
+                    #if os(macOS)
+                    Divider()
+                    Button(action: selectPDFsForImport) {
+                        Label("Import PDFs...", systemImage: "square.and.arrow.down.on.square")
+                    }
+                    .keyboardShortcut("I", modifiers: [.command, .shift])
+                    .help("Import up to 100 PDF files")
+
+                    Button(action: selectFolderForImport) {
+                        Label("Import from Folder...", systemImage: "folder.badge.plus")
+                    }
+                    .keyboardShortcut("I", modifiers: [.command, .option])
+                    .help("Import all PDFs from a folder (for bulk imports)")
+
+                    Button(action: importFromFileList) {
+                        Label("Import from File List...", systemImage: "list.bullet.rectangle")
+                    }
+                    .help("Import PDFs from a text file containing file paths")
+
+                    Button(action: { openWindow(id: "bulk-export") }) {
+                        Label("Export PDFs...", systemImage: "square.and.arrow.up.on.square")
+                    }
+
+                    Divider()
+
+                    Button(action: { showingDuplicateScanner = true }) {
+                        Label("Find Duplicates...", systemImage: "doc.on.doc")
+                    }
+                    .help("Scan library for duplicate documents")
+                    #endif
+                } label: {
+                    Label("Add", systemImage: "plus")
+                }
+                .toolbarActionAccessibility(label: "Add")
+            }
+
+            ToolbarItem(placement: .automatic) {
+                Menu {
+                    Section("Sort By") {
+                        sortButton(label: "Title", option: .title)
+                        sortButton(label: "Date Modified", option: .dateModified)
+                        sortButton(label: "Date Created", option: .dateCreated)
+                        sortButton(label: "Size", option: .size)
+                    }
+
+                    Divider()
+
+                    Button(action: toggleSortOrder) {
+                        Label(
+                            isAscending ? "Ascending" : "Descending",
+                            systemImage: isAscending ? "arrow.up" : "arrow.down"
+                        )
+                    }
+                } label: {
+                    Label("Sort", systemImage: "arrow.up.arrow.down")
+                }
+                .toolbarActionAccessibility(label: "Sort documents")
+                .accessibilityValue("\(currentSortOption.rawValue), \(isAscending ? "ascending" : "descending")")
+            }
+
+            ToolbarItem(placement: .automatic) {
+                Button(action: startDownloadAll) {
+                    if downloadManager.isDownloading {
+                        HStack(spacing: 6) {
+                            ProgressView(value: downloadManager.downloadProgress)
+                                .progressViewStyle(.circular)
+                                .scaleEffect(0.9)
+                            Text("\(downloadManager.downloadedCount)/\(downloadManager.totalCount)")
+                                .font(.caption)
+                                .monospacedDigit()
+                        }
+                        .frame(minWidth: 80)
+                    } else {
+                        Label("Download All", systemImage: "icloud.and.arrow.down")
+                    }
+                }
+                .disabled(downloadManager.isDownloading)
+                .toolbarActionAccessibility(label: downloadManager.isDownloading ? "Downloading documents" : "Download all documents")
+                .accessibilityValue(downloadManager.isDownloading ? "\(downloadManager.downloadedCount) of \(downloadManager.totalCount) downloaded" : "")
+                .accessibilityHint(downloadManager.isDownloading ? "Download in progress" : "Double tap to download all documents")
+            }
+
+            #if os(macOS)
+            ToolbarItem(placement: .automatic) {
+                macSearchToolbar
+            }
+            #endif
+
+            #if DEBUG
+            ToolbarItem(placement: .automatic) {
+                DevelopmentMenu()
+            }
+            #endif
+
+#if os(iOS)
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showingSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+                .toolbarActionAccessibility(label: "Settings")
+            }
+#else
+            ToolbarItem(placement: .automatic) {
+                Button {
+                    showingSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+                .toolbarActionAccessibility(label: "Settings")
+            }
 #endif
+        }
+
+        // Bulk action bar (visible when in select mode with items selected)
+        if isSelectMode && !selectedDocumentIDs.isEmpty {
+            #if os(iOS)
+            ToolbarItemGroup(placement: .bottomBar) {
+                bulkActionButtons
+            }
+            #else
+            ToolbarItem(placement: .automatic) {
+                HStack(spacing: 12) {
+                    bulkActionButtons
+                }
+            }
+            #endif
+        }
+
+        // Select All (visible in select mode even with empty selection)
+        if isSelectMode {
+            #if os(iOS)
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Select All") {
+                    selectAllDocuments()
+                }
+            }
+            #else
+            ToolbarItem(placement: .automatic) {
+                Button("Select All") {
+                    selectAllDocuments()
+                }
+                .keyboardShortcut("a", modifiers: .command)
+            }
+            #endif
+        }
+    }
+
+    @ViewBuilder
+    private var bulkActionButtons: some View {
+        Button(role: .destructive) {
+            showingBulkDeleteConfirmation = true
+        } label: {
+            Label("Delete", systemImage: "trash")
+        }
+
+        Spacer()
+
+        Text("\(selectedDocumentIDs.count) selected")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+        Spacer()
+
+        Button {
+            moveTarget = .bulkDocuments(selectedDocumentIDs)
+            showingFolderPicker = true
+        } label: {
+            Label("Move", systemImage: "folder")
+        }
+        .disabled(selectionContainsPlaceholder)
+    }
+
+    private var selectionContainsPlaceholder: Bool {
+        selectedDocumentIDs.contains { id in
+            viewModel.documents.first(where: { $0.id == id })?.isPlaceholder == true
+                || viewModel.otherFolderResults.first(where: { $0.item.id == id })?.item.isPlaceholder == true
+        }
+    }
+
+    private func selectAllDocuments() {
+        var ids = Set(viewModel.documents.map(\.id))
+        for result in viewModel.otherFolderResults {
+            ids.insert(result.item.id)
+        }
+        selectedDocumentIDs = ids
     }
 
     private func sortButton(label: String, option: SortOption) -> some View {

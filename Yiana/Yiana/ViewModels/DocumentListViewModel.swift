@@ -76,6 +76,8 @@ class DocumentListViewModel: ObservableObject {
     private var searchTask: Task<Void, Never>?
     private var searchDebounceTask: Task<Void, Never>?
 
+    var documentsDirectory: URL { repository.documentsDirectory }
+
     init(repository: DocumentRepository? = nil) {
         self.repository = repository ?? DocumentRepository()
     }
@@ -190,6 +192,55 @@ class DocumentListViewModel: ObservableObject {
         }
     }
 
+    func deleteDocuments(ids: Set<UUID>) async throws {
+        var failCount = 0
+        for id in ids {
+            guard let item = documents.first(where: { $0.id == id })
+                    ?? otherFolderResults.first(where: { $0.item.id == id })?.item else {
+                failCount += 1
+                continue
+            }
+            do {
+                try await deleteDocument(at: item.url)
+            } catch {
+                failCount += 1
+            }
+        }
+        if failCount > 0 {
+            errorMessage = "Failed to delete \(failCount) of \(ids.count) documents"
+        }
+    }
+
+    func moveDocuments(ids: Set<UUID>, toFolder folderPath: String) async throws {
+        var failCount = 0
+        for id in ids {
+            guard let item = documents.first(where: { $0.id == id })
+                    ?? otherFolderResults.first(where: { $0.item.id == id })?.item else {
+                failCount += 1
+                continue
+            }
+            guard !item.isPlaceholder else { continue }
+            do {
+                let newURL = try repository.moveDocument(at: item.url, toFolder: folderPath)
+                let newFolderPath = newURL.relativeFolderPath(relativeTo: repository.documentsDirectory)
+                let newTitle = newURL.deletingPathExtension().lastPathComponent
+                try await searchIndex.updateDocumentPath(
+                    documentId: item.id,
+                    newURL: newURL,
+                    newFolderPath: newFolderPath,
+                    newTitle: newTitle
+                )
+            } catch {
+                failCount += 1
+            }
+        }
+        await refresh()
+        await loadDocuments()
+        if failCount > 0 {
+            errorMessage = "Failed to move \(failCount) of \(ids.count) documents"
+        }
+    }
+
     /// Refresh folder list only. Document list updates automatically via ValueObservation.
     func refresh() async {
         allFolderURLs = repository.folderURLs()
@@ -249,6 +300,136 @@ class DocumentListViewModel: ObservableObject {
         } catch {
             errorMessage = "Failed to create folder: \(error.localizedDescription)"
             return false
+        }
+    }
+
+    // MARK: - File Management
+
+    func moveDocument(_ item: DocumentListItem, toFolder folderPath: String) async throws {
+        let newURL = try repository.moveDocument(at: item.url, toFolder: folderPath)
+        let newFolderPath = newURL.relativeFolderPath(relativeTo: repository.documentsDirectory)
+        let newTitle = newURL.deletingPathExtension().lastPathComponent
+        try await searchIndex.updateDocumentPath(
+            documentId: item.id,
+            newURL: newURL,
+            newFolderPath: newFolderPath,
+            newTitle: newTitle
+        )
+        await refresh()
+    }
+
+    func renameDocument(_ item: DocumentListItem, newName: String) async throws {
+        guard newName != item.title else { return }
+        let newURL = try repository.renameDocument(at: item.url, newName: newName)
+        let folderPath = newURL.relativeFolderPath(relativeTo: repository.documentsDirectory)
+        let newTitle = newURL.deletingPathExtension().lastPathComponent
+        try await searchIndex.updateDocumentPath(
+            documentId: item.id,
+            newURL: newURL,
+            newFolderPath: folderPath,
+            newTitle: newTitle
+        )
+    }
+
+    func renameFolder(_ folderURL: URL, newName: String) async throws {
+        let oldRelativePath = folderURL.relativeFolderPath(relativeTo: repository.documentsDirectory)
+        let oldFolderPath: String
+        if oldRelativePath.isEmpty {
+            oldFolderPath = folderURL.lastPathComponent
+        } else {
+            oldFolderPath = oldRelativePath + "/" + folderURL.lastPathComponent
+        }
+
+        let newURL = try repository.renameFolder(at: folderURL, newName: newName)
+
+        let newRelativePath = newURL.relativeFolderPath(relativeTo: repository.documentsDirectory)
+        let newFolderPath: String
+        if newRelativePath.isEmpty {
+            newFolderPath = newURL.lastPathComponent
+        } else {
+            newFolderPath = newRelativePath + "/" + newURL.lastPathComponent
+        }
+
+        try await searchIndex.updateDocumentsInFolder(
+            oldFolderPath: oldFolderPath,
+            newFolderPath: newFolderPath,
+            documentsDirectory: repository.documentsDirectory
+        )
+        await loadDocuments()
+    }
+
+    func moveFolder(_ folderURL: URL, toFolder targetPath: String) async throws {
+        // Compute old relative path for DB update
+        let oldRelativePath = folderURL.relativeFolderPath(relativeTo: repository.documentsDirectory)
+        let oldFolderPath: String
+        if oldRelativePath.isEmpty {
+            oldFolderPath = folderURL.lastPathComponent
+        } else {
+            oldFolderPath = oldRelativePath + "/" + folderURL.lastPathComponent
+        }
+
+        let newURL = try repository.moveFolder(at: folderURL, toFolder: targetPath)
+
+        // Compute new relative path after move
+        let newRelativePath = newURL.relativeFolderPath(relativeTo: repository.documentsDirectory)
+        let newFolderPath: String
+        if newRelativePath.isEmpty {
+            newFolderPath = newURL.lastPathComponent
+        } else {
+            newFolderPath = newRelativePath + "/" + newURL.lastPathComponent
+        }
+
+        try await searchIndex.updateDocumentsInFolder(
+            oldFolderPath: oldFolderPath,
+            newFolderPath: newFolderPath,
+            documentsDirectory: repository.documentsDirectory
+        )
+        await loadDocuments()
+    }
+
+    func deleteFolder(_ folderURL: URL) async throws {
+        let relativePath = folderURL.relativeFolderPath(relativeTo: repository.documentsDirectory)
+        let folderPath: String
+        if relativePath.isEmpty {
+            folderPath = folderURL.lastPathComponent
+        } else {
+            folderPath = relativePath + "/" + folderURL.lastPathComponent
+        }
+
+        try await searchIndex.removeDocumentsInFolder(folderPath: folderPath)
+        try repository.deleteFolder(at: folderURL)
+        await loadDocuments()
+    }
+
+    func folderContents(at url: URL) -> DocumentRepository.FolderContents {
+        repository.folderContents(at: url)
+    }
+
+    func allFolderPaths() -> [(name: String, path: String)] {
+        var result: [(name: String, path: String)] = [("Documents", "")]
+        collectFolders(at: repository.documentsDirectory, relativePath: "", into: &result)
+        return result
+    }
+
+    private func collectFolders(at directory: URL, relativePath: String, into result: inout [(name: String, path: String)]) {
+        guard let urls = try? FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else { return }
+
+        let folders = urls.filter { url in
+            var isDirectory: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
+                  isDirectory.boolValue else { return false }
+            // Skip iCloud UUID placeholders and hidden folders
+            return UUID(uuidString: url.lastPathComponent) == nil
+        }.sorted { $0.lastPathComponent < $1.lastPathComponent }
+
+        for folder in folders {
+            let path = relativePath.isEmpty ? folder.lastPathComponent : relativePath + "/" + folder.lastPathComponent
+            result.append((name: folder.lastPathComponent, path: path))
+            collectFolders(at: folder, relativePath: path, into: &result)
         }
     }
 
