@@ -214,16 +214,18 @@ class OCRFileHandler(FileSystemEventHandler):
         output_file = Path(ADDRESSES_DIR) / f"{doc_id}.json"
         tmp_file = Path(ADDRESSES_DIR) / f"{doc_id}.json.tmp"
 
-        # Preserve existing overrides if file already exists
+        # Preserve existing overrides and enriched data if file already exists
         existing_overrides = []
+        existing_enriched = None
         if output_file.exists():
             try:
                 with open(output_file, 'r') as f:
                     existing = json.load(f)
                 existing_overrides = existing.get('overrides', [])
+                existing_enriched = existing.get('enriched')
                 logger.info(f"Preserving {len(existing_overrides)} existing overrides for {doc_id}")
             except (json.JSONDecodeError, OSError) as e:
-                logger.warning(f"Could not read existing file for {doc_id}, overrides lost: {e}")
+                logger.warning(f"Could not read existing file for {doc_id}, overrides/enriched lost: {e}")
 
         # Build pages array with address_type and is_prime defaults
         pages = []
@@ -276,6 +278,8 @@ class OCRFileHandler(FileSystemEventHandler):
             'pages': pages,
             'overrides': existing_overrides
         }
+        if existing_enriched is not None:
+            output['enriched'] = existing_enriched
 
         # Atomic write: write to temp, then rename
         try:

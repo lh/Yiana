@@ -26,6 +26,7 @@ struct DocumentAddressFile: Codable {
     var pageCount: Int
     var pages: [AddressPageEntry]
     var overrides: [AddressOverrideEntry]
+    var enriched: EnrichedData?
 
     private enum CodingKeys: String, CodingKey {
         case schemaVersion = "schema_version"
@@ -34,6 +35,7 @@ struct DocumentAddressFile: Codable {
         case pageCount = "page_count"
         case pages
         case overrides
+        case enriched
     }
 }
 
@@ -142,6 +144,48 @@ struct AddressOverrideEntry: Codable {
     }
 }
 
+// MARK: - Enriched Data (backend DB write-back)
+
+struct EnrichedPatientInfo: Codable {
+    var fullName: String?
+    var dateOfBirth: String?
+    var source: String?
+    var documentCount: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case fullName = "full_name"
+        case dateOfBirth = "date_of_birth"
+        case source
+        case documentCount = "document_count"
+    }
+}
+
+struct EnrichedPractitionerInfo: Codable {
+    var name: String?
+    var type: String?
+    var practice: String?
+    var documentCount: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case name
+        case type
+        case practice
+        case documentCount = "document_count"
+    }
+}
+
+struct EnrichedData: Codable {
+    var enrichedAt: String?
+    var patient: EnrichedPatientInfo?
+    var practitioners: [EnrichedPractitionerInfo]?
+
+    private enum CodingKeys: String, CodingKey {
+        case enrichedAt = "enriched_at"
+        case patient
+        case practitioners
+    }
+}
+
 // MARK: - View-Facing Model (flat structure for UI)
 
 struct ExtractedAddress {
@@ -195,8 +239,9 @@ struct ExtractedAddress {
 // MARK: - Conversion from JSON structs to view model
 
 extension ExtractedAddress {
-    /// Create a flat ExtractedAddress from a page entry, optionally applying an override
-    init(documentId: String, page: AddressPageEntry, override: AddressOverrideEntry? = nil, extractedAt: String? = nil) {
+    /// Create a flat ExtractedAddress from a page entry, optionally applying an override and enriched data.
+    /// Priority: override > page > enriched (enriched only fills nil/empty gaps).
+    init(documentId: String, page: AddressPageEntry, override: AddressOverrideEntry? = nil, extractedAt: String? = nil, enriched: EnrichedData? = nil) {
         self.documentId = documentId
         self.pageNumber = page.pageNumber
 
@@ -250,6 +295,18 @@ extension ExtractedAddress {
         self.gpOfficialName = nil
         self.rawText = nil
         self.ocrJson = nil
+
+        // Enriched patient name/DOB: override > enriched > page.
+        // Filename-derived names are more reliable than OCR, so enriched
+        // replaces OCR data — but never overwrites user corrections.
+        if let ep = enriched?.patient, override?.patient == nil {
+            if let name = ep.fullName, !name.isEmpty {
+                self.fullName = name
+            }
+            if let dob = ep.dateOfBirth, !dob.isEmpty {
+                self.dateOfBirth = dob
+            }
+        }
     }
 }
 

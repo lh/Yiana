@@ -306,7 +306,8 @@ final class AddressRepository: ObservableObject {
                 documentId: file.documentId,
                 page: page,
                 override: override,
-                extractedAt: file.extractedAt
+                extractedAt: file.extractedAt,
+                enriched: file.enriched
             )
         }
     }

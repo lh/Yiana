@@ -20,7 +20,7 @@ Mac mini "Devon" (Python)
   3. backend_db.py       .addresses/*.json → addresses_backend.db (READ-ONLY access to JSON)
 ```
 
-**Key principle:** `backend_db.py` never writes to `.addresses/` files. It reads them and populates a local SQLite database. The Swift app and extraction service own the JSON files.
+**Key principle:** `backend_db.py` reads `.addresses/` files for ingestion. It can write back an `enriched` key containing canonical data from the backend DB. The Swift app owns `overrides[]`, the extraction service owns `pages[]`, and the backend DB owns `enriched`.
 
 ## Data Ownership
 
@@ -30,7 +30,8 @@ Mac mini "Devon" (Python)
 | `.ocr_results/*.json` | YianaOCRService | YianaOCRService | extraction_service.py |
 | `.addresses/*.json` `pages[]` | extraction_service | extraction_service | Swift app, backend_db.py |
 | `.addresses/*.json` `overrides[]` | Swift app | Swift app | extraction_service (preserves), backend_db.py |
-| `addresses_backend.db` | backend_db.py | backend_db.py | Nothing yet (Phase 1) |
+| `.addresses/*.json` `enriched` | backend_db.py | backend_db.py (`--enrich`) | Swift app, extraction_service (preserves) |
+| `addresses_backend.db` | backend_db.py | backend_db.py | backend_db.py (enrichment queries) |
 
 ## How Patient Identity Works
 
@@ -135,11 +136,67 @@ These patterns grow as more corrections accumulate.
 | `corrections` | Field-level diffs from overrides | field_name, original_value, corrected_value |
 | `name_aliases` | Learned name mappings | alias, canonical, entity_type |
 
+## Enrichment Write-Back
+
+The `--enrich` flag writes canonical data from the backend DB back into `.addresses/*.json` files under an `enriched` key.
+
+### Structure
+
+```json
+"enriched": {
+  "enriched_at": "2026-02-13T10:00:00.000000Z",
+  "patient": {
+    "full_name": "Andrew Abel",
+    "date_of_birth": "17/04/1962",
+    "source": "filename",
+    "document_count": 3
+  },
+  "practitioners": [
+    {
+      "name": "Dr John Smith",
+      "type": "GP",
+      "practice": "The Health Centre",
+      "document_count": 45
+    }
+  ]
+}
+```
+
+### Rules
+
+- Only files with a filename-parsed patient get `enriched.patient`
+- Files with resolved practitioners get `enriched.practitioners`
+- Files with neither get no `enriched` key
+- Skips write if enriched content hasn't changed (ignoring timestamp)
+- Uses atomic write (temp file + replace)
+
+### Priority in Swift App
+
+When the app resolves addresses: **override > page > enriched**. Enriched data only fills nil/empty fields — it never overwrites existing data from extraction or user overrides.
+
+### Content Hash Strategy
+
+Ingestion uses `content_hash()` which parses JSON, removes the `enriched` key, then hashes the remaining content deterministically. This means:
+- Running `--enrich` doesn't invalidate ingestion hashes
+- Running `--ingest` after `--enrich` skips unchanged files (0 processed)
+- Only changes to `pages[]`, `overrides[]`, or other extraction data trigger re-ingestion
+
+One-time cost: switching from `file_hash()` to `content_hash()` changes hash format, causing a full re-ingestion on first run (~15 min on Devon).
+
+### Preservation
+
+Both the extraction service and Swift app preserve `enriched` during their writes:
+- `extraction_service.py` reads and re-writes existing `enriched` when re-extracting
+- Swift's `DocumentAddressFile` includes `enriched: EnrichedData?` as a Codable property, automatically round-tripping through encode/decode
+
 ## CLI Usage
 
 ```bash
 # Ingest (default action) — idempotent, skips unchanged files
 python3 backend_db.py --ingest
+
+# Ingest then enrich — writes canonical data back to JSON files
+python3 backend_db.py --enrich
 
 # Show statistics
 python3 backend_db.py --stats
@@ -158,7 +215,7 @@ python3 backend_db.py --top-links
 python3 backend_db.py --db-path /Users/devon/Data/addresses_backend.db --addresses-dir /path/to/.addresses
 
 # Verbose logging
-python3 backend_db.py -v --ingest
+python3 backend_db.py -v --enrich
 ```
 
 ## Design Decisions
@@ -166,8 +223,8 @@ python3 backend_db.py -v --ingest
 ### Why filename over OCR for patient identity?
 OCR extraction from scanned forms frequently misreads field labels, addresses, and dates as patient names. The filename is manually assigned and far more reliable. 98.6% of files parse successfully.
 
-### Why not modify the JSON files?
-The `.addresses/*.json` files are iCloud-synced and shared between the Swift app and Devon services. backend_db.py is read-only to avoid write conflicts. Future enrichment write-back (Phase 4+) would need careful conflict resolution.
+### Why a separate `enriched` key instead of modifying `pages[]`?
+Clear ownership boundaries prevent circular dependencies. `pages[]` is owned by the extraction service, `overrides[]` by the Swift app, and `enriched` by the backend DB. Each component reads all three but only writes its own. No conflict resolution needed.
 
 ### Why not a separate table for filename patients?
 No need — the filename patient is resolved through the same `_resolve_patient` path as OCR patients. It's just called first, with higher-quality input. Keeps the model simple.
@@ -191,6 +248,5 @@ When an override clears a field (sets to empty), that's cleanup, not a learnable
 
 ## Future Phases
 
-3. **Enrichment write-back** — canonical patient data back to JSON pages[]
 4. **Advanced learning** — LLM few-shot from corrections, confidence recalibration
 5. **Practitioner alias learning** — same feedback loop for GP names

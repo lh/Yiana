@@ -9,6 +9,7 @@ Zero dependencies beyond Python stdlib. Idempotent (hash-based change detection)
 
 Usage:
     python backend_db.py --ingest
+    python backend_db.py --enrich
     python backend_db.py --stats
     python backend_db.py --merge-candidates
 """
@@ -128,6 +129,23 @@ def file_hash(path: Path) -> str:
     return h.hexdigest()
 
 
+def content_hash(json_path: Path) -> str:
+    """Compute SHA256 of JSON content, excluding the 'enriched' key.
+
+    This ensures that enrichment write-back doesn't invalidate the
+    idempotency check — only changes to pages/overrides trigger re-ingestion.
+    Falls back to file_hash() on parse error.
+    """
+    try:
+        with open(json_path) as f:
+            data = json.load(f)
+        data.pop("enriched", None)
+        canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    except (json.JSONDecodeError, OSError):
+        return file_hash(json_path)
+
+
 class BackendDatabase:
     """Entity-centric backend database for address data."""
 
@@ -188,7 +206,7 @@ class BackendDatabase:
 
     def _ingest_file(self, json_path: Path) -> bool:
         """Ingest a single JSON file. Returns True if processed, False if skipped."""
-        current_hash = file_hash(json_path)
+        current_hash = content_hash(json_path)
         document_id = json_path.stem
 
         # Check if document exists with same hash
@@ -820,6 +838,130 @@ class BackendDatabase:
         )
 
     # ------------------------------------------------------------------
+    # Enrichment write-back
+    # ------------------------------------------------------------------
+
+    def enrich_directory(self, addresses_dir: str = DEFAULT_ADDRESSES_DIR):
+        """Write enriched data back to JSON files from backend DB knowledge."""
+        addresses_path = Path(addresses_dir)
+        if not addresses_path.is_dir():
+            logger.error(f"Addresses directory not found: {addresses_dir}")
+            sys.exit(1)
+
+        json_files = sorted(addresses_path.glob("*.json"))
+        logger.info(f"Enrichment pass: {len(json_files)} JSON files")
+
+        stats = {"enriched": 0, "skipped": 0, "errors": 0}
+
+        for json_path in json_files:
+            try:
+                if self._enrich_file(json_path):
+                    stats["enriched"] += 1
+                else:
+                    stats["skipped"] += 1
+            except Exception as e:
+                stats["errors"] += 1
+                logger.error(f"Error enriching {json_path.name}: {e}")
+
+        logger.info(
+            f"Enrichment complete: {stats['enriched']} enriched, "
+            f"{stats['skipped']} skipped (unchanged), {stats['errors']} errors"
+        )
+        return stats
+
+    def _enrich_file(self, json_path: Path) -> bool:
+        """Enrich a single JSON file with backend DB data. Returns True if file was updated."""
+        document_id = json_path.stem
+
+        # Query patient for this document
+        patient_row = self.conn.execute(
+            """
+            SELECT p.full_name, p.date_of_birth, p.document_count
+            FROM patients p
+            JOIN patient_documents pd ON p.id = pd.patient_id
+            WHERE pd.document_id = ?
+            """,
+            (document_id,),
+        ).fetchone()
+
+        # Query practitioners for this document's patient(s)
+        practitioner_rows = self.conn.execute(
+            """
+            SELECT DISTINCT pr.full_name, pr.type, pr.practice_name, pr.document_count
+            FROM patient_practitioners pp
+            JOIN practitioners pr ON pp.practitioner_id = pr.id
+            JOIN patient_documents pd ON pp.patient_id = pd.patient_id
+            WHERE pd.document_id = ?
+            ORDER BY pr.document_count DESC
+            """,
+            (document_id,),
+        ).fetchall()
+
+        # Only enrich files with filename-parsed patients
+        has_patient = patient_row is not None and parse_patient_filename(json_path.name) is not None
+        has_practitioners = len(practitioner_rows) > 0
+
+        if not has_patient and not has_practitioners:
+            return False
+
+        # Build enriched dict (without timestamp for comparison)
+        enriched_content = {}
+        if has_patient:
+            enriched_content["patient"] = {
+                "full_name": patient_row["full_name"],
+                "date_of_birth": patient_row["date_of_birth"],
+                "source": "filename",
+                "document_count": patient_row["document_count"],
+            }
+        if has_practitioners:
+            enriched_content["practitioners"] = [
+                {
+                    "name": pr["full_name"],
+                    "type": pr["type"],
+                    "practice": pr["practice_name"],
+                    "document_count": pr["document_count"],
+                }
+                for pr in practitioner_rows
+            ]
+
+        # Read existing file
+        try:
+            with open(json_path) as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning(f"Could not read {json_path.name}: {e}")
+            return False
+
+        # Compare existing enriched (ignoring timestamp) to new content
+        existing = data.get("enriched")
+        if existing:
+            existing_cmp = {k: v for k, v in existing.items() if k != "enriched_at"}
+            if existing_cmp == enriched_content:
+                return False  # unchanged
+
+        # Write enriched with timestamp
+        enriched_content["enriched_at"] = datetime.now(timezone.utc).strftime(
+            "%Y-%m-%dT%H:%M:%S.%fZ"
+        )
+        data["enriched"] = enriched_content
+
+        # Atomic write
+        tmp_path = json_path.with_suffix(".json.enrich_tmp")
+        try:
+            with open(tmp_path, "w") as f:
+                json.dump(data, f, indent=2)
+            os.replace(str(tmp_path), str(json_path))
+            logger.debug(f"Enriched {json_path.name}")
+            return True
+        except OSError:
+            # Clean up temp file
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise
+
+    # ------------------------------------------------------------------
     # Reporting
     # ------------------------------------------------------------------
 
@@ -1083,6 +1225,11 @@ def main():
         help="Show field-level corrections and name aliases",
     )
     parser.add_argument(
+        "--enrich",
+        action="store_true",
+        help="Ingest then write enriched data back to JSON files",
+    )
+    parser.add_argument(
         "--addresses-dir",
         default=DEFAULT_ADDRESSES_DIR,
         help=f"Path to .addresses/ directory (default: {DEFAULT_ADDRESSES_DIR})",
@@ -1119,6 +1266,10 @@ def main():
             db.print_top_patient_practitioner_links()
         elif args.corrections:
             db.print_corrections()
+        elif args.enrich:
+            db.ingest_directory(args.addresses_dir)
+            db.enrich_directory(args.addresses_dir)
+            db.print_stats()
         else:
             # Default: ingest
             db.ingest_directory(args.addresses_dir)
