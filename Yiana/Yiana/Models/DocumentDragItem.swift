@@ -27,7 +27,16 @@ struct DocumentDragItem: Codable {
 
         let provider = NSItemProvider()
 
-        // External: PDF file for cross-app drops
+        // Internal: synchronous plain-text ID so iOS dropDestination matches immediately
+        provider.registerDataRepresentation(
+            forTypeIdentifier: UTType.plainText.identifier,
+            visibility: .ownProcess
+        ) { completion in
+            completion(self.id.uuidString.data(using: .utf8), nil)
+            return nil
+        }
+
+        // External: PDF file for cross-app drops (Finder, Mail, etc.)
         let sourceURL = documentURL
         provider.registerFileRepresentation(
             forTypeIdentifier: UTType.pdf.identifier,
