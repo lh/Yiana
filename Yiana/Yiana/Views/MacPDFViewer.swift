@@ -28,12 +28,21 @@ struct MacPDFViewer: View {
     @State private var zoomAction: PDFZoomAction?
     @State private var fitMode: FitMode = .width
     @State private var sidebarMode: SidebarMode = .pages
+    @State private var pagesSidebarWidth: CGFloat = 200
+    @State private var addressesSidebarWidth: CGFloat = 300
+    @State private var dragStartWidth: CGFloat?
+    @State private var documentHasAddresses = false
     var onRequestPageManagement: (() -> Void)?
 
     @AppStorage(UIVariant.storageKey) private var uiVariant: UIVariant = .current
 
     private var showAddressesInSidebar: Bool {
         AddressRepository.isDatabaseAvailable
+    }
+
+    /// Active sidebar width for the current mode — only widens for addresses if the document has any
+    private var activeSidebarWidth: CGFloat {
+        sidebarMode == .addresses && documentHasAddresses ? addressesSidebarWidth : pagesSidebarWidth
     }
 
     // Computed property for current PDF data
@@ -60,6 +69,11 @@ struct MacPDFViewer: View {
         }
         .task {
             resetPDFDocument()
+            // Check if this document has extracted addresses
+            if showAddressesInSidebar, let docId = documentId {
+                let repo = AddressRepository()
+                documentHasAddresses = (try? await repo.addresses(forDocument: docId).isEmpty == false) ?? false
+            }
         }
         .onChange(of: refreshTrigger) { _, _ in
             resetPDFDocument()
@@ -80,7 +94,7 @@ struct MacPDFViewer: View {
     private var v1Body: some View {
         HSplitView {
             if isSidebarVisible {
-                thumbnailSidebar(width: 250)
+                thumbnailSidebar(width: 200)
             }
 
             VStack(spacing: 0) {
@@ -126,9 +140,49 @@ struct MacPDFViewer: View {
     // MARK: - V2 Body (Compact Toolbar)
 
     private var v2Body: some View {
-        HSplitView {
+        HStack(spacing: 0) {
+            // Sidebar toggle always at extreme left
+            VStack {
+                sidebarToggleButton
+                    .padding(.top, 6)
+                    .padding(.leading, 6)
+                Spacer()
+            }
+            .frame(width: 32)
+
             if isSidebarVisible {
-                thumbnailSidebar(width: 240)
+                v2SidebarContent
+                    .frame(width: activeSidebarWidth - 32)  // account for toggle column
+
+                // Draggable resize handle
+                Rectangle()
+                    .fill(Color(NSColor.separatorColor))
+                    .frame(width: 1)
+                    .contentShape(Rectangle().inset(by: -3))
+                    .onHover { hovering in
+                        if hovering {
+                            NSCursor.resizeLeftRight.push()
+                        } else {
+                            NSCursor.pop()
+                        }
+                    }
+                    .gesture(
+                        DragGesture(minimumDistance: 1)
+                            .onChanged { value in
+                                if dragStartWidth == nil {
+                                    dragStartWidth = activeSidebarWidth
+                                }
+                                let newWidth = max(120, min(400, (dragStartWidth ?? 200) + value.translation.width))
+                                if sidebarMode == .addresses && documentHasAddresses {
+                                    addressesSidebarWidth = newWidth
+                                } else {
+                                    pagesSidebarWidth = newWidth
+                                }
+                            }
+                            .onEnded { _ in
+                                dragStartWidth = nil
+                            }
+                    )
             }
 
             VStack(spacing: 0) {
@@ -139,15 +193,38 @@ struct MacPDFViewer: View {
         }
     }
 
+    /// Sidebar content without the frame — width is managed by v2Body
+    private var v2SidebarContent: some View {
+        VStack(spacing: 0) {
+            if showAddressesInSidebar {
+                Picker("", selection: $sidebarMode) {
+                    Text("Pages").tag(SidebarMode.pages)
+                    Text("Addresses").tag(SidebarMode.addresses)
+                }
+                .pickerStyle(.segmented)
+                .padding(8)
+
+                Divider()
+            }
+
+            switch sidebarMode {
+            case .pages:
+                pagesSidebarContent()
+            case .addresses:
+                addressesSidebarContent()
+            }
+
+            Spacer(minLength: 0)
+        }
+        .background(Color(NSColor.controlBackgroundColor))
+    }
+
     private var v2NavigationBar: some View {
         let pageCount = pdfDocument?.pageCount ?? 0
         return HStack(spacing: 0) {
-            // Left column: sidebar toggle
-            HStack {
-                sidebarToggleButton
-                Spacer()
-            }
-            .frame(maxWidth: .infinity)
+            // Left column: spacer for balance
+            Spacer()
+                .frame(maxWidth: .infinity)
 
             // Centre column: page navigator in pill (centred to window)
             HStack(spacing: 2) {
@@ -373,7 +450,7 @@ struct MacPDFViewer: View {
                 addressesSidebarContent()
             }
         }
-        .frame(width: width)
+        .frame(minWidth: 160, idealWidth: width, maxWidth: 400)
         .background(Color(NSColor.controlBackgroundColor))
     }
 
@@ -475,7 +552,7 @@ struct ThumbnailView: View {
                 Image(nsImage: thumbnail)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(height: 120)
+                    .frame(maxWidth: .infinity)
                     .background(Color.white)
                     .overlay(
                         RoundedRectangle(cornerRadius: 4)
@@ -485,7 +562,8 @@ struct ThumbnailView: View {
             } else {
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Color.gray.opacity(0.1))
-                    .frame(height: 120)
+                    .aspectRatio(0.7, contentMode: .fit)
+                    .frame(maxWidth: .infinity)
                     .overlay(
                         Image(systemName: "doc.text")
                             .foregroundColor(.gray)
@@ -503,7 +581,7 @@ struct ThumbnailView: View {
     private func generateThumbnail() -> NSImage? {
         guard let page else { return nil }
         let scale: CGFloat = 2.0
-        let thumbnailWidth: CGFloat = 150 * scale
+        let thumbnailWidth: CGFloat = 250 * scale
         let pageRect = page.bounds(for: .mediaBox)
         let aspectRatio = pageRect.height / pageRect.width
         let thumbnailHeight = thumbnailWidth * aspectRatio

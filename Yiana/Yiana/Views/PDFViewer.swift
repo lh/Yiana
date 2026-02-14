@@ -416,7 +416,9 @@ struct PDFKitView: ViewRepresentable {
     #endif
 
     private func applyFitToWindow(_ pdfView: PDFView, coordinator: Coordinator) {
+        coordinator.isProgrammaticScaleChange = true
         pdfView.scaleFactor = pdfView.scaleFactorForSizeToFit
+        coordinator.isProgrammaticScaleChange = false
         coordinator.lastKnownScaleFactor = pdfView.scaleFactor
     }
     
@@ -425,7 +427,9 @@ struct PDFKitView: ViewRepresentable {
         let pageRect = page.bounds(for: pdfView.displayBox)
         let viewWidth = pdfView.bounds.width
         let scaleFactor = viewWidth / pageRect.width
+        coordinator.isProgrammaticScaleChange = true
         pdfView.scaleFactor = scaleFactor
+        coordinator.isProgrammaticScaleChange = false
         coordinator.lastKnownScaleFactor = scaleFactor
         coordinator.currentFitMode = .width
         coordinator.lastExplicitFitMode = .width
@@ -479,7 +483,9 @@ struct PDFKitView: ViewRepresentable {
             return false
         }
 
+        coordinator.isProgrammaticScaleChange = true
         pdfView.scaleFactor = scaleFactor
+        coordinator.isProgrammaticScaleChange = false
         coordinator.lastKnownScaleFactor = scaleFactor
         coordinator.currentFitMode = .height
         coordinator.lastExplicitFitMode = .height
@@ -767,6 +773,8 @@ struct PDFKitView: ViewRepresentable {
         var currentFitMode: FitMode = .height
         var lastExplicitFitMode: FitMode = .height
         var awaitingInitialFit = false
+        /// Guards against scaleChanged resetting fitMode during programmatic scale changes
+        var isProgrammaticScaleChange = false
         #if os(macOS)
         var keyEventMonitor: Any?
         var scrollEventMonitor: Any?
@@ -1004,12 +1012,11 @@ struct PDFKitView: ViewRepresentable {
         #if os(macOS)
         @objc func scaleChanged(_ notification: Notification) {
             guard let pdfView = notification.object as? PDFView else { return }
-            pdfDebug("⚠️ SCALE CHANGED: \(pdfView.scaleFactor) isInitialLoad=\(isInitialLoad) isReloading=\(isReloadingDocument) awaiting=\(awaitingInitialFit)")
-            // Treat scale changes after load as manual zoom
-            if !isInitialLoad && !isReloadingDocument {
+            pdfDebug("⚠️ SCALE CHANGED: \(pdfView.scaleFactor) isInitialLoad=\(isInitialLoad) isReloading=\(isReloadingDocument) awaiting=\(awaitingInitialFit) programmatic=\(isProgrammaticScaleChange)")
+            // Only treat user-initiated scale changes as manual zoom
+            if !isInitialLoad && !isReloadingDocument && !isProgrammaticScaleChange {
                 lastKnownScaleFactor = pdfView.scaleFactor
                 currentFitMode = .manual
-                // Sync with parent's fitMode binding
                 DispatchQueue.main.async {
                     self.parent.fitMode = .manual
                 }
@@ -1025,13 +1032,12 @@ struct PDFKitView: ViewRepresentable {
 extension PDFKitView.Coordinator: UIScrollViewDelegate, UIGestureRecognizerDelegate {
     func scrollViewDidZoom(_ scrollView: UIScrollView) {
         if let pdfView = pdfView {
-            pdfDebug("⚠️ iOS ZOOM: \(pdfView.scaleFactor) isInitialLoad=\(isInitialLoad) isReloading=\(isReloadingDocument) awaiting=\(awaitingInitialFit)")
+            pdfDebug("⚠️ iOS ZOOM: \(pdfView.scaleFactor) isInitialLoad=\(isInitialLoad) isReloading=\(isReloadingDocument) awaiting=\(awaitingInitialFit) programmatic=\(isProgrammaticScaleChange)")
         }
-        // Track user zoom on iOS
-        if !isInitialLoad && !isReloadingDocument, let pdfView = pdfView {
+        // Only track user-initiated zoom (not programmatic fit changes)
+        if !isInitialLoad && !isReloadingDocument && !isProgrammaticScaleChange, let pdfView = pdfView {
             lastKnownScaleFactor = pdfView.scaleFactor
             currentFitMode = .manual
-            // Sync with parent's fitMode binding
             DispatchQueue.main.async {
                 self.parent.fitMode = .manual
             }
