@@ -47,6 +47,15 @@ struct DocumentReadView: View {
                 v2Body
             }
         }
+        .overlay(alignment: .bottomTrailing) {
+            Text(uiVariant.displayName)
+                .font(.caption2)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(.ultraThinMaterial, in: Capsule())
+                .padding(8)
+                .opacity(0.6)
+        }
         .task {
             await loadDocument()
         }
@@ -142,7 +151,12 @@ struct DocumentReadView: View {
                     .frame(width: 340)
                     .background(.ultraThinMaterial)
                     .clipShape(RoundedRectangle(cornerRadius: 0))
-                    .shadow(color: .black.opacity(0.3), radius: 8, x: -2)
+                    .shadow(color: .black.opacity(0.3), radius: 20, x: -5)
+                    .overlay(alignment: .leading) {
+                        Rectangle()
+                            .fill(Color.white.opacity(0.08))
+                            .frame(width: 1)
+                    }
                     .transition(.move(edge: .trailing))
             }
         }

@@ -187,7 +187,6 @@ struct MacPDFViewer: View {
 
             VStack(spacing: 0) {
                 v2NavigationBar
-                Divider()
                 pdfContent
             }
         }
@@ -232,10 +231,16 @@ struct MacPDFViewer: View {
                 pageNavDisplay(pageCount: pageCount, showPagePrefix: false)
                 pageNavNextButton(pageCount: pageCount)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
-            .clipShape(Capsule())
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(
+                Capsule()
+                    .fill(Color.primary.opacity(0.05))
+            )
+            .overlay(
+                Capsule()
+                    .strokeBorder(Color.primary.opacity(0.04), lineWidth: 0.5)
+            )
 
             // Right column: zoom + fit toggle
             HStack {
@@ -557,8 +562,9 @@ struct ThumbnailView: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: 4)
                             .stroke(isSelected ? Color.accentColor : Color.gray.opacity(0.3),
-                                   lineWidth: isSelected ? 3 : 1)
+                                   lineWidth: isSelected ? 1.5 : 0.5)
                     )
+                    .shadow(color: isSelected ? Color.accentColor.opacity(0.3) : .clear, radius: 4)
             } else {
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Color.gray.opacity(0.1))
