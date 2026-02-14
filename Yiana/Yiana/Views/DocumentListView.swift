@@ -230,14 +230,16 @@ struct DocumentListView: View {
                             }
                         }
                     } label: {
+                        let isDropTarget = dropTargetFolder == folderURL
                         HStack {
-                            Image(systemName: folder.path.isEmpty ? "folder.fill" : "folder")
-                                .foregroundColor(.accentColor)
+                            Image(systemName: isDropTarget || folder.path.isEmpty ? "folder.fill" : "folder")
+                                .foregroundColor(isDropTarget ? .white : .accentColor)
                                 .font(.title3)
                             Text(folder.name)
-                                .foregroundColor(isCurrentFolder ? .accentColor : .primary)
+                                .fontWeight(isDropTarget ? .semibold : .regular)
+                                .foregroundColor(isDropTarget ? .white : (isCurrentFolder ? .accentColor : .primary))
                             Spacer()
-                            if isCurrentFolder {
+                            if isCurrentFolder && !isDropTarget {
                                 Image(systemName: "checkmark")
                                     .foregroundColor(.accentColor)
                                     .font(.caption)
@@ -249,9 +251,10 @@ struct DocumentListView: View {
                     .padding(.horizontal)
                     .padding(.vertical, 10)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
                     .background(
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(dropTargetFolder == folderURL ? Color.accentColor.opacity(0.35) : Color.clear)
+                            .fill(dropTargetFolder == folderURL ? Color.accentColor : Color.clear)
                     )
                     .onDrop(of: [.plainText], delegate: IOSFolderDropDelegate(
                         folderURL: folderURL,
@@ -834,7 +837,7 @@ struct DocumentListView: View {
                         ))
                         .background(
                             RoundedRectangle(cornerRadius: 6)
-                                .fill(Color.accentColor.opacity(dropTargetFolder == folderURL ? 0.35 : 0))
+                                .fill(Color.accentColor.opacity(dropTargetFolder == folderURL ? 0.5 : 0))
                         )
                         .animation(.easeInOut(duration: 0.12), value: dropTargetFolder)
                         #endif
