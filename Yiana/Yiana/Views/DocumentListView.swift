@@ -55,6 +55,12 @@ struct DocumentListView: View {
     // Drag & drop state
     @State private var dropTargetFolder: URL?
 
+    // iPad sidebar
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    private var isIPad: Bool { horizontalSizeClass == .regular }
+    #endif
+
     // Multi-select state
     @State private var isSelectMode = false
     @State private var selectedDocumentIDs: Set<UUID> = []
@@ -89,33 +95,7 @@ struct DocumentListView: View {
     }
 
     var body: some View {
-        NavigationStack(path: $navigationPath) {
-            mainContent
-                .navigationTitle(documentListTitle)
-                .toolbar { toolbarContent }
-                .alert("New Document", isPresented: $showingCreateAlert, actions: newDocumentAlertActions)
-                .alert("Error", isPresented: $showingError, actions: errorAlertActions, message: errorAlertMessage)
-                .alert("New Folder", isPresented: $showingFolderAlert, actions: newFolderAlertActions)
-                .alert("Delete Document", isPresented: $showingDeleteConfirmation, actions: deleteDocumentAlertActions, message: deleteDocumentAlertMessage)
-                .alert("Rename", isPresented: $showingRenameAlert, actions: renameAlertActions)
-                .alert("Delete Folder", isPresented: $showingDeleteFolderConfirmation, actions: deleteFolderAlertActions, message: deleteFolderAlertMessage)
-                .alert("Delete Documents", isPresented: $showingBulkDeleteConfirmation) {
-                    Button("Cancel", role: .cancel) { }
-                    Button("Delete", role: .destructive) {
-                        let idsToDelete = selectedDocumentIDs
-                        selectedDocumentIDs.removeAll()
-                        isSelectMode = false
-                        Task { try? await viewModel.deleteDocuments(ids: idsToDelete) }
-                    }
-                } message: {
-                    Text("Delete \(selectedDocumentIDs.count) documents? This cannot be undone.")
-                }
-                .sheet(isPresented: $showingFolderPicker) {
-                    folderPickerSheet
-                }
-                .navigationDestination(for: URL.self, destination: navigationDestination)
-                .navigationDestination(for: DocumentNavigationData.self, destination: navigationDestinationForDocument)
-        }
+        navigationRoot
         .task {
             await loadDocuments()
             await MainActor.run {
@@ -149,10 +129,6 @@ struct DocumentListView: View {
             }
         }
         .refreshable { await refreshDocuments() }
-#if os(iOS)
-        .searchable(text: $searchText, prompt: "Search documents")
-        .accessibilityHint("Search by document title or document contents")
-#endif
         .onChange(of: searchText) { _, newValue in
             handleSearchChange(newValue)
         }
@@ -174,6 +150,124 @@ struct DocumentListView: View {
         }
         #endif
     }
+
+    // MARK: - Navigation Structure
+
+    @ViewBuilder
+    private var navigationRoot: some View {
+        #if os(iOS)
+        if isIPad {
+            NavigationSplitView {
+                iosFolderSidebar
+            } detail: {
+                innerNavigationStack
+            }
+        } else {
+            innerNavigationStack
+        }
+        #else
+        innerNavigationStack
+        #endif
+    }
+
+    private var innerNavigationStack: some View {
+        NavigationStack(path: $navigationPath) {
+            mainContent
+                .navigationTitle(documentListTitle)
+                .toolbar { toolbarContent }
+                .alert("New Document", isPresented: $showingCreateAlert, actions: newDocumentAlertActions)
+                .alert("Error", isPresented: $showingError, actions: errorAlertActions, message: errorAlertMessage)
+                .alert("New Folder", isPresented: $showingFolderAlert, actions: newFolderAlertActions)
+                .alert("Delete Document", isPresented: $showingDeleteConfirmation, actions: deleteDocumentAlertActions, message: deleteDocumentAlertMessage)
+                .alert("Rename", isPresented: $showingRenameAlert, actions: renameAlertActions)
+                .alert("Delete Folder", isPresented: $showingDeleteFolderConfirmation, actions: deleteFolderAlertActions, message: deleteFolderAlertMessage)
+                .alert("Delete Documents", isPresented: $showingBulkDeleteConfirmation) {
+                    Button("Cancel", role: .cancel) { }
+                    Button("Delete", role: .destructive) {
+                        let idsToDelete = selectedDocumentIDs
+                        selectedDocumentIDs.removeAll()
+                        isSelectMode = false
+                        Task { try? await viewModel.deleteDocuments(ids: idsToDelete) }
+                    }
+                } message: {
+                    Text("Delete \(selectedDocumentIDs.count) documents? This cannot be undone.")
+                }
+                .sheet(isPresented: $showingFolderPicker) {
+                    folderPickerSheet
+                }
+                .navigationDestination(for: URL.self, destination: navigationDestination)
+                .navigationDestination(for: DocumentNavigationData.self, destination: navigationDestinationForDocument)
+        }
+        #if os(iOS)
+        .searchable(text: $searchText, prompt: "Search documents")
+        .accessibilityHint("Search by document title or document contents")
+        #endif
+    }
+
+    #if os(iOS)
+    private var iosFolderSidebar: some View {
+        // ScrollView instead of List — UITableView (backing List) intercepts
+        // drop gestures and prevents performDrop from firing on rows.
+        let allFolders = viewModel.allFolderPaths()
+        let currentPath = viewModel.folderPath.joined(separator: "/")
+
+        return ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(allFolders.enumerated()), id: \.offset) { _, folder in
+                    let depth = folder.path.isEmpty ? 0 : folder.path.components(separatedBy: "/").count
+                    let isCurrentFolder = folder.path == currentPath
+                    let folderURL = folder.path.isEmpty
+                        ? viewModel.documentsDirectory
+                        : viewModel.documentsDirectory.appending(path: folder.path)
+
+                    Button {
+                        Task {
+                            if folder.path.isEmpty {
+                                await viewModel.navigateToRoot()
+                            } else {
+                                await viewModel.navigateToRoot()
+                                await viewModel.navigateToFolder(folder.path)
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: folder.path.isEmpty ? "folder.fill" : "folder")
+                                .foregroundColor(.accentColor)
+                                .font(.title3)
+                            Text(folder.name)
+                                .foregroundColor(isCurrentFolder ? .accentColor : .primary)
+                            Spacer()
+                            if isCurrentFolder {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.accentColor)
+                                    .font(.caption)
+                            }
+                        }
+                        .padding(.leading, CGFloat(depth) * 16)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(dropTargetFolder == folderURL ? Color.accentColor.opacity(0.35) : Color.clear)
+                    )
+                    .onDrop(of: [.plainText], delegate: IOSFolderDropDelegate(
+                        folderURL: folderURL,
+                        dropTargetFolder: $dropTargetFolder,
+                        handleInternalDrop: { dragItem, _ in
+                            handleInternalDropToPath(dragItem: dragItem, targetPath: folder.path)
+                        }
+                    ))
+                    .animation(.easeInOut(duration: 0.12), value: dropTargetFolder)
+                    Divider().padding(.leading, CGFloat(depth) * 16 + 16)
+                }
+            }
+        }
+        .navigationTitle("Folders")
+    }
+    #endif
 
     private var emptyStateView: some View {
         VStack(spacing: 20) {
@@ -674,7 +768,13 @@ struct DocumentListView: View {
             #endif
 
             List(selection: isSelectMode ? $selectedDocumentIDs : nil) {
+                #if os(iOS)
+                if !isIPad {
+                    foldersSection
+                }
+                #else
                 foldersSection
+                #endif
                 documentsSection
                 otherFoldersSection
                 versionSection
@@ -1609,6 +1709,14 @@ struct DocumentListView: View {
             Task { try? await viewModel.moveDocument(docItem, toFolder: targetPath) }
         }
     }
+
+    #if os(iOS)
+    private func handleInternalDropToPath(dragItem: DocumentDragItem, targetPath: String) {
+        if let docItem = viewModel.documents.first(where: { $0.id == dragItem.id }) {
+            Task { try? await viewModel.moveDocument(docItem, toFolder: targetPath) }
+        }
+    }
+    #endif
 }
 
 #if os(macOS)
@@ -1696,6 +1804,46 @@ struct ExternalPDFDropDelegate: DropDelegate {
         }
         let pdfProviders = info.itemProviders(for: [.pdf])
         return handleExternalDrop(pdfProviders)
+    }
+}
+#endif
+
+#if os(iOS)
+/// Drop delegate for iPad sidebar folder rows.
+/// Handles internal document moves only (no external PDF import on iOS sidebar).
+/// The sidebar is a separate view hierarchy from the List, so drops work here
+/// unlike in-List rows where UITableView intercepts drop events.
+struct IOSFolderDropDelegate: DropDelegate {
+    let folderURL: URL
+    @Binding var dropTargetFolder: URL?
+    let handleInternalDrop: (DocumentDragItem, URL) -> Void
+
+    func validateDrop(info: DropInfo) -> Bool {
+        DocumentDragItem.inFlight != nil
+    }
+
+    func dropEntered(info: DropInfo) {
+        dropTargetFolder = folderURL
+    }
+
+    func dropExited(info: DropInfo) {
+        if dropTargetFolder == folderURL {
+            dropTargetFolder = nil
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        guard let dragItem = DocumentDragItem.inFlight else { return false }
+        defer {
+            DocumentDragItem.inFlight = nil
+            dropTargetFolder = nil
+        }
+        handleInternalDrop(dragItem, folderURL)
+        return true
     }
 }
 #endif
