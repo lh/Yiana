@@ -31,6 +31,7 @@ struct DocumentReadView: View {
     @State private var sidebarRefreshID = UUID()
 
     @AppStorage(UIVariant.storageKey) private var uiVariant: UIVariant = .current
+    @Environment(\.dismiss) private var dismiss
 
     init(documentURL: URL, searchResult: SearchResult? = nil) {
         self.documentURL = documentURL
@@ -145,9 +146,16 @@ struct DocumentReadView: View {
                     .transition(.move(edge: .trailing))
             }
         }
-        .navigationTitle(documentURL.deletingPathExtension().lastPathComponent)
-        .toolbarTitleDisplayMode(.inline)
+        .navigationTitle(documentTitle)
+        .navigationBarBackButtonHidden(true)
         .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Button(action: { dismiss() }) {
+                    Label("Back", systemImage: "chevron.left")
+                }
+                .help("Back to documents")
+            }
+
             ToolbarItem(placement: .automatic) {
                 if let viewModel = viewModel {
                     HStack(spacing: 8) {
@@ -186,6 +194,7 @@ struct DocumentReadView: View {
                 }
             }
         }
+        .toolbarTitleDisplayMode(.inline)
     }
 
     private func loadDocument() async {
