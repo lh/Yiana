@@ -20,6 +20,7 @@ struct SettingsView: View {
     @State private var selectedThumbnailSize: SidebarThumbnailSize = .medium
     @State private var isLoading = true
     @State private var showingDevMenu = false
+    @AppStorage(UIVariant.storageKey) private var uiVariant: UIVariant = .current
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -32,6 +33,19 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                #if os(macOS)
+                if UIVariant.allCases.count > 1 {
+                    Section(header: Text("UI Variant")) {
+                        Picker("Layout", selection: $uiVariant) {
+                            ForEach(UIVariant.allCases) { variant in
+                                Text(variant.displayName).tag(variant)
+                            }
+                        }
+                        .pickerStyle(.inline)
+                    }
+                }
+                #endif
+
                 Section(header: Text("Paper"), footer: paperFooter) {
                     Picker("Paper Size", selection: $selectedPaperSize) {
                         ForEach(TextPagePaperSize.allCases) { size in

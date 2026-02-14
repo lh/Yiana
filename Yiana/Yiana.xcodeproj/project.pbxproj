@@ -10,7 +10,6 @@
 		9ACDC8FB2E8D9ED300B0B27A /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 9ACDC8FA2E8D9ED300B0B27A /* GRDB */; };
 		9AF0ABD32EA0F2C6003E7A4C /* YianaDocumentArchive in Frameworks */ = {isa = PBXBuildFile; productRef = 9AF0ABCF2EA0F2C6003E7A4C /* YianaDocumentArchive */; };
 		9AF0ABD42EA0F2C6003E7A4C /* YianaDocumentArchive in Frameworks */ = {isa = PBXBuildFile; productRef = 9AF0ABD12EA0F2C6003E7A4C /* YianaDocumentArchive */; };
-		D0DRAG0002000000000001 /* DocumentDragItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0DRAG0001000000000001 /* DocumentDragItemTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -34,7 +33,6 @@
 		9A02D04E2E26C133005DA5E5 /* Yiana.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Yiana.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9A02D0622E26C134005DA5E5 /* YianaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YianaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9A02D06C2E26C134005DA5E5 /* YianaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YianaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		D0DRAG0001000000000001 /* DocumentDragItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentDragItemTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
