@@ -126,10 +126,9 @@ struct MacPDFViewer: View {
     // MARK: - V2 Body (Compact Toolbar)
 
     private var v2Body: some View {
-        HStack(spacing: 0) {
+        HSplitView {
             if isSidebarVisible {
-                thumbnailSidebar(width: 120)
-                Divider()
+                thumbnailSidebar(width: 240)
             }
 
             VStack(spacing: 0) {
