@@ -34,8 +34,6 @@ struct MacPDFViewer: View {
     @State private var documentHasAddresses = false
     var onRequestPageManagement: (() -> Void)?
 
-    @AppStorage(UIVariant.storageKey) private var uiVariant: UIVariant = .current
-
     private var showAddressesInSidebar: Bool {
         AddressRepository.isDatabaseAvailable
     }
@@ -59,14 +57,7 @@ struct MacPDFViewer: View {
     }
 
     var body: some View {
-        Group {
-            switch uiVariant {
-            case .current:
-                v1Body
-            case .v2:
-                v2Body
-            }
-        }
+        v2Body
         .task {
             resetPDFDocument()
             // Check if this document has extracted addresses
@@ -89,55 +80,7 @@ struct MacPDFViewer: View {
         }
     }
 
-    // MARK: - V1 Body (Original)
-
-    private var v1Body: some View {
-        HSplitView {
-            if isSidebarVisible {
-                thumbnailSidebar(width: 200)
-            }
-
-            VStack(spacing: 0) {
-                v1NavigationToolbar
-                Divider()
-                pdfContent
-            }
-        }
-    }
-
-    private var v1NavigationToolbar: some View {
-        let pageCount = pdfDocument?.pageCount ?? 0
-        return HStack {
-            sidebarToggleButton
-
-            Divider()
-                .frame(height: 20)
-                .padding(.horizontal, 8)
-
-            pageNavPrevButton(pageCount: pageCount)
-            pageNavDisplay(pageCount: pageCount, showPagePrefix: true)
-            pageNavNextButton(pageCount: pageCount)
-
-            Spacer()
-
-            HStack(spacing: 4) {
-                zoomOutButton
-                zoomInButton
-
-                Divider()
-                    .frame(height: 20)
-                    .padding(.horizontal, 4)
-
-                fitPageButton
-                fitWidthButton
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(Color(NSColor.controlBackgroundColor))
-    }
-
-    // MARK: - V2 Body (Compact Toolbar)
+    // MARK: - Body Content
 
     private var v2Body: some View {
         HStack(spacing: 0) {

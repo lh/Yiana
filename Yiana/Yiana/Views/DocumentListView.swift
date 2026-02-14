@@ -67,8 +67,7 @@ struct DocumentListView: View {
     @State private var showingBulkDeleteConfirmation = false
 
     #if os(macOS)
-    @AppStorage(UIVariant.storageKey) private var uiVariant: UIVariant = .current
-    /// Selected folder in V2 sidebar. Empty string = root "Documents".
+    /// Selected folder in sidebar. Empty string = root "Documents".
     @State private var selectedSidebarFolder: String? = ""
     @State private var sidebarColumnVisibility: NavigationSplitViewVisibility = .automatic
     #endif
@@ -104,12 +103,7 @@ struct DocumentListView: View {
     var body: some View {
         Group {
             #if os(macOS)
-            switch uiVariant {
-            case .current:
-                v1Body
-            case .v2:
-                v2Body
-            }
+            macBody
             #elseif os(iOS)
             navigationRoot
             #endif
@@ -171,49 +165,17 @@ struct DocumentListView: View {
         #endif
     }
 
-    // MARK: - V1 Body (Original layout)
-
-    private var v1Body: some View {
-        NavigationStack(path: $navigationPath) {
-            mainContent
-                .navigationTitle(documentListTitle)
-                .toolbar { toolbarContent }
-                .alert("New Document", isPresented: $showingCreateAlert, actions: newDocumentAlertActions)
-                .alert("Error", isPresented: $showingError, actions: errorAlertActions, message: errorAlertMessage)
-                .alert("New Folder", isPresented: $showingFolderAlert, actions: newFolderAlertActions)
-                .alert("Delete Document", isPresented: $showingDeleteConfirmation, actions: deleteDocumentAlertActions, message: deleteDocumentAlertMessage)
-                .alert("Rename", isPresented: $showingRenameAlert, actions: renameAlertActions)
-                .alert("Delete Folder", isPresented: $showingDeleteFolderConfirmation, actions: deleteFolderAlertActions, message: deleteFolderAlertMessage)
-                .alert("Delete Documents", isPresented: $showingBulkDeleteConfirmation) {
-                    Button("Cancel", role: .cancel) { }
-                    Button("Delete", role: .destructive) {
-                        let idsToDelete = selectedDocumentIDs
-                        selectedDocumentIDs.removeAll()
-                        isSelectMode = false
-                        Task { try? await viewModel.deleteDocuments(ids: idsToDelete) }
-                    }
-                } message: {
-                    Text("Delete \(selectedDocumentIDs.count) documents? This cannot be undone.")
-                }
-                .sheet(isPresented: $showingFolderPicker) {
-                    folderPickerSheet
-                }
-                .navigationDestination(for: URL.self, destination: navigationDestination)
-                .navigationDestination(for: DocumentNavigationData.self, destination: navigationDestinationForDocument)
-        }
-    }
-
-    // MARK: - V2 Body (Sidebar layout, macOS only)
+    // MARK: - macOS Body (Sidebar layout)
 
     #if os(macOS)
-    private var v2Body: some View {
+    private var macBody: some View {
         NavigationSplitView(columnVisibility: $sidebarColumnVisibility) {
-            v2SidebarContent
+            sidebarContent
         } detail: {
             NavigationStack(path: $navigationPath) {
-                v2DetailContent
+                detailContent
                     .navigationTitle(documentListTitle)
-                    .toolbar { v2ToolbarContent }
+                    .toolbar { macToolbarContent }
                     .alert("New Document", isPresented: $showingCreateAlert, actions: newDocumentAlertActions)
                 .alert("Error", isPresented: $showingError, actions: errorAlertActions, message: errorAlertMessage)
                 .alert("New Folder", isPresented: $showingFolderAlert, actions: newFolderAlertActions)
@@ -242,27 +204,18 @@ struct DocumentListView: View {
             guard let folder = newFolder else { return }
             Task { await viewModel.navigateToFolderPath(folder) }
         }
-        .overlay(alignment: .bottomTrailing) {
-            Text(uiVariant.displayName)
-                .font(.caption2)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(.ultraThinMaterial, in: Capsule())
-                .padding(8)
-                .opacity(0.6)
-        }
     }
 
     /// URL of the folder currently shown in the detail column.
-    private var v2CurrentFolderURL: URL {
+    private var currentFolderURL: URL {
         let base = viewModel.documentsDirectory
         guard let selected = selectedSidebarFolder, !selected.isEmpty else { return base }
         return base.appendingPathComponent(selected)
     }
 
     @ViewBuilder
-    private var v2SidebarContent: some View {
-        let currentURL = v2CurrentFolderURL
+    private var sidebarContent: some View {
+        let currentURL = currentFolderURL
         List(selection: $selectedSidebarFolder) {
             Label("Documents", systemImage: selectedSidebarFolder == "" ? "doc.on.doc.fill" : "doc.on.doc")
                 .tag("")
@@ -329,7 +282,7 @@ struct DocumentListView: View {
     }
 
     @ViewBuilder
-    private var v2DetailContent: some View {
+    private var detailContent: some View {
         if downloadManager.isDownloading &&
             viewModel.documents.isEmpty &&
             viewModel.folderURLs.isEmpty &&
@@ -368,7 +321,7 @@ struct DocumentListView: View {
     }
 
     @ToolbarContentBuilder
-    private var v2ToolbarContent: some ToolbarContent {
+    private var macToolbarContent: some ToolbarContent {
         // No back button in V2 — sidebar handles navigation
 
         // Select / Done toggle

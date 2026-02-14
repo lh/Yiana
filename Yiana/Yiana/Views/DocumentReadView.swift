@@ -30,7 +30,6 @@ struct DocumentReadView: View {
     @State private var sidebarWasVisibleBeforeOrganiser = true
     @State private var sidebarRefreshID = UUID()
 
-    @AppStorage(UIVariant.storageKey) private var uiVariant: UIVariant = .current
     @Environment(\.dismiss) private var dismiss
 
     init(documentURL: URL, searchResult: SearchResult? = nil) {
@@ -39,23 +38,7 @@ struct DocumentReadView: View {
     }
 
     var body: some View {
-        Group {
-            switch uiVariant {
-            case .current:
-                v1Body
-            case .v2:
-                v2Body
-            }
-        }
-        .overlay(alignment: .bottomTrailing) {
-            Text(uiVariant.displayName)
-                .font(.caption2)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(.ultraThinMaterial, in: Capsule())
-                .padding(8)
-                .opacity(0.6)
-        }
+        v2Body
         .task {
             await loadDocument()
         }
@@ -74,60 +57,7 @@ struct DocumentReadView: View {
         }
     }
 
-    // MARK: - V1 Body (Original)
-
-    private var v1Body: some View {
-        HSplitView {
-            VStack(spacing: 0) {
-                ReadOnlyBanner(isReadOnly: isReadOnly)
-                DocumentReadToolbar(
-                    title: documentTitle,
-                    isReadOnly: isReadOnly,
-                    hasPDFContent: hasPDFContent,
-                    isInfoVisible: showingInfoPanel,
-                    onManagePages: handleManagePages,
-                    onExport: exportPDF,
-                    onToggleInfo: handleToggleInfo
-                )
-                Divider()
-                DocumentReadContent(
-                    isLoading: isLoading,
-                    errorMessage: errorMessage,
-                    pdfData: pdfData,
-                    viewModel: viewModel,
-                    isSidebarVisible: $isSidebarVisible,
-                    sidebarRefreshID: sidebarRefreshID,
-                    onRequestPageManagement: handleManagePages
-                )
-            }
-
-            if showingInfoPanel, let document = document {
-                DocumentInfoPanel(document: document)
-                    .frame(minWidth: 300, maxWidth: 400)
-            }
-        }
-        .navigationTitle(documentURL.deletingPathExtension().lastPathComponent)
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                if let viewModel = viewModel {
-                    HStack(spacing: 8) {
-                        if viewModel.isSaving {
-                            ProgressView()
-                                .scaleEffect(0.7)
-                                .help("Saving document...")
-                        } else if viewModel.hasChanges {
-                            Image(systemName: "circle.fill")
-                                .foregroundColor(.orange)
-                                .font(.system(size: 8))
-                                .help("Unsaved changes")
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // MARK: - V2 Body (Compact Toolbar)
+    // MARK: - Body Content
 
     private var v2Body: some View {
         ZStack(alignment: .trailing) {

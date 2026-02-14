@@ -49,18 +49,6 @@ struct YianaApp: App {
         #endif
         #if os(macOS)
         .commands {
-            // UI variant cycling (View menu)
-            CommandGroup(after: .toolbar) {
-                Button("Cycle UI Variant") {
-                    let current = UserDefaults.standard.string(forKey: UIVariant.storageKey) ?? UIVariant.current.rawValue
-                    let all = UIVariant.allCases
-                    let currentIndex = all.firstIndex(where: { $0.rawValue == current }) ?? all.startIndex
-                    let nextIndex = all.index(after: currentIndex) < all.endIndex ? all.index(after: currentIndex) : all.startIndex
-                    UserDefaults.standard.set(all[nextIndex].rawValue, forKey: UIVariant.storageKey)
-                }
-                .keyboardShortcut("U", modifiers: [.command, .shift])
-            }
-
             // Export commands
             CommandGroup(after: .importExport) {
                 Button("Export All Documents as PDFs...") {
