@@ -60,6 +60,13 @@ struct DocumentListView: View {
     @State private var selectedDocumentIDs: Set<UUID> = []
     @State private var showingBulkDeleteConfirmation = false
 
+    #if os(macOS)
+    @AppStorage(UIVariant.storageKey) private var uiVariant: UIVariant = .current
+    /// Selected folder in V2 sidebar. Empty string = root "Documents".
+    @State private var selectedSidebarFolder: String? = ""
+    @State private var sidebarColumnVisibility: NavigationSplitViewVisibility = .automatic
+    #endif
+
     enum RenameTarget {
         case document(DocumentListItem)
         case folder(URL)
@@ -89,6 +96,76 @@ struct DocumentListView: View {
     }
 
     var body: some View {
+        Group {
+            #if os(macOS)
+            switch uiVariant {
+            case .current:
+                v1Body
+            case .v2:
+                v2Body
+            }
+            #else
+            v1Body
+            #endif
+        }
+        .task {
+            await loadDocuments()
+            await MainActor.run {
+                if contentCountKey > 0 {
+                    hasLoadedAnyContent = true
+                }
+            }
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(for: Notification.Name.yianaDocumentsChanged)
+                .throttle(for: .seconds(2), scheduler: DispatchQueue.main, latest: true)
+        ) { _ in
+            #if DEBUG
+            SyncPerfLog.shared.countNotification()
+            #endif
+            Task { await viewModel.refresh() }
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(for: .yianaDocumentsDownloaded)
+        ) { notification in
+            guard let urls = notification.userInfo?["urls"] as? [URL] else { return }
+            for url in urls {
+                let standardURL = url.standardizedFileURL
+                downloadingURLs.remove(standardURL)
+                if standardURL == pendingOpenURL {
+                    pendingOpenURL = nil
+                    navigationPath.append(standardURL)
+                }
+            }
+        }
+        .refreshable { await refreshDocuments() }
+#if os(iOS)
+        .searchable(text: $searchText, prompt: "Search documents")
+        .accessibilityHint("Search by document title or document contents")
+#endif
+        .onChange(of: searchText) { _, newValue in
+            handleSearchChange(newValue)
+        }
+        .onChange(of: contentCountKey) { _, newValue in
+            if newValue > 0 {
+                hasLoadedAnyContent = true
+            }
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView()
+        }
+        #if os(macOS)
+        .sheet(item: $pdfImportData, content: bulkImportSheet)
+        .overlay(macDragOverlay)
+        .sheet(isPresented: $showingDuplicateScanner) {
+            DuplicateScannerView(isPresented: $showingDuplicateScanner)
+        }
+        #endif
+    }
+
+    // MARK: - V1 Body (Original layout)
+
+    private var v1Body: some View {
         NavigationStack(path: $navigationPath) {
             mainContent
                 .navigationTitle(documentListTitle)
@@ -116,64 +193,315 @@ struct DocumentListView: View {
                 .navigationDestination(for: URL.self, destination: navigationDestination)
                 .navigationDestination(for: DocumentNavigationData.self, destination: navigationDestinationForDocument)
         }
-        .task {
-            await loadDocuments()
-            await MainActor.run {
-                if contentCountKey > 0 {
-                    hasLoadedAnyContent = true
-                }
-            }
-        }
-        .onReceive(
-            NotificationCenter.default.publisher(for: Notification.Name.yianaDocumentsChanged)
-                .throttle(for: .seconds(2), scheduler: DispatchQueue.main, latest: true)
-        ) { _ in
-            // Document list updates via ValueObservation; this only refreshes folders
-            #if DEBUG
-            SyncPerfLog.shared.countNotification()
-            #endif
-            Task { await viewModel.refresh() }
-        }
-        .onReceive(
-            NotificationCenter.default.publisher(for: .yianaDocumentsDownloaded)
-        ) { notification in
-            guard let urls = notification.userInfo?["urls"] as? [URL] else { return }
-            for url in urls {
-                let standardURL = url.standardizedFileURL
-                downloadingURLs.remove(standardURL)
-                // Auto-open if this was a user-initiated download
-                if standardURL == pendingOpenURL {
-                    pendingOpenURL = nil
-                    navigationPath.append(standardURL)
-                }
-            }
-        }
-        .refreshable { await refreshDocuments() }
-#if os(iOS)
-        .searchable(text: $searchText, prompt: "Search documents")
-        .accessibilityHint("Search by document title or document contents")
-#endif
-        .onChange(of: searchText) { _, newValue in
-            handleSearchChange(newValue)
-        }
-        .onChange(of: contentCountKey) { _, newValue in
-            if newValue > 0 {
-                hasLoadedAnyContent = true
-            }
-        }
-#if os(macOS)
-        .sheet(item: $pdfImportData, content: bulkImportSheet)
-        .overlay(macDragOverlay)
-        #endif
-        .sheet(isPresented: $showingSettings) {
-            SettingsView()
-        }
-        #if os(macOS)
-        .sheet(isPresented: $showingDuplicateScanner) {
-            DuplicateScannerView(isPresented: $showingDuplicateScanner)
-        }
-        #endif
     }
+
+    // MARK: - V2 Body (Sidebar layout, macOS only)
+
+    #if os(macOS)
+    private var v2Body: some View {
+        NavigationSplitView(columnVisibility: $sidebarColumnVisibility) {
+            v2SidebarContent
+        } detail: {
+            NavigationStack(path: $navigationPath) {
+                v2DetailContent
+                    .navigationTitle(documentListTitle)
+                    .toolbar { v2ToolbarContent }
+                    .alert("New Document", isPresented: $showingCreateAlert, actions: newDocumentAlertActions)
+                .alert("Error", isPresented: $showingError, actions: errorAlertActions, message: errorAlertMessage)
+                .alert("New Folder", isPresented: $showingFolderAlert, actions: newFolderAlertActions)
+                .alert("Delete Document", isPresented: $showingDeleteConfirmation, actions: deleteDocumentAlertActions, message: deleteDocumentAlertMessage)
+                .alert("Rename", isPresented: $showingRenameAlert, actions: renameAlertActions)
+                .alert("Delete Folder", isPresented: $showingDeleteFolderConfirmation, actions: deleteFolderAlertActions, message: deleteFolderAlertMessage)
+                .alert("Delete Documents", isPresented: $showingBulkDeleteConfirmation) {
+                    Button("Cancel", role: .cancel) { }
+                    Button("Delete", role: .destructive) {
+                        let idsToDelete = selectedDocumentIDs
+                        selectedDocumentIDs.removeAll()
+                        isSelectMode = false
+                        Task { try? await viewModel.deleteDocuments(ids: idsToDelete) }
+                    }
+                } message: {
+                    Text("Delete \(selectedDocumentIDs.count) documents? This cannot be undone.")
+                }
+                .sheet(isPresented: $showingFolderPicker) {
+                    folderPickerSheet
+                }
+                    .navigationDestination(for: URL.self, destination: navigationDestination)
+                    .navigationDestination(for: DocumentNavigationData.self, destination: navigationDestinationForDocument)
+            }
+        }
+        .onChange(of: selectedSidebarFolder) { _, newFolder in
+            guard let folder = newFolder else { return }
+            Task { await viewModel.navigateToFolderPath(folder) }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            Text(uiVariant.displayName)
+                .font(.caption2)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(.ultraThinMaterial, in: Capsule())
+                .padding(8)
+                .opacity(0.6)
+        }
+    }
+
+    /// URL of the folder currently shown in the detail column.
+    private var v2CurrentFolderURL: URL {
+        let base = viewModel.documentsDirectory
+        guard let selected = selectedSidebarFolder, !selected.isEmpty else { return base }
+        return base.appendingPathComponent(selected)
+    }
+
+    @ViewBuilder
+    private var v2SidebarContent: some View {
+        let currentURL = v2CurrentFolderURL
+        List(selection: $selectedSidebarFolder) {
+            Label("Documents", systemImage: selectedSidebarFolder == "" ? "doc.on.doc.fill" : "doc.on.doc")
+                .tag("")
+
+            OutlineGroup(viewModel.folderTree, children: \.childrenOrNil) { node in
+                let isCurrentFolder = node.relativePath == (selectedSidebarFolder ?? "")
+                Label(node.name, systemImage: isCurrentFolder ? "folder.fill" : "folder")
+                    .fontWeight(isCurrentFolder ? .semibold : .regular)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                    .padding(.vertical, 2)
+                    .contentShape(Rectangle())
+                    .tag(node.relativePath)
+                    .onDrop(of: [.pdf], delegate: FolderDropDelegate(
+                        folderURL: node.url,
+                        dropTargetFolder: $dropTargetFolder,
+                        isDraggingPDFs: $isDraggingPDFs,
+                        handleInternalDrop: handleInternalDrop,
+                        handleExternalDrop: handleDrop,
+                        currentFolderURL: currentURL
+                    ))
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.accentColor.opacity(dropTargetFolder == node.url ? 0.25 : 0))
+                            .padding(.vertical, -4)
+                            .padding(.horizontal, -6)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .strokeBorder(Color.accentColor, lineWidth: dropTargetFolder == node.url ? 2 : 0)
+                            .padding(.vertical, -4)
+                            .padding(.horizontal, -6)
+                    )
+                    .animation(.easeInOut(duration: 0.12), value: dropTargetFolder)
+                    .contextMenu {
+                        Button {
+                            renameTarget = .folder(node.url)
+                            renameText = node.name
+                            showingRenameAlert = true
+                        } label: {
+                            Label("Rename", systemImage: "pencil")
+                        }
+
+                        Button {
+                            moveTarget = .folder(node.url)
+                            showingFolderPicker = true
+                        } label: {
+                            Label("Move to...", systemImage: "folder")
+                        }
+
+                        Divider()
+
+                        Button(role: .destructive) {
+                            folderToDelete = node.url
+                            folderDeleteContents = viewModel.folderContents(at: node.url)
+                            showingDeleteFolderConfirmation = true
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+            }
+        }
+        .listStyle(.sidebar)
+        .navigationSplitViewColumnWidth(min: 160, ideal: 220, max: 400)
+    }
+
+    @ViewBuilder
+    private var v2DetailContent: some View {
+        if downloadManager.isDownloading &&
+            viewModel.documents.isEmpty &&
+            viewModel.folderURLs.isEmpty &&
+            viewModel.otherFolderResults.isEmpty {
+            downloadingStateView
+        } else if viewModel.isLoading && viewModel.documents.isEmpty && viewModel.folderURLs.isEmpty {
+            downloadingStateView
+        } else if viewModel.isSearchInProgress && viewModel.documents.isEmpty && viewModel.folderURLs.isEmpty && viewModel.otherFolderResults.isEmpty {
+            VStack(spacing: 20) {
+                ProgressView()
+                    .scaleEffect(1.5)
+                Text("Searching...")
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if viewModel.documents.isEmpty && viewModel.folderURLs.isEmpty && viewModel.otherFolderResults.isEmpty && !viewModel.isSearchInProgress {
+            emptyStateView
+        } else {
+            VStack(spacing: 0) {
+                if viewModel.isSyncing {
+                    iCloudSyncIndicator
+                }
+
+                List(selection: isSelectMode ? $selectedDocumentIDs : nil) {
+                    documentsSection
+                    otherFoldersSection
+                    versionSection
+                }
+                .onDrop(of: [.pdf], delegate: ExternalPDFDropDelegate(
+                    isDraggingPDFs: $isDraggingPDFs,
+                    handleExternalDrop: handleDrop
+                ))
+            }
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var v2ToolbarContent: some ToolbarContent {
+        // No back button in V2 — sidebar handles navigation
+
+        // Select / Done toggle
+        ToolbarItem(placement: .automatic) {
+            Button {
+                if isSelectMode {
+                    selectedDocumentIDs.removeAll()
+                    isSelectMode = false
+                } else {
+                    isSelectMode = true
+                }
+            } label: {
+                Text(isSelectMode ? "Done" : "Select")
+            }
+        }
+
+        if !isSelectMode {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button(action: { showingCreateAlert = true }) {
+                        Label("New Document", systemImage: "doc")
+                    }
+                    Button(action: { showingFolderAlert = true }) {
+                        Label("New Folder", systemImage: "folder.badge.plus")
+                    }
+
+                    Divider()
+                    Button(action: selectPDFsForImport) {
+                        Label("Import PDFs...", systemImage: "square.and.arrow.down.on.square")
+                    }
+                    .keyboardShortcut("I", modifiers: [.command, .shift])
+                    .help("Import up to 100 PDF files")
+
+                    Button(action: selectFolderForImport) {
+                        Label("Import from Folder...", systemImage: "folder.badge.plus")
+                    }
+                    .keyboardShortcut("I", modifiers: [.command, .option])
+                    .help("Import all PDFs from a folder (for bulk imports)")
+
+                    Button(action: importFromFileList) {
+                        Label("Import from File List...", systemImage: "list.bullet.rectangle")
+                    }
+                    .help("Import PDFs from a text file containing file paths")
+
+                    Button(action: { openWindow(id: "bulk-export") }) {
+                        Label("Export PDFs...", systemImage: "square.and.arrow.up.on.square")
+                    }
+
+                    Divider()
+
+                    Button(action: { showingDuplicateScanner = true }) {
+                        Label("Find Duplicates...", systemImage: "doc.on.doc")
+                    }
+                    .help("Scan library for duplicate documents")
+                } label: {
+                    Label("Add", systemImage: "plus")
+                }
+                .toolbarActionAccessibility(label: "Add")
+            }
+
+            ToolbarItem(placement: .automatic) {
+                Menu {
+                    Section("Sort By") {
+                        sortButton(label: "Title", option: .title)
+                        sortButton(label: "Date Modified", option: .dateModified)
+                        sortButton(label: "Date Created", option: .dateCreated)
+                        sortButton(label: "Size", option: .size)
+                    }
+
+                    Divider()
+
+                    Button(action: toggleSortOrder) {
+                        Label(
+                            viewModel.currentSortAscending ? "Ascending" : "Descending",
+                            systemImage: viewModel.currentSortAscending ? "arrow.up" : "arrow.down"
+                        )
+                    }
+                } label: {
+                    Label("Sort", systemImage: "arrow.up.arrow.down")
+                }
+                .toolbarActionAccessibility(label: "Sort documents")
+            }
+
+            ToolbarItem(placement: .automatic) {
+                Button(action: startDownloadAll) {
+                    if downloadManager.isDownloading {
+                        HStack(spacing: 6) {
+                            ProgressView(value: downloadManager.downloadProgress)
+                                .progressViewStyle(.circular)
+                                .scaleEffect(0.9)
+                            Text("\(downloadManager.downloadedCount)/\(downloadManager.totalCount)")
+                                .font(.caption)
+                                .monospacedDigit()
+                        }
+                        .frame(minWidth: 80)
+                    } else {
+                        Label("Download All", systemImage: "icloud.and.arrow.down")
+                    }
+                }
+                .disabled(downloadManager.isDownloading)
+                .toolbarActionAccessibility(label: downloadManager.isDownloading ? "Downloading documents" : "Download all documents")
+            }
+
+            ToolbarItem(placement: .automatic) {
+                macSearchToolbar
+            }
+
+            #if DEBUG
+            ToolbarItem(placement: .automatic) {
+                DevelopmentMenu()
+            }
+            #endif
+
+            ToolbarItem(placement: .automatic) {
+                Button {
+                    showingSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+                .toolbarActionAccessibility(label: "Settings")
+            }
+        }
+
+        if isSelectMode && !selectedDocumentIDs.isEmpty {
+            ToolbarItem(placement: .automatic) {
+                HStack(spacing: 12) {
+                    bulkActionButtons
+                }
+            }
+        }
+
+        if isSelectMode {
+            ToolbarItem(placement: .automatic) {
+                Button("Select All") {
+                    selectAllDocuments()
+                }
+                .keyboardShortcut("a", modifiers: .command)
+            }
+        }
+    }
+    #endif
 
     private var emptyStateView: some View {
         VStack(spacing: 20) {
@@ -1554,12 +1882,17 @@ struct DocumentListView: View {
     }
 
     private func handleInternalDrop(dragItem: DocumentDragItem, targetFolderURL: URL) {
-        let folderName = targetFolderURL.lastPathComponent
+        // Derive the relative path from the folder URL vs the documents root.
+        // This works for both V1 (folder is child of current) and V2 (folder is
+        // any node in the tree).
+        let docsRoot = viewModel.documentsDirectory
         let targetPath: String
-        if viewModel.folderPath.isEmpty {
-            targetPath = folderName
+        if let range = targetFolderURL.path.range(of: docsRoot.path) {
+            let suffix = String(targetFolderURL.path[range.upperBound...])
+                .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            targetPath = suffix
         } else {
-            targetPath = viewModel.folderPath.joined(separator: "/") + "/" + folderName
+            targetPath = targetFolderURL.lastPathComponent
         }
         if let docItem = viewModel.documents.first(where: { $0.id == dragItem.id }) {
             Task { try? await viewModel.moveDocument(docItem, toFolder: targetPath) }
@@ -1623,15 +1956,24 @@ struct FolderDropDelegate: DropDelegate {
     @Binding var isDraggingPDFs: Bool
     let handleInternalDrop: (DocumentDragItem, URL) -> Void
     let handleExternalDrop: ([NSItemProvider]) -> Bool
+    /// The folder the dragged document lives in — drops here are no-ops.
+    var currentFolderURL: URL? = nil
+
+    private var isSelfDrop: Bool {
+        guard let current = currentFolderURL else { return false }
+        return folderURL.standardizedFileURL == current.standardizedFileURL
+    }
 
     func validateDrop(info: DropInfo) -> Bool {
-        if DocumentDragItem.inFlight != nil { return true }
+        if DocumentDragItem.inFlight != nil { return !isSelfDrop }
         return info.hasItemsConforming(to: [.pdf])
     }
 
     func dropEntered(info: DropInfo) {
         if DocumentDragItem.inFlight != nil {
-            dropTargetFolder = folderURL
+            if !isSelfDrop {
+                dropTargetFolder = folderURL
+            }
         } else {
             isDraggingPDFs = true
         }
@@ -1644,7 +1986,10 @@ struct FolderDropDelegate: DropDelegate {
     }
 
     func dropUpdated(info: DropInfo) -> DropProposal? {
-        DropProposal(operation: DocumentDragItem.inFlight != nil ? .move : .copy)
+        if DocumentDragItem.inFlight != nil && isSelfDrop {
+            return DropProposal(operation: .forbidden)
+        }
+        return DropProposal(operation: DocumentDragItem.inFlight != nil ? .move : .copy)
     }
 
     func performDrop(info: DropInfo) -> Bool {
@@ -1653,6 +1998,7 @@ struct FolderDropDelegate: DropDelegate {
                 DocumentDragItem.inFlight = nil
                 dropTargetFolder = nil
             }
+            guard !isSelfDrop else { return false }
             handleInternalDrop(dragItem, folderURL)
             return true
         }

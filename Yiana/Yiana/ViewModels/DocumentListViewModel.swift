@@ -49,6 +49,7 @@ class DocumentListViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var currentFolderName: String = "Documents"
     @Published var folderPath: [String] = []
+    @Published var folderTree: [FolderNode] = []
 
     /// Number of documents being filtered out due to iCloud sync (UUID placeholders)
     @Published var syncingDocumentCount: Int = 0
@@ -98,6 +99,7 @@ class DocumentListViewModel: ObservableObject {
         currentFolderName = repository.currentFolderName
         folderPath = repository.folderPathComponents
         folderURLs = allFolderURLs
+        folderTree = repository.buildFolderTree()
 
         // Start GRDB ValueObservation -- it will push document updates automatically
         observeDocuments()
@@ -248,6 +250,7 @@ class DocumentListViewModel: ObservableObject {
         if currentSearchText.isEmpty {
             folderURLs = allFolderURLs
         }
+        folderTree = repository.buildFolderTree()
     }
 
     // MARK: - Sorting
@@ -276,6 +279,16 @@ class DocumentListViewModel: ObservableObject {
 
     func navigateToRoot() async {
         repository.navigateToRoot()
+        await loadDocuments()
+    }
+
+    /// Navigate directly to an absolute folder path (relative to documents root).
+    /// Used by V2 sidebar selection — jumps to any folder in one step.
+    func navigateToFolderPath(_ path: String) async {
+        repository.navigateToRoot()
+        if !path.isEmpty {
+            repository.navigateToFolder(path)
+        }
         await loadDocuments()
     }
 

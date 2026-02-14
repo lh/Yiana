@@ -203,6 +203,34 @@ class DocumentRepository {
         return currentFolderPath.components(separatedBy: "/").filter { !$0.isEmpty }
     }
 
+    /// Build a recursive folder tree starting from the documents root.
+    func buildFolderTree() -> [FolderNode] {
+        return buildFolderTreeNodes(at: documentsDirectory, relativePath: "")
+    }
+
+    private func buildFolderTreeNodes(at directory: URL, relativePath: String) -> [FolderNode] {
+        guard let urls = try? FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return []
+        }
+
+        let folders = urls.filter { url in
+            var isDirectory: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
+                  isDirectory.boolValue else { return false }
+            return UUID(uuidString: url.lastPathComponent) == nil
+        }.sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
+
+        return folders.map { folderURL in
+            let path = relativePath.isEmpty ? folderURL.lastPathComponent : relativePath + "/" + folderURL.lastPathComponent
+            let children = buildFolderTreeNodes(at: folderURL, relativePath: path)
+            return FolderNode(name: folderURL.lastPathComponent, url: folderURL, relativePath: path, children: children)
+        }
+    }
+
     // MARK: - Search Operations
 
     /// Recursively find all documents in all folders
