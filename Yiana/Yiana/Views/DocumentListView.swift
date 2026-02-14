@@ -264,6 +264,34 @@ struct DocumentListView: View {
                         }
                     ))
                     .animation(.easeInOut(duration: 0.12), value: dropTargetFolder)
+                    .contextMenu {
+                        if !folder.path.isEmpty {
+                            Button {
+                                renameTarget = .folder(folderURL)
+                                renameText = folderURL.lastPathComponent
+                                showingRenameAlert = true
+                            } label: {
+                                Label("Rename", systemImage: "pencil")
+                            }
+
+                            Button {
+                                moveTarget = .folder(folderURL)
+                                showingFolderPicker = true
+                            } label: {
+                                Label("Move to...", systemImage: "folder")
+                            }
+
+                            Divider()
+
+                            Button(role: .destructive) {
+                                folderToDelete = folderURL
+                                folderDeleteContents = viewModel.folderContents(at: folderURL)
+                                showingDeleteFolderConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    }
                     Divider().padding(.leading, CGFloat(depth) * 16 + 16)
                 }
             }
