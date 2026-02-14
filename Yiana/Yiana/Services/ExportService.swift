@@ -177,8 +177,7 @@ class ExportService {
         return "\(baseName).pdf"
     }
 
-    #if os(iOS)
-    /// Create a temporary URL for sharing
+    /// Create a temporary URL for sharing or drag export
     func createTemporaryPDF(from documentURL: URL) throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory
         let fileName = suggestedFileName(for: documentURL)
@@ -187,5 +186,4 @@ class ExportService {
         try exportToPDF(from: documentURL, to: tempURL)
         return tempURL
     }
-    #endif
 }

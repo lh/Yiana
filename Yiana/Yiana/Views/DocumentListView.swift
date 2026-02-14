@@ -5,9 +5,9 @@
 
 import SwiftUI
 import Combine
+import UniformTypeIdentifiers
 import YianaDocumentArchive
 #if os(macOS)
-import UniformTypeIdentifiers
 
 struct PDFImportData: Identifiable {
     let id = UUID()
@@ -51,6 +51,9 @@ struct DocumentListView: View {
     @State private var showingDeleteFolderConfirmation = false
     @State private var folderToDelete: URL?
     @State private var folderDeleteContents: DocumentRepository.FolderContents?
+
+    // Drag & drop state
+    @State private var dropTargetFolder: URL?
 
     // Multi-select state
     @State private var isSelectMode = false
@@ -160,7 +163,6 @@ struct DocumentListView: View {
         }
 #if os(macOS)
         .sheet(item: $pdfImportData, content: bulkImportSheet)
-        .onDrop(of: [.pdf], isTargeted: $isDraggingPDFs, perform: handleDrop)
         .overlay(macDragOverlay)
         #endif
         .sheet(isPresented: $showingSettings) {
@@ -680,6 +682,11 @@ struct DocumentListView: View {
             #if os(iOS)
             .listStyle(.insetGrouped)
             .environment(\.editMode, isSelectMode ? .constant(.active) : .constant(.inactive))
+            #elseif os(macOS)
+            .onDrop(of: [.pdf], delegate: ExternalPDFDropDelegate(
+                isDraggingPDFs: $isDraggingPDFs,
+                handleExternalDrop: handleDrop
+            ))
             #endif
         }
     }
@@ -717,6 +724,20 @@ struct DocumentListView: View {
             Section("Folders") {
                 ForEach(viewModel.folderURLs, id: \.self) { folderURL in
                     folderRow(for: folderURL)
+                        #if os(macOS)
+                        .onDrop(of: [.pdf], delegate: FolderDropDelegate(
+                            folderURL: folderURL,
+                            dropTargetFolder: $dropTargetFolder,
+                            isDraggingPDFs: $isDraggingPDFs,
+                            handleInternalDrop: handleInternalDrop,
+                            handleExternalDrop: handleDrop
+                        ))
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(Color.accentColor.opacity(dropTargetFolder == folderURL ? 0.35 : 0))
+                        )
+                        .animation(.easeInOut(duration: 0.12), value: dropTargetFolder)
+                        #endif
                         .contextMenu {
                             Button {
                                 renameTarget = .folder(folderURL)
@@ -755,6 +776,15 @@ struct DocumentListView: View {
                 ForEach(viewModel.documents) { item in
                     documentNavigationRow(for: item)
                         .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            Button {
+                                moveTarget = .document(item)
+                                showingFolderPicker = true
+                            } label: {
+                                Label("Move", systemImage: "folder")
+                            }
+                            .tint(.blue)
+                            .disabled(item.isPlaceholder)
+
                             Button {
                                 duplicateDocument(item.url)
                             } label: {
@@ -908,6 +938,21 @@ struct DocumentListView: View {
                 .buttonStyle(.plain)
             } else {
                 let searchResult = viewModel.searchResults.first { $0.documentURL == item.url }
+                #if os(macOS)
+                // Programmatic navigation via tap — NavigationLink captures
+                // mouseDown before .onDrag can recognize a drag gesture.
+                // .onTapGesture fires on release (no movement), so drag and
+                // tap coexist cleanly.
+                DocumentRow(item: item, searchResult: searchResult)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if let result = searchResult {
+                            navigationPath.append(DocumentNavigationData(url: item.url, searchResult: result))
+                        } else {
+                            navigationPath.append(item.url)
+                        }
+                    }
+                #else
                 if let result = searchResult {
                     NavigationLink(value: DocumentNavigationData(url: item.url, searchResult: result)) {
                         DocumentRow(item: item, searchResult: result)
@@ -917,9 +962,15 @@ struct DocumentListView: View {
                         DocumentRow(item: item, searchResult: nil)
                     }
                 }
+                #endif
             }
         }
         .tag(item.id)
+        .onDrag {
+            DocumentDragItem(id: item.id, documentURL: item.url).makeItemProvider()
+        } preview: {
+            DocumentRow(item: item, searchResult: nil)
+        }
     }
 
     @ToolbarContentBuilder
@@ -1502,6 +1553,19 @@ struct DocumentListView: View {
         }
     }
 
+    private func handleInternalDrop(dragItem: DocumentDragItem, targetFolderURL: URL) {
+        let folderName = targetFolderURL.lastPathComponent
+        let targetPath: String
+        if viewModel.folderPath.isEmpty {
+            targetPath = folderName
+        } else {
+            targetPath = viewModel.folderPath.joined(separator: "/") + "/" + folderName
+        }
+        if let docItem = viewModel.documents.first(where: { $0.id == dragItem.id }) {
+            Task { try? await viewModel.moveDocument(docItem, toFolder: targetPath) }
+        }
+    }
+
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
         var pdfURLs: [URL] = []
         let group = DispatchGroup()
@@ -1546,6 +1610,95 @@ struct DocumentListView: View {
     }
     #endif
 }
+
+#if os(macOS)
+/// Drop delegate for a single folder row. SwiftUI handles hit-testing natively —
+/// no coordinate math, no GeometryReader, no frame preference keys.
+///
+/// Handles both internal document moves AND external PDF imports, because
+/// SwiftUI does not propagate rejected drops from inner to outer drop zones.
+struct FolderDropDelegate: DropDelegate {
+    let folderURL: URL
+    @Binding var dropTargetFolder: URL?
+    @Binding var isDraggingPDFs: Bool
+    let handleInternalDrop: (DocumentDragItem, URL) -> Void
+    let handleExternalDrop: ([NSItemProvider]) -> Bool
+
+    func validateDrop(info: DropInfo) -> Bool {
+        if DocumentDragItem.inFlight != nil { return true }
+        return info.hasItemsConforming(to: [.pdf])
+    }
+
+    func dropEntered(info: DropInfo) {
+        if DocumentDragItem.inFlight != nil {
+            dropTargetFolder = folderURL
+        } else {
+            isDraggingPDFs = true
+        }
+    }
+
+    func dropExited(info: DropInfo) {
+        if dropTargetFolder == folderURL {
+            dropTargetFolder = nil
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: DocumentDragItem.inFlight != nil ? .move : .copy)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        if let dragItem = DocumentDragItem.inFlight {
+            defer {
+                DocumentDragItem.inFlight = nil
+                dropTargetFolder = nil
+            }
+            handleInternalDrop(dragItem, folderURL)
+            return true
+        }
+        // External PDF — forward to import handler
+        defer { isDraggingPDFs = false }
+        let pdfProviders = info.itemProviders(for: [.pdf])
+        return handleExternalDrop(pdfProviders)
+    }
+}
+
+/// Drop delegate for the List — handles external PDF drops only (Finder → Yiana).
+/// Internal drags are handled by per-folder FolderDropDelegate instances.
+struct ExternalPDFDropDelegate: DropDelegate {
+    @Binding var isDraggingPDFs: Bool
+    let handleExternalDrop: ([NSItemProvider]) -> Bool
+
+    func validateDrop(info: DropInfo) -> Bool {
+        // Decline internal drags — folder delegates handle those
+        guard DocumentDragItem.inFlight == nil else { return false }
+        return info.hasItemsConforming(to: [.pdf])
+    }
+
+    func dropEntered(info: DropInfo) {
+        guard DocumentDragItem.inFlight == nil else { return }
+        isDraggingPDFs = true
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .copy)
+    }
+
+    func dropExited(info: DropInfo) {
+        isDraggingPDFs = false
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        defer { isDraggingPDFs = false }
+        guard DocumentDragItem.inFlight == nil else {
+            DocumentDragItem.inFlight = nil
+            return false
+        }
+        let pdfProviders = info.itemProviders(for: [.pdf])
+        return handleExternalDrop(pdfProviders)
+    }
+}
+#endif
 
 // Simple row view for document -- driven entirely by DocumentListItem (no ZIP opens)
 struct DocumentRow: View {

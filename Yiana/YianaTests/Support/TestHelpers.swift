@@ -1,8 +1,14 @@
 import Foundation
 import PDFKit
+@testable import Yiana
 #if os(iOS)
 import UIKit
 #endif
+
+// MARK: - Compatibility shim for stale tests referencing removed property
+extension DocumentListViewModel {
+    var documentURLs: [URL] { documents.map(\.url) }
+}
 
 enum TempDir {
     static func makeUnique(subpath: String = UUID().uuidString) throws -> URL {
