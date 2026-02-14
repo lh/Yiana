@@ -732,12 +732,18 @@ struct DocumentListView: View {
                             handleInternalDrop: handleInternalDrop,
                             handleExternalDrop: handleDrop
                         ))
+                        #else
+                        .onDrop(of: [.pdf], delegate: IOSFolderDropDelegate(
+                            folderURL: folderURL,
+                            dropTargetFolder: $dropTargetFolder,
+                            handleInternalDrop: handleInternalDrop
+                        ))
+                        #endif
                         .background(
                             RoundedRectangle(cornerRadius: 6)
                                 .fill(Color.accentColor.opacity(dropTargetFolder == folderURL ? 0.35 : 0))
                         )
                         .animation(.easeInOut(duration: 0.12), value: dropTargetFolder)
-                        #endif
                         .contextMenu {
                             Button {
                                 renameTarget = .folder(folderURL)
@@ -1553,19 +1559,6 @@ struct DocumentListView: View {
         }
     }
 
-    private func handleInternalDrop(dragItem: DocumentDragItem, targetFolderURL: URL) {
-        let folderName = targetFolderURL.lastPathComponent
-        let targetPath: String
-        if viewModel.folderPath.isEmpty {
-            targetPath = folderName
-        } else {
-            targetPath = viewModel.folderPath.joined(separator: "/") + "/" + folderName
-        }
-        if let docItem = viewModel.documents.first(where: { $0.id == dragItem.id }) {
-            Task { try? await viewModel.moveDocument(docItem, toFolder: targetPath) }
-        }
-    }
-
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
         var pdfURLs: [URL] = []
         let group = DispatchGroup()
@@ -1609,6 +1602,19 @@ struct DocumentListView: View {
         return !providers.isEmpty
     }
     #endif
+
+    private func handleInternalDrop(dragItem: DocumentDragItem, targetFolderURL: URL) {
+        let folderName = targetFolderURL.lastPathComponent
+        let targetPath: String
+        if viewModel.folderPath.isEmpty {
+            targetPath = folderName
+        } else {
+            targetPath = viewModel.folderPath.joined(separator: "/") + "/" + folderName
+        }
+        if let docItem = viewModel.documents.first(where: { $0.id == dragItem.id }) {
+            Task { try? await viewModel.moveDocument(docItem, toFolder: targetPath) }
+        }
+    }
 }
 
 #if os(macOS)
@@ -1696,6 +1702,43 @@ struct ExternalPDFDropDelegate: DropDelegate {
         }
         let pdfProviders = info.itemProviders(for: [.pdf])
         return handleExternalDrop(pdfProviders)
+    }
+}
+#endif
+
+#if os(iOS)
+/// Drop delegate for folder rows on iOS — handles internal document moves only.
+struct IOSFolderDropDelegate: DropDelegate {
+    let folderURL: URL
+    @Binding var dropTargetFolder: URL?
+    let handleInternalDrop: (DocumentDragItem, URL) -> Void
+
+    func validateDrop(info: DropInfo) -> Bool {
+        DocumentDragItem.inFlight != nil
+    }
+
+    func dropEntered(info: DropInfo) {
+        dropTargetFolder = folderURL
+    }
+
+    func dropExited(info: DropInfo) {
+        if dropTargetFolder == folderURL {
+            dropTargetFolder = nil
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        guard let dragItem = DocumentDragItem.inFlight else { return false }
+        defer {
+            DocumentDragItem.inFlight = nil
+            dropTargetFolder = nil
+        }
+        handleInternalDrop(dragItem, folderURL)
+        return true
     }
 }
 #endif
