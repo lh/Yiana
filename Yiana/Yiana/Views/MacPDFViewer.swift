@@ -30,6 +30,8 @@ struct MacPDFViewer: View {
     @State private var sidebarMode: SidebarMode = .pages
     var onRequestPageManagement: (() -> Void)?
 
+    @AppStorage(UIVariant.storageKey) private var uiVariant: UIVariant = .current
+
     private var showAddressesInSidebar: Bool {
         AddressRepository.isDatabaseAvailable
     }
@@ -48,172 +50,12 @@ struct MacPDFViewer: View {
     }
 
     var body: some View {
-        HSplitView {
-            if isSidebarVisible {
-                thumbnailSidebar()
-            }
-
-            VStack(spacing: 0) {
-                // Navigation toolbar
-                let pageCount = pdfDocument?.pageCount ?? 0
-                HStack {
-                    // Toggle sidebar button
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isSidebarVisible.toggle()
-                        }
-                    } label: {
-                        Image(systemName: "sidebar.left")
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .help(isSidebarVisible ? "Hide Sidebar" : "Show Sidebar")
-                    .toolbarActionAccessibility(
-                        label: isSidebarVisible ? "Hide sidebar" : "Show sidebar",
-                        keyboardShortcut: "Control Command S"
-                    )
-
-                    Divider()
-                        .frame(height: 20)
-                        .padding(.horizontal, 8)
-
-                    // Previous page button
-                    Button {
-                        if currentPage > 0 {
-                            navigateToPage = currentPage - 1
-                        }
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .disabled(currentPage <= 0)
-                    .help("Previous Page (← or ↑)")
-                    .toolbarActionAccessibility(label: "Previous page", keyboardShortcut: "Arrow left")
-                    .accessibilityValue("Page \(currentPage + 1) of \(pageCount)")
-
-                    // Page number display and input
-                    if showingPageInput {
-                        HStack(spacing: 4) {
-                            TextField("", text: $pageInputText)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: 50)
-                                .onSubmit {
-                                    if let pageNum = Int(pageInputText),
-                                       pageNum > 0,
-                                       pageNum <= pageCount {
-                                        navigateToPage = pageNum - 1
-                                    }
-                                    showingPageInput = false
-                                    pageInputText = ""
-                                }
-                                .accessibilityLabel("Page number")
-                                .accessibilityValue("Currently on page \(currentPage + 1)")
-                                .accessibilityHint("Enter a page number and press Return")
-                            Text("of \(pageCount)")
-                                .foregroundColor(.secondary)
-                        }
-                    } else {
-                        Button {
-                            showingPageInput = true
-                            pageInputText = "\(currentPage + 1)"
-                        } label: {
-                            Text("Page \(currentPage + 1) of \(pageCount)")
-                                .foregroundColor(.secondary)
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Click to jump to page")
-                        .toolbarActionAccessibility(label: "Jump to page")
-                    }
-
-                    // Next page button
-                    Button {
-                        if currentPage < pageCount - 1 {
-                            navigateToPage = currentPage + 1
-                        }
-                    } label: {
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .disabled(currentPage >= pageCount - 1)
-                    .help("Next Page (→ or ↓)")
-                    .toolbarActionAccessibility(label: "Next page", keyboardShortcut: "Arrow right")
-                    .accessibilityValue("Page \(currentPage + 1) of \(pageCount)")
-
-                    Spacer()
-
-                    // Zoom controls
-                    HStack(spacing: 4) {
-                        Button {
-                            zoomAction = .zoomOut
-                        } label: {
-                            Image(systemName: "minus.magnifyingglass")
-                                .foregroundColor(.secondary)
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Zoom Out")
-                        .keyboardShortcut("-", modifiers: .command)
-                        .toolbarActionAccessibility(label: "Zoom out", keyboardShortcut: "Command minus")
-
-                        Button {
-                            zoomAction = .zoomIn
-                        } label: {
-                            Image(systemName: "plus.magnifyingglass")
-                                .foregroundColor(.secondary)
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Zoom In")
-                        .keyboardShortcut("+", modifiers: .command)
-                        .toolbarActionAccessibility(label: "Zoom in", keyboardShortcut: "Command plus")
-
-                        Divider()
-                            .frame(height: 20)
-                            .padding(.horizontal, 4)
-
-                        // Fit Page button
-                        Button {
-                            fitMode = .height
-                            zoomAction = .fitToWindow
-                        } label: {
-                            Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                .foregroundColor(.secondary)
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Fit Page (⌘0)")
-                        .keyboardShortcut("0", modifiers: .command)
-                        .toolbarActionAccessibility(label: "Fit page", keyboardShortcut: "Command zero")
-
-                        // Fit Width button
-                        Button {
-                            fitMode = .width
-                            zoomAction = .fitToWindow
-                        } label: {
-                            Image(systemName: "arrow.left.and.right")
-                                .foregroundColor(.secondary)
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Fit Width (⌘3)")
-                        .keyboardShortcut("3", modifiers: .command)
-                        .toolbarActionAccessibility(label: "Fit width", keyboardShortcut: "Command three")
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-                .background(Color(NSColor.controlBackgroundColor))
-
-                Divider()
-
-                // PDF viewer - use currentPDFData instead of direct pdfData
-                if let pdfData = currentPDFData {
-                    PDFViewer(
-                        pdfData: pdfData,
-                        navigateToPage: $navigateToPage,
-                        currentPage: $currentPage,
-                        zoomAction: $zoomAction,
-                        fitMode: $fitMode
-                    )
-                }
+        Group {
+            switch uiVariant {
+            case .current:
+                v1Body
+            case .v2:
+                v2Body
             }
         }
         .task {
@@ -233,8 +75,284 @@ struct MacPDFViewer: View {
         }
     }
 
+    // MARK: - V1 Body (Original)
+
+    private var v1Body: some View {
+        HSplitView {
+            if isSidebarVisible {
+                thumbnailSidebar(width: 250)
+            }
+
+            VStack(spacing: 0) {
+                v1NavigationToolbar
+                Divider()
+                pdfContent
+            }
+        }
+    }
+
+    private var v1NavigationToolbar: some View {
+        let pageCount = pdfDocument?.pageCount ?? 0
+        return HStack {
+            sidebarToggleButton
+
+            Divider()
+                .frame(height: 20)
+                .padding(.horizontal, 8)
+
+            pageNavPrevButton(pageCount: pageCount)
+            pageNavDisplay(pageCount: pageCount, showPagePrefix: true)
+            pageNavNextButton(pageCount: pageCount)
+
+            Spacer()
+
+            HStack(spacing: 4) {
+                zoomOutButton
+                zoomInButton
+
+                Divider()
+                    .frame(height: 20)
+                    .padding(.horizontal, 4)
+
+                fitPageButton
+                fitWidthButton
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(Color(NSColor.controlBackgroundColor))
+    }
+
+    // MARK: - V2 Body (Compact Toolbar)
+
+    private var v2Body: some View {
+        HStack(spacing: 0) {
+            if isSidebarVisible {
+                thumbnailSidebar(width: 120)
+                Divider()
+            }
+
+            VStack(spacing: 0) {
+                v2NavigationBar
+                Divider()
+                pdfContent
+            }
+        }
+    }
+
+    private var v2NavigationBar: some View {
+        let pageCount = pdfDocument?.pageCount ?? 0
+        return HStack(spacing: 0) {
+            // Left column: sidebar toggle
+            HStack {
+                sidebarToggleButton
+                Spacer()
+            }
+            .frame(maxWidth: .infinity)
+
+            // Centre column: page navigator in pill (centred to window)
+            HStack(spacing: 2) {
+                pageNavPrevButton(pageCount: pageCount)
+                pageNavDisplay(pageCount: pageCount, showPagePrefix: false)
+                pageNavNextButton(pageCount: pageCount)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
+            .clipShape(Capsule())
+
+            // Right column: zoom + fit toggle
+            HStack {
+                Spacer()
+                HStack(spacing: 4) {
+                    zoomOutButton
+                    zoomInButton
+                    fitToggleButton
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color(NSColor.windowBackgroundColor))
+    }
+
+    // MARK: - Shared Controls
+
     @ViewBuilder
-    private func thumbnailSidebar() -> some View {
+    private var pdfContent: some View {
+        if let pdfData = currentPDFData {
+            PDFViewer(
+                pdfData: pdfData,
+                navigateToPage: $navigateToPage,
+                currentPage: $currentPage,
+                zoomAction: $zoomAction,
+                fitMode: $fitMode
+            )
+        }
+    }
+
+    private var sidebarToggleButton: some View {
+        Button {
+            isSidebarVisible.toggle()
+        } label: {
+            Image(systemName: "sidebar.left")
+                .foregroundColor(isSidebarVisible ? .accentColor : .secondary)
+        }
+        .buttonStyle(.borderless)
+        .help(isSidebarVisible ? "Hide Sidebar" : "Show Sidebar")
+        .toolbarActionAccessibility(
+            label: isSidebarVisible ? "Hide sidebar" : "Show sidebar",
+            keyboardShortcut: "Control Command S"
+        )
+    }
+
+    private func pageNavPrevButton(pageCount: Int) -> some View {
+        Button {
+            if currentPage > 0 {
+                navigateToPage = currentPage - 1
+            }
+        } label: {
+            Image(systemName: "chevron.left")
+                .foregroundColor(.secondary)
+        }
+        .buttonStyle(.borderless)
+        .disabled(currentPage <= 0)
+        .help("Previous Page (← or ↑)")
+        .toolbarActionAccessibility(label: "Previous page", keyboardShortcut: "Arrow left")
+        .accessibilityValue("Page \(currentPage + 1) of \(pageCount)")
+    }
+
+    @ViewBuilder
+    private func pageNavDisplay(pageCount: Int, showPagePrefix: Bool = true) -> some View {
+        if showingPageInput {
+            HStack(spacing: 4) {
+                TextField("", text: $pageInputText)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 50)
+                    .onSubmit {
+                        if let pageNum = Int(pageInputText),
+                           pageNum > 0,
+                           pageNum <= pageCount {
+                            navigateToPage = pageNum - 1
+                        }
+                        showingPageInput = false
+                        pageInputText = ""
+                    }
+                    .accessibilityLabel("Page number")
+                    .accessibilityValue("Currently on page \(currentPage + 1)")
+                    .accessibilityHint("Enter a page number and press Return")
+                Text("of \(pageCount)")
+                    .foregroundColor(.secondary)
+            }
+        } else {
+            Button {
+                showingPageInput = true
+                pageInputText = "\(currentPage + 1)"
+            } label: {
+                Text(showPagePrefix ? "Page \(currentPage + 1) of \(pageCount)" : "\(currentPage + 1) of \(pageCount)")
+                    .foregroundColor(.secondary)
+                    .font(.system(size: showPagePrefix ? 13 : 12))
+            }
+            .buttonStyle(.borderless)
+            .help("Click to jump to page")
+            .toolbarActionAccessibility(label: "Jump to page")
+        }
+    }
+
+    private func pageNavNextButton(pageCount: Int) -> some View {
+        Button {
+            if currentPage < pageCount - 1 {
+                navigateToPage = currentPage + 1
+            }
+        } label: {
+            Image(systemName: "chevron.right")
+                .foregroundColor(.secondary)
+        }
+        .buttonStyle(.borderless)
+        .disabled(currentPage >= pageCount - 1)
+        .help("Next Page (→ or ↓)")
+        .toolbarActionAccessibility(label: "Next page", keyboardShortcut: "Arrow right")
+        .accessibilityValue("Page \(currentPage + 1) of \(pageCount)")
+    }
+
+    private var zoomOutButton: some View {
+        Button {
+            zoomAction = .zoomOut
+        } label: {
+            Image(systemName: "minus.magnifyingglass")
+                .foregroundColor(.secondary)
+        }
+        .buttonStyle(.borderless)
+        .help("Zoom Out")
+        .keyboardShortcut("-", modifiers: .command)
+        .toolbarActionAccessibility(label: "Zoom out", keyboardShortcut: "Command minus")
+    }
+
+    private var zoomInButton: some View {
+        Button {
+            zoomAction = .zoomIn
+        } label: {
+            Image(systemName: "plus.magnifyingglass")
+                .foregroundColor(.secondary)
+        }
+        .buttonStyle(.borderless)
+        .help("Zoom In")
+        .keyboardShortcut("+", modifiers: .command)
+        .toolbarActionAccessibility(label: "Zoom in", keyboardShortcut: "Command plus")
+    }
+
+    private var fitPageButton: some View {
+        Button {
+            fitMode = .height
+            zoomAction = .fitToWindow
+        } label: {
+            Image(systemName: "arrow.up.left.and.arrow.down.right")
+                .foregroundColor(.secondary)
+        }
+        .buttonStyle(.borderless)
+        .help("Fit Page (⌘0)")
+        .keyboardShortcut("0", modifiers: .command)
+        .toolbarActionAccessibility(label: "Fit page", keyboardShortcut: "Command zero")
+    }
+
+    private var fitWidthButton: some View {
+        Button {
+            fitMode = .width
+            zoomAction = .fitToWindow
+        } label: {
+            Image(systemName: "arrow.left.and.right")
+                .foregroundColor(.secondary)
+        }
+        .buttonStyle(.borderless)
+        .help("Fit Width (⌘3)")
+        .keyboardShortcut("3", modifiers: .command)
+        .toolbarActionAccessibility(label: "Fit width", keyboardShortcut: "Command three")
+    }
+
+    /// V2 only: single toggle that cycles between fit-to-height and fit-to-width
+    private var fitToggleButton: some View {
+        Button {
+            if fitMode == .height {
+                fitMode = .width
+            } else {
+                fitMode = .height
+            }
+            zoomAction = .fitToWindow
+        } label: {
+            Image(systemName: fitMode == .height
+                  ? "arrow.up.and.down"
+                  : "arrow.left.and.right")
+                .foregroundColor(.secondary)
+        }
+        .buttonStyle(.borderless)
+        .help(fitMode == .height ? "Fit Height (click for Fit Width)" : "Fit Width (click for Fit Height)")
+        .keyboardShortcut("0", modifiers: .command)
+        .toolbarActionAccessibility(label: fitMode == .height ? "Fit height" : "Fit width")
+    }
+
+    @ViewBuilder
+    private func thumbnailSidebar(width: CGFloat) -> some View {
         VStack(spacing: 0) {
             // Mode switcher at top (only show if addresses available)
             if showAddressesInSidebar {
@@ -256,7 +374,7 @@ struct MacPDFViewer: View {
                 addressesSidebarContent()
             }
         }
-        .frame(width: 250)
+        .frame(width: width)
         .background(Color(NSColor.controlBackgroundColor))
     }
 

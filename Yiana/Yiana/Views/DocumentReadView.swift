@@ -30,14 +30,44 @@ struct DocumentReadView: View {
     @State private var sidebarWasVisibleBeforeOrganiser = true
     @State private var sidebarRefreshID = UUID()
 
+    @AppStorage(UIVariant.storageKey) private var uiVariant: UIVariant = .current
+
     init(documentURL: URL, searchResult: SearchResult? = nil) {
         self.documentURL = documentURL
         self.searchResult = searchResult
     }
 
     var body: some View {
+        Group {
+            switch uiVariant {
+            case .current:
+                v1Body
+            case .v2:
+                v2Body
+            }
+        }
+        .task {
+            await loadDocument()
+        }
+        .sheet(isPresented: $showingPageManagement) {
+            pageManagementSheet
+        }
+        .alert("Export Error", isPresented: $showingExportError) {
+            Button("OK") { }
+        } message: {
+            Text(exportErrorMessage)
+        }
+        .onChange(of: viewModel?.pdfData) { _, newValue in
+            if let newValue = newValue {
+                pdfData = newValue
+            }
+        }
+    }
+
+    // MARK: - V1 Body (Original)
+
+    private var v1Body: some View {
         HSplitView {
-            // Main document view
             VStack(spacing: 0) {
                 ReadOnlyBanner(isReadOnly: isReadOnly)
                 DocumentReadToolbar(
@@ -61,7 +91,6 @@ struct DocumentReadView: View {
                 )
             }
 
-            // Info panel (when visible)
             if showingInfoPanel, let document = document {
                 DocumentInfoPanel(document: document)
                     .frame(minWidth: 300, maxWidth: 400)
@@ -86,21 +115,75 @@ struct DocumentReadView: View {
                 }
             }
         }
-        .task {
-            await loadDocument()
+    }
+
+    // MARK: - V2 Body (Compact Toolbar)
+
+    private var v2Body: some View {
+        ZStack(alignment: .trailing) {
+            // Main content (full width)
+            VStack(spacing: 0) {
+                ReadOnlyBanner(isReadOnly: isReadOnly)
+                DocumentReadContent(
+                    isLoading: isLoading,
+                    errorMessage: errorMessage,
+                    pdfData: pdfData,
+                    viewModel: viewModel,
+                    isSidebarVisible: $isSidebarVisible,
+                    sidebarRefreshID: sidebarRefreshID,
+                    onRequestPageManagement: handleManagePages
+                )
+            }
+
+            // Right sidebar as overlay
+            if showingInfoPanel, let document = document {
+                DocumentInfoPanel(document: document)
+                    .frame(width: 340)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 0))
+                    .shadow(color: .black.opacity(0.3), radius: 8, x: -2)
+                    .transition(.move(edge: .trailing))
+            }
         }
-        .sheet(isPresented: $showingPageManagement) {
-            pageManagementSheet
-        }
-        .alert("Export Error", isPresented: $showingExportError) {
-            Button("OK") { }
-        } message: {
-            Text(exportErrorMessage)
-        }
-        .onChange(of: viewModel?.pdfData) { _, newValue in
-            // Sync viewModel changes back to local state for legacy support
-            if let newValue = newValue {
-                pdfData = newValue
+        .navigationTitle(documentURL.deletingPathExtension().lastPathComponent)
+        .toolbarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                if let viewModel = viewModel {
+                    HStack(spacing: 8) {
+                        if viewModel.isSaving {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                                .help("Saving document...")
+                        } else if viewModel.hasChanges {
+                            Image(systemName: "circle.fill")
+                                .foregroundColor(.orange)
+                                .font(.system(size: 8))
+                                .help("Unsaved changes")
+                        }
+                    }
+                }
+            }
+
+            ToolbarItem(placement: .primaryAction) {
+                HStack(spacing: 10) {
+                    if hasPDFContent {
+                        Button(action: handleManagePages) {
+                            Label("Manage Pages", systemImage: "rectangle.stack")
+                        }
+                        .help("Manage pages (copy, cut, paste, reorder)")
+                    }
+
+                    Button(action: exportPDF) {
+                        Label("Export PDF", systemImage: "square.and.arrow.up")
+                    }
+                    .help("Export as PDF")
+
+                    Button(action: handleToggleInfo) {
+                        Label("Info", systemImage: showingInfoPanel ? "info.circle.fill" : "info.circle")
+                    }
+                    .help("Toggle document info panel")
+                }
             }
         }
     }
