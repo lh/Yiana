@@ -1,5 +1,16 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/rose/Code/Yiana && echo '=== Git Status ===' && git status --short && echo '=== Unstaged Changes ===' && git diff --stat"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "TaskUpdate",

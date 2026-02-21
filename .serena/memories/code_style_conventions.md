@@ -88,6 +88,13 @@ Task { doSomething(with: captured) }
 - When combining selection with navigation, conditionally render: plain view in select mode, NavigationLink-wrapped row in normal mode
 - Applies to both iOS and macOS
 
+### macOS Drag & Drop (CRITICAL)
+- **Custom UTTypes from DerivedData builds are not registered in LaunchServices** — `Transferable` with `CodableRepresentation(contentType:)` silently fails. Use manual `NSItemProvider` construction instead.
+- **SwiftUI DropInfo proxy providers return empty `registeredTypeIdentifiers`** — cannot detect drag types via pasteboard inspection. Use app-local state (e.g. a static `inFlight` property) for in-app drag detection.
+- **macOS List (NSTableView) has internal scroll offsets invisible to SwiftUI coordinate spaces** — `GeometryReader.frame(in:)` and `DropInfo.location` will disagree. Never build manual hit-testing with coordinate math; use per-view `.onDrop(of:delegate:)` and let SwiftUI handle it natively.
+- **SwiftUI does not propagate rejected drops from inner to outer drop zones** — if a child view's `DropDelegate.validateDrop` returns false, the parent's delegate is NOT tried. Each level must handle all drop types it might see.
+- **NavigationLink captures mouseDown before `.onDrag`** — on macOS, replace NavigationLink with `.onTapGesture` + programmatic `navigationPath.append()` for rows that also support drag. Tap fires on release, drag fires on movement — they coexist.
+
 ### Error Handling
 - Use proper error types
 - Handle errors gracefully

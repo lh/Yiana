@@ -1,0 +1,71 @@
+# Yiana macOS UI Component Map — V3
+
+> **Date:** Current
+> **Scope:** macOS reading and organising interface (React/Web Mockup & Native Implementation)
+> **Purpose:** Unambiguous label system and styling constraints for V3 implementation
+> **Revision:** V3 — Visual polish, native macOS ergonomics, glassmorphism, and clarity
+
+Every visible element has a unique label (e.g. **B4b**, **C1a**). Use these labels when discussing changes to prevent ambiguity. 
+
+---
+
+## Design Decisions (V3): "Clarity & Gorgeousness"
+
+V3 assumes the structural layout of V2 is working (two-row consolidated toolbar, centered page navigator, fixed-aspect PDF scaling). V3 introduces strict stylistic constraints to elevate the app from "functional" to a **gorgeous, native-feeling macOS application**.
+
+A coding LLM should treat these styling rules as **binding constraints** during implementation.
+
+### 1. Visual Polish & Native Materials (Glassmorphism)
+Flat, semi-transparent backgrounds are deprecated in V3. 
+* **Toolbars (B1, B4) & Sidebars (C1, D1):** Must use simulated `NSVisualEffectView` materials. In web/React mocks, this requires `backdrop-filter: blur(20px)` combined with a slightly more transparent background (e.g., `rgba(30, 30, 30, 0.65)`). This allows the white PDF content to subtly bleed through the UI chrome.
+* **Icons:** Custom SVG paths are deprecated. Use **SF Symbols** (or pixel-perfect web equivalents like Lucide) for standard native line weights. 
+  * *Sidebar:* `sidebar.left`
+  * *Chevrons:* `chevron.left` / `chevron.right`
+  * *Zoom:* `plus.magnifyingglass` / `minus.magnifyingglass`
+
+### 2. Structural & Layout Refinements
+* **Wider Left Sidebar (C1):** The V2 width of `120pt` is too narrow for text readability. **Increase C1 width to `180pt` (minimum) or `200pt`.** This gives thumbnails room to breathe and prevents awkward text wrapping in Address Cards.
+* **Unified Toolbar (B1 + B4):** Visually merge Row 1 and Row 2 into a single cohesive header block. **Remove any horizontal borders (`border-bottom`) between B1 and B4.** Let the spatial arrangement (Title on top, tools on bottom) handle the hierarchy.
+* **Right Sidebar Depth (D1):** Because D1 is an overlay over text-heavy PDFs, it must float distinctly. Apply a heavy, soft drop-shadow (`box-shadow: -10px 0 40px rgba(0,0,0,0.3)`) and a subtle inner left-border (`1px solid rgba(255,255,255,0.1)`) to separate it from the document body.
+
+### 3. Ergonomics & Active States
+* **Page Navigator Pill (B4b):** The `< 1 of 3 >` text must be wrapped in a subtle, dimensional pill container (background `rgba(255,255,255,0.08)`, border-radius `14px`, `1px solid rgba(255,255,255,0.05)`).
+* **Segmented Control (C1a):** Upgrade from a flat colored button to a macOS native segmented control style. The active tab should look like a floating dimensional pill (subtle shadow + lighter background) rather than using a harsh solid blue background.
+* **Thumbnail Focus Rings (C1c):** Harsh `2.5px solid #4a9eff` borders are deprecated. Use a softer macOS system blue (e.g., `#007AFF`) with a slightly thinner line (`1.5px`) and a subtle outer glow, allowing the ring to sit *outside* the thumbnail box.
+
+### 4. Typography Polish
+* **System UI Fonts:** All UI text must explicitly use `font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;`.
+* **Address Cards:** Improve text hierarchy. Card Titles must be `fontWeight: 600` and a brighter white/light grey (`#e0e0e0`). Body text should be `#a0a0a0` for better contrast against dark backgrounds. 
+
+---
+
+## Updated Component Maps
+
+### Screen C: Document Read View — V3 (Unified Header & Wider Sidebar)
+
+```text
+┌──────────────────────────────────────────────────────────────────┐
+│ [B1+B4] UNIFIED HEADER AREA (Glassmorphic Blur Background)       │
+│                                                                  │
+│  ●●● < "Metamorphosis"          Manage Pages  Export PDF  Info   │
+│                                                                  │
+│  ▯(active)         ( < 1 of 3 > )           -🔍 +🔍 ↕          │
+├────────────────────┬─────────────────────────────────────────────┤
+│ [C1] LEFT SIDEBAR  │                                             │
+│ width: 180-200pt   │                                             │
+│ (Glassmorphic)     │                                             │
+│                    │                                             │
+│ [C1a] Picker       │                                             │
+│ ┌────────┬───────┐ │                                             │
+│ │[ Pages ] Addr  │ │           [B5] PDF CONTENT AREA             │
+│ └────────┴───────┘ │                                             │
+│                    │           (Scales uniformly. Bright white   │
+│ [C1b] Scroll Area  │            content subtly bleeds under      │
+│                    │            the B1+B4 header and C1 sidebar  │
+│ ┌───────────────┐  │            when scrolling)                  │
+│ │    Page 1     │  │                                             │
+│ └───────────────┘  │                                             │
+│ [C1c] active cell  │                                             │
+│ (Soft blue outer   │                                             │
+│  glow/ring)        │                                             │
+└────────────────────┴─────────────────────────────────────────────┘

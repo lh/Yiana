@@ -17,6 +17,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Session Handoff Protocol
 At the end of every session, write a detailed handoff note to `HANDOFF.md` covering: what was completed, what's in progress, what's next, and any known issues. Begin each session by reading `HANDOFF.md` if it exists.
 
+## Clean Desk Rule
+Before starting any new task — whether at session start, after a context clear, or when transitioning from planning to implementation — run `git status` and address uncommitted changes FIRST. Review what's pending, commit or stash it, and only then proceed. Do not start planning or implementing new features on top of a dirty working tree. A SessionStart hook will remind you, but do not rely on it alone.
+
 ## Workflow
 
 ### Blast-Radius / Planning Protocol
