@@ -62,8 +62,18 @@ class DocumentViewModel: ObservableObject {
         self.pdfData = document.pdfData
         self.displayPDFData = document.pdfData
         self.provisionalPageRange = nil
+        let needsOCR = !document.metadata.ocrCompleted
+        let ocrData = document.pdfData
         Task {
             await refreshDisplayPDF()
+            if needsOCR, let pdfData = ocrData, !pdfData.isEmpty {
+                let result = await OnDeviceOCRService.shared.recognizeText(in: pdfData)
+                if !result.fullText.isEmpty {
+                    self.applyOCRResult(result)
+                    _ = await self.save()
+                    await self.indexDocument()
+                }
+            }
         }
     }
 
@@ -121,7 +131,12 @@ class DocumentViewModel: ObservableObject {
     /// Index the document in the search database
     func indexDocument() async {
         do {
-            let ocrText = extractOCRText(for: document.fileURL)
+            let ocrText: String
+            if let metadataText = document.metadata.fullText, !metadataText.isEmpty {
+                ocrText = metadataText
+            } else {
+                ocrText = extractOCRText(for: document.fileURL)
+            }
             let tags = document.metadata.tags
 
             // Compute folder path relative to documents root
@@ -183,6 +198,20 @@ class DocumentViewModel: ObservableObject {
             print("⚠️ Failed to read OCR file: \(error)")
             return ""
         }
+    }
+
+    /// Apply on-device OCR results to the document metadata
+    func applyOCRResult(_ result: OnDeviceOCRResult) {
+        document.metadata.fullText = result.fullText
+        document.metadata.ocrCompleted = true
+        document.metadata.ocrProcessedAt = Date()
+        document.metadata.ocrConfidence = result.confidence
+        document.metadata.ocrSource = .onDevice
+        for i in 0..<document.metadata.pageProcessingStates.count {
+            document.metadata.pageProcessingStates[i].needsOCR = false
+            document.metadata.pageProcessingStates[i].ocrProcessedAt = Date()
+        }
+        hasChanges = true
     }
 
     private func scheduleAutoSave() {
@@ -703,6 +732,18 @@ final class DocumentViewModel: ObservableObject {
 
         // Update document metadata when properties change
         self.hasChanges = false
+
+        let needsOCR = !document.metadata.ocrCompleted
+        let ocrData = document.pdfData
+        if needsOCR, let pdfData = ocrData, !pdfData.isEmpty {
+            Task { [weak self] in
+                let result = await OnDeviceOCRService.shared.recognizeText(in: pdfData)
+                guard let self, !result.fullText.isEmpty else { return }
+                self.applyOCRResult(result)
+                _ = await self.save()
+                await self.indexDocument()
+            }
+        }
     }
 
     /// Secondary initializer for legacy/test compatibility
@@ -778,6 +819,21 @@ final class DocumentViewModel: ObservableObject {
         } catch {
             print("Failed to index document: \(error)")
         }
+    }
+
+    /// Apply on-device OCR results to the document metadata
+    func applyOCRResult(_ result: OnDeviceOCRResult) {
+        guard let document else { return }
+        document.metadata.fullText = result.fullText
+        document.metadata.ocrCompleted = true
+        document.metadata.ocrProcessedAt = Date()
+        document.metadata.ocrConfidence = result.confidence
+        document.metadata.ocrSource = .onDevice
+        for i in 0..<document.metadata.pageProcessingStates.count {
+            document.metadata.pageProcessingStates[i].needsOCR = false
+            document.metadata.pageProcessingStates[i].ocrProcessedAt = Date()
+        }
+        hasChanges = true
     }
 
     private func scheduleAutosave() {

@@ -927,6 +927,16 @@ struct DocumentEditView: View {
 
                 // Save the document
                 _ = await viewModel.save()
+
+                // Run on-device OCR and save again with text
+                if let pdfData = viewModel.pdfData {
+                    let ocrResult = await OnDeviceOCRService.shared.recognizeText(in: pdfData)
+                    if !ocrResult.fullText.isEmpty {
+                        viewModel.applyOCRResult(ocrResult)
+                        _ = await viewModel.save()
+                        await viewModel.indexDocument()
+                    }
+                }
             }
 
             isProcessingScans = false
