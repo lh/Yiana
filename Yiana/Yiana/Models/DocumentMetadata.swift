@@ -196,6 +196,7 @@ struct DocumentMetadata: Codable, Equatable {
 enum OCRSource: String, Codable {
     case embedded
     case service
+    case onDevice
 
     var displayName: String {
         switch self {
@@ -203,6 +204,8 @@ enum OCRSource: String, Codable {
             return "Embedded Text"
         case .service:
             return "OCR Service"
+        case .onDevice:
+            return "On-Device"
         }
     }
 }

@@ -1,5 +1,6 @@
 import Foundation
 import PDFKit
+import CoreText
 @testable import Yiana
 #if os(iOS)
 import UIKit
@@ -45,6 +46,40 @@ enum TestPDFFactory {
         }
         return doc.dataRepresentation() ?? Data()
         #endif
+    }
+
+    /// Create a PDF with large, OCR-readable text on each page.
+    /// Uses Core Text directly so it works on both iOS and macOS without UIKit.
+    static func makePDFWithText(_ texts: [String], fontSize: CGFloat = 36) -> Data {
+        let pageSize = CGSize(width: 595, height: 842)
+        let data = NSMutableData()
+
+        guard let consumer = CGDataConsumer(data: data as CFMutableData),
+              let context = CGContext(consumer: consumer, mediaBox: nil, nil) else {
+            return Data()
+        }
+
+        for text in texts {
+            var mediaBox = CGRect(origin: .zero, size: pageSize)
+            context.beginPage(mediaBox: &mediaBox)
+
+            let font = CTFontCreateWithName("Helvetica-Bold" as CFString, fontSize, nil)
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: font,
+                .foregroundColor: CGColor(red: 0, green: 0, blue: 0, alpha: 1)
+            ]
+            let attrString = NSAttributedString(string: text, attributes: attributes)
+            let framesetter = CTFramesetterCreateWithAttributedString(attrString)
+            let textRect = CGRect(x: 40, y: 40, width: pageSize.width - 80, height: pageSize.height - 80)
+            let path = CGPath(rect: textRect, transform: nil)
+            let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: 0, length: 0), path, nil)
+            CTFrameDraw(frame, context)
+
+            context.endPage()
+        }
+
+        context.closePDF()
+        return data as Data
     }
 }
 

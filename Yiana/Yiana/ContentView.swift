@@ -7,6 +7,7 @@
 
 import SwiftUI
 import PDFKit
+import YianaDocumentArchive
 #if os(macOS)
 import AppKit
 #endif
@@ -171,17 +172,22 @@ struct ImportPDFView: View {
             // Use the selected folder path for import
             let service = ImportService(folderPath: selectedFolderPath)
             do {
+                let result: ImportResult
                 switch importMode {
                 case .createNew:
-                    _ = try service.importPDF(from: pdfURL, mode: .createNew(title: documentTitle))
+                    result = try service.importPDF(from: pdfURL, mode: .createNew(title: documentTitle))
                     // Save the folder preference for next time
                     lastUsedImportFolder = selectedFolderPath
                 case .appendExisting:
                     guard let target = selectedExistingURL else { return }
-                    _ = try service.importPDF(from: pdfURL, mode: .appendToExisting(targetURL: target))
+                    result = try service.importPDF(from: pdfURL, mode: .appendToExisting(targetURL: target))
                 }
                 // Clean up temp file
                 try? FileManager.default.removeItem(at: pdfURL)
+
+                // Run on-device OCR on the imported document
+                await performOCROnImportedDocument(at: result.url)
+
                 await MainActor.run {
                     // Notify list to refresh and close sheet
                     NotificationCenter.default.post(name: .yianaDocumentsChanged, object: nil)
@@ -191,6 +197,47 @@ struct ImportPDFView: View {
                 print("Error importing PDF: \(error)")
             }
             isImporting = false
+        }
+    }
+
+    private func performOCROnImportedDocument(at url: URL) async {
+        do {
+            let payload = try DocumentArchive.read(from: url)
+            guard let pdfData = payload.pdfData else { return }
+
+            let ocrResult = await OnDeviceOCRService.shared.recognizeText(in: pdfData)
+            guard !ocrResult.fullText.isEmpty else { return }
+
+            var metadata = try JSONDecoder().decode(DocumentMetadata.self, from: payload.metadata)
+            metadata.fullText = ocrResult.fullText
+            metadata.ocrCompleted = true
+            metadata.ocrProcessedAt = Date()
+            metadata.ocrConfidence = ocrResult.confidence
+            metadata.ocrSource = .onDevice
+            for i in 0..<metadata.pageProcessingStates.count {
+                metadata.pageProcessingStates[i].needsOCR = false
+                metadata.pageProcessingStates[i].ocrProcessedAt = Date()
+            }
+
+            let updatedMetadata = try JSONEncoder().encode(metadata)
+            _ = try DocumentArchive.write(
+                metadata: updatedMetadata,
+                pdf: .data(pdfData),
+                to: url
+            )
+
+            try await SearchIndexService.shared.indexDocument(
+                id: metadata.id,
+                url: url,
+                title: metadata.title,
+                fullText: ocrResult.fullText,
+                tags: metadata.tags,
+                metadata: metadata,
+                folderPath: "",
+                fileSize: Int64((try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64) ?? 0)
+            )
+        } catch {
+            print("OCR on imported document failed: \(error)")
         }
     }
 }
