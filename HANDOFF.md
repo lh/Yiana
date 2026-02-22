@@ -1,40 +1,32 @@
-# Session Handoff — 2026-02-14 (evening)
+# Session Handoff — 2026-02-22
 
 ## What was completed
 
-### V2 Document List: sidebar folder navigation (macOS)
-Committed as `10750f2`. NavigationSplitView-based layout with folder tree in sidebar, documents in detail column.
+### Scan padding removed (iOS)
+Scanned pages on iPad had a visible border because `ScanningService.convertImagesToPDF` applied a 24pt inset before aspect-fitting the image. Removed the inset — scans now fill the full PDF page. VNDocumentCamera already crops to the document boundary, so no padding is needed.
 
-### iPad sidebar
-User added iPad folder sidebar between sessions — `NavigationSplitView` on regular size class, standard `NavigationStack` on iPhone. Uses `ScrollView` + `LazyVStack` (not `List`) to work around iOS UITableView drop interception. Includes `IOSFolderDropDelegate` for drag-to-folder on iPad.
-
-### V2 promoted to default — UIVariant system removed
-Committed as `1f20996`. Deleted `UIVariant.swift`, removed Cmd+Shift+U cycling, Settings picker, variant badge overlays, and all V1 body code from DocumentListView, DocumentReadView, and MacPDFViewer (~220 lines removed). Version bumped to **1.1**.
+### macOS print support
+Added printing to the macOS document view:
+- `printDocument()` method using `PDFDocument.printOperation` with `runModal(for:window:)`
+- Toolbar printer icon button
+- Cmd+P via `CommandGroup(replacing: .printItem)` posting a `.printDocument` notification
+- Added `com.apple.security.print` entitlement (sandbox was blocking `NSPrintOperation`)
 
 ### TestFlight deployment
-Build 37 (v1.1) uploaded to App Store Connect as `22a44b6`.
+Build 38 (v1.1) uploaded to App Store Connect as `a19c53c`.
 
 ## Files changed this session
-- **`Yiana/Yiana/Models/FolderNode.swift`** — new. Tree node struct for sidebar hierarchy.
-- **`Yiana/Yiana/Services/DocumentRepository.swift`** — added `buildFolderTree()`.
-- **`Yiana/Yiana/ViewModels/DocumentListViewModel.swift`** — added `folderTree`, `navigateToFolderPath()`.
-- **`Yiana/Yiana/Views/DocumentListView.swift`** — V2 sidebar (macOS), iPad sidebar (iOS), removed V1 body and UIVariant switching.
-- **`Yiana/Yiana/Views/DocumentReadView.swift`** — removed V1 body and UIVariant.
-- **`Yiana/Yiana/Views/MacPDFViewer.swift`** — removed V1 body and UIVariant.
-- **`Yiana/Yiana/Views/SettingsView.swift`** — removed Layout picker.
-- **`Yiana/Yiana/YianaApp.swift`** — removed Cycle UI Variant command.
-- **`Yiana/Yiana/Utilities/UIVariant.swift`** — deleted.
-- **`Yiana/Yiana.xcodeproj/project.pbxproj`** — version 1.1, build 37.
+- **`Yiana/Yiana/Services/ScanningService.swift`** — removed 24pt `contentRect` inset, scan images now aspect-fit to full page rect
+- **`Yiana/Yiana/Views/DocumentReadView.swift`** — added `printDocument()` method, Print toolbar button, `.onReceive(.printDocument)` for Cmd+P
+- **`Yiana/Yiana/YianaApp.swift`** — added `CommandGroup(replacing: .printItem)` for Cmd+P
+- **`Yiana/Yiana/Extensions/Notification.Name+PageOperations.swift`** — added `.printDocument` notification
+- **`Yiana/Yiana/Yiana.entitlements`** — added `com.apple.security.print`
+- **`Yiana/Yiana.xcodeproj/project.pbxproj`** — build 38
 
-## Architecture decisions
-1. **NavigationSplitView for both macOS and iPad** — native resize, collapse, keyboard nav.
-2. **OutlineGroup for macOS sidebar** — recursive `@ViewBuilder` functions cause opaque return type errors; OutlineGroup handles tree rendering natively.
-3. **ScrollView + LazyVStack for iPad sidebar** — iOS `List` (UITableView) intercepts drop events, preventing per-row drop targets.
-4. **FolderDropDelegate.currentFolderURL** — prevents self-drops (dropping into the folder you're already viewing). Shows forbidden cursor.
-5. **handleInternalDrop derives path from URL** — fixed bug where concatenating `viewModel.folderPath + folderName` produced wrong paths for sidebar drops at different tree depths.
-
-## Bug fixed
-- `handleInternalDrop` was computing target path by concatenating current navigation path with folder name, which created duplicate folders when dropping from a different tree level. Now derives the relative path from the folder URL vs documents root.
+## Lessons learned
+- SwiftUI toolbar `.keyboardShortcut("p")` does NOT override the system File > Print menu item — the system menu takes priority and sends `print:` through the responder chain. Must use `CommandGroup(replacing: .printItem)` at the app level.
+- Sandboxed macOS apps need `com.apple.security.print` entitlement for `NSPrintOperation`. Without it, the system shows "This application does not support printing" with error code -50 in the console (`printToolAgent:error`).
+- `NSPrintOperation.run()` in a void context may not present properly; use `runModal(for: window, ...)` with the key window.
 
 ## What's next
 - Search behaviour in sidebar layout (scope to current folder vs global)
@@ -43,4 +35,4 @@ Build 37 (v1.1) uploaded to App Store Connect as `22a44b6`.
 - Idea logged: allow folders in select/bulk-delete workflow
 
 ## Known issues
-None introduced this session.
+- Existing scans created before this session still have the old 24pt border baked into their PDF data. Only new scans benefit from the fix.
