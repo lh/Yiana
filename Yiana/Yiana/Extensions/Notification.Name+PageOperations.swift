@@ -10,3 +10,8 @@ extension Notification.Name {
     /// Notification to paste pages into the current document
     static let pastePages = Notification.Name("com.vitygas.Yiana.pastePages")
 }
+
+extension Notification.Name {
+    /// Notification to print the current document (macOS Cmd+P)
+    static let printDocument = Notification.Name("com.vitygas.Yiana.printDocument")
+}

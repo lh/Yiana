@@ -49,6 +49,14 @@ struct YianaApp: App {
         #endif
         #if os(macOS)
         .commands {
+            // Replace system File > Print with our notification-based handler
+            CommandGroup(replacing: .printItem) {
+                Button("Print...") {
+                    NotificationCenter.default.post(name: .printDocument, object: nil)
+                }
+                .keyboardShortcut("p")
+            }
+
             // Export commands
             CommandGroup(after: .importExport) {
                 Button("Export All Documents as PDFs...") {

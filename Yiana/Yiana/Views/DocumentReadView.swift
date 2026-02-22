@@ -92,6 +92,9 @@ struct DocumentReadView: View {
         }
         .navigationTitle(documentTitle)
         .navigationBarBackButtonHidden(true)
+        .onReceive(NotificationCenter.default.publisher(for: .printDocument)) { _ in
+            printDocument()
+        }
         .toolbar {
             ToolbarItem(placement: .navigation) {
                 Button(action: { dismiss() }) {
@@ -125,6 +128,11 @@ struct DocumentReadView: View {
                         }
                         .help("Manage pages (copy, cut, paste, reorder)")
                     }
+
+                    Button(action: printDocument) {
+                        Label("Print", systemImage: "printer")
+                    }
+                    .help("Print document")
 
                     Button(action: exportPDF) {
                         Label("Export PDF", systemImage: "square.and.arrow.up")
@@ -242,6 +250,17 @@ struct DocumentReadView: View {
                 }
             }
         }
+    }
+
+    private func printDocument() {
+        guard let data = pdfData,
+              let pdfDoc = PDFDocument(data: data),
+              let printOp = pdfDoc.printOperation(for: NSPrintInfo.shared, scalingMode: .pageScaleToFit, autoRotate: true),
+              let window = NSApp.keyWindow else { return }
+
+        printOp.showsPrintPanel = true
+        printOp.showsProgressPanel = true
+        printOp.runModal(for: window, delegate: nil, didRun: nil, contextInfo: nil)
     }
 
     private func extractDocumentData(from data: Data) throws -> (title: String, pdfData: Data?) {

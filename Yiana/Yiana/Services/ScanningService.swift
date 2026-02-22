@@ -109,7 +109,6 @@ class ScanningService: ScanningServiceProtocol {
         let preferredPaper = await TextPageLayoutSettings.shared.preferredPaperSize()
         let targetSize = preferredPaper.size
         let targetRect = CGRect(origin: .zero, size: targetSize)
-        let contentRect = targetRect.insetBy(dx: 24, dy: 24)
 
         return await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
@@ -122,7 +121,9 @@ class ScanningService: ScanningServiceProtocol {
 
                 for image in processedImages {
                     UIGraphicsBeginPDFPageWithInfo(targetRect, nil)
-                    let drawRect = AVMakeRect(aspectRatio: image.size, insideRect: contentRect)
+                    // Aspect-fit the scan to fill the full page (no padding).
+                    // VNDocumentCamera already crops to the document boundary.
+                    let drawRect = AVMakeRect(aspectRatio: image.size, insideRect: targetRect)
                     image.draw(in: drawRect)
                 }
 
