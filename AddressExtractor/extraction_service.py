@@ -20,10 +20,12 @@ from address_extractor import AddressExtractor
 from llm_extractor import HybridExtractor
 from spire_form_extractor import extract_from_spire_form
 
-# Configuration - iCloud container paths
-ICLOUD_CONTAINER = os.path.expanduser('~/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents')
+# Configuration - all paths derived from YIANA_DATA_DIR or iCloud container
+# Set YIANA_DATA_DIR to override the base directory (e.g. ~/Data on server)
+_default_icloud = os.path.expanduser('~/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents')
+ICLOUD_CONTAINER = os.getenv('YIANA_DATA_DIR', _default_icloud)
 OCR_DIR = os.getenv('OCR_DIR', os.path.join(ICLOUD_CONTAINER, '.ocr_results'))
-JSON_OUTPUT_DIR = os.getenv('JSON_OUTPUT', '/Users/rose/Code/Yiana/AddressExtractor/api_output')
+JSON_OUTPUT_DIR = os.getenv('JSON_OUTPUT', os.path.join(Path(__file__).parent, 'api_output'))
 DB_PATH = os.getenv('DB_PATH', os.path.join(ICLOUD_CONTAINER, 'addresses.db'))
 ADDRESSES_DIR = os.getenv('ADDRESSES_DIR', os.path.join(ICLOUD_CONTAINER, '.addresses'))
 USE_LLM = os.getenv('USE_LLM', 'false').lower() == 'true'

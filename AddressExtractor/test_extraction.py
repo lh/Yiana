@@ -5,6 +5,7 @@ Processes specific test files and shows results
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 import logging
@@ -86,9 +87,10 @@ def test_all_addresses():
     """Test all Address files in the OCR directory"""
     
     # Look for Address files
+    _default_icloud = os.path.expanduser('~/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents')
+    _data_dir = os.getenv('YIANA_DATA_DIR', _default_icloud)
     ocr_dirs = [
-        Path("/Users/rose/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/.ocr_results"),
-        Path("/Users/rose/Documents/Yiana/.ocr_results"),
+        Path(os.getenv('OCR_DIR', os.path.join(_data_dir, '.ocr_results'))),
     ]
     
     address_files = []

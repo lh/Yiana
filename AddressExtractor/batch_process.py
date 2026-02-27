@@ -3,14 +3,17 @@
 Batch process all existing OCR files
 """
 
+import os
 import sqlite3
 import logging
 from pathlib import Path
 from address_extractor import AddressExtractor
 
-# Configuration
-OCR_DIR = Path("/Users/rose/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/.ocr_results/")
-DB_PATH = "/Users/rose/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/addresses.db"
+# Configuration - override with YIANA_DATA_DIR or individual env vars
+_default_icloud = os.path.expanduser('~/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents')
+_data_dir = os.getenv('YIANA_DATA_DIR', _default_icloud)
+OCR_DIR = Path(os.getenv('OCR_DIR', os.path.join(_data_dir, '.ocr_results')))
+DB_PATH = os.getenv('DB_PATH', os.path.join(_data_dir, 'addresses.db'))
 
 # Set up logging
 logging.basicConfig(
