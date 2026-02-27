@@ -31,6 +31,12 @@ ADDRESSES_DIR = os.getenv('ADDRESSES_DIR', os.path.join(ICLOUD_CONTAINER, '.addr
 USE_LLM = os.getenv('USE_LLM', 'false').lower() == 'true'
 OUTPUT_FORMAT = os.getenv('OUTPUT_FORMAT', 'both')  # 'db', 'json', 'both'
 
+# Health monitoring — matches OCR service pattern (~/Library/Application Support/YianaOCR/health/)
+HEALTH_DIR = os.path.join(
+    os.path.expanduser('~/Library/Application Support'),
+    'YianaExtraction', 'health'
+)
+
 # Set up logging
 log_level = os.getenv('LOG_LEVEL', 'INFO')
 logging.basicConfig(
@@ -38,6 +44,40 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+def write_heartbeat(note: str = "scan"):
+    """Write heartbeat JSON for external watchdog (atomic write)."""
+    os.makedirs(HEALTH_DIR, exist_ok=True)
+    payload = json.dumps({
+        "timestamp": datetime.now().astimezone().isoformat(),
+        "note": note
+    })
+    tmp = os.path.join(HEALTH_DIR, "heartbeat.json.tmp")
+    dst = os.path.join(HEALTH_DIR, "heartbeat.json")
+    try:
+        with open(tmp, 'w') as f:
+            f.write(payload)
+        os.replace(tmp, dst)
+    except OSError as e:
+        logger.warning(f"Failed to write heartbeat: {e}")
+
+
+def write_health_error(msg: str):
+    """Record last error for external watchdog (atomic write)."""
+    os.makedirs(HEALTH_DIR, exist_ok=True)
+    payload = json.dumps({
+        "timestamp": datetime.now().astimezone().isoformat(),
+        "error": msg
+    })
+    tmp = os.path.join(HEALTH_DIR, "last_error.json.tmp")
+    dst = os.path.join(HEALTH_DIR, "last_error.json")
+    try:
+        with open(tmp, 'w') as f:
+            f.write(payload)
+        os.replace(tmp, dst)
+    except OSError as e:
+        logger.warning(f"Failed to write health error: {e}")
 
 
 class OCRFileHandler(FileSystemEventHandler):
@@ -154,6 +194,7 @@ class OCRFileHandler(FileSystemEventHandler):
         
         except Exception as e:
             logger.error(f"Error processing {file_path}: {e}")
+            write_health_error(str(e))
     
     def save_json_output(self, doc_id: str, results: List[Dict]):
         """Save extraction results as JSON"""
@@ -322,18 +363,24 @@ def watch_directory(handler: OCRFileHandler):
     observer = Observer()
     observer.schedule(handler, OCR_DIR, recursive=False)
     observer.start()
-    
+
     logger.info(f"Watching directory: {OCR_DIR}")
     logger.info(f"Output format: {OUTPUT_FORMAT}")
     logger.info(f"LLM enhancement: {'Enabled' if USE_LLM else 'Disabled'}")
-    
+
+    write_heartbeat("start")
+    tick = 0
     try:
         while True:
             time.sleep(1)
+            tick += 1
+            if tick >= 60:
+                write_heartbeat()
+                tick = 0
     except KeyboardInterrupt:
         observer.stop()
         logger.info("Stopping file watcher")
-    
+
     observer.join()
 
 
