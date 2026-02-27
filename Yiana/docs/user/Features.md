@@ -11,16 +11,21 @@
 - [Document Organization](#document-organization)
 - [Search](#search)
 - [Page Management](#page-management)
-- [Navigation & Gestures](#navigation--gestures)
+- [Navigation and Gestures](#navigation-and-gestures)
 - [iCloud Sync](#icloud-sync)
-- [Import & Export](#import--export)
+- [Import and Export](#import-and-export)
+- [Print](#print)
+- [Drag and Drop](#drag-and-drop)
+- [Duplicate Scanner](#duplicate-scanner)
+- [Address Extraction](#address-extraction)
+- [Settings](#settings)
 - [Platform Features](#platform-features)
 
 ---
 
 ## Document Scanning
 
-### Camera Scanning (iOS & iPadOS)
+### Camera Scanning (iOS and iPadOS)
 
 Yiana uses VisionKit to scan documents with your device's camera.
 
@@ -36,7 +41,7 @@ Three buttons appear at the bottom of the document view:
 
 **"Doc"** (center, gray circle button) - default position
 - Best for: Text documents, receipts, contracts
-- Output: Black & white PDF
+- Output: Black and white PDF
 - Auto-enhancement: Optimized for text clarity
 - Auto-crop: Yes
 
@@ -44,20 +49,20 @@ Three buttons appear at the bottom of the document view:
 
 #### Scanning Tips
 
-✅ **Best Practices**:
+**Best Practices**:
 - Use good lighting (natural light is best)
 - Place document on contrasting background
 - Hold camera steady
 - Ensure all corners are visible
 - Review each scan before saving
 
-✅ **Multi-Page Scanning**:
+**Multi-Page Scanning**:
 - Camera automatically detects and captures documents
 - Review and tap "Save" or "Retake"
 - Tap scan button again to add more pages
 - Pages append in order
 
-✅ **Automatic Scan Quality**:
+**Automatic Scan Quality**:
 - VisionKit auto-detects edges and crops
 - Auto-enhances contrast and brightness
 - Removes shadows and corrects perspective
@@ -135,13 +140,13 @@ Use the "Heading" toolbar button to apply.
 
 ### Text Page Behavior
 
-🔒 **"Pen and Paper" Philosophy**:
+**"Pen and Paper" Philosophy**:
 - Text pages are **drafts** while editing
 - Become **permanent PDF pages** when you exit the note
 - Cannot be edited after exiting (by design)
 - Can create new text page if you need to add more
 
-📍 **Page Position**:
+**Page Position**:
 - Text pages always append to the end
 - After finalizing, appear as regular PDF pages
 - Can be reordered like any other page
@@ -167,9 +172,20 @@ Organize documents into folders for easy access.
 - **Back button** to go up one level
 - **Breadcrumb trail** shows current path (macOS)
 
+#### Renaming Folders
+
+1. Right-click (macOS) or long press (iOS) a folder
+2. Select "Rename"
+3. Enter the new name
+4. Tap "Rename" to confirm
+
+#### Nested Folders
+
+Create folders within folders for hierarchical organization. There is no depth limit.
+
 #### Moving Documents
 
-**Method 1** (drag & drop - iPad):
+**Method 1** (drag and drop - macOS, iPad sidebar):
 - Long press document
 - Drag to folder
 - Release to drop
@@ -186,65 +202,67 @@ Each document stores:
 - **Created date**: When first scanned/created
 - **Modified date**: Last edit timestamp
 - **Page count**: Number of pages
-- **Tags**: For categorization (coming soon)
 - **OCR status**: Whether text extraction is complete
+- **OCR source**: On-device, server, or embedded
+- **OCR confidence**: Recognition accuracy percentage
 
 ---
 
 ## Search
 
-Powerful full-text search across all documents.
+Full-text search across all documents, powered by GRDB/FTS5.
 
 ### What Gets Searched
 
-✅ **Document titles**
-✅ **Scanned text** (via OCR)
-✅ **Text pages** (typed content)
-❌ **Folder names** (not currently)
+- **Document titles** (weighted heavily in ranking)
+- **Scanned text** (via on-device or server OCR)
+- **Text pages** (typed content)
 
 ### Search Features
 
 #### Real-Time Results
 - Results appear as you type
-- Sorted by relevance
-- Title matches ranked higher
+- Sorted by BM25 relevance ranking
+- Title matches ranked higher than content matches
 
 #### Search Highlighting
 - Search terms highlighted in snippets
 - Jump directly to matching page
 - Context shown around matches
 
-#### Search Icons
-
-🔍 **Magnifying glass** = Content match (in scanned text)
-📄 **Document icon** = Title match
-🔵 **Blue tint** = Both title and content match
+#### Porter Stemming
+- "running" matches "run"
+- "documents" matches "document"
+- Diacritics handled (e.g., "cafe" matches "cafe")
 
 ### Search Tips
 
-💡 **Be specific**:
+**Be specific**:
 - "receipt october" better than just "receipt"
 - Include dates, amounts, vendor names
 
-💡 **Case insensitive**:
+**Case insensitive**:
 - "coffee", "Coffee", "COFFEE" all match
 
-💡 **Partial matches**:
+**Partial matches**:
 - "oct" matches "October"
 - "star" matches "Starbucks"
 
 ### OCR Processing
 
-📸 **Automatic OCR**:
-- Scanned documents processed automatically
-- OCR runs on Mac mini server (if configured)
-- Text extraction happens in background
-- No user action needed
+**On-Device OCR** (immediate):
+- Uses Apple's Vision framework
+- Runs automatically when you scan or open a document
+- Results available within seconds
+- Works offline
 
-⏱️ **Processing Time**:
-- Typically completes within minutes
-- Larger documents take longer
-- Search available after OCR completes
+**Server OCR** (background):
+- Runs on Mac mini server (if configured)
+- Processes documents automatically
+- Higher accuracy for complex layouts
+- Text extraction happens in background
+
+Both OCR sources feed into the same search index.
 
 ---
 
@@ -270,7 +288,23 @@ Powerful full-text search across all documents.
 3. Tap "Delete"
 4. Confirm deletion
 
-⚠️ **Warning**: Page deletion is permanent!
+**Warning**: Page deletion is permanent.
+
+#### Copy/Cut/Paste Pages
+
+Pages can be copied or cut from one document and pasted into another.
+
+**macOS**:
+- Select pages in the grid
+- Cmd+C to copy, Cmd+X to cut, Cmd+V to paste
+- Also available from Edit > Pasteboard menu
+
+**iOS/iPadOS**:
+- Select pages in the grid
+- Use the Copy, Cut, and Paste buttons in the bottom toolbar
+- "Restore Cut" button appears if you need to undo a cut
+
+Pages transfer between documents -- copy from one, open another, paste.
 
 #### Page Navigation
 - **Tap page** in grid to jump to it
@@ -286,7 +320,7 @@ When viewing a multi-page document:
 
 ---
 
-## Navigation & Gestures
+## Navigation and Gestures
 
 ### Swipe Gestures
 
@@ -297,9 +331,8 @@ When viewing a multi-page document:
 | Swipe left | Next page |
 | Swipe right | Previous page |
 | Swipe up | View page grid |
-| Swipe down | Document info (coming soon) |
 
-**Important**: Swipe up/down only work when page is at fit-to-screen zoom (not zoomed in).
+**Important**: Swipe up only works when page is at fit-to-screen zoom (not zoomed in).
 
 ### Zoom Gestures
 
@@ -313,15 +346,14 @@ When viewing a multi-page document:
 ### Button Controls
 
 **Document view**:
-- **← Back arrow**: Return to document list
+- **Back arrow**: Return to document list
 - **Title**: Tap to edit
-- **✏️ Markup**: Annotate PDF (macOS only)
-- **⎙ Export**: Share as PDF
+- **Export**: Share as PDF
 
-**Bottom toolbar** (left to right):
-- **📸 Scan**: Color scan
-- **📄 Doc**: B&W document scan (center - default position)
-- **📝 Text**: Create text page
+**Bottom toolbar** (iOS, left to right):
+- **Scan**: Color scan
+- **Doc**: B&W document scan (center - default position)
+- **Text**: Create text page
 
 ---
 
@@ -331,17 +363,17 @@ Documents automatically sync across your Apple devices.
 
 ### How It Works
 
-📱 **Automatic**:
+**Automatic**:
 - Documents save to iCloud Documents
 - Sync happens in background
 - No manual action needed
 
-☁️ **Cloud Container**:
+**Cloud Container**:
 - Location: `iCloud Drive/Yiana/`
 - File format: `.yianazip` packages
 - Includes PDF + metadata
 
-🔄 **Sync Status**:
+**Sync Status**:
 - **Cloud icon**: Document in iCloud, not local
 - **Checkmark**: Downloaded locally
 - **Downloading**: Sync in progress
@@ -360,20 +392,20 @@ Documents automatically sync across your Apple devices.
 
 ### Offline Access
 
-✅ **Offline capabilities**:
+**Offline capabilities**:
 - View downloaded documents
 - Create new documents
 - Scan new pages
 - Edit titles
+- Search (uses local index)
 
-❌ **Requires connection**:
-- Initial document list load
+**Requires connection**:
 - Downloading cloud documents
-- OCR processing (server-based)
+- Server OCR processing (on-device OCR works offline)
 
 ---
 
-## Import & Export
+## Import and Export
 
 ### Importing PDFs
 
@@ -382,7 +414,7 @@ Documents automatically sync across your Apple devices.
 **From Files app**:
 1. Open Files app
 2. Long press PDF
-3. Share → "Copy to Yiana"
+3. Share > "Copy to Yiana"
 4. Choose:
    - **New Document**: Creates new `.yianazip`
    - **Append to Existing**: Adds pages to selected document
@@ -395,20 +427,31 @@ Documents automatically sync across your Apple devices.
 
 #### macOS Import
 
-**Drag & Drop** (coming soon):
-- Drag PDF into Yiana window
-- Choose import option
+**Drag and Drop**:
+- Drag one or more PDFs into the Yiana window
+- For multiple files, the bulk import UI appears with progress tracking
 
-**File → Import** (coming soon):
-- Choose PDF from file picker
-- Select destination
+**File > Import**:
+- Opens a file picker (up to 100 files)
+- Launches bulk import view
+
+**Import from Folder**:
+- Select a folder to scan for all PDFs
+- Bulk import with duplicate detection
+
+**Bulk Import Features** (macOS):
+- SHA256 duplicate detection against existing library
+- Per-file timeout protection (30 seconds)
+- Progress display with current file and count
+- Pauses every 25 files to prevent overload
+- Results summary showing successes, failures, and skipped duplicates
 
 ### Exporting Documents
 
 #### Export as PDF
 
 1. Open document
-2. Tap share icon (⎙)
+2. Tap share icon
 3. Choose share method:
    - **Mail**: Attach to email
    - **Messages**: Send via iMessage
@@ -416,13 +459,20 @@ Documents automatically sync across your Apple devices.
    - **Print**: Print document
    - **Other apps**: Any PDF-capable app
 
+#### Bulk Export (macOS)
+
+1. Use Cmd+Shift+E or File > Export All Documents as PDFs
+2. Browse and select documents or folders
+3. Choose destination folder
+4. Export preserves folder structure
+
 #### Export Options
 
 **What's included**:
-- ✅ All scanned pages
-- ✅ Finalized text pages (as PDF)
-- ✅ Original quality maintained
-- ❌ Metadata (titles, dates) - PDF only
+- All scanned pages
+- Finalized text pages (as PDF)
+- Original quality maintained
+- Metadata (titles, dates) is NOT included in exported PDF
 
 **File naming**:
 - Uses document title
@@ -431,40 +481,122 @@ Documents automatically sync across your Apple devices.
 
 ---
 
-## Platform Features
-
-### iOS & iPadOS
-
-✅ **Camera scanning**
-✅ **Document scanner (VisionKit)**
-✅ **Touch gestures**
-✅ **Split View multitasking** (iPad)
-✅ **Slide Over** (iPad)
-✅ **Dark mode**
-
-❌ **PDF markup** (planned)
+## Print
 
 ### macOS
 
-✅ **Keyboard navigation**
-✅ **Menu bar commands**
-✅ **Window management**
-✅ **PDF markup** (PencilKit)
-✅ **Dark mode**
+- **Cmd+P** to print the current document
+- **Toolbar print button** in the document view
+- Uses native macOS print dialog with page range, copies, and printer selection
 
-❌ **Camera scanning** (no camera)
+### iOS/iPadOS
 
-### Platform-Specific Gestures
+- Open the share sheet and select "Print"
+- Standard iOS print dialog with AirPrint support
 
-#### iPad Split View
-- **Drag from top**: Enable split view
-- **Adjust divider**: Resize panes
-- **Text editor + preview**: Side-by-side editing
+---
 
-#### macOS Trackpad
-- **Two-finger swipe**: Navigate pages
-- **Pinch**: Zoom
-- **Double-tap**: Fit to screen
+## Drag and Drop
+
+### macOS
+
+**Import PDFs from Finder**:
+- Drag PDF files from Finder, Mail, or other apps into the Yiana window
+- Multiple files trigger the bulk import flow
+
+**Move documents between folders**:
+- Drag a document row onto a folder row
+- Visual highlight shows the target folder
+- Release to move
+
+### iOS/iPadOS (iPad)
+
+**Move documents to folders**:
+- Drag document from the main list to a sidebar folder
+- Works in the sidebar area only (not within the main list, due to UITableView limitations)
+
+**Page reordering**:
+- In the page grid, drag pages to reorder
+
+---
+
+## Duplicate Scanner
+
+*macOS only*
+
+Find and remove duplicate documents in your library.
+
+### How It Works
+
+1. Open the duplicate scanner from the menu
+2. Scanner computes SHA256 hashes of all documents
+3. Identical documents are grouped together
+4. Review groups -- originals are marked with a star
+5. Select duplicates to delete
+6. Confirm deletion
+
+### Features
+
+- **SHA256-based detection** - Compares actual PDF content, not just filenames
+- **Original identification** - Oldest document marked as original
+- **Bulk selection** - "Select All Duplicates" for quick cleanup
+- **Safe deletion** - Requires confirmation before removing files
+- **Rescan** - Automatically rescans after deletion
+
+---
+
+## Address Extraction
+
+Yiana can extract and display contact information (patients, GPs, specialists) from scanned documents.
+
+### How It Works
+
+- A backend service on the Mac mini processes OCR results
+- Extracted addresses are saved as `.addresses/*.json` files and synced via iCloud
+- The app displays extracted data in the document info panel
+
+### Viewing Addresses
+
+1. Open a document
+2. Open the info panel (tap info button or swipe)
+3. The "Addresses" tab shows extracted contacts
+
+### Editing and Correcting
+
+- Tap any field to edit inline (name, address, phone, etc.)
+- Corrections are saved as overrides without changing the original extraction
+- Mark a contact as "prime" to designate the primary contact
+
+### Address Type Settings
+
+In Settings > Address Types, you can:
+- Load predefined templates
+- Create custom address types with names, icons, and colors
+- Import/export address type configurations as JSON
+
+For developer documentation on the backend extraction pipeline and how to adapt it for other domains, see [Address Extraction Backend Guide](../dev/AddressExtraction.md).
+
+---
+
+## Settings
+
+Access settings from the gear icon or app menu.
+
+### Paper Size
+Choose between A4 (210mm x 297mm) and US Letter (8.5" x 11"). Affects rendered text pages and new scans. Default: A4.
+
+### Sidebar Position (iPad)
+Choose left or right placement for the document sidebar. Default: Right.
+
+### Thumbnail Size (iPad)
+Choose Small, Medium, or Large thumbnails for the page grid. Default: Medium.
+
+### Developer Mode
+Tap the version number 7 times to enable developer mode (session-based, resets on app restart). Provides access to:
+- Search index reset and stats
+- OCR tools (force re-run, clear cache)
+- Debug information (bundle ID, paths, build type)
+- Data deletion (with multi-step confirmation)
 
 ---
 
@@ -474,34 +606,44 @@ Documents automatically sync across your Apple devices.
 
 | Shortcut | Action |
 |----------|--------|
-| `⌘N` | New document |
-| `⌘F` | Focus search |
-| `⌘⇧F` | New folder |
-| `⌘⇧I` | Import PDFs (macOS) |
-| `Delete` | Delete selected document |
+| Cmd+N | New document |
+| Cmd+F | Focus search |
+| Cmd+Shift+F | New folder |
+| Cmd+Shift+I | Import PDFs (macOS) |
+| Delete | Delete selected document |
 
 ### Document View
 
 | Shortcut | Action |
 |----------|--------|
-| `←` | Previous page |
-| `→` | Next page |
-| `Space` | Next page |
-| `Shift+Space` | Previous page |
-| `⌘S` | Save |
-| `⌘E` | Export |
-| `⌘W` | Close document |
-| `Esc` | Close document |
+| Left arrow | Previous page |
+| Right arrow | Next page |
+| Space | Next page |
+| Shift+Space | Previous page |
+| Cmd+P | Print (macOS) |
+| Cmd+S | Save |
+| Cmd+E | Export |
+| Cmd+W | Close document |
+| Esc | Close document |
+
+### Page Management
+
+| Shortcut | Action |
+|----------|--------|
+| Cmd+C | Copy selected pages |
+| Cmd+X | Cut selected pages |
+| Cmd+V | Paste pages |
+| Shift+Cmd+Z | Restore cut pages |
 
 ### Text Editor
 
 | Shortcut | Action |
 |----------|--------|
-| `⌘B` | Bold |
-| `⌘I` | Italic |
-| `⌘⇧L` | Toggle preview |
-| `⌘Return` | Done (save) |
-| `Esc` | Discard |
+| Cmd+B | Bold |
+| Cmd+I | Italic |
+| Cmd+Shift+L | Toggle preview |
+| Cmd+Return | Done (save) |
+| Esc | Discard |
 
 ---
 
@@ -509,12 +651,13 @@ Documents automatically sync across your Apple devices.
 
 ### File Storage
 
-**Format**: `.yianazip` package
+**Format**: `.yianazip` package (ZIP archive)
 **Structure**:
 ```
 document.yianazip
 ├── metadata.json (document info)
-└── data.pdf (PDF content)
+├── content.pdf (PDF content)
+└── format.json (format version)
 ```
 
 **Location**: `iCloud Drive/Yiana/Documents/`
@@ -525,12 +668,15 @@ document.yianazip
 {
   "id": "UUID",
   "title": "Document Title",
-  "created": "2025-10-07T12:00:00Z",
-  "modified": "2025-10-07T14:30:00Z",
+  "created": "2026-02-25T12:00:00Z",
+  "modified": "2026-02-25T14:30:00Z",
   "pageCount": 5,
   "tags": [],
   "ocrCompleted": true,
-  "hasPendingTextPage": false
+  "hasPendingTextPage": false,
+  "pdfHash": "sha256...",
+  "ocrSource": "onDevice",
+  "ocrConfidence": 0.95
 }
 ```
 
@@ -538,70 +684,75 @@ document.yianazip
 
 **Location**: `.ocr_results/` (alongside document)
 **Format**: JSON with page-by-page text
-**Processing**: Mac mini server (if configured)
+**Processing**: On-device (immediate) and Mac mini server (background)
 
 ---
 
-## Limitations & Design Decisions
+## Limitations and Design Decisions
 
 ### By Design
 
-🔒 **Read-only PDF viewing**:
+**Read-only PDF viewing**:
 - No complex annotation model
 - Simpler, faster performance
 - Markup via PencilKit (macOS only)
 
-🔒 **Text pages permanent**:
+**Text pages permanent**:
 - "Pen and paper" philosophy
 - Once finalized, cannot edit
 - Create new text page to add more
 
-🔒 **1-based page numbering**:
+**1-based page numbering**:
 - Pages numbered 1, 2, 3... (not 0, 1, 2...)
 - Matches human expectation
 - Consistent throughout UI
 
 ### Current Limitations
 
-📋 **Planned features**:
-- Tags for organization
-- Document metadata editing
-- Backup/restore system
-- PDF annotation (iOS/iPadOS)
-- Batch operations
-
-🔧 **Platform limitations**:
+**Platform limitations**:
 - No camera scanning on macOS (hardware limitation)
-- OCR requires server (processing intensive)
+- Bulk import/export and duplicate scanner are macOS only
+- Drag-and-drop import is macOS only (iOS drag works for moving between folders on iPad)
+
+**Feature limitations**:
+- Tags exist as metadata but cannot be added or edited through the UI
+- No tables or code blocks in text page markdown
+- No inline images in text pages
 
 ---
 
-## Privacy & Security
+## Privacy and Security
 
 ### Data Storage
 
-✅ **Local-first**:
+**Local-first**:
 - Documents stored on your device
 - iCloud sync optional (but recommended)
 - No third-party servers
 
-✅ **No tracking**:
+**No tracking**:
 - No analytics or telemetry
 - No user behavior tracking
 - No ads
 
 ### OCR Processing
 
-⚠️ **Server-based**:
-- OCR runs on your Mac mini (if configured)
-- Documents uploaded temporarily for processing
-- Results returned and cached
-- Original documents remain on device
+**On-device** (default):
+- All processing happens locally on your device
+- No data leaves your device
+- Works completely offline
 
-🔒 **Privacy**:
-- OCR server is your own hardware
-- No cloud service involved
+**Server-based** (optional):
+- Runs on your own Mac mini hardware
+- Documents processed via iCloud sync
+- No cloud services involved
 - Complete control over data
+
+### Address Extraction
+
+- Runs on your Mac mini (not a cloud service)
+- Results synced via your iCloud account
+- User corrections stored locally alongside extracted data
 
 ---
 
@@ -609,7 +760,6 @@ document.yianazip
 
 ### VoiceOver Support
 
-✅ **Fully accessible**:
 - All controls labeled
 - Document content readable
 - Search results announced
@@ -617,77 +767,11 @@ document.yianazip
 
 ### Display Accommodations
 
-✅ **Dynamic Type**: Text scales with system settings
-✅ **Dark Mode**: Full support
-✅ **Reduce Motion**: Respects system setting
-✅ **High Contrast**: Compatible
+- **Dynamic Type**: Text scales with system settings
+- **Dark Mode**: Full support
+- **Reduce Motion**: Respects system setting
+- **High Contrast**: Compatible
 
 ---
 
-## Tips & Tricks
-
-### Power User Tips
-
-💡 **Quick document creation**:
-- Use Siri Shortcuts to trigger scan
-- Create from Camera roll
-- Import from Files app
-
-💡 **Search efficiency**:
-- Use specific keywords
-- Search by date range (e.g., "October 2025")
-- Combine terms (e.g., "receipt starbucks")
-
-💡 **Organization strategy**:
-- Folders for categories (Tax, Medical, Work)
-- Descriptive titles within folders
-- Use search more than browsing
-
-💡 **Text page workflow**:
-- Create outline as text page first
-- Attach scanned supporting documents
-- Export complete package
-
-### Common Workflows
-
-**📧 Email Receipt Processing**:
-1. Forward email with receipt to yourself
-2. Open PDF attachment
-3. Share → "Copy to Yiana"
-4. Add text page with notes
-5. Title with vendor and amount
-
-**💼 Business Expense Tracking**:
-1. Scan receipt immediately
-2. Title: "Expense - [Vendor] - [Amount]"
-3. Add text page with category
-4. Create folder per month
-5. Export all at month end
-
-**🏥 Medical Records**:
-1. Scan document
-2. Title: "Medical - [Provider] - [Date]"
-3. Text page with summary/notes
-4. Tag with condition (coming soon)
-5. Create folder per year
-
----
-
-## What's Next?
-
-### Coming Soon
-
-- 📝 PDF annotation (iOS/iPadOS)
-- 🏷️ Tags and advanced filtering
-- 📊 Document metadata editing
-- 💾 Backup/restore system
-- 📤 Batch export options
-- 🔍 Advanced search filters
-
-### Request Features
-
-Have ideas? Contribute to the project on GitHub!
-
----
-
-*Last updated: October 2025*
+*Last updated: February 2026*

@@ -2,28 +2,34 @@
 
 **Purpose**: Current status and planned features for Yiana
 **Audience**: Developers and contributors
-**Last Updated**: 2025-10-08
+**Last Updated**: 2026-02-25
 
 ---
 
-## Current Status (October 2025)
+## Current Status (February 2026)
 
-### ✅ Completed Features
+### Completed Features
 
 #### Core Document Management
 - **UIDocument/NSDocument architecture** - iOS/iPadOS uses UIDocument, macOS uses NSDocument
-- **.yianazip package format** - Metadata + PDF in single file with separator
+- **.yianazip package format** - ZIP archive (metadata.json + content.pdf + format.json) via `YianaDocumentArchive` package
 - **iCloud sync** - Automatic sync via iCloud Drive
 - **Document creation** - Title required at creation time
 - **Document import** - Import external PDFs as new documents or append to existing
+- **Bulk import** (macOS) - Multi-file import with SHA256 duplicate detection, progress tracking, per-file timeout
+- **Bulk export** (macOS) - Export with folder structure preservation
 - **Document deletion** - With confirmation dialog
+- **Duplicate scanner** (macOS) - SHA256-based detection with review UI
+
+#### Folders & Organization
+- **Folders** - Create, rename, delete with nested subfolder support
+- **Drag-and-drop** (macOS) - Move documents between folders, import PDFs from Finder
+- **Drag-and-drop** (iOS) - Move documents to sidebar folders on iPad
+- **Sort options** - By date, title, size
 
 #### Scanning & Capture
 - **VisionKit integration** - Automatic edge detection and capture
-- **Three scan modes**:
-  - **Color** - Full color scanning
-  - **Doc (Monochrome)** - Black & white, center position (visual default)
-  - **Text** - Text page creation with markdown editor
+- **Three scan modes**: Color, Doc (B&W), Text (markdown editor)
 - **Multi-page scanning** - Capture multiple pages in one session
 - **Automatic capture** - No manual shutter button needed
 
@@ -32,310 +38,158 @@
 - **Live preview** - Real-time PDF rendering as you type
 - **Provisional page composition** - In-memory PDF combining (saved + draft)
 - **Draft management** - Autosave and recovery system
-- **Supported markdown**:
-  - Headers (H1, H2, H3)
-  - Bold (`**text**`)
-  - Italic (`*text*`)
-  - Lists (bulleted and numbered)
-  - Blockquotes (`> quote`)
-  - Horizontal rules (`---`)
+- **Supported markdown**: Headers, bold, italic, lists, blockquotes, horizontal rules
 - **Toolbar actions** - Queue pattern to prevent SwiftUI state crashes
 - **Split view (iPad)** - Editor and preview side-by-side
-- **Finalization** - Once done, text pages become permanent PDFs
+- **Finalization** - Text pages become permanent PDFs
 
 #### Search
-- **Full-text search** - Search document titles and OCR text
+- **GRDB/FTS5 search index** - Full-text search with BM25 ranking
+- **Porter stemming** - "running" matches "run", etc.
+- **Snippet generation** - Context around matches with highlighting
 - **Page-level results** - Results show specific page numbers
-- **Snippet preview** - Context around search matches
-- **OCR integration** - Searches text extracted by backend OCR service
+- **ValueObservation** - Reactive list updates from database changes
+- **Placeholder support** - iCloud files not yet downloaded appear in list
 
-#### OCR Processing (Backend)
-- **YianaOCRService** - Swift CLI running on Mac mini
-- **Vision framework** - Text recognition using Apple's Vision API
-- **JSON results** - OCR results saved to `.ocr_results/` directory
-- **Metadata integration** - Plain text extracted for search
+#### OCR Processing
+- **On-device OCR** - Apple Vision framework (VNRecognizeTextRequest) for immediate recognition
+- **Server OCR** - YianaOCRService (Swift CLI, Mac mini) for batch processing
+- **OCR source tracking** - Metadata records whether OCR was on-device, server, or embedded
+- **Confidence scores** - Displayed in document info panels
+- **JSON/XML/hOCR results** - Server results saved to `.ocr_results/`
+
+#### Page Operations
+- **Page copy/cut/paste** - Between documents on both platforms
+- **Page reordering** - Drag in thumbnail grid
+- **Page deletion** - With confirmation
+- **Restore cut** - Undo cut operations within same document
+
+#### Print
+- **macOS** - Native print via Cmd+P, toolbar button, NSPrintOperation
+- **iOS** - Via share sheet (UIActivityViewController includes Print)
+
+#### Address Extraction
+- **In-app viewing** - Extracted patient, GP, specialist data shown per document
+- **Inline editing** - Users can correct and override extracted data
+- **Prime address system** - Mark primary contacts
+- **Address type settings** - Customizable templates, icons, colors
+- **Backend processing** - Python service on Mac mini extracts from OCR results
+
+#### Settings
+- **Paper size** - A4 or US Letter
+- **Sidebar position** (iPad) - Left or Right
+- **Thumbnail size** (iPad) - Small, Medium, Large
+- **Developer mode** - Hidden toggle (tap version 7 times), session-based
+- **Developer tools** - Search index reset, OCR tools, debug info
 
 #### PDF Viewing
-- **PDFKit integration** - Native PDF viewing on iOS/iPadOS/macOS
+- **PDFKit integration** - Native PDF viewing on all platforms
 - **Read-only mode** - No annotations to avoid memory issues
-- **1-based page indexing** - Consistent page numbering throughout app
+- **1-based page indexing** - Consistent page numbering throughout
 - **Mixed page size support** - Handles A4 and US Letter in same document
 - **Page navigation** - Direct page jumps, swipe gestures
 
 #### UI/UX
 - **SwiftUI** - Modern declarative UI
 - **Platform-specific layouts** - iPhone (compact), iPad (regular), macOS
-- **Swipe gestures** - Swipe up for page grid, swipe down for document info
+- **Swipe gestures** - Left/right for pages, up for page grid
 - **Page management grid** - Visual page overview with thumbnails
-- **Visual indicators** - Draft badge and border for provisional pages
+- **Keyboard shortcuts** - Full macOS keyboard support
+- **Dark mode** - Full support
 
-### 🔄 Current Branch Work
+### Known Limitations
 
-**Branch**: `feature/text-page-editor`
-- Text page editor styling refinements
-- Markdown support improvements
-- Search cancellation handling
-- Status indicator performance improvements
-
-### ❌ Known Limitations
-
-1. **Single draft at a time** - Only one provisional text page per document
-2. **No inline images** - Markdown image syntax not supported
+1. **Tags** - Metadata field exists and displays read-only; no UI to add/edit/filter by tags
+2. **No inline images in text pages** - Markdown image syntax not supported
 3. **Limited markdown** - Subset of markdown (no tables, code blocks)
 4. **No post-finalization editing** - Text pages permanent once finalized
-5. **macOS markup incomplete** - Text markup on macOS not fully implemented
+5. **Bulk import/export macOS only** - iOS uses standard share sheet
+6. **Duplicate scanner macOS only** - No iOS UI
+7. **No camera scanning on macOS** - Hardware limitation
 
 ---
 
-## Roadmap Q4 2025
+## Planned Work
 
-### High Priority 🔴
+### High Priority
 
-#### 1. macOS Text Markup Completion
-**Goal**: Complete text markup/annotation system for macOS
+#### macOS Text Markup Completion
+- Implement PDFAnnotation creation for text selection
+- Add markup toolbar (highlight, underline, strikethrough)
+- Persist annotations in PDF
 
-**Tasks**:
-- [ ] Implement PDFAnnotation creation for text selection
-- [ ] Add markup toolbar (highlight, underline, strikethrough)
-- [ ] Persist annotations in PDF
-- [ ] Test with large documents
+#### Tags System
+- UI for adding/editing/removing tags
+- Filter by tags in document list
+- Tag suggestions and autocomplete
 
-**Estimate**: 2-3 weeks
-**Status**: Design docs exist in `docs/`
+### Medium Priority
 
-#### 2. Backup & Restore System
-**Goal**: Export/import documents for backup
+#### Extended Markdown Support
+- Tables
+- Code blocks with syntax highlighting
+- Task lists
+- Internal links
 
-**Tasks**:
-- [ ] Export single document as .yianazip
-- [ ] Export all documents as archive
-- [ ] Import from .yianazip files
-- [ ] Import from archive
-- [ ] Verify data integrity after restore
+#### iOS Bulk Operations
+- Bulk import UI for iOS/iPadOS
+- Multi-select export on iOS
 
-**Estimate**: 1-2 weeks
-**Status**: Test plan exists (`BackupSystem-TestPlan.md`)
+#### Multiple Provisional Pages
+- Support multiple text page drafts per document
 
-#### 3. Performance Optimization
-**Goal**: Improve app performance for large documents
+### Low Priority
 
-**Tasks**:
-- [ ] Profile search performance with 100+ documents
-- [ ] Optimize provisional page composition caching
-- [ ] Reduce memory usage in PDF viewer
-- [ ] Implement progressive PDF rendering
-- [ ] Add performance benchmarks to test suite
+#### Advanced Search
+- Boolean operators (AND, OR, NOT)
+- Search within document
+- Search history
 
-**Estimate**: 2-3 weeks
-
-### Medium Priority 🟡
-
-#### 4. Extended Markdown Support
-**Goal**: Add more markdown features to text pages
-
-**Tasks**:
-- [ ] Tables
-- [ ] Code blocks with syntax highlighting
-- [ ] Footnotes
-- [ ] Task lists (`- [ ] Task`)
-- [ ] Internal links (jump to other pages)
-
-**Estimate**: 2-3 weeks
-**Blocked by**: Need to decide on renderer (current vs third-party)
-
-#### 5. Multiple Provisional Pages
-**Goal**: Support multiple text page drafts per document
-
-**Tasks**:
-- [ ] Refactor `ProvisionalPageManager` to handle array of drafts
-- [ ] Update provisional page range tracking (single → array)
-- [ ] Update UI to show multiple draft indicators
-- [ ] Update finalization logic to handle multiple pages
-
-**Estimate**: 1-2 weeks
-**Migration path**: Documented in ADR-002
-
-#### 6. Custom Fonts & Themes
-**Goal**: Allow users to customize text page appearance
-
-**Tasks**:
-- [ ] Font picker for text pages
-- [ ] Theme system (light/dark/custom)
-- [ ] Font size adjustments
-- [ ] Line spacing controls
-- [ ] Preview theme in editor
-
-**Estimate**: 1-2 weeks
-
-#### 7. Document Organization
-**Goal**: Improve document management
-
-**Tasks**:
-- [ ] Folders/categories for documents
-- [ ] Tags system
-- [ ] Favorites
-- [ ] Sort options (date, title, size)
-- [ ] Filter by tags, folders, date range
-
-**Estimate**: 2-3 weeks
-
-### Low Priority 🟢
-
-#### 8. Export Options
-**Goal**: Export documents in various formats
-
-**Tasks**:
-- [ ] Export individual pages as images
-- [ ] Export text pages as standalone markdown
-- [ ] Export OCR results as text file
-- [ ] Export to PDF/A for archival
-- [ ] Batch export
-
-**Estimate**: 1-2 weeks
-
-#### 9. Advanced Search
-**Goal**: Enhance search capabilities
-
-**Tasks**:
-- [ ] Boolean operators (AND, OR, NOT)
-- [ ] Regex search
-- [ ] Search history
-- [ ] Saved searches
-- [ ] Search within document
-
-**Estimate**: 1-2 weeks
-
-#### 10. Accessibility Improvements
-**Goal**: Better accessibility support
-
-**Tasks**:
-- [ ] VoiceOver optimization
-- [ ] Dynamic Type support
-- [ ] Keyboard shortcuts (macOS)
-- [ ] High contrast mode
-- [ ] Accessibility audit
-
-**Estimate**: 2-3 weeks
+#### Accessibility Improvements
+- VoiceOver optimization
+- Dynamic Type support improvements
 
 ---
 
-## Long-Term Vision (2026+)
-
-### Collaboration Features
-- **Shared documents** - iCloud sharing with other users
-- **Comments** - Add comments to specific pages/regions
-- **Change tracking** - See document edit history
-
-### OCR Enhancements
-- **Incremental OCR** - Process only new pages when appending
-- **Priority queue** - User-initiated OCR gets higher priority
-- **Multi-language support** - Non-English document recognition
-- **Quality metrics** - Confidence scores and UI indicators
-
-### Platform Expansion
-- **watchOS companion** - Quick document access
-- **Shortcuts integration** - Automate workflows
-- **macOS Quick Look plugin** - Preview .yianazip in Finder
-
-### Advanced Features
-- **Form filling** - Fill PDF forms
-- **Digital signatures** - Sign documents
-- **Encryption** - Password-protect documents
-- **Templates** - Reusable document templates
-
----
-
-## Technical Debt & Improvements
+## Technical Debt
 
 ### Code Quality
 - [ ] Increase test coverage to 80%+ across all modules
 - [ ] Add integration tests for major workflows
 - [ ] Set up CI/CD pipeline with automated testing
 - [ ] Add performance regression tests
-- [ ] Document all public APIs with code comments
 
 ### Architecture
 - [ ] Refactor search to use async/await consistently
 - [ ] Consolidate document loading/saving logic
 - [ ] Extract markdown rendering to separate package
-- [ ] Improve error handling consistency
 
 ### Documentation
-- [ ] Complete user documentation (`docs/user/`)
 - [ ] Add more ADRs for recent decisions
-- [ ] Create video tutorials
-- [ ] Write API reference documentation
 - [ ] Update diagrams as features evolve
 
-### Dependencies
-- [ ] Evaluate GRDB.swift integration for metadata storage
-- [ ] Consider SwiftLint for code style enforcement
-- [ ] Evaluate markdown rendering libraries
-
 ---
 
-## Release Schedule
+## Historical Context
 
-### Version 1.1 (November 2025)
-**Focus**: Stability & Performance
+**Original plan** (`PLAN.md`):
+- Phase 1-2: Core models and document repository
+- Phase 3-4: ViewModels and basic UI
+- Phase 5-8: Scanner, PDF viewer, iCloud, polish
+- All 8 phases completed (2024-2025)
 
-- macOS text markup completion
-- Backup & restore system
-- Performance optimizations
-- Bug fixes from TestFlight feedback
-
-### Version 1.2 (December 2025)
-**Focus**: User Experience
-
-- Extended markdown support
-- Multiple provisional pages
-- Custom fonts & themes
-- Document organization (folders, tags)
-
-### Version 1.3 (Q1 2026)
-**Focus**: Advanced Features
-
-- Export options
-- Advanced search
-- Accessibility improvements
-- Collaboration features (initial)
-
----
-
-## Decision-Making Process
-
-### Feature Prioritization
-
-**Criteria**:
-1. **User impact** - How many users benefit?
-2. **Complexity** - Development time vs value
-3. **Dependencies** - Blockers or prerequisites?
-4. **Risk** - Potential for bugs or regressions?
-5. **Strategic value** - Long-term product vision
-
-**Priority levels**:
-- **High (🔴)**: Critical bugs, major features, user-requested
-- **Medium (🟡)**: Nice-to-have, enhancements
-- **Low (🟢)**: Future considerations, exploratory
-
-### Adding to Roadmap
-
-**Process**:
-1. Create GitHub issue with feature request
-2. Discuss with team/community
-3. Create ADR if architectural impact
-4. Estimate effort and assign priority
-5. Add to appropriate milestone
-
-### Removing from Roadmap
-
-**Reasons**:
-- User feedback indicates low value
-- Technical constraints make infeasible
-- Better alternative identified
-- Out of scope for project vision
-
-**Process**: Archive issue with explanation, update roadmap
+**Features added beyond original plan**:
+- Text pages with markdown editor
+- GRDB/FTS5 search index with BM25 ranking
+- On-device OCR (Vision framework)
+- Folders with nesting and rename
+- Bulk import/export with duplicate detection
+- Page copy/cut/paste between documents
+- Print support (macOS)
+- Duplicate scanner
+- Address extraction system
+- Settings and developer tools
+- Drag-and-drop (macOS full, iOS sidebar)
 
 ---
 
@@ -345,9 +199,8 @@ Interested in working on a roadmap item?
 
 1. Check the [GitHub Issues](https://github.com/lh/Yiana/issues) for the feature
 2. Comment to express interest and get assigned
-3. Read [`Contributing.md`](Contributing.md) for workflow
-4. Follow TDD process for all changes
-5. Create PR when ready
+3. Follow TDD process for all changes
+4. Create PR when ready
 
 **First-time contributors**: Look for issues tagged `good-first-issue`
 
@@ -360,33 +213,3 @@ Have ideas for the roadmap?
 - Create a [GitHub Issue](https://github.com/lh/Yiana/issues/new) with "Feature Request" label
 - Describe the problem you're trying to solve
 - Propose a solution (optional)
-- Include mockups/examples if helpful
-
-We review feature requests monthly and update the roadmap accordingly.
-
----
-
-## Historical Context
-
-**Original plan** (`PLAN.md`):
-- Phase 1-2: Core models and document repository ✅ Complete
-- Phase 3-4: ViewModels and basic UI ✅ Complete
-- Phase 5-8: Scanner, PDF viewer, iCloud, polish ✅ Complete
-
-**Actual implementation**:
-- Phases 1-8 completed (2024-2025)
-- Additional features added based on usage:
-  - Text pages with markdown editor (not in original plan)
-  - Search with OCR integration (expanded from original scope)
-  - Provisional page composition (new pattern)
-  - Advanced gesture system (UX improvement)
-
-**Lessons learned**:
-- TDD approach worked well, caught many bugs early
-- Platform-specific code clearer than forced abstractions
-- UIDocument/NSDocument simpler than Core Data for this use case
-- User feedback critical for prioritization
-
----
-
-**Last Updated**: 2025-10-08 | **Next Review**: 2025-11-01

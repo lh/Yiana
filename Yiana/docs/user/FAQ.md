@@ -9,12 +9,14 @@ Common questions and answers about using Yiana.
 - [Getting Started](#getting-started)
 - [Document Scanning](#document-scanning)
 - [Text Pages](#text-pages)
-- [Search & OCR](#search--ocr)
+- [Search and OCR](#search-and-ocr)
 - [Organization](#organization)
-- [Sync & Storage](#sync--storage)
-- [Import & Export](#import--export)
+- [Sync and Storage](#sync-and-storage)
+- [Import and Export](#import-and-export)
+- [Printing](#printing)
+- [Address Extraction](#address-extraction)
 - [Troubleshooting](#troubleshooting)
-- [Privacy & Security](#privacy--security)
+- [Privacy and Security](#privacy-and-security)
 
 ---
 
@@ -25,8 +27,12 @@ Common questions and answers about using Yiana.
 Yiana is a document scanning and PDF management app for iOS, iPadOS, and macOS. It lets you:
 - Scan documents with your device camera
 - Create typed text pages
-- Search across all your documents
+- Search across all your documents (with on-device and server OCR)
 - Organize with folders
+- Import and export PDFs (including bulk operations on macOS)
+- Copy/cut/paste pages between documents
+- Print documents
+- View extracted address data
 - Sync via iCloud
 
 ### Is Yiana free?
@@ -35,9 +41,9 @@ Pricing details coming soon. Currently in development/beta.
 
 ### What devices are supported?
 
-- **iOS**: iPhone running iOS 17+
-- **iPadOS**: iPad running iPadOS 17+
-- **macOS**: Mac running macOS 14+ (Sonoma)
+- **iOS**: iPhone running iOS 18+
+- **iPadOS**: iPad running iPadOS 18+
+- **macOS**: Mac running macOS 15+ (Sequoia)
 
 ### Do I need iCloud?
 
@@ -56,8 +62,7 @@ You can use Yiana without iCloud, but documents will only be on one device.
 
 Macs don't have built-in cameras suitable for document scanning. You can:
 - Scan on iPhone/iPad, sync via iCloud
-- Import PDFs from other sources
-- Use a connected scanner (coming soon)
+- Import existing PDFs (drag-and-drop, File > Import, or Import from Folder)
 
 ### How do I scan multi-page documents?
 
@@ -84,7 +89,7 @@ Not directly. The camera scanner requires real-time capture for:
 
 Three buttons appear at the bottom:
 - **Scan** (left, colorful circle): Color scanning for photos, forms, colorful documents
-- **Doc** (center, gray circle): Black & white for text documents, receipts - optimized for clarity (default position)
+- **Doc** (center, gray circle): Black and white for text documents, receipts - optimized for clarity (default position)
 - **Text** (right): Create text page
 
 ### How do I retake a bad scan?
@@ -110,7 +115,7 @@ Text pages let you type notes that become permanent PDF pages in your document. 
 
 ### Can I edit a text page after saving?
 
-No. Once you exit the note, text pages become permanent PDFs (like pen and paper). This is intentional!
+No. Once you exit the note, text pages become permanent PDFs (like pen and paper). This is intentional.
 
 If you need to add more information:
 - Create a new text page
@@ -139,7 +144,7 @@ Markdown is a simple way to format text using symbols:
 - `*italic*` becomes *italic*
 - `# Heading` becomes a header
 
-But you don't need to know markdown - use the toolbar buttons!
+But you don't need to know markdown - use the toolbar buttons.
 
 ### Where do text pages appear?
 
@@ -147,36 +152,36 @@ Text pages always append to the end of your document initially. After they're fi
 
 ---
 
-## Search & OCR
+## Search and OCR
 
 ### What is OCR?
 
 OCR (Optical Character Recognition) extracts text from scanned images. This makes your scanned documents searchable.
 
-### How long does OCR take?
+### How does OCR work in Yiana?
 
-Typically a few minutes, depending on:
-- Number of pages
-- Image complexity
-- Server availability
+Yiana has two OCR systems:
 
-OCR happens automatically in the background.
+1. **On-device OCR** - Uses Apple's Vision framework. Runs automatically when you scan or open a document. Results available within seconds. Works offline.
+2. **Server OCR** - Runs on a Mac mini server (if configured). Processes documents in the background with higher accuracy for complex layouts.
+
+Both feed into the same search index.
 
 ### Why aren't my scanned documents searchable?
 
 Possible reasons:
-1. **OCR not complete yet** - Wait a few minutes
-2. **No OCR server configured** - Requires Mac mini setup
-3. **Document is handwritten** - OCR works best on printed text
-4. **Image quality poor** - Rescan with better lighting
+1. **Just scanned** - On-device OCR runs automatically but may take a few seconds
+2. **Poor image quality** - Rescan with better lighting
+3. **Handwritten text** - OCR works best on printed text
+4. **Server not configured** - On-device OCR handles most cases, but server OCR may produce better results
 
 ### Can I search PDF files I imported?
 
-Yes, if the PDF already contains text (searchable PDF). If it's just images, it needs OCR processing.
+Yes, if the PDF already contains text (searchable PDF). If it's just images, on-device OCR will process it when you open the document.
 
 ### Does search work offline?
 
-Yes! Search uses locally stored OCR results. No internet connection needed.
+Yes. Search uses a local GRDB/FTS5 index on your device. No internet connection needed. On-device OCR also works offline.
 
 ### Can I search multiple documents at once?
 
@@ -192,23 +197,21 @@ No limit. Create as many folders as you need.
 
 ### Can I nest folders?
 
-Yes! Create folders within folders for hierarchical organization.
+Yes. Create folders within folders for hierarchical organization.
 
 ### Can I put a document in multiple folders?
 
-No. Each document lives in one location. Use search or tags (coming soon) for multiple categorizations.
+No. Each document lives in one location. Use search for finding documents across folders.
 
 ### How do I move a document between folders?
 
-**Method 1**: Long press → Move → Select folder
-**Method 2** (iPad): Long press → Drag to folder
+**Method 1**: Long press > Move > Select folder
+**Method 2** (macOS): Drag document onto a folder
+**Method 3** (iPad): Drag document to a sidebar folder
 
 ### Can I rename folders?
 
-Not yet - coming in a future update. Current workaround:
-1. Create new folder with desired name
-2. Move documents to new folder
-3. Delete old folder
+Yes. Right-click (macOS) or long press (iOS) a folder and select "Rename". Enter the new name and confirm.
 
 ### What happens if I delete a folder?
 
@@ -219,7 +222,7 @@ You'll be prompted to:
 
 ---
 
-## Sync & Storage
+## Sync and Storage
 
 ### How does iCloud sync work?
 
@@ -233,9 +236,9 @@ Changes propagate to all devices typically within seconds.
 ### Why isn't my document syncing?
 
 Check:
-1. **iCloud signed in** - Settings → [Your Name]
-2. **iCloud Drive enabled** - Settings → iCloud → iCloud Drive
-3. **Yiana allowed** - Settings → iCloud → iCloud Drive → Yiana (on)
+1. **iCloud signed in** - Settings > [Your Name]
+2. **iCloud Drive enabled** - Settings > iCloud > iCloud Drive
+3. **Yiana allowed** - Settings > iCloud > iCloud Drive > Yiana (on)
 4. **Internet connection** - Wi-Fi or cellular
 5. **Storage space** - Enough iCloud storage available
 
@@ -250,7 +253,7 @@ Depends on document volume:
 - **Text page**: ~50-100 KB
 - **100 documents** (~5 pages each): ~100-500 MB
 
-Monitor your iCloud storage in Settings → iCloud.
+Monitor your iCloud storage in Settings > iCloud.
 
 ### What happens if I run out of iCloud storage?
 
@@ -261,27 +264,31 @@ Monitor your iCloud storage in Settings → iCloud.
 
 ### Can I back up documents locally?
 
-Not built-in currently. Workarounds:
-- Export documents as PDFs
-- Copy `.yianazip` files from iCloud Drive folder manually
-- Built-in backup system coming soon
+Yes. On macOS, use Cmd+Shift+E (or File > Export All Documents as PDFs) to bulk export your library. The export preserves your folder structure. You can also manually copy `.yianazip` files from the iCloud Drive folder.
 
 ---
 
-## Import & Export
+## Import and Export
 
 ### What file formats can I import?
 
 Currently: **PDF only**
 
-Coming soon: JPEG, PNG, HEIC (will convert to PDF)
-
 ### How do I import a PDF from email?
 
 1. Open email
 2. Long press PDF attachment
-3. Share → "Copy to Yiana"
+3. Share > "Copy to Yiana"
 4. Choose "New Document" or "Append to Existing"
+
+### How do I import many PDFs at once? (macOS)
+
+Three options:
+1. **Drag and drop** - Drag multiple PDFs from Finder into the Yiana window
+2. **File > Import** - Select up to 100 files at once
+3. **Import from Folder** - Select a folder and import all PDFs in it
+
+The bulk import system detects duplicates (via SHA256 hash), shows progress, and reports results.
 
 ### Can I export to formats other than PDF?
 
@@ -292,18 +299,43 @@ No. Documents export as PDF only. This preserves:
 
 ### Does exported PDF include metadata?
 
-No. Exported PDF is just the pages. Metadata (title, creation date, tags) stays in Yiana.
+No. Exported PDF is just the pages. Metadata (title, creation date) stays in Yiana.
 
-To preserve metadata: Keep the document in Yiana!
+---
+
+## Printing
 
 ### Can I print documents?
 
-Yes!
-1. Open document
-2. Tap share icon
-3. Choose "Print"
-4. Select printer
-5. Print
+Yes.
+
+**macOS**: Press Cmd+P or click the print button in the toolbar. The native macOS print dialog appears with page range, copies, and printer selection.
+
+**iOS/iPadOS**: Open the document, tap the share icon, and select "Print" from the share sheet.
+
+---
+
+## Address Extraction
+
+### What is address extraction?
+
+A backend service on the Mac mini extracts contact information (patients, GPs, opticians, specialists) from your scanned documents. Results appear in the document info panel.
+
+### How do I view extracted addresses?
+
+Open a document and go to the info panel. The "Addresses" tab shows any extracted contacts with their details.
+
+### Can I correct extraction errors?
+
+Yes. Tap any field to edit it inline. Corrections are saved as overrides without changing the original extraction data.
+
+### Do I need a Mac mini for this?
+
+The extraction runs on a Mac mini server. Without it, no addresses are extracted. However, the rest of Yiana works normally without it.
+
+### Can I adapt this for a different type of document?
+
+Yes. The extraction pipeline is designed to be domain-adaptable. See the [Address Extraction Backend Guide](../dev/AddressExtraction.md) for detailed instructions and LLM prompts for adapting the system to other domains (e.g., customers and suppliers, legal documents, real estate).
 
 ---
 
@@ -313,7 +345,7 @@ Yes!
 
 Try:
 1. **Restart app** - Force quit and reopen
-2. **Update iOS** - Settings → General → Software Update
+2. **Update iOS** - Settings > General > Software Update
 3. **Free up storage** - Delete old photos/apps
 4. **Restart device** - Power off and on
 5. **Reinstall app** - Delete and reinstall Yiana
@@ -327,7 +359,7 @@ Tips:
 2. **Improve lighting** - Use natural light if possible
 3. **Hold steady** - Rest device on surface if shaky
 4. **Increase distance** - Move camera farther from document
-5. **Check permissions** - Settings → Yiana → Camera (allow)
+5. **Check permissions** - Settings > Yiana > Camera (allow)
 
 ### Text page preview won't show
 
@@ -345,7 +377,7 @@ Try:
 
 Verify:
 1. **Document title correct** - Check spelling
-2. **OCR complete** - Wait for processing
+2. **OCR complete** - Open the document to trigger on-device OCR if needed
 3. **Search term in document** - Double-check content
 4. **Case-insensitive** - Try different capitalization
 
@@ -377,7 +409,7 @@ Changes save automatically.
 
 ---
 
-## Privacy & Security
+## Privacy and Security
 
 ### Where are my documents stored?
 
@@ -388,10 +420,10 @@ Changes save automatically.
 ### Does Yiana track my usage?
 
 No. Yiana has:
-- ❌ No analytics
-- ❌ No telemetry
-- ❌ No user tracking
-- ❌ No ads
+- No analytics
+- No telemetry
+- No user tracking
+- No ads
 
 ### Can anyone else see my documents?
 
@@ -404,26 +436,24 @@ Documents are private by default.
 
 ### What about OCR processing?
 
-OCR requires a server (your Mac mini). During processing:
-- Documents uploaded temporarily
-- Text extracted
-- Results returned
-- Original deleted from server
+**On-device OCR**: Everything stays on your device. No data leaves.
 
-This is your own hardware, not a cloud service.
+**Server OCR** (if configured): Documents are processed on your own Mac mini hardware via iCloud sync. This is your own hardware, not a cloud service.
 
 ### Can I use Yiana offline?
 
-Yes! Works offline for:
+Yes. Works offline for:
 - Viewing downloaded documents
 - Creating new documents
 - Scanning new pages
-- Searching (using cached OCR)
+- Searching (using local index)
+- On-device OCR
 
 Requires connection for:
 - Initial sync
 - Downloading cloud documents
-- OCR processing
+- Server OCR processing
+- Address extraction processing
 
 ### Is my data encrypted?
 
@@ -449,7 +479,6 @@ Recover within 30 days via iCloud Drive.
 
 - Check the [User Guide](GettingStarted.md)
 - Read the [Features Overview](Features.md)
-- See [Troubleshooting Guide](Troubleshooting.md)
 
 ### Found a bug?
 
@@ -457,8 +486,8 @@ Please report issues on GitHub: [github.com/lh/Yiana/issues](https://github.com/
 
 ### Feature request?
 
-We'd love to hear your ideas! Submit requests on GitHub.
+We'd love to hear your ideas. Submit requests on GitHub.
 
 ---
 
-*Last updated: October 2025*
+*Last updated: February 2026*

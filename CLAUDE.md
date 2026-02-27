@@ -86,7 +86,7 @@ When logging issues or saving notes, use the correct system: Problems/TODOs go t
 
 This project is a Swift/SwiftUI notes app (Yiana) with iOS and macOS targets, iCloud sync, OCR processing via a remote Mac mini server, and a GRDB/SQLite database. The primary languages are Swift (app) and Python (server services). Always consider iCloud file download state when working with file operations.
 
-Yiana is a document scanning and PDF management app for iOS/iPadOS/macOS. It stores documents as `.yianazip` packages (metadata JSON + PDF data), syncs via iCloud Drive, and offloads OCR processing to a Mac mini backend service.
+Yiana is a document scanning and PDF management app for iOS/iPadOS/macOS. It stores documents as `.yianazip` packages (ZIP archives containing metadata + PDF), syncs via iCloud Drive, and processes OCR both on-device (Vision framework) and via a Mac mini backend service.
 
 ## Build & Test Commands
 
@@ -128,7 +128,7 @@ When deploying to the Mac mini server: 1) Stop the launchd service FIRST and wai
 ### Document Storage Architecture
 - **UIDocument-based** (iOS/iPadOS) and **NSDocument-based** (macOS) - NOT Core Data
 - Documents stored in iCloud container: `iCloud.com.vitygas.Yiana/Documents`
-- Package format: `.yianazip` with structure: `[metadata JSON][0xFF 0xFF 0xFF 0xFF separator][raw PDF bytes]`
+- Package format: `.yianazip` — a ZIP archive (via `YianaDocumentArchive` package using ZIPFoundation) containing `metadata.json`, `content.pdf`, and `format.json`
 - Bundle ID: com.vitygas.Yiana
 
 ### Platform Strategy
@@ -142,25 +142,28 @@ When deploying to the Mac mini server: 1) Stop the launchd service FIRST and wai
 - Wrapper extensions in `Extensions/PDFDocument+PageIndexing.swift` handle conversions
 
 ### OCR Processing
-- OCR handled by `YianaOCRService` (Mac mini backend), NOT on device
-- Service watches documents folder and processes PDFs with `ocrCompleted = false`
-- Results stored in `.ocr_results/` as JSON/XML/hOCR
+- **On-device OCR**: `OnDeviceOCRService` uses Apple's Vision framework (VNRecognizeTextRequest) for immediate text recognition on scan or document open
+- **Server OCR**: `YianaOCRService` (Mac mini backend) watches documents folder and processes PDFs with `ocrCompleted = false`; results stored in `.ocr_results/` as JSON/XML/hOCR
+- Metadata tracks OCR source via `ocrSource` enum: `.onDevice`, `.service`, or `.embedded`
 
 ## Repository Structure
 
 ```
-Yiana/                  # SwiftUI app (iOS/iPadOS/macOS)
-├── Models/            # DocumentMetadata, NoteDocument (UIDocument)
-├── ViewModels/        # DocumentListViewModel, DocumentViewModel
-├── Views/             # SwiftUI views (DocumentListView, PDFViewer, etc.)
-├── Services/          # DocumentRepository, ImportService, ScanningService
-├── Extensions/        # PDFDocument+PageIndexing, other wrappers
-└── Tests/             # Unit and UI tests
+Yiana/                      # SwiftUI app (iOS/iPadOS/macOS)
+├── Models/                # DocumentMetadata, NoteDocument (UIDocument)
+├── ViewModels/            # DocumentListViewModel, DocumentViewModel
+├── Views/                 # SwiftUI views (DocumentListView, PDFViewer, etc.)
+├── Services/              # DocumentRepository, ImportService, SearchIndexService, etc.
+├── Extensions/            # PDFDocument+PageIndexing, other wrappers
+├── Accessibility/         # VoiceOver and accessibility support
+├── Markup/                # PDF markup/annotation code
+└── Utilities/             # Helper functions
 
-YianaOCRService/       # Swift Package executable for OCR processing
-AddressExtractor/      # Python utilities for data processing
-docs/                  # Technical documentation
-memory-bank/           # Project state tracking
+YianaDocumentArchive/      # Swift Package for .yianazip format (ZIPFoundation-based)
+YianaOCRService/           # Swift Package executable for server-side OCR processing
+AddressExtractor/          # Python utilities for address extraction and data processing
+docs/                      # Technical documentation
+memory-bank/               # Project state tracking
 ```
 
 ## Development Workflow
@@ -183,23 +186,20 @@ memory-bank/           # Project state tracking
 
 ## Current Implementation Status
 
-### Completed (✅)
-- Basic project structure and Xcode configuration
-- Document models (DocumentMetadata, NoteDocument)
-- Document repository with iCloud support
+### Completed
+- Document models, repository, iCloud sync
 - PDF viewing with 1-based page indexing
-- Import system (new documents and append to existing)
-- OCR service foundation
-- Search functionality with OCR text
+- Import system (new documents, append, bulk import on macOS)
+- On-device OCR (Vision framework) and server OCR (YianaOCRService)
+- GRDB/FTS5 search index with BM25 ranking
+- Folders with nesting, rename, drag-and-drop moves
+- Duplicate scanner (macOS)
+- Bulk export with folder structure preservation (macOS)
+- Page copy/cut/paste between documents
+- Print support (macOS Cmd+P)
+- Settings (paper size, sidebar position, thumbnail size, developer mode)
+- Address extraction (view/edit/override in app, backend processing on Mac mini)
 - GitHub repository: https://github.com/lh/Yiana
-
-### In Progress (🔄)
-- PDF markup/annotation system for macOS
-- Backup and restore system
-- Implementing UIDocument architecture (replacing Core Data)
-
-### Planned (📋)
-See `PLAN.md` for detailed implementation phases
 
 ## Style Preferences
 

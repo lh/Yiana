@@ -1,10 +1,10 @@
 # Yiana User Documentation
 
-Welcome to the Yiana user guide! This documentation will help you get the most out of your document management experience.
+Welcome to the Yiana user guide. This documentation covers everything you need to use the app effectively.
 
 ---
 
-## 📚 Documentation Index
+## Documentation Index
 
 ### New to Yiana?
 
@@ -14,21 +14,24 @@ Welcome to the Yiana user guide! This documentation will help you get the most o
 - Search and organize
 - Essential gestures
 
-👉 **Start here if you're new!**
+**Start here if you're new.**
 
 ---
 
 ### Learn All Features
 
 **[Features Overview](Features.md)** - Complete feature guide
-- Document scanning (color & B&W)
+- Document scanning (color and B&W)
 - Text pages with markdown
-- Search & OCR
+- Search and OCR (on-device and server)
 - Organization with folders
-- Navigation & gestures
+- Drag-and-drop (macOS)
+- Bulk import and export (macOS)
+- Page copy/cut/paste
+- Print support
+- Address extraction
+- Settings and preferences
 - iCloud sync
-- Import & export
-- Platform-specific features
 
 ---
 
@@ -38,21 +41,11 @@ Welcome to the Yiana user guide! This documentation will help you get the most o
 - Getting started
 - Scanning tips
 - Text pages explained
-- Search & OCR
+- Search and OCR
+- Folders and organization
 - Sync troubleshooting
-- Privacy & security
+- Privacy and security
 - Common issues
-
----
-
-### Need Help?
-
-**[Troubleshooting](Troubleshooting.md)** - Problem solving (coming soon)
-- App crashes
-- Scanning issues
-- Sync problems
-- Search not working
-- Performance tips
 
 ---
 
@@ -64,7 +57,6 @@ Welcome to the Yiana user guide! This documentation will help you get the most o
 |---------|--------|
 | Swipe left/right | Next/previous page |
 | Swipe up | View all pages (grid) |
-| Swipe down | Document info (coming soon) |
 | Pinch | Zoom in/out |
 | Double-tap | Fit to screen |
 
@@ -72,25 +64,26 @@ Welcome to the Yiana user guide! This documentation will help you get the most o
 
 | Shortcut | Action |
 |----------|--------|
-| `⌘N` | New document |
-| `⌘F` | Search |
-| `←` `→` | Navigate pages |
-| `Space` | Next page |
-| `⌘S` | Save |
-| `⌘E` | Export |
+| Cmd+N | New document |
+| Cmd+F | Search |
+| Cmd+P | Print (macOS) |
+| Left/Right arrows | Navigate pages |
+| Space | Next page |
+| Cmd+S | Save |
+| Cmd+E | Export |
 
 ### Button Guide
 
-**Bottom Toolbar**:
-- 📸 **Scan** (color circle) - Color scanning
-- 📄 **Doc** (gray circle) - B&W document scanning
-- 📝 **Text** (right) - Create typed text page
+**Bottom Toolbar** (iOS, while viewing a document):
+- **Scan** (color circle) - Color scanning
+- **Doc** (gray circle) - B&W document scanning
+- **Text** (right) - Create typed text page
 
 **Top Bar**:
-- ← **Back** - Return to documents
+- **Back** - Return to documents
 - **Title** - Tap to edit
-- ✏️ **Markup** - Annotate (macOS)
-- ⎙ **Export** - Share as PDF
+- **Export** - Share as PDF
+- **Print** (macOS toolbar) - Print document
 
 ---
 
@@ -100,10 +93,10 @@ Welcome to the Yiana user guide! This documentation will help you get the most o
 
 1. Tap **Scan** button
 2. Point camera at document
-3. Tap shutter
+3. Camera detects and captures automatically
 4. Review and save
 
-[Detailed guide →](GettingStarted.md#step-1-scan-your-first-document-30-seconds)
+[Detailed guide](GettingStarted.md#step-1-create-and-scan-your-first-document-60-seconds)
 
 ### Adding Text Notes
 
@@ -112,7 +105,7 @@ Welcome to the Yiana user guide! This documentation will help you get the most o
 3. Type and format
 4. Tap **Done**
 
-[Detailed guide →](GettingStarted.md#step-3-add-a-text-page-45-seconds)
+[Detailed guide](GettingStarted.md#step-2-add-a-text-page-45-seconds)
 
 ### Searching
 
@@ -121,7 +114,7 @@ Welcome to the Yiana user guide! This documentation will help you get the most o
 3. Type keywords
 4. Tap result to jump to page
 
-[Detailed guide →](GettingStarted.md#step-4-search-your-documents-30-seconds)
+[Detailed guide](GettingStarted.md#step-3-search-your-documents-30-seconds)
 
 ### Organizing with Folders
 
@@ -130,37 +123,37 @@ Welcome to the Yiana user guide! This documentation will help you get the most o
 3. Name and create
 4. Move documents into folder
 
-[Detailed guide →](GettingStarted.md#organizing-your-documents-optional)
+[Detailed guide](GettingStarted.md#organizing-your-documents-optional)
 
 ---
 
 ## Feature Highlights
 
-### 📸 Smart Document Scanning
+### Smart Document Scanning
 - Auto edge detection
 - Perspective correction
 - Color and B&W modes
 - Multi-page support
 
-### 📝 Text Pages
+### Text Pages
 - Markdown formatting
 - Live preview (iPad)
 - Permanent PDF output
 - "Pen and paper" philosophy
 
-### 🔍 Powerful Search
-- Full-text search
-- OCR for scanned documents
-- Search highlighting
-- Jump to results
+### Powerful Search
+- Full-text search powered by FTS5
+- On-device OCR for immediate results
+- Server OCR for batch processing
+- Search highlighting and snippets
 
-### ☁️ iCloud Sync
+### iCloud Sync
 - Automatic sync
 - All devices
 - Offline access
 - Encrypted storage
 
-### 🎯 Simple by Design
+### Simple by Design
 - No complex features you don't need
 - Clean, intuitive interface
 - Privacy-focused
@@ -170,19 +163,23 @@ Welcome to the Yiana user guide! This documentation will help you get the most o
 
 ## Platform Support
 
-### iOS & iPadOS
+### iOS and iPadOS
 
-✅ Camera scanning
-✅ Touch gestures
-✅ Split View (iPad)
-✅ Dark mode
+- Camera scanning
+- Touch gestures
+- Split View (iPad)
+- Page copy/cut/paste
+- Dark mode
 
 ### macOS
 
-✅ Keyboard shortcuts
-✅ Menu bar
-✅ PDF markup
-✅ Window management
+- Keyboard shortcuts
+- Cmd+P printing
+- Drag-and-drop import
+- Bulk import/export
+- Duplicate scanner
+- Window management
+- Dark mode
 
 ---
 
@@ -198,20 +195,19 @@ Welcome to the Yiana user guide! This documentation will help you get the most o
 
 - **Report bugs**: [GitHub Issues](https://github.com/lh/Yiana/issues)
 - **Feature requests**: [GitHub Discussions](https://github.com/lh/Yiana/discussions)
-- **Developer docs**: [../dev/README.md](../dev/README.md) (coming soon)
 
 ---
 
-## Privacy & Philosophy
+## Privacy and Philosophy
 
-### 🔒 Privacy First
+### Privacy First
 
 - **Your data stays yours** - Local and iCloud only
 - **No tracking** - Zero analytics or telemetry
 - **No ads** - Clean, focused experience
 - **Encrypted** - End-to-end security
 
-### ✍️ Pen & Paper Philosophy
+### Pen and Paper Philosophy
 
 Yiana is designed to feel like physical documents:
 
@@ -220,12 +216,14 @@ Yiana is designed to feel like physical documents:
 - **Read-only PDFs** - View documents without heavy annotation overhead
 - **One document, one place** - Clear, simple organization
 
-### 🧱 LEGO Approach
+### LEGO Approach
 
 We use proven Apple frameworks:
 - **VisionKit** for scanning
+- **Vision** for on-device OCR
 - **PDFKit** for viewing
 - **iCloud** for sync
+- **GRDB** for search indexing
 - **No reinventing the wheel**
 
 This means:
@@ -236,53 +234,31 @@ This means:
 
 ---
 
-## What's Next?
-
-### Coming Soon
-
-- 📝 PDF annotation (iOS/iPadOS)
-- 🏷️ Tags for advanced organization
-- 💾 Backup/restore system
-- 📊 Document metadata editing
-- 📤 Batch operations
-- 🔍 Advanced search filters
-
-### Stay Updated
-
-- **GitHub**: [github.com/lh/Yiana](https://github.com/lh/Yiana)
-- **Changelog**: [CHANGELOG.md](../../CHANGELOG.md) (coming soon)
-- **Release notes**: Check TestFlight or App Store
-
----
-
 ## Quick Tips
 
-💡 **Use descriptive titles** - Include dates, vendors, amounts for easy searching
+**Use descriptive titles** - Include dates, vendors, amounts for easy searching
 
-💡 **Scan immediately** - Don't let receipts pile up, scan when you get them
+**Scan immediately** - Don't let receipts pile up, scan when you get them
 
-💡 **Search often** - Faster than browsing folders
+**Search often** - Faster than browsing folders
 
-💡 **Text pages for notes** - Add context to scanned documents
+**Text pages for notes** - Add context to scanned documents
 
-💡 **Folders for categories** - Create folders like "Tax 2025", "Medical", "Receipts"
+**Folders for categories** - Create folders like "Tax 2025", "Medical", "Receipts"
 
-💡 **Export for sharing** - Share clean PDFs without metadata
+**Export for sharing** - Share clean PDFs without metadata
 
-💡 **Double-tap to fit** - Reset zoom before using swipe-up gesture
+**Double-tap to fit** - Reset zoom before using swipe-up gesture
 
 ---
 
-## Feedback Welcome!
+## Feedback Welcome
 
 We'd love to hear from you:
 
-- 🐛 **Found a bug?** [Report it](https://github.com/lh/Yiana/issues)
-- 💡 **Have an idea?** [Share it](https://github.com/lh/Yiana/discussions)
-- ⭐ **Like Yiana?** Star us on GitHub!
+- **Found a bug?** [Report it](https://github.com/lh/Yiana/issues)
+- **Have an idea?** [Share it](https://github.com/lh/Yiana/discussions)
 
 ---
 
-*Happy scanning and organizing!*
-
-*Last updated: October 2025*
+*Last updated: February 2026*

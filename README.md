@@ -1,37 +1,47 @@
 # Yiana
 
-Yiana is a document scanning and PDF management app for iOS, iPadOS, and macOS. It stores documents as simple packages with metadata and a PDF, syncs via iCloud Drive, and offloads OCR to a Mac mini backend.
+Yiana is a document scanning and PDF management app for iOS, iPadOS, and macOS. It stores documents as `.yianazip` packages (ZIP archives containing metadata and a PDF), syncs via iCloud Drive, and processes OCR both on-device and via a Mac mini backend.
 
 ## Repo Layout
 - `Yiana/`: SwiftUI app (iOS/iPadOS/macOS). Views, ViewModels, Services, Extensions, and tests.
-- `YianaOCRService/`: Swift Package executable (`yiana-ocr`) that watches the documents folder and performs OCR.
-- `AddressExtractor/`: Python utilities for letter generation and data processing.
-- `Yiana/docs/`: Technical docs (architecture, APIs, importing, plans).
+- `YianaDocumentArchive/`: Swift Package that reads and writes the `.yianazip` format (ZIPFoundation-based).
+- `YianaOCRService/`: Swift Package executable (`yiana-ocr`) that watches the documents folder and performs server-side OCR.
+- `AddressExtractor/`: Python utilities for address extraction, entity linking, and data processing.
+- `Yiana/docs/`: Technical docs (architecture, developer guides, user guides).
 
 ## Quick Start
-- Requirements: Xcode 15+, iOS 17+/macOS 14+, Swift 5.9+
-- Build app: `open Yiana/Yiana.xcodeproj` → select device/simulator → Cmd+R
-- Tests (CLI): `xcodebuild test -scheme Yiana -destination 'platform=iOS Simulator,name=iPhone 15'`
+- Requirements: Xcode 16+, iOS 18+/macOS 15+, Swift 5.9+
+- Build app: `open Yiana/Yiana.xcodeproj` then select device/simulator and Cmd+R
+- Tests (CLI): `xcodebuild test -scheme Yiana -destination 'platform=iOS Simulator,name=iPhone 16'`
 - OCR service: `cd YianaOCRService && swift build && swift run yiana-ocr --help`
 - Python tools: `cd AddressExtractor && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`
 
+## Key Features
+- **Document scanning** (iOS/iPadOS) with VisionKit auto-detection
+- **On-device OCR** using Apple's Vision framework for immediate text recognition
+- **Server OCR** via Mac mini backend for batch processing
+- **Full-text search** powered by GRDB/FTS5 with BM25 ranking
+- **Folders** with nesting, rename, and drag-and-drop organization
+- **Bulk import/export** (macOS) with duplicate detection and folder structure preservation
+- **Page copy/cut/paste** between documents on both platforms
+- **Print** (macOS Cmd+P, iOS via share sheet)
+- **Address extraction** with in-app viewing, editing, and override of extracted data
+- **iCloud sync** across all devices
+
 ## Import PDFs
-- iOS/iPadOS: Share → “Copy to Yiana” or “Open in Yiana”. Choose:
-  - New Document: creates a `.yianazip` with your PDF
-  - Append to Existing: merges pages into a selected document
-- macOS: Open from Files or drag a PDF into the app (append options coming).
-- OCR: Imports mark `ocrCompleted = false`; the Mac mini watcher processes and embeds text, saving results in `.ocr_results`.
+- **iOS/iPadOS**: Share a PDF to "Copy to Yiana" or "Open in Yiana". Choose New Document or Append to Existing.
+- **macOS**: Drag PDFs into the app window, use File > Import, or Import from Folder for bulk import.
+- OCR: On-device OCR runs automatically. The Mac mini server also processes documents in the background.
 
 ## Design Principles
-- Simplicity over abstraction; platform‑specific code is OK
-- 1‑based page indexing in all app code (PDFKit conversions hidden in extensions)
-- Read‑only PDF viewing (no heavy annotation model)
-- Server‑side OCR; mobile stays responsive
+- Simplicity over abstraction; platform-specific code is OK
+- 1-based page indexing in all app code (PDFKit conversions hidden in extensions)
+- Read-only PDF viewing (no heavy annotation model)
+- Dual OCR: on-device for immediacy, server for batch processing
 
 ## Learn More
 - Architecture: `Yiana/docs/Architecture.md`
-- Importing PDFs: `Yiana/docs/Importing.md`
-- Project Status (Sep 2025): `Yiana/docs/ProjectStatus-2025-09.md`
+- Developer guide: `Yiana/docs/dev/GettingStarted.md`
+- User guide: `Yiana/docs/user/README.md`
+- Roadmap: `Yiana/docs/dev/Roadmap.md`
 - Coding style: `CODING_STYLE.md`
-- API & data structures: `Yiana/docs/API.md`, `Yiana/docs/DataStructures.md`
-- Plan & roadmap: `PLAN.md`
