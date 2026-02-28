@@ -18,6 +18,7 @@ struct PDFImportData: Identifiable {
 #endif
 
 struct DocumentListView: View {
+    @EnvironmentObject var importHandler: DocumentImportHandler
     @StateObject private var viewModel = DocumentListViewModel()
     @StateObject private var downloadManager = DownloadManager.shared
     @State private var showingCreateAlert = false
@@ -971,8 +972,12 @@ struct DocumentListView: View {
     private func navigationDestination(_ url: URL) -> some View {
         #if os(iOS)
         DocumentEditView(documentURL: url)
+            .onAppear { importHandler.activeDocumentURL = url }
+            .onDisappear { importHandler.activeDocumentURL = nil }
         #else
         DocumentReadView(documentURL: url)
+            .onAppear { importHandler.activeDocumentURL = url }
+            .onDisappear { importHandler.activeDocumentURL = nil }
         #endif
     }
 
@@ -980,8 +985,12 @@ struct DocumentListView: View {
     private func navigationDestinationForDocument(_ data: DocumentNavigationData) -> some View {
         #if os(iOS)
         DocumentEditView(documentURL: data.url)
+            .onAppear { importHandler.activeDocumentURL = data.url }
+            .onDisappear { importHandler.activeDocumentURL = nil }
         #else
         DocumentReadView(documentURL: data.url, searchResult: data.searchResult)
+            .onAppear { importHandler.activeDocumentURL = data.url }
+            .onDisappear { importHandler.activeDocumentURL = nil }
         #endif
     }
 
@@ -2426,4 +2435,5 @@ struct DocumentRow: View {
 
 #Preview {
     DocumentListView()
+        .environmentObject(DocumentImportHandler())
 }

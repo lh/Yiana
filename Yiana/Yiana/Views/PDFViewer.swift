@@ -141,10 +141,7 @@ enum FitMode: Hashable {
 }
 
 #if DEBUG
-private let pdfViewerLog = Logger(subsystem: "com.vitygas.yiana", category: "PDFViewer")
-private func pdfDebug(_ message: String) {
-    pdfViewerLog.debug("\(message, privacy: .public)")
-}
+private func pdfDebug(_ message: String) {}
 #else
 private func pdfDebug(_ message: String) {}
 #endif

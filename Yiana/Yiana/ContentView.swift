@@ -26,7 +26,8 @@ struct ContentView: View {
             .sheet(isPresented: $importHandler.showingImportDialog) {
                 ImportPDFView(
                     pdfURL: importHandler.pdfToImport,
-                    isPresented: $importHandler.showingImportDialog
+                    isPresented: $importHandler.showingImportDialog,
+                    activeDocumentURL: importHandler.activeDocumentURL
                 )
             }
             .task {
@@ -42,13 +43,16 @@ struct ContentView: View {
 struct ImportPDFView: View {
     let pdfURL: URL?
     @Binding var isPresented: Bool
+    let activeDocumentURL: URL?
     @AppStorage("lastUsedImportFolder") private var lastUsedImportFolder = ""
     @State private var documentTitle = ""
     @State private var selectedFolderPath = ""
     @State private var importMode: ImportTarget = .createNew
     @State private var selectedExistingURL: URL?
     @State private var isImporting = false
-    @State private var availableDocuments: [URL] = []
+    @State private var searchText = ""
+    @State private var showingOtherOptions = false
+    @State private var availableDocuments: [(url: URL, relativePath: String)] = []
     @State private var availableFolders: [String] = []
     @State private var previewFitMode: FitMode = .height
 
@@ -71,50 +75,91 @@ struct ImportPDFView: View {
                                 .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                         )
 
-                    // Target and title selection
+                    // Target selection
                     VStack(alignment: .leading, spacing: 12) {
-                        Picker("Import Target", selection: $importMode) {
-                            ForEach(ImportTarget.allCases) { mode in
-                                Text(mode.rawValue).tag(mode)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-
-                        if importMode == .createNew {
-                            Text("Document Title")
-                                .font(.headline)
-                            TextField("Enter title", text: $documentTitle)
-                                .textFieldStyle(.roundedBorder)
-                                .onAppear {
-                                    // Suggest filename as title
-                                    documentTitle = pdfURL.deletingPathExtension().lastPathComponent
+                        // Direct "add to open document" when a document is active
+                        if let activeURL = activeDocumentURL, !showingOtherOptions {
+                            Button {
+                                appendToDocument(pdfURL: pdfURL, targetURL: activeURL)
+                            } label: {
+                                HStack {
+                                    Image(systemName: "doc.badge.plus")
+                                        .font(.title2)
+                                    VStack(alignment: .leading) {
+                                        Text("Add to open document")
+                                            .font(.headline)
+                                        Text(activeURL.deletingPathExtension().lastPathComponent)
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
                                 }
+                                .padding()
+                                .background(Color.accentColor.opacity(0.1))
+                                .cornerRadius(10)
+                            }
+                            .disabled(isImporting)
 
-                            // Folder selection
-                            if !availableFolders.isEmpty {
-                                Text("Folder")
+                            Button("Other options...") {
+                                showingOtherOptions = true
+                            }
+                            .font(.subheadline)
+                        }
+
+                        // Full picker (always shown when no active doc, or after tapping "Other options")
+                        if activeDocumentURL == nil || showingOtherOptions {
+                            Picker("Import Target", selection: $importMode) {
+                                ForEach(ImportTarget.allCases) { mode in
+                                    Text(mode.rawValue).tag(mode)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+
+                            if importMode == .createNew {
+                                Text("Document Title")
                                     .font(.headline)
-                                    .padding(.top, 8)
+                                TextField("Enter title", text: $documentTitle)
+                                    .textFieldStyle(.roundedBorder)
+                                    .onAppear {
+                                        documentTitle = pdfURL.deletingPathExtension().lastPathComponent
+                                    }
 
-                                Picker("Select Folder", selection: $selectedFolderPath) {
-                                    Text("Documents (Root)").tag("")
-                                    ForEach(availableFolders, id: \.self) { folder in
-                                        Text(folder).tag(folder)
+                                if !availableFolders.isEmpty {
+                                    Text("Folder")
+                                        .font(.headline)
+                                        .padding(.top, 8)
+
+                                    Picker("Select Folder", selection: $selectedFolderPath) {
+                                        Text("Documents (Root)").tag("")
+                                        ForEach(availableFolders, id: \.self) { folder in
+                                            Text(folder).tag(folder)
+                                        }
+                                    }
+                                    .pickerStyle(.menu)
+                                }
+                            } else {
+                                Text("Choose an existing document to append")
+                                    .font(.headline)
+
+                                TextField("Search documents", text: $searchText)
+                                    .textFieldStyle(.roundedBorder)
+
+                                List(selection: $selectedExistingURL) {
+                                    ForEach(filteredDocuments, id: \.url) { doc in
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(doc.url.deletingPathExtension().lastPathComponent)
+                                                .lineLimit(1)
+                                            if !doc.relativePath.isEmpty {
+                                                Text(doc.relativePath)
+                                                    .font(.caption)
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                        }
+                                        .tag(doc.url as URL?)
                                     }
                                 }
-                                .pickerStyle(.menu)
+                                .frame(minHeight: 160)
                             }
-                        } else {
-                            Text("Choose an existing document to append")
-                                .font(.headline)
-                            List(selection: $selectedExistingURL) {
-                                ForEach(availableDocuments, id: \.self) { url in
-                                    Text(url.deletingPathExtension().lastPathComponent)
-                                        .lineLimit(1)
-                                        .tag(url as URL?)
-                                }
-                            }
-                            .frame(minHeight: 160)
                         }
                     }
                     .padding(.horizontal)
@@ -130,19 +175,26 @@ struct ImportPDFView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .task {
-                // Load available documents and folders
                 let repo = DocumentRepository()
-                availableDocuments = repo.documentURLs()
+                let docsDir = repo.documentsDirectory
 
-                // Get all folders recursively
-                availableFolders = getAllFolderPaths(in: repo.documentsDirectory)
+                // File I/O off main thread
+                let (docs, folders) = await Task.detached {
+                    let docs = repo.allDocumentsRecursive()
+                        .sorted { $0.url.deletingPathExtension().lastPathComponent
+                            .localizedStandardCompare($1.url.deletingPathExtension().lastPathComponent) == .orderedAscending }
+                    let folders = importFolderPaths(in: docsDir)
+                    return (docs, folders)
+                }.value
+
+                availableDocuments = docs
+                availableFolders = folders
 
                 // Set the selected folder to last used, if it still exists
                 if !lastUsedImportFolder.isEmpty &&
                    (lastUsedImportFolder == "" || availableFolders.contains(lastUsedImportFolder)) {
                     selectedFolderPath = lastUsedImportFolder
                 } else {
-                    // Default to root if last used folder doesn't exist
                     selectedFolderPath = ""
                 }
             }
@@ -153,13 +205,36 @@ struct ImportPDFView: View {
                     }
                 }
 
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Import") {
-                        importPDF()
+                if activeDocumentURL == nil || showingOtherOptions {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Import") {
+                            importPDF()
+                        }
+                        .disabled(disableImportButton)
                     }
-                    .disabled(disableImportButton)
                 }
             }
+        }
+    }
+
+    private func appendToDocument(pdfURL: URL?, targetURL: URL) {
+        guard let pdfURL = pdfURL else { return }
+        isImporting = true
+        let captured = targetURL
+        Task {
+            let service = ImportService(folderPath: "")
+            do {
+                let result = try service.importPDF(from: pdfURL, mode: .appendToExisting(targetURL: captured))
+                try? FileManager.default.removeItem(at: pdfURL)
+                await performOCROnImportedDocument(at: result.url)
+                await MainActor.run {
+                    NotificationCenter.default.post(name: .yianaDocumentsChanged, object: nil)
+                    isPresented = false
+                }
+            } catch {
+                print("Error appending PDF: \(error)")
+            }
+            isImporting = false
         }
     }
 
@@ -254,36 +329,44 @@ extension ImportPDFView {
         }
     }
 
-    private func getAllFolderPaths(in directory: URL, relativeTo base: URL? = nil, currentPath: String = "") -> [String] {
-        var folders: [String] = []
-        let fileManager = FileManager.default
-        let baseURL = base ?? directory
-
-        do {
-            let items = try fileManager.contentsOfDirectory(
-                at: directory,
-                includingPropertiesForKeys: [.isDirectoryKey],
-                options: [.skipsHiddenFiles]
-            )
-
-            for item in items {
-                let resourceValues = try item.resourceValues(forKeys: [.isDirectoryKey])
-                if resourceValues.isDirectory == true {
-                    let folderName = item.lastPathComponent
-                    let fullPath = currentPath.isEmpty ? folderName : "\(currentPath)/\(folderName)"
-                    folders.append(fullPath)
-
-                    // Recursively get subfolders
-                    let subfolders = getAllFolderPaths(in: item, relativeTo: baseURL, currentPath: fullPath)
-                    folders.append(contentsOf: subfolders)
-                }
-            }
-        } catch {
-            print("Error getting folders: \(error)")
+    private var filteredDocuments: [(url: URL, relativePath: String)] {
+        guard !searchText.isEmpty else { return availableDocuments }
+        return availableDocuments.filter {
+            $0.url.deletingPathExtension().lastPathComponent
+                .localizedCaseInsensitiveContains(searchText)
         }
-
-        return folders.sorted()
     }
+
+}
+
+private func importFolderPaths(in directory: URL, relativeTo base: URL? = nil, currentPath: String = "") -> [String] {
+    var folders: [String] = []
+    let fileManager = FileManager.default
+    let baseURL = base ?? directory
+
+    do {
+        let items = try fileManager.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        )
+
+        for item in items {
+            let resourceValues = try item.resourceValues(forKeys: [.isDirectoryKey])
+            if resourceValues.isDirectory == true {
+                let folderName = item.lastPathComponent
+                let fullPath = currentPath.isEmpty ? folderName : "\(currentPath)/\(folderName)"
+                folders.append(fullPath)
+
+                let subfolders = importFolderPaths(in: item, relativeTo: baseURL, currentPath: fullPath)
+                folders.append(contentsOf: subfolders)
+            }
+        }
+    } catch {
+        print("Error getting folders: \(error)")
+    }
+
+    return folders.sorted()
 }
 
 #Preview {

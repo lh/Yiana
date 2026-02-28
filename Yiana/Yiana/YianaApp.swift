@@ -131,6 +131,7 @@ class DocumentImportHandler: ObservableObject {
     @Published var showingImportDialog = false
     @Published var pdfToImport: URL?
     @Published var documentToOpen: URL?
+    @Published var activeDocumentURL: URL?
 
     func importPDF(from url: URL) {
         // Copy to temporary location if needed
