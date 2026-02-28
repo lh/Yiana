@@ -222,17 +222,19 @@ struct ImportPDFView: View {
         isImporting = true
         let captured = targetURL
         Task {
-            let service = ImportService(folderPath: "")
             do {
-                let result = try service.importPDF(from: pdfURL, mode: .appendToExisting(targetURL: captured))
+                let pdfData = try Data(contentsOf: pdfURL)
                 try? FileManager.default.removeItem(at: pdfURL)
-                await performOCROnImportedDocument(at: result.url)
                 await MainActor.run {
-                    NotificationCenter.default.post(name: .yianaDocumentsChanged, object: nil)
+                    NotificationCenter.default.post(
+                        name: .yianaAppendPagesToDocument,
+                        object: nil,
+                        userInfo: ["url": captured, "pdfData": pdfData]
+                    )
                     isPresented = false
                 }
             } catch {
-                print("Error appending PDF: \(error)")
+                print("Error reading PDF for append: \(error)")
             }
             isImporting = false
         }
@@ -248,26 +250,33 @@ struct ImportPDFView: View {
             let service = ImportService(folderPath: selectedFolderPath)
             do {
                 let result: ImportResult
+                let isAppend: Bool
                 switch importMode {
                 case .createNew:
                     result = try service.importPDF(from: pdfURL, mode: .createNew(title: documentTitle))
                     // Save the folder preference for next time
                     lastUsedImportFolder = selectedFolderPath
+                    isAppend = false
                 case .appendExisting:
                     guard let target = selectedExistingURL else { return }
                     result = try service.importPDF(from: pdfURL, mode: .appendToExisting(targetURL: target))
+                    isAppend = true
                 }
                 // Clean up temp file
                 try? FileManager.default.removeItem(at: pdfURL)
 
-                // Run on-device OCR on the imported document
-                await performOCROnImportedDocument(at: result.url)
-
+                let resultURL = result.url
                 await MainActor.run {
                     // Notify list to refresh and close sheet
                     NotificationCenter.default.post(name: .yianaDocumentsChanged, object: nil)
+                    if isAppend {
+                        NotificationCenter.default.post(name: .yianaDocumentContentChanged, object: resultURL)
+                    }
                     isPresented = false
                 }
+
+                // OCR in background — don't block dialog
+                Task.detached { await performOCROnImportedDocument(at: resultURL) }
             } catch {
                 print("Error importing PDF: \(error)")
             }

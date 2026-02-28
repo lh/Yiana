@@ -194,6 +194,27 @@ struct DocumentEditView: View {
             guard awaitingDownload else { return }
             Task { await loadDocument() }
         }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name.yianaDocumentContentChanged)) { notification in
+            guard let changedURL = notification.object as? URL,
+                  changedURL.path == documentURL.path else { return }
+            Task { await loadDocument() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name.yianaAppendPagesToDocument)) { notification in
+            guard let userInfo = notification.userInfo,
+                  let targetURL = userInfo["url"] as? URL,
+                  targetURL.path == documentURL.path,
+                  let pdfData = userInfo["pdfData"] as? Data,
+                  let vm = viewModel else { return }
+            let payload = PageClipboardPayload(
+                sourceDocumentID: nil,
+                operation: .copy,
+                pageCount: PDFDocument(data: pdfData)?.pageCount ?? 0,
+                pdfData: pdfData
+            )
+            Task {
+                _ = try? await vm.insertPages(from: payload, at: nil)
+            }
+        }
     }
 
     @ViewBuilder

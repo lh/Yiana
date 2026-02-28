@@ -12,6 +12,8 @@ extension Notification.Name {
     static let yianaOpenURL = Notification.Name("yianaOpenURL")
     static let yianaDocumentsChanged = Notification.Name("yianaDocumentsChanged")
     static let yianaDocumentsDownloaded = Notification.Name("yianaDocumentsDownloaded")
+    static let yianaDocumentContentChanged = Notification.Name("yianaDocumentContentChanged")
+    static let yianaAppendPagesToDocument = Notification.Name("yianaAppendPagesToDocument")
 }
 
 #if os(iOS)
