@@ -7,7 +7,7 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/devon/Code/Yiana/AddressExtractor/.venv/bin/python3</string>
+        <string>/Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12</string>
         <string>/Users/devon/Code/Yiana/AddressExtractor/extraction_service.py</string>
     </array>
 
@@ -39,6 +39,10 @@
         <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
         <key>HOME</key>
         <string>/Users/devon</string>
+        <key>PYTHONPATH</key>
+        <string>/Users/devon/Code/Yiana/AddressExtractor</string>
+        <key>DB_PATH</key>
+        <string>/Users/devon/Data/addresses.db</string>
         <key>JSON_OUTPUT</key>
         <string>/Users/devon/Code/Yiana/AddressExtractor/api_output</string>
     </dict>
