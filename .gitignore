@@ -114,6 +114,10 @@ AddressExtractor/my_clinic_notes.txt
 temp-debug-files/debug-pdf-sync.log
 temp-debug-files/debug-pdf-sync.error.log
 
+# Dashboard generated files
+scripts/dashboard-data.json
+scripts/dashboard.pdf
+
 # Personal deployment configuration (contains IP addresses, usernames, paths)
 YianaOCRService/DEPLOYMENT-PERSONAL.md
 YianaOCRService/deploy-to-devon.sh
