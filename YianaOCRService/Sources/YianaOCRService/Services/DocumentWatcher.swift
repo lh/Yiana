@@ -403,9 +403,42 @@ public class DocumentWatcher {
 
             // Check if OCR is already completed — skip loading the full document
             if metadata.ocrCompleted {
-                logger.info("Document already has OCR", metadata: [
-                    "file": .string(fileName)
-                ])
+                // Check if OCR result files exist — they may be missing for documents
+                // where the app set ocrCompleted on-device (embedded text)
+                let relativePath = url.deletingLastPathComponent().path
+                    .replacingOccurrences(of: documentsURL.path, with: "")
+                let trimmedPath = relativePath.hasPrefix("/") ? String(relativePath.dropFirst()) : relativePath
+                let ocrResultsDir = documentsURL
+                    .appendingPathComponent(".ocr_results")
+                    .appendingPathComponent(trimmedPath)
+                let baseFileName = url.deletingPathExtension().lastPathComponent
+                let jsonURL = ocrResultsDir.appendingPathComponent("\(baseFileName).json")
+
+                if !FileManager.default.fileExists(atPath: jsonURL.path) {
+                    logger.info("OCR complete but result files missing, generating stubs", metadata: [
+                        "file": .string(fileName)
+                    ])
+                    do {
+                        let document: YianaDocument = try coordinatedRead(at: url) { coordinatedURL in
+                            let data = try Data(contentsOf: coordinatedURL)
+                            return try YianaDocument(data: data)
+                        }
+                        if let pdfData = document.pdfData,
+                           let embeddedResult = embeddedOCRResult(from: pdfData, document: document) {
+                            try writeOCRResultFiles(embeddedResult, for: url)
+                        }
+                    } catch {
+                        logger.warning("Failed to generate missing OCR result files", metadata: [
+                            "file": .string(fileName),
+                            "error": .string(error.localizedDescription)
+                        ])
+                    }
+                } else {
+                    logger.info("Document already has OCR", metadata: [
+                        "file": .string(fileName)
+                    ])
+                }
+
                 let modDate = getModDate(for: url) ?? Date().timeIntervalSince1970
                 processedDocuments[fileName] = TrackedDocument(
                     modDate: modDate,
@@ -617,20 +650,24 @@ public class DocumentWatcher {
             try updatedDocument.save(to: coordinatedURL)
         }
         
-        // Save OCR results in multiple formats
+        // Save OCR result files (.json, .xml, .hocr)
+        try writeOCRResultFiles(result, for: url)
+    }
+
+    private func writeOCRResultFiles(_ result: OCRResult, for url: URL) throws {
         // Preserve the folder structure within .ocr_results
         let relativePath = url.deletingLastPathComponent().path.replacingOccurrences(of: documentsURL.path, with: "")
         let trimmedPath = relativePath.hasPrefix("/") ? String(relativePath.dropFirst()) : relativePath
-        
+
         let ocrResultsDir = documentsURL
             .appendingPathComponent(".ocr_results")
             .appendingPathComponent(trimmedPath)
-        
-        try FileManager.default.createDirectory(at: ocrResultsDir, 
+
+        try FileManager.default.createDirectory(at: ocrResultsDir,
                                                withIntermediateDirectories: true)
-        
+
         let baseFileName = url.deletingPathExtension().lastPathComponent
-        
+
         // Save as JSON
         let jsonExporter = JSONExporter()
         let jsonData = try jsonExporter.export(result)
@@ -660,8 +697,9 @@ public class DocumentWatcher {
         #else
         try hocrData.write(to: hocrURL)
         #endif
-        
-        logger.info("OCR results saved", metadata: [
+
+        logger.info("OCR result files written", metadata: [
+            "file": .string(url.lastPathComponent),
             "formats": .array([.string("json"), .string("xml"), .string("hocr")])
         ])
     }
