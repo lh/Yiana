@@ -351,6 +351,8 @@ public class DocumentWatcher {
                         processedAt: tracked.processedAt
                     )
                     saveProcessedDocuments()
+                    // Generate missing result files before returning
+                    await generateMissingResultFiles(for: url, fileName: fileName)
                     return
                 }
                 // OCR lost — evict and fall through to reprocess
@@ -361,9 +363,8 @@ public class DocumentWatcher {
                 failedDocuments.removeValue(forKey: fileName)
             } else {
                 // Mod date unchanged — still processed
-                logger.debug("Document already processed", metadata: [
-                    "file": .string(fileName)
-                ])
+                // Generate missing result files before returning
+                await generateMissingResultFiles(for: url, fileName: fileName)
                 return
             }
         }
@@ -403,42 +404,7 @@ public class DocumentWatcher {
 
             // Check if OCR is already completed — skip loading the full document
             if metadata.ocrCompleted {
-                // Check if OCR result files exist — they may be missing for documents
-                // where the app set ocrCompleted on-device (embedded text)
-                let relativePath = url.deletingLastPathComponent().path
-                    .replacingOccurrences(of: documentsURL.path, with: "")
-                let trimmedPath = relativePath.hasPrefix("/") ? String(relativePath.dropFirst()) : relativePath
-                let ocrResultsDir = documentsURL
-                    .appendingPathComponent(".ocr_results")
-                    .appendingPathComponent(trimmedPath)
-                let baseFileName = url.deletingPathExtension().lastPathComponent
-                let jsonURL = ocrResultsDir.appendingPathComponent("\(baseFileName).json")
-
-                if !FileManager.default.fileExists(atPath: jsonURL.path) {
-                    logger.info("OCR complete but result files missing, generating stubs", metadata: [
-                        "file": .string(fileName)
-                    ])
-                    do {
-                        let document: YianaDocument = try coordinatedRead(at: url) { coordinatedURL in
-                            let data = try Data(contentsOf: coordinatedURL)
-                            return try YianaDocument(data: data)
-                        }
-                        if let pdfData = document.pdfData,
-                           let embeddedResult = embeddedOCRResult(from: pdfData, document: document) {
-                            try writeOCRResultFiles(embeddedResult, for: url)
-                        }
-                    } catch {
-                        logger.warning("Failed to generate missing OCR result files", metadata: [
-                            "file": .string(fileName),
-                            "error": .string(error.localizedDescription)
-                        ])
-                    }
-                } else {
-                    logger.info("Document already has OCR", metadata: [
-                        "file": .string(fileName)
-                    ])
-                }
-
+                await generateMissingResultFiles(for: url, fileName: fileName)
                 let modDate = getModDate(for: url) ?? Date().timeIntervalSince1970
                 processedDocuments[fileName] = TrackedDocument(
                     modDate: modDate,
@@ -652,6 +618,40 @@ public class DocumentWatcher {
         
         // Save OCR result files (.json, .xml, .hocr)
         try writeOCRResultFiles(result, for: url)
+    }
+
+    /// Checks if OCR result files (.json) exist for the given document URL.
+    /// If missing, loads the document, extracts embedded text, and writes result files.
+    private func generateMissingResultFiles(for url: URL, fileName: String) async {
+        let relativePath = url.deletingLastPathComponent().path
+            .replacingOccurrences(of: documentsURL.path, with: "")
+        let trimmedPath = relativePath.hasPrefix("/") ? String(relativePath.dropFirst()) : relativePath
+        let ocrResultsDir = documentsURL
+            .appendingPathComponent(".ocr_results")
+            .appendingPathComponent(trimmedPath)
+        let baseFileName = url.deletingPathExtension().lastPathComponent
+        let jsonURL = ocrResultsDir.appendingPathComponent("\(baseFileName).json")
+
+        guard !FileManager.default.fileExists(atPath: jsonURL.path) else { return }
+
+        logger.notice("OCR result files missing, generating from embedded text", metadata: [
+            "file": .string(fileName)
+        ])
+        do {
+            let document: YianaDocument = try coordinatedRead(at: url) { coordinatedURL in
+                let data = try Data(contentsOf: coordinatedURL)
+                return try YianaDocument(data: data)
+            }
+            if let pdfData = document.pdfData,
+               let embeddedResult = embeddedOCRResult(from: pdfData, document: document) {
+                try writeOCRResultFiles(embeddedResult, for: url)
+            }
+        } catch {
+            logger.warning("Failed to generate missing OCR result files", metadata: [
+                "file": .string(fileName),
+                "error": .string(error.localizedDescription)
+            ])
+        }
     }
 
     private func writeOCRResultFiles(_ result: OCRResult, for url: URL) throws {
