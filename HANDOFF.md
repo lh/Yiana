@@ -1,82 +1,55 @@
-# Session Handoff — 2026-02-27
+# Session Handoff — 2026-03-03
 
 ## What was completed
 
-### Unified Devon Server Monitoring
-The extraction service had no health monitoring — it crash-looped 15,847 times with zero alerting. Now both OCR and Extraction have matching infrastructure.
+### OCR stub generation for embedded-text documents
+- Documents with `ocrCompleted: true` set on-device but no `.json`/`.xml`/`.hocr` result files were causing the health check to report ~101 "pending OCR"
+- Extracted `writeOCRResultFiles` from `saveOCRResults` in `DocumentWatcher.swift`
+- Extracted `generateMissingResultFiles` helper, called from all three early-return paths in `checkAndProcessDocument` (already-tracked same mod date, already-tracked changed mod date, ocrCompleted block)
+- Deployed to Devon. Documents: 2975, OCR results: 3007 — all processed, pending: 0
 
-#### 1. Extraction service heartbeat (`AddressExtractor/extraction_service.py`)
-- Added `HEALTH_DIR` constant: `~/Library/Application Support/YianaExtraction/health/`
-- Added `write_heartbeat(note)` and `write_health_error(msg)` — atomic JSON writes matching OCR's `HealthMonitor.swift` pattern
-- `watch_directory()`: writes heartbeat every 60s (tick counter), plus on startup with `note: "start"`
-- `process_file()` except block: calls `write_health_error(str(e))`
+### Extraction service EPERM fix
+- Root cause: macOS TCC `kTCCServiceFileProviderDomain` — the CLT Python 3.9 used by the LaunchAgent didn't have iCloud file provider access
+- Fix: switched extraction service to Python 3.12 (`/Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12`) which already had the TCC grant
+- Installed `watchdog` for Python 3.12, updated LaunchAgent plist
+- 18 new successful extractions immediately after restart
 
-#### 2. Unified watchdog (`scripts/yiana-watchdog.sh`)
-- Replaces `YianaOCRService/scripts/ocr_watchdog_pushover.sh` — single script checks both services
-- Parameterized `check_service()` function with per-service dedup via prefixed alert keys (`OCR_stale`, `Extraction_no_heartbeat`)
-- Same Pushover API integration, 1-hour cooldown, title "Yiana Server Alert"
-- Exit 1 if any service unhealthy
+### Typst server dashboard
+- Created `scripts/dashboard.typ` (dark-themed Typst template), `scripts/dashboard-collector.py` (local data collection), `scripts/dashboard-data.sh` (SSH wrapper for local use), `scripts/dashboard-serve.sh` (launcher for Devon)
+- Fixed: extraction PID detection (pgrep -f extraction_service.py), bar chart divide-by-zero guard, Typst comment syntax collision in footer
+- Deployed to Devon as LaunchAgent (`com.vitygas.yiana-dashboard.plist`) — typst-live on port 5599, data refreshes every 60s
+- Accessible at `http://devon-6:5599` via Tailscale from any device
 
-#### 3. Extraction log rotation (`scripts/yiana-extraction.newsyslog.conf`)
-- Matches OCR config: 10MB max, 3 rotated copies, bzip2 (`J`), no signal (`N`)
-- Covers `yiana-extraction.log` and `yiana-extraction-error.log`
+### Tailscale setup on Devon
+- Installed via Homebrew, authenticated with `tailscale up`
+- Devon is `devon-6` on the tailnet, accessible from all devices
 
-#### 4. Terminal dashboard (`scripts/yiana-status.sh`)
-- ANSI colors + box-drawing, shows per-service: UP/DOWN, PID, heartbeat age (color-coded), last error (truncated), log sizes
-- Data stats: document count, OCR results, addresses extracted
-- Disk usage summary
-- Pure bash, tested locally
+### Yiale letter module spec (docs/LETTER-MODULE-SPEC.md)
+- Complete spec (v4) for standalone letter composition app
+- Three parts: Yiale (SwiftUI app), Render Service (Python + LaTeX on Devon), Inject Watcher (small addition to Yiana using existing ImportService.append)
+- Shared iCloud container with Yiana via matching entitlements
+- Draft JSON → render_requested → rendered → user dismisses → deleted
+- 24 resolved questions covering architecture, workflow, and edge cases
+- Build order: render service → Yiale Mac → Yiale iOS → inject watcher → cleanup
 
-## Deployment steps (on Devon)
+### CLAUDE.md rewrite
+- Project CLAUDE.md: removed stale rules (Rust, PLAN.md, memory-bank, TDD), consolidated duplicates, added server architecture, address extraction, custom skills, recent learnings
+- Global ~/.claude/CLAUDE.md: populated with universal development standards (role, communication, code style, security, architecture, observability, testing)
+- Trimmed project file to avoid duplicating global rules
 
-```bash
-# 1. Pull code
-cd ~/Code/Yiana && git pull
-
-# 2. Restart extraction service (picks up heartbeat code)
-launchctl unload ~/Library/LaunchAgents/com.vitygas.yiana-extraction.plist
-launchctl load ~/Library/LaunchAgents/com.vitygas.yiana-extraction.plist
-
-# 3. Verify heartbeat appears (wait ~60s)
-cat ~/Library/Application\ Support/YianaExtraction/health/heartbeat.json
-
-# 4. Install log rotation
-sudo cp ~/Code/Yiana/scripts/yiana-extraction.newsyslog.conf /etc/newsyslog.d/
-sudo newsyslog -nv -f /etc/newsyslog.d/yiana-extraction.newsyslog.conf
-
-# 5. Deploy scripts
-cp ~/Code/Yiana/scripts/yiana-watchdog.sh ~/
-cp ~/Code/Yiana/scripts/yiana-status.sh ~/
-
-# 6. Update crontab (replace old ocr_watchdog_pushover.sh with yiana-watchdog.sh)
-crontab -e
-# */5 * * * * ~/yiana-watchdog.sh >> ~/Library/Logs/yiana-watchdog.log 2>&1
-
-# 7. Optional: auto-display on login
-echo '~/yiana-status.sh' >> ~/.zshrc
-
-# 8. Test
-~/yiana-watchdog.sh
-~/yiana-status.sh
-```
-
-## Verification checklist
-- [ ] Heartbeat JSON exists in `~/Library/Application Support/YianaExtraction/health/`
-- [ ] `~/yiana-watchdog.sh` prints OK for both services, exits 0
-- [ ] `~/yiana-status.sh` renders both services green
-- [ ] Stop extraction, wait >10min, watchdog sends Pushover alert for extraction only
-
-## Files changed
-- `AddressExtractor/extraction_service.py` — heartbeat + health error helpers, integrated into watch loop and error handler
-- `scripts/yiana-watchdog.sh` — **new** unified watchdog
-- `scripts/yiana-extraction.newsyslog.conf` — **new** log rotation config
-- `scripts/yiana-status.sh` — **new** terminal dashboard
+## What's in progress
+- Nothing actively in progress
 
 ## What's next
-- Search behaviour in sidebar layout (scope to current folder vs global)
-- Sidebar width persistence
-- Empty sidebar state polish
+- **Yiale implementation** — follow build order in LETTER-MODULE-SPEC.md:
+  1. Sender config + draft JSON schema (hand-write sample files, validate against real letters)
+  2. Render service (Python watcher + LaTeX rendering on Devon)
+  3. Yiale Mac app (SwiftUI: patient search, compose, address confirmation, drafts list)
+  4. Yiale iOS/iPadOS
+  5. Yiana inject watcher (~50-80 lines, calls ImportService.append)
+- Consider moving inject watcher earlier in build order (between steps 2 and 3) for faster end-to-end testing
 
 ## Known issues
-- Old `ocr_watchdog_pushover.sh` still exists in `YianaOCRService/scripts/` — can be removed after confirming unified watchdog works on Devon
-- Existing scans created before 2026-02-22 still have the old 24pt border baked into their PDF data
+- Stale Mercy-Duffy error in OCR health (21+ days old) — not actionable, just noise
+- `ocr_today` count in dashboard shows 0 despite processing happening — may be a timezone issue with `processedAt` timestamps in `processed.json`
+- Old `ocr_watchdog_pushover.sh` still exists in `YianaOCRService/scripts/` — can be removed after confirming unified watchdog is stable
