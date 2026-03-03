@@ -1,106 +1,64 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Core Rules
 
-## CORE RULES (MUST FOLLOW)
-1. **ALWAYS USE SERENA MCP TOOLS for code exploration and editing** - Use mcp__serena__ tools instead of basic Read/Edit
-2. **Development must follow TDD (Test-Driven Development) methodology**
-3. **All implementation must strictly follow the steps outlined in PLAN.md**
-4. **Primary tech stack is [SwiftUI, UIDocument, PDFKit, VisionKit]. Additional dependencies require justification (see Dependency Management below)**
-5. **Every code change must be small, focused, and verifiable**
-6. **Update memory-bank/activeContext.md after each significant change**
-7. **Commit to git regularly - after each significant feature or fix is completed and tested. Testing includes always asking for user feedback before claiming success**
-8. **Keep commits clean - no emojis, no attributions**
-9. **Follow dependency management philosophy (see below)**
-10. **Keep code clean - remove any attributions you come accross and do not add any new attributions**
+1. **Use Serena MCP tools for code exploration and editing** — `get_symbols_overview`, `find_symbol`, `search_for_pattern`, `replace_symbol_body`, `insert_before_symbol`/`insert_after_symbol`. Fall back to Read/Edit only for non-code files or tiny edits. If `find_symbol` fails, switch to `search_for_pattern` immediately — do not retry.
+2. **Build for BOTH iOS and macOS after any code change.** Use the `/check` skill or the xcode-mcp-server. Never assume shared code only affects one platform.
+3. **Clean desk.** Run `git status` before starting any new task. Address uncommitted changes first. A SessionStart hook reminds you, but do not rely on it alone.
+4. **Log ideas and problems** to Serena memory `ideas_and_problems` using `edit_memory`. Do not use Vestige for this.
 
-## Session Handoff Protocol
-At the end of every session, write a detailed handoff note to `HANDOFF.md` covering: what was completed, what's in progress, what's next, and any known issues. Begin each session by reading `HANDOFF.md` if it exists.
+## Session Protocol
 
-## Clean Desk Rule
-Before starting any new task — whether at session start, after a context clear, or when transitioning from planning to implementation — run `git status` and address uncommitted changes FIRST. Review what's pending, commit or stash it, and only then proceed. Do not start planning or implementing new features on top of a dirty working tree. A SessionStart hook will remind you, but do not rely on it alone.
-
-## Workflow
-
-### Blast-Radius / Planning Protocol
-When implementing a multi-step feature: 1) Read existing code thoroughly before proposing changes. 2) Write a concrete plan with file-level scope. 3) Get user approval before coding. 4) Implement incrementally, running tests after each file change. Do NOT spend an entire session only planning — balance analysis with implementation.
-
-## Language-Specific Rules
-
-### Rust Project Conventions
-- Target toolchain may be pinned (e.g., Rust 1.80.0) — always check `rust-toolchain.toml` before adding dependencies.
-- Run `cargo clippy` and `cargo test` after every implementation step.
-- Match Knuth's exact algorithms when implementing TeX specification code — do not approximate.
-
-### Swift/iOS/macOS Conventions
-- Always build for BOTH iOS and macOS targets after changes — do not add code to only one platform's ViewModel.
-- When implementing file/document operations, avoid autosave with nil fileType — use explicit save.
-- Test with real iCloud conditions: large file counts, placeholder files, not-yet-downloaded items.
-
-## Conventions
-
-### Problem/Issue Logging
-Only log items as `Problem:` when the user explicitly flags them. Do not infer or promote observations to problem status. Save notes to the correct system (check which memory/notes system the project uses before writing).
-
-## Dependency Management Philosophy
-
-### When TO Add Dependencies ✅
-- **Complex subsystems** - Databases, networking protocols, file format parsers
-- **Bug prevention** - Libraries that eliminate entire classes of errors (memory safety, type safety)
-- **Time savings** - When development/debugging time exceeds integration effort by 10x+
-- **Maturity** - Well-maintained projects with 5+ years of production use
-- **Safety-critical** - C interop, concurrency, cryptography where errors have serious consequences
-
-### When NOT to Add Dependencies ❌
-- **Trivial features** - Anything implementable in <50 lines of straightforward code
-- **Duplicate functionality** - Features already provided by Apple frameworks
-- **Unmaintained projects** - Libraries without updates in 2+ years or single-maintainer projects
-- **Vendor lock-in** - Libraries that make future migration difficult
-- **Feature bloat** - Heavy frameworks when only 10% of features are needed
-
-### Approved Dependencies
-- **GRDB.swift** (v7.7+) - Type-safe SQLite wrapper; prevents C interop bugs, ~10 years production use
-## SERENA TOOLS USAGE (MANDATORY)
-**ALWAYS use Serena MCP tools for this project:**
-- `mcp__serena__get_symbols_overview` - First look at any code file
-- `mcp__serena__find_symbol` - Find functions/classes
-- `mcp__serena__search_for_pattern` - Search code
-- `mcp__serena__list_dir` - Explore directories
-- `mcp__serena__replace_symbol_body` - Replace entire functions
-- `mcp__serena__insert_before_symbol` / `insert_after_symbol` - Add code
-- `mcp__serena__write_memory` / `read_memory` / `edit_memory` - Track project state
-- Only use basic Read/Edit for non-code files or tiny edits
-
-### Ideas & Problems Log
-When a problem is deferred or an idea comes up mid-task, save it to the Serena memory `ideas_and_problems` using `mcp__serena__edit_memory`. Do NOT use Vestige for this — use the Serena memory so everything stays in one place. Format: numbered list under `## Problems` or `## Ideas`.
-
-## Code Navigation
-
-Use Serena MCP's search_for_pattern as primary code search. If find_symbol fails to locate class methods or nested symbols, fall back to search_for_pattern or direct file reads immediately — do not retry find_symbol repeatedly.
-
-## Tool Usage Conventions
-
-When logging issues or saving notes, use the correct system: Problems/TODOs go to Serena memory tools, NOT Vestige. Memory/preferences go to Vestige MCP, NOT CLAUDE.md file.
+- **Start:** Read `HANDOFF.md` if it exists. Run `git status`.
+- **End:** Write a detailed handoff to `HANDOFF.md` — what was completed, what's in progress, what's next, known issues.
 
 ## Project Overview
 
-This project is a Swift/SwiftUI notes app (Yiana) with iOS and macOS targets, iCloud sync, OCR processing via a remote Mac mini server, and a GRDB/SQLite database. The primary languages are Swift (app) and Python (server services). Always consider iCloud file download state when working with file operations.
+Yiana is a document scanning and PDF management app for iOS/iPadOS/macOS. It stores documents as `.yianazip` packages (ZIP archives containing `metadata.json`, `content.pdf`, `format.json`), syncs via iCloud Drive, and processes OCR both on-device and via a Mac mini backend.
 
-Yiana is a document scanning and PDF management app for iOS/iPadOS/macOS. It stores documents as `.yianazip` packages (ZIP archives containing metadata + PDF), syncs via iCloud Drive, and processes OCR both on-device (Vision framework) and via a Mac mini backend service.
+Primary languages: **Swift** (app) and **Python** (server services).
 
-## Build & Test Commands
+## Architecture
+
+### Document Storage
+- **UIDocument** (iOS/iPadOS) and **NSDocument** (macOS) — NOT Core Data
+- iCloud container: `iCloud.com.vitygas.Yiana`
+- Package format: `.yianazip` via `YianaDocumentArchive` (ZIPFoundation)
+- Bundle ID: `com.vitygas.Yiana`
+- Each platform uses native document classes directly — no shared protocols
+
+### PDF Handling
+- **PDFKit** for read-only viewing (no annotations)
+- **1-based page indexing everywhere** — convert only at PDFKit API boundaries
+- Wrapper extensions in `Extensions/PDFDocument+PageIndexing.swift`
+
+### OCR Processing
+- **On-device:** `OnDeviceOCRService` uses Vision framework
+- **Server:** `YianaOCRService` (Mac mini) watches for `ocrCompleted = false`; results in `.ocr_results/` as JSON/XML/hOCR
+- Metadata tracks source via `ocrSource` enum: `.onDevice`, `.service`, `.embedded`
+
+### Address Extraction
+- Extraction service on Devon watches `.ocr_results/`, writes to `.addresses/{document_id}.json`
+- Three-tier data resolution: **override > extraction > enrichment**
+- `pages[]` owned by Devon, `overrides[]` owned by Swift app, `enriched{}` written back by backend DB
+- Backend database (`backend_db.py`) deduplicates patients and practitioners across documents
+
+### Server (Mac mini "Devon")
+- IP: `192.168.1.137`, user: `devon`, Tailscale: `devon-6`
+- **OCR service:** LaunchDaemon at `/Library/LaunchDaemons/com.vitygas.yiana-ocr.plist` (Swift binary, `sudo` required)
+- **Extraction service:** LaunchAgent at `~/Library/LaunchAgents/com.vitygas.yiana-extraction.plist` (Python 3.12)
+- **Dashboard:** LaunchAgent at `~/Library/LaunchAgents/com.vitygas.yiana-dashboard.plist` (typst-live on port 5599)
+- **Watchdog:** cron every 5min, Pushover alerts
+- Log rotation: `/etc/newsyslog.d/` configs (10MB, 3 copies, bzip2)
+
+### Deployment
+Use the `/deploy` skill. Protocol: stop launchd service FIRST → wait for confirmation → copy binary → start service → verify. Never deploy without explicit user confirmation. Check log file sizes before verification.
+
+## Build & Test
 
 ```bash
-# Run tests (iOS)
-xcodebuild test -scheme Yiana -destination 'platform=iOS Simulator,name=iPhone 15'
-
-# Run tests (macOS)
-xcodebuild test -scheme Yiana -destination 'platform=macOS'
-
-# Build app for iOS
+# Build both platforms (preferred: use /check skill or xcode-mcp-server)
 xcodebuild -scheme Yiana -destination 'generic/platform=iOS'
-
-# Build app for macOS
 xcodebuild -scheme Yiana -destination 'platform=macOS'
 
 # Build OCR service
@@ -108,179 +66,84 @@ cd YianaOCRService && swift build
 
 # Run OCR service
 cd YianaOCRService && swift run yiana-ocr --help
-
-# Python tools setup
-cd AddressExtractor && python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
 ```
-
-Always build for BOTH iOS and macOS targets after any code change. Never assume a change to shared code only affects one platform.
-
-## Bug Fix Protocol
-
-When fixing bugs, always verify the fix doesn't break related functionality. Specifically: after modifying any file processing pipeline (OCR, indexing, sync), trace through the full lifecycle to confirm downstream stages still trigger correctly.
-
-## Deployment
-
-When deploying to the Mac mini server: 1) Stop the launchd service FIRST and wait for confirmation before copying binaries. 2) Check for and handle large log files before attempting verification. 3) Never deploy before user explicitly confirms readiness.
-
-## Architecture & Key Decisions
-
-### Document Storage Architecture
-- **UIDocument-based** (iOS/iPadOS) and **NSDocument-based** (macOS) - NOT Core Data
-- Documents stored in iCloud container: `iCloud.com.vitygas.Yiana/Documents`
-- Package format: `.yianazip` — a ZIP archive (via `YianaDocumentArchive` package using ZIPFoundation) containing `metadata.json`, `content.pdf`, and `format.json`
-- Bundle ID: com.vitygas.Yiana
-
-### Platform Strategy
-- iOS/iPadOS and macOS share data format but NOT implementation
-- Each platform uses native document classes directly (UIDocument vs NSDocument)
-- No shared protocols or complex abstractions - platform-specific code is preferred
-
-### PDF Handling
-- **PDFKit** for read-only viewing (no annotations to avoid memory issues)
-- **1-based page indexing** everywhere in the app (convert only at PDFKit API boundaries)
-- Wrapper extensions in `Extensions/PDFDocument+PageIndexing.swift` handle conversions
-
-### OCR Processing
-- **On-device OCR**: `OnDeviceOCRService` uses Apple's Vision framework (VNRecognizeTextRequest) for immediate text recognition on scan or document open
-- **Server OCR**: `YianaOCRService` (Mac mini backend) watches documents folder and processes PDFs with `ocrCompleted = false`; results stored in `.ocr_results/` as JSON/XML/hOCR
-- Metadata tracks OCR source via `ocrSource` enum: `.onDevice`, `.service`, or `.embedded`
 
 ## Repository Structure
 
 ```
 Yiana/                      # SwiftUI app (iOS/iPadOS/macOS)
-├── Models/                # DocumentMetadata, NoteDocument (UIDocument)
+├── Models/                # DocumentMetadata, NoteDocument, ExtractedAddress
 ├── ViewModels/            # DocumentListViewModel, DocumentViewModel
-├── Views/                 # SwiftUI views (DocumentListView, PDFViewer, etc.)
-├── Services/              # DocumentRepository, ImportService, SearchIndexService, etc.
+├── Views/                 # SwiftUI views (DocumentListView, PDFViewer, AddressesView, etc.)
+├── Services/              # DocumentRepository, ImportService, SearchIndexService, AddressRepository
 ├── Extensions/            # PDFDocument+PageIndexing, other wrappers
-├── Accessibility/         # VoiceOver and accessibility support
-├── Markup/                # PDF markup/annotation code
+├── Accessibility/         # VoiceOver support
+├── Markup/                # PDF markup code
 └── Utilities/             # Helper functions
 
-YianaDocumentArchive/      # Swift Package for .yianazip format (ZIPFoundation-based)
-YianaOCRService/           # Swift Package executable for server-side OCR processing
-AddressExtractor/          # Python utilities for address extraction and data processing
-docs/                      # Technical documentation
-memory-bank/               # Project state tracking
+YianaDocumentArchive/      # Swift Package for .yianazip format (ZIPFoundation)
+YianaOCRService/           # Swift Package executable for server-side OCR
+AddressExtractor/          # Python: extraction service, backend DB, letter generation (legacy)
+scripts/                   # Dashboard, watchdog, status, deployment scripts
+docs/                      # Technical documentation, specs
 ```
 
-## Development Workflow
+## Custom Skills
 
-### TDD (Test-Driven Development) Required
-1. Write failing tests first in `Tests/` folder
-2. Implement minimal code to make tests pass
-3. Refactor while keeping tests green
-4. Commit after each test/implementation pair
+- `/deploy` — Deploy OCR service binary to Devon
+- `/check` — Build both iOS and macOS targets, report pass/fail
+- `/testflight` — Bump build number, archive, upload to App Store Connect
 
-### State Management Patterns
-- Avoid modifying state during SwiftUI view updates (use `DispatchQueue.main.async`)
-- Use `@State` sparingly - prefer bindings and coordinator patterns
-- Let PDFKit manage its own state
+## Hooks
 
-### Error Prevention
-- Always use 1-based page numbers except at PDFKit boundaries
-- Check for OCR JSON existence before reading
-- Use atomic writes for `.yianazip` files to ensure iCloud sync signals
+- `postToolUse` on `TaskUpdate` — auto-builds both platforms when a task is marked completed
 
-## Current Implementation Status
-
-### Completed
-- Document models, repository, iCloud sync
-- PDF viewing with 1-based page indexing
-- Import system (new documents, append, bulk import on macOS)
-- On-device OCR (Vision framework) and server OCR (YianaOCRService)
-- GRDB/FTS5 search index with BM25 ranking
-- Folders with nesting, rename, drag-and-drop moves
-- Duplicate scanner (macOS)
-- Bulk export with folder structure preservation (macOS)
-- Page copy/cut/paste between documents
-- Print support (macOS Cmd+P)
-- Settings (paper size, sidebar position, thumbnail size, developer mode)
-- Address extraction (view/edit/override in app, backend processing on Mac mini)
-- GitHub repository: https://github.com/lh/Yiana
-
-## Style Preferences
-
-Never add emoji to UI text, commit messages, or user-facing strings unless explicitly asked. User preference: clean, professional tone.
-
-## Code Style & Conventions
+## Code Style
 
 ### Page Numbering (CRITICAL)
-- **Always 1-based** in UI, metadata, OCR JSON, search results
-- Use wrapper methods: `pdfDocument.getPage(number: 1)` not `pdfDocument.page(at: 0)`
-- Document with comments like `// 1-based page number`
+- Always 1-based in UI, metadata, OCR JSON, search results
+- Use `pdfDocument.getPage(number: 1)` not `pdfDocument.page(at: 0)`
 
 ### Platform-Specific Code
 ```swift
 #if os(iOS)
-    // iOS-specific implementation
+    // iOS-specific
 #elseif os(macOS)
-    // macOS-specific implementation
+    // macOS-specific
 #endif
 ```
 
-### OCR JSON Structure
-```json
-{
-  "pages": [
-    {
-      "pageNumber": 1,  // Always 1-based
-      "text": "...",
-      "textBlocks": [...]
-    }
-  ]
-}
-```
-
-## Common Issues & Solutions
-
-### "Modifying state during view update"
-- Move state changes to `.task` or `.onAppear`
-- Use `DispatchQueue.main.async` for deferred updates
-
 ### Async State Capture (CRITICAL)
-- **Never read `@State` or `@Published` inside `Task {}` bodies** — the value may change before the Task runs
-- Always capture to a local variable first, then pass the local into the Task
-- Clear the state synchronously after capture, before the Task
+Never read `@State` or `@Published` inside `Task {}` bodies — capture to a local first:
 ```swift
-// BAD — state may be nil by the time Task body runs
-Task { doSomething(with: someState) }
-someState = nil
-
-// GOOD — captured before Task, safe to clear
 let captured = someState
 someState = nil
 Task { doSomething(with: captured) }
 ```
-- Post-flight check: grep for `Task {` in Views and verify no @State reads inside
 
-### List Selection vs NavigationLink (CRITICAL)
-- `List(selection:)` is silently broken when rows contain `NavigationLink` or `Button` — the interactive element captures the gesture before the selection binding fires
-- When combining selection with navigation, conditionally render: plain `DocumentRow` in select mode, `NavigationLink`-wrapped row in normal mode
-- This applies to both iOS and macOS
-- Post-flight check: if using `List(selection:)`, verify no `NavigationLink` or `Button` is active inside selected rows
+### `.task {}` and File I/O (CRITICAL)
+SwiftUI `.task {}` inherits the main actor. Wrap file I/O in `Task.detached { ... }.value`. Extract `@MainActor` methods to free functions if needed for `@Sendable` compliance.
 
-### Page Navigation Issues
-- Verify 1-based indexing throughout
-- Check wrapper method usage
-- Add debug logging: `print("Navigating to page \(pageNum) (1-based)")`
+### List Selection vs NavigationLink
+`List(selection:)` is silently broken when rows contain `NavigationLink` or `Button`. Conditionally render plain content in select mode, NavigationLink in normal mode.
 
-### OCR/Search Issues
-- Verify OCR JSON exists in `.ocr_results/`
-- Check DocumentNavigationData is passed correctly
-- Ensure page numbers match 1-based convention
+### iOS List Rows Cannot Be Drop Targets
+`.onDrop` on individual rows inside an iOS `List` does not work (UITableView intercepts). Use `ScrollView` + `LazyVStack` for drop targets. macOS `List` is fine.
+
+## Dependency Management
+
+### Approved
+- **GRDB.swift** (v7.7+) — Type-safe SQLite wrapper
+
+### Adding Dependencies
+Only when: complex subsystem, 10x time savings, 5+ years maturity, safety-critical.
+Not for: <50 lines of code, Apple framework duplicates, unmaintained projects, heavy frameworks used at 10%.
 
 ## Design Principles
-1. LEGO approach - use proven Apple frameworks
+
+1. Use proven Apple frameworks — don't reimplement what the platform provides
 2. Simplicity over feature bloat
 3. Read-only PDF viewing (no annotations)
-4. Mac mini handles heavy processing (OCR)
+4. Mac mini handles heavy processing (OCR, extraction, rendering)
+5. iCloud as the sync and sharing layer
 
-## Important Files & Locations
-- Spec: /Users/rose/Downloads/ios-note-app-spec.md
-- Project: /Users/rose/Code/Yiana/
-- Current plan: PLAN.md
-- Coding style: CODING_STYLE.md
-- Architecture details: docs/Architecture.md
