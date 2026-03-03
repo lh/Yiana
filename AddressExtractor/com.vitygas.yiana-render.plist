@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.vitygas.yiana-render</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12</string>
+        <string>/Users/devon/Code/Yiana/AddressExtractor/render_service.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/devon/Code/Yiana/AddressExtractor</string>
+
+    <!-- Start on login -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Restart if it crashes -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Throttle restarts (default 10s, set explicitly) -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <!-- Logs -->
+    <key>StandardOutPath</key>
+    <string>/Users/devon/Library/Logs/yiana-render.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/devon/Library/Logs/yiana-render-error.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/Library/TeX/texbin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>/Users/devon</string>
+        <key>PYTHONPATH</key>
+        <string>/Users/devon/Code/Yiana/AddressExtractor</string>
+        <key>LETTERS_DIR</key>
+        <string>/Users/devon/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents/.letters</string>
+    </dict>
+</dict>
+</plist>

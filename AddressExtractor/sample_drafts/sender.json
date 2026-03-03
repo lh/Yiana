@@ -1,0 +1,15 @@
+{
+  "name": "Mr L Arblaster",
+  "credentials": "FRCOphth",
+  "role": "Consultant Ophthalmologist",
+  "department": "Ophthalmology Department",
+  "hospital": "East Surrey Hospital",
+  "address": ["Canada Avenue", "Redhill", "Surrey", "RH1 5RH"],
+  "phone": "01737 768511",
+  "email": "l.arblaster@nhs.net",
+  "secretary": {
+    "name": "Mrs J Davies",
+    "phone": "01737 768511 ext 1234",
+    "email": "j.davies@nhs.net"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "letter_id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+  "created": "2026-03-03T11:00:00Z",
+  "modified": "2026-03-03T11:20:00Z",
+  "status": "draft",
+  "yiana_target": "Patel_Amira_345678",
+  "patient": {
+    "name": "Mrs Amira Patel",
+    "dob": "1972-07-04",
+    "mrn": "H345678",
+    "address": ["22 Maple Drive", "Crawley", "West Sussex", "RH10 3BF"],
+    "phones": ["01293 987654"]
+  },
+  "recipients": [
+    {
+      "role": "patient",
+      "source": "database",
+      "name": "Mrs Amira Patel",
+      "address": ["22 Maple Drive", "Crawley", "West Sussex", "RH10 3BF"]
+    },
+    {
+      "role": "gp",
+      "source": "database",
+      "name": "Dr E Robinson",
+      "practice": "Crawley Medical Practice",
+      "address": ["48 Ifield Road", "Crawley", "West Sussex", "RH11 7BP"]
+    },
+    {
+      "role": "hospital_records",
+      "source": "implicit",
+      "name": "Hospital Records",
+      "address": []
+    }
+  ],
+  "body": "Thank you for referring this lady who I reviewed in clinic today. She was referred with a six-week history of redness and irritation in the left eye.\n\nOn examination her visual acuity was 6/6 bilaterally. The findings were as follows:\n\n- Right eye: quiet, no abnormality detected\n- Left eye: mild diffuse conjunctival injection, 2+ anterior chamber cells, fine keratic precipitates inferiorly, no posterior synechiae\n- Intraocular pressures: right 16mmHg, left 18mmHg\n- Dilated fundoscopy: no vitritis, no retinal lesions bilaterally\n\nThe diagnosis is acute anterior uveitis of the left eye. I have commenced the following treatment:\n\n- Dexamethasone 0.1% drops hourly to the left eye, tapering over six weeks\n- Cyclopentolate 1% drops three times daily to the left eye for two weeks\n\nI have requested the following investigations:\n\n- HLA-B27\n- ACE level\n- Chest X-ray\n- Syphilis serology\n\nI will review Mrs Patel in two weeks. If her symptoms worsen before then, she should attend the eye casualty department.",
+  "render_request": null
+}

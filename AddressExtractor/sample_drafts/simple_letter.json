@@ -1,0 +1,37 @@
+{
+  "letter_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "created": "2026-03-03T09:00:00Z",
+  "modified": "2026-03-03T09:15:00Z",
+  "status": "render_requested",
+  "yiana_target": "Smith_Jane_120345",
+  "patient": {
+    "name": "Mrs Jane Smith",
+    "dob": "1945-03-12",
+    "mrn": "H123456",
+    "address": ["14 Oak Lane", "Reigate", "Surrey", "RH2 7AA"],
+    "phones": ["01737 123456"]
+  },
+  "recipients": [
+    {
+      "role": "patient",
+      "source": "database",
+      "name": "Mrs Jane Smith",
+      "address": ["14 Oak Lane", "Reigate", "Surrey", "RH2 7AA"]
+    },
+    {
+      "role": "gp",
+      "source": "database",
+      "name": "Dr A Patel",
+      "practice": "Reigate Medical Centre",
+      "address": ["12 High Street", "Reigate", "Surrey", "RH2 9AE"]
+    },
+    {
+      "role": "hospital_records",
+      "source": "implicit",
+      "name": "Hospital Records",
+      "address": []
+    }
+  ],
+  "body": "Thank you for referring this patient who I saw in clinic today.\n\nOn examination her visual acuity was 6/9 in the right eye and 6/6 in the left eye. Intraocular pressures were 14mmHg bilaterally. Anterior segments were quiet. Fundoscopy revealed a small epiretinal membrane over the right macula with mild surface wrinkling but no significant traction.\n\nI have reassured Mrs Smith that this does not require intervention at present. I would be grateful if you could refer her back should she notice any deterioration in vision.\n\nI will review her in six months.",
+  "render_request": "2026-03-03T09:15:00Z"
+}

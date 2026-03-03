@@ -1,0 +1,44 @@
+{
+  "letter_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+  "created": "2026-03-03T10:00:00Z",
+  "modified": "2026-03-03T10:30:00Z",
+  "status": "render_requested",
+  "yiana_target": "Williams_Robert_987654",
+  "patient": {
+    "name": "Mr Robert Williams",
+    "dob": "1958-11-22",
+    "mrn": "H987654",
+    "address": ["7 Church Road", "Horley", "Surrey", "RH6 8AD"],
+    "phones": ["01293 456789", "07700 900123"]
+  },
+  "recipients": [
+    {
+      "role": "patient",
+      "source": "database",
+      "name": "Mr Robert Williams",
+      "address": ["7 Church Road", "Horley", "Surrey", "RH6 8AD"]
+    },
+    {
+      "role": "gp",
+      "source": "database",
+      "name": "Dr S Mahmood",
+      "practice": "Horley Health Centre",
+      "address": ["25 Victoria Road", "Horley", "Surrey", "RH6 7QG"]
+    },
+    {
+      "role": "optician",
+      "source": "ad_hoc",
+      "name": "Mr P Richardson",
+      "practice": "Horley Eyecare",
+      "address": ["3 High Street", "Horley", "Surrey", "RH6 7BB"]
+    },
+    {
+      "role": "hospital_records",
+      "source": "implicit",
+      "name": "Hospital Records",
+      "address": []
+    }
+  ],
+  "body": "Thank you for referring this gentleman who attended my clinic today.\n\nMr Williams reports a gradual reduction in vision over the past three months, particularly when reading. He is a retired electrician with a history of type 2 diabetes mellitus, well controlled on metformin. He uses reading glasses dispensed by Mr Richardson approximately two years ago.\n\nOn examination his best corrected visual acuity was 6/12 in the right eye and 6/9 in the left. There was moderate nuclear sclerotic cataract bilaterally, worse on the right. The rest of the anterior segment examination was unremarkable. Dilated fundoscopy showed no diabetic retinopathy in either eye.\n\nI have listed Mr Williams for right cataract surgery and will arrange a pre-assessment appointment. I have explained the procedure, risks, and expected recovery. He is happy to proceed.\n\nI would be grateful if Mr Richardson could provide an updated refraction following surgery to optimise his spectacle correction.",
+  "render_request": "2026-03-03T10:30:00Z"
+}
