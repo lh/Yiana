@@ -28,6 +28,7 @@ struct YianaApp: App {
                 .task {
                     await MainActor.run {
                         UbiquityMonitor.shared.start()
+                        InjectWatcher.shared.start()
 
                         // Create welcome document for new users
                         let repository = DocumentRepository()
