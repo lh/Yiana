@@ -4,11 +4,8 @@
 \documentclass[a4paper,11pt]{article}
 
 % Packages
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
+\usepackage{fontspec}
 \usepackage{geometry}
-\usepackage{helvet}
-\usepackage{setspace}
 \usepackage{enumitem}
 
 % Page geometry for A4
@@ -20,7 +17,15 @@
     bottom=20mm
 }
 
-% Use Helvetica as default font
+% Use Helvetica Neue (falls back to TeX Gyre Heros if unavailable)
+\setmainfont{Helvetica Neue}[
+    BoldFont = * Bold,
+    ItalicFont = * Italic,
+]
+\setsansfont{Helvetica Neue}[
+    BoldFont = * Bold,
+    ItalicFont = * Italic,
+]
 \renewcommand{\familydefault}{\sfdefault}
 
 % Disable page numbers
@@ -59,10 +64,8 @@ Dear <SALUTATION>,
 
 \vspace{5mm}
 
-% Body font size (inserted by renderer for patient copies)
+% Body font size (inserted by renderer for patient copies) + clinical content
 <BODY_FONT_SIZE>
-
-% Clinical content
 \noindent
 <CLINICAL_CONTENT>
 

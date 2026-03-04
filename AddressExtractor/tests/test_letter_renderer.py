@@ -182,8 +182,8 @@ class TestFillTemplate:
             cc_line="", is_patient_copy=True,
             include_address=True, letter_date="2026-03-03T09:00:00Z",
         )
-        assert r"\fontsize{14}" in result
-        assert r"\setstretch{1.4}" in result
+        assert r"\fontsize{14}{19.6}" in result
+        assert r"\selectfont" in result
 
     def test_professional_copy_font_size(self, renderer, sender, sample_patient, sample_recipients):
         gp_rec = sample_recipients[1]

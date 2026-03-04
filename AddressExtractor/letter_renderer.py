@@ -235,10 +235,15 @@ class LetterRenderer:
         }
 
         # Body font size for patient copies
+        # This is a declaration — persists until end of document.
+        # Template places it immediately before \noindent + content
+        # with no intervening blank line (which would create a paragraph
+        # break and lose the font change).
         if is_patient_copy:
+            # 14pt font with 19.6pt baseline skip (= 14 * 1.4)
+            # Do NOT use \setstretch — it resets fontsize on paragraph breaks
             variables["BODY_FONT_SIZE"] = (
-                "\\fontsize{14}{19.6}\\selectfont\n"
-                "\\setstretch{1.4}"
+                "\\fontsize{14}{19.6}\\selectfont"
             )
         else:
             variables["BODY_FONT_SIZE"] = ""
