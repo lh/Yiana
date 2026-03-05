@@ -26,6 +26,7 @@ Implemented `InjectWatcher`, a background service that polls `.letters/inject/` 
 - LaunchAgent loaded: `com.vitygas.yiana-render` (PID stable, polling every 30s)
 - Config: `.letters/config/sender.json`, `.letters/drafts/`, `.letters/inject/` directories created
 - Logs: `/Users/devon/Library/Logs/yiana-render.log` and `yiana-render-error.log`
+- Log rotation: `/etc/newsyslog.d/yiana-render.conf` (10MB, 3 copies, bzip2)
 
 ### End-to-end pipeline verified
 
