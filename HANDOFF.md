@@ -36,6 +36,7 @@ Full pipeline tested and confirmed working:
 4. iCloud synced to local Mac
 5. InjectWatcher picked it up, appended hospital records page to `Young_David_050429.yianazip`
 6. Confirmed: new page visible in app
+7. Test artefacts cleaned up (draft, rendered output directory)
 
 ### Previous session work (carried forward)
 - Yiale render service — Phases 1+2 (letter schema + render pipeline, `2d712f8`)
