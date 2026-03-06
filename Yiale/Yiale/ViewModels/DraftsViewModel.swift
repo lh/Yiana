@@ -13,10 +13,24 @@ final class DraftsViewModel {
             let loaded = try await Task.detached {
                 try LetterRepository().listDrafts()
             }.value
-            drafts = loaded
+            // Only update if drafts actually changed, to avoid needless SwiftUI re-renders
+            if !draftsEqual(drafts, loaded) {
+                drafts = loaded
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// Cheap comparison: same IDs in same order with same modification timestamps.
+    private func draftsEqual(_ a: [LetterDraft], _ b: [LetterDraft]) -> Bool {
+        guard a.count == b.count else { return false }
+        for (lhs, rhs) in zip(a, b) {
+            if lhs.letterId != rhs.letterId || lhs.modified != rhs.modified || lhs.status != rhs.status {
+                return false
+            }
+        }
+        return true
     }
 
     func startPolling() {
