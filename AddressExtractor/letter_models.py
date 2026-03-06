@@ -27,6 +27,7 @@ class Patient:
     mrn: str
     address: list[str] = field(default_factory=list)
     phones: list[str] = field(default_factory=list)
+    title: Optional[str] = None
 
 
 @dataclass
@@ -59,6 +60,7 @@ class LetterDraft:
             mrn=patient_data["mrn"],
             address=patient_data.get("address", []),
             phones=patient_data.get("phones", []),
+            title=patient_data.get("title"),
         )
 
         recipients = []

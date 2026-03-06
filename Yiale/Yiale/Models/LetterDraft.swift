@@ -12,13 +12,15 @@ struct LetterPatient: Codable {
     var mrn: String
     var address: [String]
     var phones: [String]
+    var title: String?
 
-    init(name: String, dob: String, mrn: String, address: [String] = [], phones: [String] = []) {
+    init(name: String, dob: String, mrn: String, address: [String] = [], phones: [String] = [], title: String? = nil) {
         self.name = name
         self.dob = dob
         self.mrn = mrn
         self.address = address
         self.phones = phones
+        self.title = title
     }
 }
 

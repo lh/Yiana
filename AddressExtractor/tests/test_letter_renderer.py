@@ -117,6 +117,57 @@ class TestFormatBody:
         assert r"50\%" in result
         assert r"\&" in result
 
+    def test_format_body_bold(self, renderer):
+        body = "The patient has **significant** symptoms."
+        result = renderer.format_body(body)
+        assert r"\textbf{significant}" in result
+
+    def test_format_body_italic(self, renderer):
+        body = "Diagnosis: *probable* glaucoma."
+        result = renderer.format_body(body)
+        assert r"\textit{probable}" in result
+
+    def test_format_body_bold_and_italic_same_line(self, renderer):
+        body = "VA was **6/6** in the *right* eye."
+        result = renderer.format_body(body)
+        assert r"\textbf{6/6}" in result
+        assert r"\textit{right}" in result
+
+    def test_format_body_numbered_list(self, renderer):
+        body = "1. First finding\n2. Second finding\n3. Third finding"
+        result = renderer.format_body(body)
+        assert r"\begin{enumerate}" in result
+        assert r"\item First finding" in result
+        assert r"\item Second finding" in result
+        assert r"\item Third finding" in result
+        assert r"\end{enumerate}" in result
+
+    def test_format_body_numbered_list_with_bullets(self, renderer):
+        body = (
+            "Findings:\n\n"
+            "1. Right eye normal\n"
+            "2. Left eye abnormal\n\n"
+            "Medications:\n\n"
+            "- Dexamethasone\n"
+            "- Cyclopentolate"
+        )
+        result = renderer.format_body(body)
+        assert r"\begin{enumerate}" in result
+        assert r"\end{enumerate}" in result
+        assert r"\begin{itemize}" in result
+        assert r"\end{itemize}" in result
+
+    def test_format_body_bold_in_list_item(self, renderer):
+        body = "- **Important**: take medication"
+        result = renderer.format_body(body)
+        assert r"\textbf{Important}" in result
+        assert r"\item" in result
+
+    def test_format_body_inline_formatting_with_special_chars(self, renderer):
+        body = "Use **50%** concentration."
+        result = renderer.format_body(body)
+        assert r"\textbf{50\%}" in result
+
 
 class TestBuildCCLine:
     """CC line construction."""
@@ -229,6 +280,41 @@ class TestFillTemplate:
         assert "Consultant Ophthalmologist" in result
         assert "FRCOphth" in result
         assert "East Surrey Hospital" in result
+
+
+class TestSalutation:
+    """Salutation construction from patient title and name."""
+
+    def test_salutation_with_title(self, renderer):
+        patient = Patient(name="Marc Green", dob="1980-01-01", mrn="X123",
+                          title="Mr")
+        result = renderer._build_salutation(patient)
+        assert result == "Mr Green"
+
+    def test_salutation_without_title(self, renderer):
+        patient = Patient(name="Marc Green", dob="1980-01-01", mrn="X123")
+        result = renderer._build_salutation(patient)
+        assert result == "Marc Green"
+
+    def test_salutation_multi_word_surname(self, renderer):
+        patient = Patient(name="Jane van der Berg", dob="1980-01-01",
+                          mrn="X456", title="Mrs")
+        result = renderer._build_salutation(patient)
+        assert result == "Mrs Berg"
+
+    def test_salutation_in_template(self, renderer, sender):
+        patient = Patient(name="Marc Green", dob="1980-01-01", mrn="X123",
+                          title="Mr")
+        recipient = Recipient(role="gp", source="database", name="Dr Smith",
+                              address=["1 High St"])
+        result = renderer.fill_template(
+            sender=sender, patient=patient,
+            recipient=recipient, body="Test.",
+            cc_line="", is_patient_copy=False,
+            include_address=True, letter_date="2026-03-03T09:00:00Z",
+        )
+        assert "Mr Green" in result
+        assert "Dear Marc Green" not in result
 
 
 class TestCompileLatex:

@@ -67,11 +67,58 @@ class LetterRenderer:
 
         return text
 
+    def _apply_inline_formatting(self, text: str) -> str:
+        """Convert markdown-style inline formatting to LaTeX.
+
+        Processes **bold** and *italic* markers. Must be called after
+        escape_latex since * is not a special LaTeX character.
+        Bold is processed first to avoid ** being consumed as two italics.
+        """
+        # **bold** -> \textbf{bold}
+        text = re.sub(r"\*\*(.+?)\*\*", r"\\textbf{\1}", text)
+        # *italic* -> \textit{italic}
+        text = re.sub(r"\*(.+?)\*", r"\\textit{\1}", text)
+        return text
+
+    def _is_numbered_item(self, line: str) -> bool:
+        """Check if a line starts with a numbered list marker (e.g. '1. ')."""
+        return bool(re.match(r"^\d+\.\s", line))
+
+    def _numbered_item_text(self, line: str) -> str:
+        """Extract the text after a numbered list marker."""
+        return re.sub(r"^\d+\.\s", "", line)
+
+    def _is_list_item(self, line: str) -> bool:
+        """Check if a line is a bullet or numbered list item."""
+        return line.startswith("- ") or self._is_numbered_item(line)
+
+    def _format_list_item(self, line: str) -> str:
+        """Extract text from a bullet or numbered list item."""
+        if line.startswith("- "):
+            return line[2:]
+        return self._numbered_item_text(line)
+
+    def _detect_list_type(self, lines: list[str]) -> str | None:
+        """Detect the list type for a group of lines.
+
+        Returns 'itemize' for bullets, 'enumerate' for numbered, or None.
+        """
+        non_empty = [l.strip() for l in lines if l.strip()]
+        if not non_empty:
+            return None
+        if all(l.startswith("- ") for l in non_empty):
+            return "itemize"
+        if all(self._is_numbered_item(l) for l in non_empty):
+            return "enumerate"
+        return None
+
     def format_body(self, body: str) -> str:
         """Convert plain text body to LaTeX.
 
         - Paragraphs (separated by blank lines) become \\\\[10pt] breaks
         - Lines starting with '- ' are grouped into itemize environments
+        - Lines starting with 'N. ' are grouped into enumerate environments
+        - **bold** and *italic* inline formatting is supported
         - All text is LaTeX-escaped
         """
         if not body:
@@ -83,62 +130,74 @@ class LetterRenderer:
         for para in paragraphs:
             lines = para.split("\n")
 
-            # Check if this paragraph is entirely bullet items
-            if all(line.strip().startswith("- ") for line in lines if line.strip()):
+            # Check if this paragraph is entirely list items (all same type)
+            list_type = self._detect_list_type(lines)
+            if list_type:
                 items = []
                 for line in lines:
                     stripped = line.strip()
-                    if stripped.startswith("- "):
-                        item_text = self.escape_latex(stripped[2:])
+                    if self._is_list_item(stripped):
+                        item_text = self._apply_inline_formatting(
+                            self.escape_latex(self._format_list_item(stripped))
+                        )
                         items.append(f"  \\item {item_text}")
                 latex_parts.append(
-                    "\\begin{itemize}[nosep]\n"
+                    f"\\begin{{{list_type}}}[nosep]\n"
                     + "\n".join(items)
-                    + "\n\\end{itemize}"
+                    + f"\n\\end{{{list_type}}}"
                 )
             else:
-                # Check for mixed content: prose followed by bullets or vice versa
+                # Mixed content: prose, bullets, numbered items
                 prose_lines = []
-                bullet_groups = []
-                current_bullets = []
+                current_list_items = []
+                current_list_type = None
+
+                def flush_list():
+                    nonlocal current_list_items, current_list_type
+                    if current_list_items:
+                        items = [
+                            f"  \\item {self._apply_inline_formatting(self.escape_latex(b))}"
+                            for b in current_list_items
+                        ]
+                        latex_parts.append(
+                            f"\\begin{{{current_list_type}}}[nosep]\n"
+                            + "\n".join(items)
+                            + f"\n\\end{{{current_list_type}}}"
+                        )
+                        current_list_items = []
+                        current_list_type = None
+
+                def flush_prose():
+                    nonlocal prose_lines
+                    if prose_lines:
+                        escaped = self._apply_inline_formatting(
+                            self.escape_latex(" ".join(prose_lines))
+                        )
+                        latex_parts.append(escaped)
+                        prose_lines = []
 
                 for line in lines:
                     stripped = line.strip()
                     if stripped.startswith("- "):
-                        if prose_lines:
-                            escaped = self.escape_latex(" ".join(prose_lines))
-                            latex_parts.append(escaped)
-                            prose_lines = []
-                        current_bullets.append(stripped[2:])
+                        flush_prose()
+                        if current_list_type and current_list_type != "itemize":
+                            flush_list()
+                        current_list_type = "itemize"
+                        current_list_items.append(stripped[2:])
+                    elif self._is_numbered_item(stripped):
+                        flush_prose()
+                        if current_list_type and current_list_type != "enumerate":
+                            flush_list()
+                        current_list_type = "enumerate"
+                        current_list_items.append(self._numbered_item_text(stripped))
                     else:
-                        if current_bullets:
-                            items = [
-                                f"  \\item {self.escape_latex(b)}"
-                                for b in current_bullets
-                            ]
-                            latex_parts.append(
-                                "\\begin{itemize}[nosep]\n"
-                                + "\n".join(items)
-                                + "\n\\end{itemize}"
-                            )
-                            current_bullets = []
+                        flush_list()
                         if stripped:
                             prose_lines.append(stripped)
 
                 # Flush remaining
-                if current_bullets:
-                    items = [
-                        f"  \\item {self.escape_latex(b)}"
-                        for b in current_bullets
-                    ]
-                    latex_parts.append(
-                        "\\begin{itemize}[nosep]\n"
-                        + "\n".join(items)
-                        + "\n\\end{itemize}"
-                    )
-                if prose_lines:
-                    escaped = self.escape_latex(" ".join(prose_lines))
-                    latex_parts.append(escaped)
+                flush_list()
+                flush_prose()
 
         return "\n\n\\vspace{10pt}\n\n".join(latex_parts)
 
@@ -209,6 +268,18 @@ class LetterRenderer:
         except (ValueError, AttributeError):
             return iso_timestamp
 
+    def _build_salutation(self, patient: Patient) -> str:
+        """Build the salutation name from patient title and surname.
+
+        If a title is present, uses "{title} {surname}" (e.g. "Mr Green").
+        Otherwise falls back to the full name.
+        """
+        if patient.title:
+            # Use last whitespace-separated word as surname
+            surname = patient.name.rsplit(None, 1)[-1] if patient.name else ""
+            return f"{patient.title} {surname}"
+        return patient.name
+
     def fill_template(self, sender: SenderConfig, patient: Patient,
                       recipient: Recipient, body: str,
                       cc_line: str, is_patient_copy: bool,
@@ -229,7 +300,7 @@ class LetterRenderer:
             "PATIENT_NAME": self.escape_latex(patient.name),
             "PATIENT_DOB": self._format_date_for_display(patient.dob),
             "PATIENT_MRN": self.escape_latex(patient.mrn),
-            "SALUTATION": self.escape_latex(patient.name),
+            "SALUTATION": self.escape_latex(self._build_salutation(patient)),
             "CLINICAL_CONTENT": self.format_body(body),
             "COPY_LIST": cc_line,
         }

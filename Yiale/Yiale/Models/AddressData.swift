@@ -170,6 +170,7 @@ struct ResolvedPatient: Identifiable {
 
     // Patient
     var fullName: String
+    var title: String?
     var dateOfBirth: String?
     var mrn: String?
     var address: [String]
@@ -183,6 +184,9 @@ struct ResolvedPatient: Identifiable {
 
     /// The yianazip filename stem, used as yiana_target for the letter draft.
     var yianaTarget: String { documentId }
+
+    /// Known title prefixes to strip from full names.
+    private static let knownTitles = ["Mr", "Mrs", "Ms", "Miss", "Dr", "Prof"]
 
     /// Build from a DocumentAddressFile, resolving overrides and enrichment.
     /// Takes the prime patient page (or first page) and applies override chain.
@@ -219,7 +223,19 @@ struct ResolvedPatient: Identifiable {
             }
         }
 
-        self.fullName = name
+        // Parse title from full name
+        var parsedTitle: String?
+        var cleanedName = name
+        for prefix in Self.knownTitles {
+            if name.hasPrefix(prefix + " ") {
+                parsedTitle = prefix
+                cleanedName = String(name.dropFirst(prefix.count + 1))
+                break
+            }
+        }
+        self.title = parsedTitle
+        self.fullName = cleanedName
+
         self.dateOfBirth = dob
 
         // Parse MRN from documentId (Surname_First_MRN convention)

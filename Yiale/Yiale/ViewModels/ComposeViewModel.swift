@@ -5,6 +5,7 @@ final class ComposeViewModel {
     // Patient data
     var selectedPatient: ResolvedPatient?
     var patientName: String = ""
+    var patientTitle: String?
     var patientDOB: String = ""
     var patientMRN: String = ""
     var patientAddress: [String] = []
@@ -28,10 +29,13 @@ final class ComposeViewModel {
     private let repository = LetterRepository()
     private let addressService = AddressSearchService()
 
+    static let availableTitles = ["Mr", "Mrs", "Ms", "Miss", "Dr", "Prof"]
+
     /// Populate from a resolved patient.
     func selectPatient(_ patient: ResolvedPatient) {
         selectedPatient = patient
         patientName = patient.fullName
+        patientTitle = patient.title
         patientDOB = patient.dateOfBirth ?? ""
         patientMRN = patient.mrn ?? ""
         patientAddress = patient.address
@@ -67,6 +71,7 @@ final class ComposeViewModel {
     func loadDraft(_ draft: LetterDraft) {
         existingDraft = draft
         patientName = draft.patient.name
+        patientTitle = draft.patient.title
         patientDOB = draft.patient.dob
         patientMRN = draft.patient.mrn
         patientAddress = draft.patient.address
@@ -83,7 +88,8 @@ final class ComposeViewModel {
             dob: patientDOB,
             mrn: patientMRN,
             address: patientAddress,
-            phones: patientPhones
+            phones: patientPhones,
+            title: patientTitle
         )
 
         // Always include hospital_records as an implicit recipient

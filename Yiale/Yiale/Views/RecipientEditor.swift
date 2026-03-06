@@ -3,36 +3,57 @@ import SwiftUI
 struct RecipientEditor: View {
     @Binding var recipients: [LetterRecipient]
     @State private var showAddRecipient = false
+    @State private var expandedRecipientId: UUID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ForEach(recipients) { recipient in
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 6) {
-                            Text(recipient.name)
-                                .font(.headline)
-                            RoleBadge(role: recipient.role)
+            ForEach($recipients) { $recipient in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Text(recipient.name)
+                                    .font(.headline)
+                                RoleBadge(role: recipient.role)
+                            }
+                            if let practice = recipient.practice, !practice.isEmpty {
+                                Text(practice)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            if !recipient.address.isEmpty {
+                                Text(recipient.address.joined(separator: ", "))
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
-                        if let practice = recipient.practice, !practice.isEmpty {
-                            Text(practice)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        if !recipient.address.isEmpty {
-                            Text(recipient.address.joined(separator: ", "))
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
+                        Spacer()
+                        if recipient.role != "hospital_records" {
+                            Button {
+                                withAnimation {
+                                    if expandedRecipientId == recipient.id {
+                                        expandedRecipientId = nil
+                                    } else {
+                                        expandedRecipientId = recipient.id
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: expandedRecipientId == recipient.id ? "chevron.up" : "pencil")
+                            }
+                            .buttonStyle(.plain)
+
+                            Button(role: .destructive) {
+                                recipients.removeAll { $0.id == recipient.id }
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
-                    Spacer()
-                    if recipient.role != "hospital_records" {
-                        Button(role: .destructive) {
-                            recipients.removeAll { $0.id == recipient.id }
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                        }
-                        .buttonStyle(.plain)
+
+                    if expandedRecipientId == recipient.id {
+                        RecipientInlineEditor(recipient: $recipient)
+                            .padding(.leading, 8)
                     }
                 }
                 .padding(.vertical, 4)
@@ -50,6 +71,45 @@ struct RecipientEditor: View {
                 AddRecipientSheet(onAdd: { recipient in
                     recipients.append(recipient)
                 })
+            }
+        }
+    }
+}
+
+private struct RecipientInlineEditor: View {
+    @Binding var recipient: LetterRecipient
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            TextField("Name", text: $recipient.name)
+                .textFieldStyle(.roundedBorder)
+            TextField("Practice", text: Binding(
+                get: { recipient.practice ?? "" },
+                set: { recipient.practice = $0.isEmpty ? nil : $0 }
+            ))
+            .textFieldStyle(.roundedBorder)
+
+            Text("Address")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            ForEach(recipient.address.indices, id: \.self) { index in
+                HStack(spacing: 4) {
+                    TextField("Line \(index + 1)", text: $recipient.address[index])
+                        .textFieldStyle(.roundedBorder)
+                    Button {
+                        recipient.address.remove(at: index)
+                    } label: {
+                        Image(systemName: "minus.circle.fill")
+                            .foregroundStyle(.red)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            Button {
+                recipient.address.append("")
+            } label: {
+                Label("Add Line", systemImage: "plus.circle")
+                    .font(.caption)
             }
         }
     }
@@ -93,7 +153,7 @@ private struct AddRecipientSheet: View {
     @State private var name = ""
     @State private var role = "specialist"
     @State private var practice = ""
-    @State private var addressText = ""
+    @State private var addressLines: [String] = [""]
 
     let onAdd: (LetterRecipient) -> Void
 
@@ -112,14 +172,36 @@ private struct AddRecipientSheet: View {
                 }
                 TextField("Name", text: $name)
                 TextField("Practice", text: $practice)
-                TextField("Address (comma-separated lines)", text: $addressText)
+
+                Section("Address") {
+                    ForEach(addressLines.indices, id: \.self) { index in
+                        HStack {
+                            TextField("Line \(index + 1)", text: $addressLines[index])
+                            if addressLines.count > 1 {
+                                Button {
+                                    addressLines.remove(at: index)
+                                } label: {
+                                    Image(systemName: "minus.circle.fill")
+                                        .foregroundStyle(.red)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                    Button {
+                        addressLines.append("")
+                    } label: {
+                        Label("Add Line", systemImage: "plus.circle")
+                            .font(.caption)
+                    }
+                }
             }
 
             HStack {
                 Button("Cancel") { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Button("Add") {
-                    let address = addressText.split(separator: ",").map { String($0.trimmingCharacters(in: .whitespaces)) }
+                    let address = addressLines.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
                     onAdd(LetterRecipient(
                         role: role,
                         source: "manual",
