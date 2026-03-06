@@ -180,6 +180,31 @@ class TestFormatBody:
         result = renderer.format_body(body)
         assert r"\hrule" in result
 
+    def test_format_body_heading(self, renderer):
+        body = "## IOL Exchange Surgery\n\nSome text."
+        result = renderer.format_body(body)
+        assert r"\bfseries" in result
+        assert "IOL Exchange Surgery" in result
+
+    def test_format_body_bold_italic(self, renderer):
+        body = "This is ***very important***."
+        result = renderer.format_body(body)
+        assert r"\textbf" in result or r"\textit" in result
+        assert "very important" in result
+
+    def test_format_body_table(self, renderer):
+        body = "| Eye | VA |\n|-----|----|\n| Right | 6/6 |\n| Left | 6/9 |"
+        result = renderer.format_body(body)
+        assert r"\begin{tabular}" in result
+        assert r"\end{tabular}" in result
+        assert "Right" in result
+        assert "6/6" in result
+
+    def test_format_body_strikethrough(self, renderer):
+        body = "The ~~old~~ new treatment."
+        result = renderer.format_body(body)
+        assert r"\sout{old}" in result
+
 
 class TestBuildCCLine:
     """CC line construction."""
