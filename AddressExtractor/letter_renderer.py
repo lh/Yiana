@@ -128,6 +128,12 @@ class LetterRenderer:
         latex_parts = []
 
         for para in paragraphs:
+            # Horizontal rule: paragraph that is just three or more dashes
+            stripped_para = para.strip()
+            if re.match(r"^-{3,}$", stripped_para):
+                latex_parts.append("\\vspace{6pt}\\hrule\\vspace{6pt}")
+                continue
+
             lines = para.split("\n")
 
             # Check if this paragraph is entirely list items (all same type)

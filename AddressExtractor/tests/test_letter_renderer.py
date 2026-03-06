@@ -168,6 +168,18 @@ class TestFormatBody:
         result = renderer.format_body(body)
         assert r"\textbf{50\%}" in result
 
+    def test_format_body_horizontal_rule(self, renderer):
+        body = "Above the rule.\n\n---\n\nBelow the rule."
+        result = renderer.format_body(body)
+        assert r"\hrule" in result
+        assert "Above the rule." in result
+        assert "Below the rule." in result
+
+    def test_format_body_long_horizontal_rule(self, renderer):
+        body = "Before.\n\n-----\n\nAfter."
+        result = renderer.format_body(body)
+        assert r"\hrule" in result
+
 
 class TestBuildCCLine:
     """CC line construction."""
