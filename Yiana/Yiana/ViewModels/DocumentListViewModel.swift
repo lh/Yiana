@@ -249,6 +249,9 @@ class DocumentListViewModel: ObservableObject {
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
         if currentSearchText.isEmpty {
             folderURLs = allFolderURLs
+        } else {
+            // Re-run search to pick up renamed/moved URLs
+            await performSearch(searchText: currentSearchText)
         }
         folderTree = repository.buildFolderTree()
     }

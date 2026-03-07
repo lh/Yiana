@@ -145,6 +145,7 @@ class DocumentViewModel: ObservableObject {
                 newFolderPath: folderPath,
                 newTitle: newTitle
             )
+            NotificationCenter.default.post(name: .yianaDocumentsChanged, object: nil)
             return newURL
         } catch {
             title = currentFilename
@@ -842,6 +843,7 @@ final class DocumentViewModel: ObservableObject {
                 newFolderPath: folderPath,
                 newTitle: newTitle
             )
+            NotificationCenter.default.post(name: .yianaDocumentsChanged, object: nil)
             return newURL
         } catch {
             title = currentFilename
