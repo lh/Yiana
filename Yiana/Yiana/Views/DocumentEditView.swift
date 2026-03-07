@@ -315,6 +315,7 @@ struct DocumentEditView: View {
                             showTitleField = false
                             Task {
                                 _ = await viewModel.save()
+                                _ = await viewModel.renameFileIfNeeded()
                             }
                         })
                         .textFieldStyle(.roundedBorder)
@@ -325,6 +326,7 @@ struct DocumentEditView: View {
                             titleFieldFocused = false
                             Task {
                                 _ = await viewModel.save()
+                                _ = await viewModel.renameFileIfNeeded()
                             }
                         }
                     }

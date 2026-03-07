@@ -30,6 +30,9 @@ struct DocumentReadView: View {
     @State private var sidebarWasVisibleBeforeOrganiser = true
     @State private var sidebarRefreshID = UUID()
 
+    @State private var isEditingTitle = false
+    @FocusState private var titleFocused: Bool
+
     @Environment(\.dismiss) private var dismiss
 
     init(documentURL: URL, searchResult: SearchResult? = nil) {
@@ -111,7 +114,7 @@ struct DocumentReadView: View {
                     .transition(.move(edge: .trailing))
             }
         }
-        .navigationTitle(documentTitle)
+        .navigationTitle(isEditingTitle ? "" : documentTitle)
         .navigationBarBackButtonHidden(true)
         .onReceive(NotificationCenter.default.publisher(for: .printDocument)) { _ in
             printDocument()
@@ -122,6 +125,29 @@ struct DocumentReadView: View {
                     Label("Back", systemImage: "chevron.left")
                 }
                 .help("Back to documents")
+            }
+
+            ToolbarItem(placement: .principal) {
+                if isEditingTitle {
+                    TextField("Document Title", text: $documentTitle, onCommit: {
+                        commitTitleEdit()
+                    })
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 300)
+                    .focused($titleFocused)
+                    .onExitCommand {
+                        cancelTitleEdit()
+                    }
+                } else {
+                    Text(documentTitle)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .onTapGesture {
+                            isEditingTitle = true
+                            titleFocused = true
+                        }
+                        .help("Click to rename")
+                }
             }
 
             ToolbarItem(placement: .automatic) {
@@ -316,6 +342,29 @@ struct DocumentReadView: View {
         sidebarWasVisibleBeforeOrganiser = isSidebarVisible
         isSidebarVisible = false
         showingPageManagement = true
+    }
+
+    /// Commits the inline title edit: saves metadata, renames file.
+    private func commitTitleEdit() {
+        isEditingTitle = false
+        titleFocused = false
+        guard let viewModel = viewModel else { return }
+        viewModel.title = documentTitle
+        Task {
+            _ = await viewModel.save()
+            if let newURL = await viewModel.renameFileIfNeeded() {
+                documentTitle = newURL.deletingPathExtension().lastPathComponent
+            }
+            // Sync back in case rename sanitized or reverted
+            documentTitle = viewModel.title
+        }
+    }
+
+    /// Cancels inline title editing, reverting to the view model's current title.
+    private func cancelTitleEdit() {
+        isEditingTitle = false
+        titleFocused = false
+        documentTitle = viewModel?.title ?? documentTitle
     }
 
     /// Handles toggling the info panel

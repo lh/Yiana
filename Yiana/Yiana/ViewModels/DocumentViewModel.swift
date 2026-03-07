@@ -128,6 +128,32 @@ class DocumentViewModel: ObservableObject {
         }
     }
 
+    /// Renames the .yianazip file to match the current title.
+    /// On conflict, reverts title to old filename and sets errorMessage.
+    func renameFileIfNeeded() async -> URL? {
+        let currentFilename = document.fileURL.deletingPathExtension().lastPathComponent
+        guard title != currentFilename, !title.isEmpty else { return nil }
+
+        let repo = DocumentRepository()
+        do {
+            let newURL = try repo.renameDocument(at: document.fileURL, newName: title)
+            let folderPath = newURL.relativeFolderPath(relativeTo: repo.documentsDirectory)
+            let newTitle = newURL.deletingPathExtension().lastPathComponent
+            try await SearchIndexService.shared.updateDocumentPath(
+                documentId: document.metadata.id,
+                newURL: newURL,
+                newFolderPath: folderPath,
+                newTitle: newTitle
+            )
+            return newURL
+        } catch {
+            title = currentFilename
+            document.metadata.title = currentFilename
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
     /// Index the document in the search database
     func indexDocument() async {
         do {
@@ -796,6 +822,33 @@ final class DocumentViewModel: ObservableObject {
         }
 
         return false
+    }
+
+    /// Renames the .yianazip file to match the current title.
+    /// On conflict, reverts title to old filename and sets errorMessage.
+    func renameFileIfNeeded() async -> URL? {
+        guard let document = document, let fileURL = document.fileURL else { return nil }
+        let currentFilename = fileURL.deletingPathExtension().lastPathComponent
+        guard title != currentFilename, !title.isEmpty else { return nil }
+
+        let repo = DocumentRepository()
+        do {
+            let newURL = try repo.renameDocument(at: fileURL, newName: title)
+            let folderPath = newURL.relativeFolderPath(relativeTo: repo.documentsDirectory)
+            let newTitle = newURL.deletingPathExtension().lastPathComponent
+            try await SearchIndexService.shared.updateDocumentPath(
+                documentId: document.metadata.id,
+                newURL: newURL,
+                newFolderPath: folderPath,
+                newTitle: newTitle
+            )
+            return newURL
+        } catch {
+            title = currentFilename
+            document.metadata.title = currentFilename
+            errorMessage = error.localizedDescription
+            return nil
+        }
     }
 
     /// Index the document in the search database

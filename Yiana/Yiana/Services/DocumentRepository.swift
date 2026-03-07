@@ -302,6 +302,7 @@ class DocumentRepository {
         let cleanName = newName
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")
+            .replacingOccurrences(of: " ", with: "_")
 
         let parentDirectory = url.deletingLastPathComponent()
         let newURL = parentDirectory
