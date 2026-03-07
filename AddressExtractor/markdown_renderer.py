@@ -60,13 +60,32 @@ def _escape_latex(text: str) -> str:
     return text
 
 
+_URL_RE = re.compile(r"(https?://\S+)")
+
+
+def _escape_latex_with_urls(text: str) -> str:
+    """Escape LaTeX special chars, but wrap bare URLs in \\url{}.
+
+    \\url{} handles its own escaping, so URLs must not be double-escaped.
+    """
+    segments = _URL_RE.split(text)
+    parts = []
+    for i, seg in enumerate(segments):
+        if i % 2 == 1:
+            # Matched URL — \url handles escaping internally
+            parts.append(f"\\url{{{seg}}}")
+        else:
+            parts.append(_escape_latex(seg))
+    return "".join(parts)
+
+
 def _render_latex_children(children: list[dict]) -> str:
     """Recursively render inline children to LaTeX."""
     parts = []
     for token in children:
         t = token["type"]
         if t == "text":
-            parts.append(_escape_latex(token["raw"]))
+            parts.append(_escape_latex_with_urls(token["raw"]))
         elif t == "strong":
             inner = _render_latex_children(token["children"])
             parts.append(f"\\textbf{{{inner}}}")
@@ -81,14 +100,19 @@ def _render_latex_children(children: list[dict]) -> str:
         elif t == "linebreak":
             parts.append(r" \\")
         elif t == "link":
+            url = token.get("attrs", {}).get("url", "")
             inner = _render_latex_children(token["children"])
-            parts.append(inner)
+            # If link text matches URL, just use \url; otherwise show text
+            if inner.strip() == _escape_latex(url.strip()):
+                parts.append(f"\\url{{{url}}}")
+            else:
+                parts.append(f"{inner} (\\url{{{url}}})")
         elif t == "block_text":
             parts.append(_render_latex_children(token["children"]))
         else:
             # Fallback: render raw text if present
             if "raw" in token:
-                parts.append(_escape_latex(token["raw"]))
+                parts.append(_escape_latex_with_urls(token["raw"]))
             elif "children" in token:
                 parts.append(_render_latex_children(token["children"]))
     return "".join(parts)
