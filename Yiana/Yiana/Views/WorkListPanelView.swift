@@ -5,10 +5,10 @@ import SwiftUI
 /// iPad: rendered as a `DisclosureGroup` inside the `ScrollView + LazyVStack`.
 struct WorkListPanelView: View {
     @Bindable var viewModel: WorkListViewModel
-    /// Sidebar selection binding (macOS only) — set to "wl:<mrn>" to move the lozenge.
-    var sidebarSelection: Binding<String?>? = nil
     /// Navigate directly to a document URL.
     var onNavigate: (URL) -> Void
+    /// Binding to the sidebar folder selection — cleared when a work list item is tapped.
+    var sidebarSelection: Binding<String?>? = nil
 
     @State private var addSurname = ""
     @State private var addFirstName = ""
@@ -16,6 +16,7 @@ struct WorkListPanelView: View {
     @State private var showingPasteSheet = false
     @State private var pickerItem: WorkListItem?
     @State private var pickerURLs: [URL] = []
+    @State private var selectedMRN: String?
 
     var body: some View {
         Group {
@@ -27,6 +28,12 @@ struct WorkListPanelView: View {
         }
         .sheet(item: $pickerItem) { item in
             pickerSheet(for: item)
+        }
+        .onChange(of: sidebarSelection?.wrappedValue) { _, newValue in
+            // A folder was selected — clear work list highlight
+            if newValue != nil {
+                selectedMRN = nil
+            }
         }
     }
 
@@ -42,7 +49,11 @@ struct WorkListPanelView: View {
             } else {
                 ForEach(viewModel.items) { item in
                     workListRow(item)
-                        .tag("wl:\(item.mrn)")
+                        .listRowBackground(
+                            selectedMRN == item.mrn
+                                ? RoundedRectangle(cornerRadius: 5).fill(Color.accentColor.opacity(0.2))
+                                : nil
+                        )
                         .contextMenu {
                             Button(role: .destructive) {
                                 viewModel.remove(mrn: item.mrn)
@@ -182,7 +193,8 @@ struct WorkListPanelView: View {
 
     private func handleTap(_ item: WorkListItem) {
         if let url = viewModel.resolvedURL(for: item) {
-            sidebarSelection?.wrappedValue = "wl:\(item.mrn)"
+            selectedMRN = item.mrn
+            sidebarSelection?.wrappedValue = nil
             onNavigate(url)
         } else {
             let urls = viewModel.resolvedURLs[item.mrn] ?? []

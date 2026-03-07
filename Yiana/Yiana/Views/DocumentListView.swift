@@ -207,7 +207,7 @@ struct DocumentListView: View {
             }
         }
         .onChange(of: selectedSidebarFolder) { _, newFolder in
-            guard let folder = newFolder, !folder.hasPrefix("wl:") else { return }
+            guard let folder = newFolder else { return }
             Task { await viewModel.navigateToFolderPath(folder) }
         }
     }
@@ -215,7 +215,7 @@ struct DocumentListView: View {
     /// URL of the folder currently shown in the detail column.
     private var currentFolderURL: URL {
         let base = viewModel.documentsDirectory
-        guard let selected = selectedSidebarFolder, !selected.isEmpty, !selected.hasPrefix("wl:") else { return base }
+        guard let selected = selectedSidebarFolder, !selected.isEmpty else { return base }
         return base.appendingPathComponent(selected)
     }
 
@@ -283,9 +283,9 @@ struct DocumentListView: View {
                     }
             }
 
-            WorkListPanelView(viewModel: workListViewModel, sidebarSelection: $selectedSidebarFolder, onNavigate: { url in
+            WorkListPanelView(viewModel: workListViewModel, onNavigate: { url in
                 navigationPath.append(url)
-            })
+            }, sidebarSelection: $selectedSidebarFolder)
         }
         .listStyle(.sidebar)
         .navigationSplitViewColumnWidth(min: 160, ideal: 220, max: 400)
