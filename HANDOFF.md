@@ -1,75 +1,69 @@
-# Session Handoff — 2026-03-05
+# Session Handoff — 2026-03-07
 
 ## What was completed
 
-### Yiale Mac app — full letter composition UI
+### Clinic Work List — Yiale paste import + patient boost
 
-Created a new SwiftUI macOS app (`Yiale/Yiale.xcodeproj`, bundle ID `com.vitygas.Yiale`, macOS 14.0+) for composing clinic letters. Builds with zero errors, zero warnings.
+Added a clinic work list feature to Yiale. Users paste a clinic list (copied from a web page) the evening before a session. Parsed patients appear in the sidebar and are prioritized in patient search.
 
-**Project structure:**
-```
-Yiale/
-├── Yiale.xcodeproj/
-└── Yiale/
-    ├── YialeApp.swift              # App entry, ICloudContainer.setup() in .task {}
-    ├── ContentView.swift           # NavigationSplitView root, iCloud availability check
-    ├── Yiale.entitlements          # iCloud container iCloud.com.vitygas.Yiana (CloudDocuments)
-    ├── Models/
-    │   ├── LetterDraft.swift       # LetterDraft, LetterPatient, LetterRecipient, LetterStatus
-    │   ├── SenderConfig.swift      # SenderConfig, Secretary
-    │   └── AddressData.swift       # Codable structs from ExtractedAddress.swift + ResolvedPatient
-    ├── Services/
-    │   ├── ICloudContainer.swift   # Cached ubiquity container URL singleton
-    │   ├── AddressSearchService.swift  # Load .addresses/, resolve overrides, search
-    │   ├── LetterRepository.swift  # CRUD for .letters/drafts/*.json, atomic writes
-    │   └── SenderConfigService.swift   # Read .letters/config/sender.json
-    ├── ViewModels/
-    │   ├── ComposeViewModel.swift  # Compose flow: patient selection, recipients, save/render
-    │   └── DraftsViewModel.swift   # Drafts list with polling
-    └── Views/
-        ├── PatientSearchView.swift # Search field + results (name/DOB/MRN/GP)
-        ├── ComposeView.swift       # Patient info, recipients, body editor
-        ├── RecipientEditor.swift   # Add/remove recipients with role badges
-        ├── AddressConfirmationSheet.swift  # Confirm addresses + yiana_target before render
-        ├── DraftsListView.swift    # Sidebar with status badges
-        ├── DraftRow.swift          # Draft row with patient name, MRN, status, date
-        └── DraftDetailView.swift   # PDF preview of rendered output, dismiss button
-```
+**New files:**
+- `Yiale/Yiale/Models/WorkList.swift` — `WorkList`, `WorkListItem` (Codable, MRN as ID, `nameKey` for matching)
+- `Yiale/Yiale/Services/ClinicListParser.swift` — Static parser for `MRN / Surname, First (Gender, Age) / Doctor` blocks
+- `Yiale/Yiale/Services/WorkListRepository.swift` — Load/save/clear `.worklist.json`, atomic writes, follows `LetterRepository` pattern
+- `Yiale/Yiale/ViewModels/WorkListViewModel.swift` — `@Observable`, load/import/replace/remove/clear, file I/O via `Task.detached`
+- `Yiale/Yiale/Views/ClinicListImportSheet.swift` — Paste sheet with live preview, Import (merge) and Replace buttons
 
-**Key implementation details:**
-- JSON output matches `letter_models.py` exactly (snake_case keys via CodingKeys)
-- Override resolution replicates `AddressRepository.resolveAddresses()` logic
-- MRN parsed from documentId filename convention (last underscore-separated component)
-- Hospital_records recipient added implicitly (not shown in UI, always included)
-- GP auto-populated from resolved patient data
-- iCloud patterns: cached container URL, `options: []` for directory listings, `Task.detached` for file I/O
-- Atomic file writes: encode → temp file → `FileManager.replaceItemAt()`
-- Drafts list polls every 5 seconds for status changes
-- DraftDetailView uses PDFKit for rendered output preview
-- Keyboard shortcuts: Cmd+N (new letter), Cmd+S (save draft)
-- Error handling: iCloud unavailable overlay, compose error alerts
+**Edited files:**
+- `ICloudContainer.swift` — Added `workListURL` (`.worklist.json`, dot-prefixed, invisible to Yiana)
+- `AddressSearchService.swift` — `findPatient(for:)` and `workListPatients(items:)` matching by normalized name
+- `DraftsListView.swift` — Clinic List section with count, Clear toolbar button, `SidebarItem` enum tags
+- `PatientSearchView.swift` — Work list suggestions when search empty, boost in search results, clipboard badge
+- `ContentView.swift` — `SidebarItem` enum replacing `String?` selection, wires work list VM + import sheet
 
-### Previous session work (carried forward)
-- Inject watcher — Phase 3 (`c4b7fd1`)
-- Render service deployed to Devon with LaunchAgent
-- End-to-end pipeline verified (draft → render → inject → append)
-- Yiale render service — Phases 1+2 (`2d712f8`)
+**Key decisions and learnings:**
+- **MRN is unreliable as a matching key.** Document IDs use `Surname_Firstname_ddmmyy`, not MRN. Matching is by normalized name: `WorkListItem.nameKey` is `Set<String>` of lowercased `{surname, firstName}`, matched as a subset of `ResolvedPatient.fullName` word tokens. Order-independent.
+- **macOS `List(selection:)` swallows all click gestures** — neither `.onTapGesture` nor `Button(.plain)` fire their actions inside it. Fix: use typed `SidebarItem` enum with `.tag()` on every row, route via `onChange(of: sidebarSelection)`. Three iterations to get this right.
+- **Sidebar selection needs a typed enum, not `String?`** — work list patients and drafts are different item types. `SidebarItem.workListPatient(mrn)` vs `.draft(letterId)` ensures each click produces a distinct value for SwiftUI change detection.
+
+**Storage:**
+- `.worklist.json` in iCloud container `Documents/` (dot-prefixed = hidden from Yiana's document browser)
+- Syncs via iCloud automatically
+- No server interaction — entirely Yiale-side
+
+**Commits:**
+- `e9f5011` — Initial implementation (5 new files, 5 edits)
+- `37de778` — Fix click routing (SidebarItem enum)
+- `3f3bab3` — Name-based matching, clear button, Xcode project settings
+
+### Xcode project modernization (applied via Xcode recommendation dialog)
+- Dead code stripping enabled (target + project)
+- Development team inherited from project settings
+- Sandbox/Hardened Runtime entitlements migrated to build settings
+- String Catalog symbol generation enabled
 
 ## What's in progress
-- Nothing actively in progress — Yiale app is not yet committed
+Nothing actively in progress.
 
 ## What's next
-- **End-to-end test**: Run the app, search a real patient, compose, render, verify Devon processes it
-- **Yiale iOS/iPadOS** — adapt SwiftUI views for smaller screens
-- **Cleanup** — archive superseded components (`letter_generator.py`, `letter_cli.py`, `letter_system_db.py`, `clinic_notes_parser.py`)
+
+### Yiana sync prioritization for work list patients
+- Yiana should prioritize iCloud sync for documents matching work list patients
+- **Must be invisible to Yiana users who don't have Yiale set up** — if `.worklist.json` doesn't exist, no behavior change
+- Approach: Yiana reads `.worklist.json` from the iCloud container (if present), matches document filenames against work list names, and prioritizes download/sync for those documents
+- Document filenames follow `Surname_Firstname_ddmmyy.yianazip` — can match against `WorkListItem.surname` + `WorkListItem.firstName`
+- Consider: should Yiana re-check the work list periodically, or only on app launch?
+- The `WorkList` and `WorkListItem` models are in Yiale — Yiana will need its own copy or a shared package
+
+### Other pending
+- End-to-end Yiale test with real clinic session
+- Yiale iOS/iPadOS adaptation
+- Cleanup of superseded components
 
 ## Known issues
 - iCloud `[ERROR] [Progress]` noise when InjectWatcher renames/deletes `.processing` file — harmless
 - Transient "database is locked" on reindex after inject append — resolves on next UbiquityMonitor cycle
-- Stale Mercy-Duffy error in OCR health (21+ days old) — not actionable
-- `ocr_today` dashboard count shows 0 — may be timezone issue
-- Old `ocr_watchdog_pushover.sh` still in `YianaOCRService/scripts/` — can remove after confirming unified watchdog
-- `letter_generator.py:_escape_latex()` brace-corruption bug — low priority, being superseded
+- `AddressSearch` loads twice on work list patient click (once eagerly in ContentView, once in PatientSearchView `.task {}`) — redundant but harmless, could deduplicate later
+- Untracked `Yiale/Yiale.xcodeproj/project.xcworkspace/` — auto-generated, not committed
 
 ## Devon services status
 | Service | Type | Status |
