@@ -195,8 +195,8 @@ class TestFormatBody:
     def test_format_body_table(self, renderer):
         body = "| Eye | VA |\n|-----|----|\n| Right | 6/6 |\n| Left | 6/9 |"
         result = renderer.format_body(body)
-        assert r"\begin{tabular}" in result
-        assert r"\end{tabular}" in result
+        assert r"\begin{tabularx}" in result
+        assert r"\end{tabularx}" in result
         assert "Right" in result
         assert "6/6" in result
 

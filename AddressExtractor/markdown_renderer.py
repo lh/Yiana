@@ -208,25 +208,25 @@ def _render_latex_block_tokens(tokens: list[dict]) -> str:
 
 
 def _render_latex_table(token: dict) -> str:
-    """Render a GFM table to LaTeX tabular."""
+    """Render a GFM table to LaTeX tabularx (auto-wrapping columns)."""
     # Collect alignments and rows
     head_cells = token["children"][0]["children"]  # table_head -> cells
     body_rows = token["children"][1]["children"] if len(token["children"]) > 1 else []
 
-    n_cols = len(head_cells)
-    aligns = []
+    # Map GFM alignments to tabularx X-type columns (auto-wrap)
+    col_specs = []
     for cell in head_cells:
         a = cell["attrs"].get("align")
         if a == "center":
-            aligns.append("c")
+            col_specs.append(r">{\centering\arraybackslash}X")
         elif a == "right":
-            aligns.append("r")
+            col_specs.append(r">{\raggedleft\arraybackslash}X")
         else:
-            aligns.append("l")
+            col_specs.append("X")
 
-    col_spec = " ".join(aligns)
+    col_spec = " ".join(col_specs)
 
-    lines = [f"\\begin{{tabular}}{{{col_spec}}}"]
+    lines = [f"\\begin{{tabularx}}{{\\textwidth}}{{{col_spec}}}"]
     lines.append("\\hline")
 
     # Header
@@ -246,7 +246,7 @@ def _render_latex_table(token: dict) -> str:
         lines.append(" & ".join(row_cells) + " \\\\")
 
     lines.append("\\hline")
-    lines.append("\\end{tabular}")
+    lines.append("\\end{tabularx}")
     return "\n".join(lines)
 
 
