@@ -58,6 +58,14 @@ final class UbiquityMonitor: NSObject {
         stop()
     }
 
+    /// URLs of documents not yet downloaded from iCloud. Main thread only.
+    func notDownloadedURLs() -> [URL] {
+        assert(Thread.isMainThread)
+        return downloadStates.compactMap { (url, status) in
+            status == NSMetadataUbiquitousItemDownloadingStatusNotDownloaded ? url : nil
+        }
+    }
+
     /// Indicates whether the monitor currently has an active metadata query.
     var isRunning: Bool {
         if Thread.isMainThread {
