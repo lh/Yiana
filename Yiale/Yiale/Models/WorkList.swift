@@ -14,4 +14,10 @@ struct WorkListItem: Codable, Identifiable, Equatable {
     let age: Int?
     let doctor: String?
     let added: String  // ISO8601
+
+    /// Normalized name components for matching against ResolvedPatient.fullName.
+    /// Lowercased set of {surname, firstName} — order-independent.
+    var nameKey: Set<String> {
+        Set([surname.lowercased(), firstName.lowercased()])
+    }
 }

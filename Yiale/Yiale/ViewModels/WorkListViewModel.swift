@@ -3,7 +3,6 @@ import SwiftUI
 @Observable
 final class WorkListViewModel {
     var items: [WorkListItem] = []
-    var mrnSet: Set<String> = []
     var errorMessage: String?
 
     func load() async {
@@ -12,7 +11,6 @@ final class WorkListViewModel {
                 try WorkListRepository().load()
             }.value
             items = loaded.items
-            mrnSet = Set(loaded.items.map(\.mrn))
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -26,7 +24,6 @@ final class WorkListViewModel {
         let existingMRNs = Set(items.map(\.mrn))
         let newItems = parsed.filter { !existingMRNs.contains($0.mrn) }
         items.append(contentsOf: newItems)
-        mrnSet = Set(items.map(\.mrn))
         save()
     }
 
@@ -36,22 +33,24 @@ final class WorkListViewModel {
         guard !parsed.isEmpty else { return }
 
         items = parsed
-        mrnSet = Set(parsed.map(\.mrn))
         save()
     }
 
     func remove(mrn: String) {
         items.removeAll { $0.mrn == mrn }
-        mrnSet.remove(mrn)
         save()
     }
 
     func clearAll() {
         items = []
-        mrnSet = []
         Task.detached {
             try? WorkListRepository().clear()
         }
+    }
+
+    /// Find the work list item for a given MRN.
+    func item(forMRN mrn: String) -> WorkListItem? {
+        items.first { $0.mrn == mrn }
     }
 
     private func save() {

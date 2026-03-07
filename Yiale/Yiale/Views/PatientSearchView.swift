@@ -6,8 +6,12 @@ struct PatientSearchView: View {
     @State private var isLoading = true
 
     let addressService: AddressSearchService
-    let workListMRNs: Set<String>
+    let workListItems: [WorkListItem]
     let onSelect: (ResolvedPatient) -> Void
+
+    private var workListNameKeys: [Set<String>] {
+        workListItems.map(\.nameKey)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -53,7 +57,7 @@ struct PatientSearchView: View {
                 ProgressView("Loading patients...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if searchText.isEmpty {
-                if !workListMRNs.isEmpty {
+                if !workListItems.isEmpty {
                     workListSuggestions
                 } else {
                     emptySearchPlaceholder
@@ -64,7 +68,7 @@ struct PatientSearchView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(results) { patient in
-                    PatientResultRow(patient: patient, isWorkList: workListMRNs.contains(patient.mrn ?? ""))
+                    PatientResultRow(patient: patient, isWorkList: isWorkListPatient(patient))
                         .contentShape(Rectangle())
                         .onTapGesture { onSelect(patient) }
                 }
@@ -73,7 +77,7 @@ struct PatientSearchView: View {
     }
 
     private var workListSuggestions: some View {
-        let patients = addressService.workListPatients(mrns: workListMRNs)
+        let patients = addressService.workListPatients(items: workListItems)
         return Group {
             if patients.isEmpty {
                 emptySearchPlaceholder
@@ -109,15 +113,19 @@ struct PatientSearchView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    private func isWorkListPatient(_ patient: ResolvedPatient) -> Bool {
+        let words = Set(patient.fullName.lowercased().split(separator: " ").map(String.init))
+        return workListNameKeys.contains { $0.isSubset(of: words) }
+    }
+
     private func performSearch() {
         guard !searchText.isEmpty else {
             results = []
             return
         }
         let all = addressService.search(query: searchText)
-        // Partition: work list patients first, then others
         let (workList, rest) = all.reduce(into: ([ResolvedPatient](), [ResolvedPatient]())) { acc, patient in
-            if workListMRNs.contains(patient.mrn ?? "") {
+            if isWorkListPatient(patient) {
                 acc.0.append(patient)
             } else {
                 acc.1.append(patient)

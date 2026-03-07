@@ -72,9 +72,24 @@ final class AddressSearchService {
 
     var patientCount: Int { resolvedPatients.count }
 
-    /// Return resolved patients whose MRN matches the given set.
-    func workListPatients(mrns: Set<String>) -> [ResolvedPatient] {
-        resolvedPatients.filter { mrns.contains($0.mrn ?? "") }
+    /// Return resolved patients matching work list items by name.
+    /// Matches when the patient's fullName words contain both surname and firstName (case-insensitive).
+    func workListPatients(items: [WorkListItem]) -> [ResolvedPatient] {
+        guard !items.isEmpty else { return [] }
+        let nameKeys = items.map(\.nameKey)
+        return resolvedPatients.filter { patient in
+            let words = Set(patient.fullName.lowercased().split(separator: " ").map(String.init))
+            return nameKeys.contains { key in key.isSubset(of: words) }
+        }
+    }
+
+    /// Find a single resolved patient matching a work list item by name.
+    func findPatient(for item: WorkListItem) -> ResolvedPatient? {
+        let key = item.nameKey
+        return resolvedPatients.first { patient in
+            let words = Set(patient.fullName.lowercased().split(separator: " ").map(String.init))
+            return key.isSubset(of: words)
+        }
     }
 }
 

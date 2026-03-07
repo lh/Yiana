@@ -10,7 +10,7 @@ struct DraftsListView: View {
     var body: some View {
         List(selection: $sidebarSelection) {
             if !workListViewModel.items.isEmpty {
-                Section("Clinic List (\(workListViewModel.items.count))") {
+                Section {
                     ForEach(workListViewModel.items) { item in
                         WorkListRow(item: item)
                             .tag(SidebarItem.workListPatient(item.mrn))
@@ -21,6 +21,8 @@ struct DraftsListView: View {
                             workListViewModel.remove(mrn: mrn)
                         }
                     }
+                } header: {
+                    Text("Clinic List (\(workListViewModel.items.count))")
                 }
             }
 
@@ -52,6 +54,16 @@ struct DraftsListView: View {
                     onShowImportSheet()
                 } label: {
                     Label("Import Clinic List", systemImage: "list.clipboard")
+                }
+            }
+            if !workListViewModel.items.isEmpty {
+                ToolbarItem(placement: .secondaryAction) {
+                    Button {
+                        sidebarSelection = nil
+                        workListViewModel.clearAll()
+                    } label: {
+                        Label("Clear Clinic List", systemImage: "xmark.circle")
+                    }
                 }
             }
         }

@@ -82,7 +82,7 @@ struct ContentView: View {
             } else {
                 PatientSearchView(
                     addressService: addressService,
-                    workListMRNs: workListViewModel.mrnSet,
+                    workListItems: workListViewModel.items,
                     onSelect: { patient in
                         let vm = ComposeViewModel()
                         vm.selectPatient(patient)
@@ -108,13 +108,11 @@ struct ContentView: View {
             }
         case nil:
             if let vm = composeViewModel, vm.selectedPatient != nil {
-                // "New Letter" from toolbar — no sidebar selection
                 ComposeView(viewModel: vm)
             } else if composeViewModel != nil {
-                // New letter flow, patient not yet selected
                 PatientSearchView(
                     addressService: addressService,
-                    workListMRNs: workListViewModel.mrnSet,
+                    workListItems: workListViewModel.items,
                     onSelect: { patient in
                         let vm = ComposeViewModel()
                         vm.selectPatient(patient)
@@ -130,12 +128,13 @@ struct ContentView: View {
 
     private func startNewLetter() {
         sidebarSelection = nil
-        composeViewModel = ComposeViewModel()  // non-nil signals "new letter" flow
+        composeViewModel = ComposeViewModel()
     }
 
     private func startNewLetterForMRN(_ mrn: String) {
         composeViewModel = nil
-        if let patient = addressService.workListPatients(mrns: [mrn]).first {
+        guard let workListItem = workListViewModel.item(forMRN: mrn) else { return }
+        if let patient = addressService.findPatient(for: workListItem) {
             let vm = ComposeViewModel()
             vm.selectPatient(patient)
             composeViewModel = vm
