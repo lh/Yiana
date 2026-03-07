@@ -5,6 +5,8 @@ import SwiftUI
 /// iPad: rendered as a `DisclosureGroup` inside the `ScrollView + LazyVStack`.
 struct WorkListPanelView: View {
     @Bindable var viewModel: WorkListViewModel
+    /// Sidebar selection binding (macOS only) — set to "wl:<mrn>" to move the lozenge.
+    var sidebarSelection: Binding<String?>? = nil
     /// Navigate directly to a document URL.
     var onNavigate: (URL) -> Void
 
@@ -40,6 +42,7 @@ struct WorkListPanelView: View {
             } else {
                 ForEach(viewModel.items) { item in
                     workListRow(item)
+                        .tag("wl:\(item.mrn)")
                         .contextMenu {
                             Button(role: .destructive) {
                                 viewModel.remove(mrn: item.mrn)
@@ -179,6 +182,7 @@ struct WorkListPanelView: View {
 
     private func handleTap(_ item: WorkListItem) {
         if let url = viewModel.resolvedURL(for: item) {
+            sidebarSelection?.wrappedValue = "wl:\(item.mrn)"
             onNavigate(url)
         } else {
             let urls = viewModel.resolvedURLs[item.mrn] ?? []
