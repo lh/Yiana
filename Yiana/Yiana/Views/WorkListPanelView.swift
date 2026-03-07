@@ -53,7 +53,7 @@ struct WorkListPanelView: View {
             addButton
         } header: {
             HStack {
-                Text("Clinic List")
+                Text("Work List")
                 if !viewModel.items.isEmpty {
                     Text("(\(viewModel.items.count))")
                         .foregroundStyle(.secondary)
@@ -66,7 +66,7 @@ struct WorkListPanelView: View {
             }
         }
         .confirmationDialog(
-            "Clear all patients from the clinic list?",
+            "Clear all patients from the work list?",
             isPresented: $viewModel.showingClearConfirmation
         ) {
             Button("Clear All", role: .destructive) {
@@ -111,7 +111,7 @@ struct WorkListPanelView: View {
                     .padding(.vertical, 8)
             } label: {
                 HStack {
-                    Text("Clinic List")
+                    Text("Work List")
                         .font(.headline)
                     if !viewModel.items.isEmpty {
                         Text("(\(viewModel.items.count))")
@@ -128,7 +128,7 @@ struct WorkListPanelView: View {
             }
         }
         .confirmationDialog(
-            "Clear all patients from the clinic list?",
+            "Clear all patients from the work list?",
             isPresented: $viewModel.showingClearConfirmation
         ) {
             Button("Clear All", role: .destructive) {
@@ -146,37 +146,35 @@ struct WorkListPanelView: View {
     private func workListRow(_ item: WorkListItem) -> some View {
         let matchCount = viewModel.resolvedURLs[item.mrn]?.count ?? 0
 
-        return Button {
-            handleTap(item)
-        } label: {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(item.surname), \(item.firstName)")
-                        .lineLimit(1)
+        return HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(item.surname), \(item.firstName)")
+                    .font(.subheadline.weight(.medium))
+                    .lineLimit(1)
 
-                    if let detail = rowDetail(for: item) {
-                        Text(detail)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                }
-                Spacer()
-                if matchCount == 0 {
-                    Image(systemName: "questionmark.circle")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else if matchCount > 1 && viewModel.resolvedURL(for: item) == nil {
-                    Text("\(matchCount)")
+                if let detail = rowDetail(for: item) {
+                    Text(detail)
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 1)
-                        .background(Capsule().fill(.secondary.opacity(0.2)))
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
                 }
             }
+            Spacer()
+            if matchCount == 0 {
+                Image(systemName: "questionmark.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if matchCount > 1 && viewModel.resolvedURL(for: item) == nil {
+                Text("\(matchCount)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(Capsule().fill(.secondary.opacity(0.2)))
+            }
         }
-        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .onTapGesture { handleTap(item) }
     }
 
     private func handleTap(_ item: WorkListItem) {
@@ -310,14 +308,14 @@ struct WorkListPanelView: View {
                 .font(.caption)
         }
         .buttonStyle(.plain)
-        .help("Import clinic list from clipboard")
+        .help("Import work list from clipboard")
     }
 
     #if os(iOS)
     private var pasteSheet: some View {
         NavigationStack {
             VStack {
-                Text("Paste a clinic list below:")
+                Text("Paste a work list below:")
                     .font(.subheadline)
                     .padding(.top)
                 TextEditor(text: $pasteText)
@@ -325,7 +323,7 @@ struct WorkListPanelView: View {
                     .border(Color.secondary.opacity(0.3))
                     .padding(.horizontal)
             }
-            .navigationTitle("Import Clinic List")
+            .navigationTitle("Import Work List")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
