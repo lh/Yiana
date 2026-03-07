@@ -47,4 +47,8 @@ final class ICloudContainer {
     var renderedURL: URL? {
         lettersURL?.appendingPathComponent("rendered")
     }
+
+    var workListURL: URL? {
+        documentsURL?.appendingPathComponent(".worklist.json")
+    }
 }

@@ -26,6 +26,11 @@
 		A10017 /* DraftsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20017 /* DraftsListView.swift */; };
 		A10018 /* DraftRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20018 /* DraftRow.swift */; };
 		A10019 /* DraftDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20019 /* DraftDetailView.swift */; };
+		A10020 /* WorkList.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20021 /* WorkList.swift */; };
+		A10021 /* ClinicListParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20022 /* ClinicListParser.swift */; };
+		A10022 /* WorkListRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20023 /* WorkListRepository.swift */; };
+		A10023 /* WorkListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20024 /* WorkListViewModel.swift */; };
+		A10024 /* ClinicListImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20025 /* ClinicListImportSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -50,6 +55,11 @@
 		A20017 /* DraftsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraftsListView.swift; sourceTree = "<group>"; };
 		A20018 /* DraftRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraftRow.swift; sourceTree = "<group>"; };
 		A20019 /* DraftDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraftDetailView.swift; sourceTree = "<group>"; };
+		A20021 /* WorkList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkList.swift; sourceTree = "<group>"; };
+		A20022 /* ClinicListParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClinicListParser.swift; sourceTree = "<group>"; };
+		A20023 /* WorkListRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkListRepository.swift; sourceTree = "<group>"; };
+		A20024 /* WorkListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkListViewModel.swift; sourceTree = "<group>"; };
+		A20025 /* ClinicListImportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClinicListImportSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -100,6 +110,7 @@
 				A20004 /* LetterDraft.swift */,
 				A20005 /* SenderConfig.swift */,
 				A20006 /* AddressData.swift */,
+				A20021 /* WorkList.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -111,6 +122,8 @@
 				A20008 /* AddressSearchService.swift */,
 				A20009 /* LetterRepository.swift */,
 				A20010 /* SenderConfigService.swift */,
+				A20022 /* ClinicListParser.swift */,
+				A20023 /* WorkListRepository.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -120,6 +133,7 @@
 			children = (
 				A20011 /* ComposeViewModel.swift */,
 				A20012 /* DraftsViewModel.swift */,
+				A20024 /* WorkListViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -134,6 +148,7 @@
 				A20017 /* DraftsListView.swift */,
 				A20018 /* DraftRow.swift */,
 				A20019 /* DraftDetailView.swift */,
+				A20025 /* ClinicListImportSheet.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -225,6 +240,11 @@
 				A10017 /* DraftsListView.swift in Sources */,
 				A10018 /* DraftRow.swift in Sources */,
 				A10019 /* DraftDetailView.swift in Sources */,
+				A10020 /* WorkList.swift in Sources */,
+				A10021 /* ClinicListParser.swift in Sources */,
+				A10022 /* WorkListRepository.swift in Sources */,
+				A10023 /* WorkListViewModel.swift in Sources */,
+				A10024 /* ClinicListImportSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

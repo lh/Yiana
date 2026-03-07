@@ -71,6 +71,11 @@ final class AddressSearchService {
     }
 
     var patientCount: Int { resolvedPatients.count }
+
+    /// Return resolved patients whose MRN matches the given set.
+    func workListPatients(mrns: Set<String>) -> [ResolvedPatient] {
+        resolvedPatients.filter { mrns.contains($0.mrn ?? "") }
+    }
 }
 
 enum ServiceError: LocalizedError {

@@ -6,6 +6,7 @@ struct PatientSearchView: View {
     @State private var isLoading = true
 
     let addressService: AddressSearchService
+    let workListMRNs: Set<String>
     let onSelect: (ResolvedPatient) -> Void
 
     var body: some View {
@@ -52,24 +53,18 @@ struct PatientSearchView: View {
                 ProgressView("Loading patients...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if searchText.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "person.text.rectangle")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.secondary)
-                    Text("Search for a patient to start a letter")
-                        .foregroundStyle(.secondary)
-                    Text("\(addressService.patientCount) patients available")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+                if !workListMRNs.isEmpty {
+                    workListSuggestions
+                } else {
+                    emptySearchPlaceholder
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if results.isEmpty {
                 Text("No patients matching \"\(searchText)\"")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(results) { patient in
-                    PatientResultRow(patient: patient)
+                    PatientResultRow(patient: patient, isWorkList: workListMRNs.contains(patient.mrn ?? ""))
                         .contentShape(Rectangle())
                         .onTapGesture { onSelect(patient) }
                 }
@@ -77,19 +72,75 @@ struct PatientSearchView: View {
         }
     }
 
+    private var workListSuggestions: some View {
+        let patients = addressService.workListPatients(mrns: workListMRNs)
+        return Group {
+            if patients.isEmpty {
+                emptySearchPlaceholder
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Clinic List")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+                        .padding(.top, 12)
+                        .padding(.bottom, 4)
+                    List(patients) { patient in
+                        PatientResultRow(patient: patient, isWorkList: true)
+                            .contentShape(Rectangle())
+                            .onTapGesture { onSelect(patient) }
+                    }
+                }
+            }
+        }
+    }
+
+    private var emptySearchPlaceholder: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "person.text.rectangle")
+                .font(.system(size: 48))
+                .foregroundStyle(.secondary)
+            Text("Search for a patient to start a letter")
+                .foregroundStyle(.secondary)
+            Text("\(addressService.patientCount) patients available")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     private func performSearch() {
-        results = addressService.search(query: searchText)
+        guard !searchText.isEmpty else {
+            results = []
+            return
+        }
+        let all = addressService.search(query: searchText)
+        // Partition: work list patients first, then others
+        let (workList, rest) = all.reduce(into: ([ResolvedPatient](), [ResolvedPatient]())) { acc, patient in
+            if workListMRNs.contains(patient.mrn ?? "") {
+                acc.0.append(patient)
+            } else {
+                acc.1.append(patient)
+            }
+        }
+        results = workList + rest
     }
 }
 
 private struct PatientResultRow: View {
     let patient: ResolvedPatient
+    var isWorkList: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(patient.fullName)
                     .font(.headline)
+                if isWorkList {
+                    Image(systemName: "list.clipboard")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                }
                 Spacer()
                 if let mrn = patient.mrn {
                     Text(mrn)

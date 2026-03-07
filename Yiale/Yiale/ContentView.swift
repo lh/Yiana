@@ -7,18 +7,23 @@ enum DetailSelection: Hashable {
 
 struct ContentView: View {
     @State private var draftsViewModel = DraftsViewModel()
+    @State private var workListViewModel = WorkListViewModel()
     @State private var selectedDraftId: String?
     @State private var detailSelection: DetailSelection?
     @State private var addressService = AddressSearchService()
     @State private var composeViewModel: ComposeViewModel?
     @State private var iCloudAvailable = true
+    @State private var showImportSheet = false
 
     var body: some View {
         NavigationSplitView {
             DraftsListView(
                 viewModel: draftsViewModel,
+                workListViewModel: workListViewModel,
                 selectedDraftId: $selectedDraftId,
-                onNewLetter: { startNewLetter() }
+                onNewLetter: { startNewLetter() },
+                onSelectWorkListPatient: { mrn in startNewLetterForMRN(mrn) },
+                onShowImportSheet: { showImportSheet = true }
             )
         } detail: {
             if !iCloudAvailable {
@@ -36,6 +41,14 @@ struct ContentView: View {
         }
         .task {
             iCloudAvailable = ICloudContainer.shared.containerURL != nil
+            await workListViewModel.load()
+        }
+        .sheet(isPresented: $showImportSheet) {
+            ClinicListImportSheet(
+                onImport: { text in workListViewModel.importClinicList(text) },
+                onReplace: { text in workListViewModel.replaceClinicList(text) },
+                existingCount: workListViewModel.items.count
+            )
         }
     }
 
@@ -63,6 +76,7 @@ struct ContentView: View {
             } else {
                 PatientSearchView(
                     addressService: addressService,
+                    workListMRNs: workListViewModel.mrnSet,
                     onSelect: { patient in
                         let vm = ComposeViewModel()
                         vm.selectPatient(patient)
@@ -97,6 +111,17 @@ struct ContentView: View {
         selectedDraftId = nil
         composeViewModel = nil
         detailSelection = .newLetter
+    }
+
+    private func startNewLetterForMRN(_ mrn: String) {
+        composeViewModel = nil
+        detailSelection = .newLetter
+        // If address service has loaded, try to find and pre-select the patient
+        if let patient = addressService.workListPatients(mrns: [mrn]).first {
+            let vm = ComposeViewModel()
+            vm.selectPatient(patient)
+            composeViewModel = vm
+        }
     }
 
     private func loadDraftForEditing(_ letterId: String) {
