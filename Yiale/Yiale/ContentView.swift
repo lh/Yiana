@@ -1,15 +1,14 @@
 import SwiftUI
 
-enum DetailSelection: Hashable {
-    case newLetter
-    case draft(String)  // letterId
+enum SidebarItem: Hashable {
+    case workListPatient(String)  // MRN
+    case draft(String)            // letterId
 }
 
 struct ContentView: View {
     @State private var draftsViewModel = DraftsViewModel()
     @State private var workListViewModel = WorkListViewModel()
-    @State private var selectedDraftId: String?
-    @State private var detailSelection: DetailSelection?
+    @State private var sidebarSelection: SidebarItem?
     @State private var addressService = AddressSearchService()
     @State private var composeViewModel: ComposeViewModel?
     @State private var iCloudAvailable = true
@@ -20,9 +19,8 @@ struct ContentView: View {
             DraftsListView(
                 viewModel: draftsViewModel,
                 workListViewModel: workListViewModel,
-                selectedDraftId: $selectedDraftId,
+                sidebarSelection: $sidebarSelection,
                 onNewLetter: { startNewLetter() },
-                onSelectWorkListPatient: { mrn in startNewLetterForMRN(mrn) },
                 onShowImportSheet: { showImportSheet = true }
             )
         } detail: {
@@ -33,15 +31,23 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 800, minHeight: 600)
-        .onChange(of: selectedDraftId) { _, newId in
-            if let id = newId {
-                detailSelection = .draft(id)
-                loadDraftForEditing(id)
+        .onChange(of: sidebarSelection) { _, newValue in
+            switch newValue {
+            case .workListPatient(let mrn):
+                startNewLetterForMRN(mrn)
+            case .draft(let letterId):
+                loadDraftForEditing(letterId)
+            case nil:
+                break
             }
         }
         .task {
             iCloudAvailable = ICloudContainer.shared.containerURL != nil
             await workListViewModel.load()
+            let service = addressService
+            try? await Task.detached {
+                try service.loadAll()
+            }.value
         }
         .sheet(isPresented: $showImportSheet) {
             ClinicListImportSheet(
@@ -69,8 +75,8 @@ struct ContentView: View {
 
     @ViewBuilder
     private var detailView: some View {
-        switch detailSelection {
-        case .newLetter:
+        switch sidebarSelection {
+        case .workListPatient:
             if let vm = composeViewModel, vm.selectedPatient != nil {
                 ComposeView(viewModel: vm)
             } else {
@@ -89,8 +95,7 @@ struct ContentView: View {
                 if draft.status == .rendered {
                     DraftDetailView(draft: draft, onDismiss: {
                         Task { await draftsViewModel.delete(letterId: letterId) }
-                        selectedDraftId = nil
-                        detailSelection = nil
+                        sidebarSelection = nil
                     })
                 } else if let vm = composeViewModel {
                     ComposeView(viewModel: vm)
@@ -102,21 +107,34 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
             }
         case nil:
-            Text("Select or compose a letter")
-                .foregroundStyle(.secondary)
+            if let vm = composeViewModel, vm.selectedPatient != nil {
+                // "New Letter" from toolbar — no sidebar selection
+                ComposeView(viewModel: vm)
+            } else if composeViewModel != nil {
+                // New letter flow, patient not yet selected
+                PatientSearchView(
+                    addressService: addressService,
+                    workListMRNs: workListViewModel.mrnSet,
+                    onSelect: { patient in
+                        let vm = ComposeViewModel()
+                        vm.selectPatient(patient)
+                        composeViewModel = vm
+                    }
+                )
+            } else {
+                Text("Select or compose a letter")
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
     private func startNewLetter() {
-        selectedDraftId = nil
-        composeViewModel = nil
-        detailSelection = .newLetter
+        sidebarSelection = nil
+        composeViewModel = ComposeViewModel()  // non-nil signals "new letter" flow
     }
 
     private func startNewLetterForMRN(_ mrn: String) {
         composeViewModel = nil
-        detailSelection = .newLetter
-        // If address service has loaded, try to find and pre-select the patient
         if let patient = addressService.workListPatients(mrns: [mrn]).first {
             let vm = ComposeViewModel()
             vm.selectPatient(patient)

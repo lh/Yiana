@@ -3,22 +3,17 @@ import SwiftUI
 struct DraftsListView: View {
     @Bindable var viewModel: DraftsViewModel
     @Bindable var workListViewModel: WorkListViewModel
-    @Binding var selectedDraftId: String?
+    @Binding var sidebarSelection: SidebarItem?
     let onNewLetter: () -> Void
-    let onSelectWorkListPatient: (String) -> Void
     let onShowImportSheet: () -> Void
 
     var body: some View {
-        List(selection: $selectedDraftId) {
+        List(selection: $sidebarSelection) {
             if !workListViewModel.items.isEmpty {
                 Section("Clinic List (\(workListViewModel.items.count))") {
                     ForEach(workListViewModel.items) { item in
                         WorkListRow(item: item)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                selectedDraftId = nil
-                                onSelectWorkListPatient(item.mrn)
-                            }
+                            .tag(SidebarItem.workListPatient(item.mrn))
                     }
                     .onDelete { indexSet in
                         let mrns = indexSet.map { workListViewModel.items[$0].mrn }
@@ -32,7 +27,7 @@ struct DraftsListView: View {
             Section("Drafts") {
                 ForEach(viewModel.drafts) { draft in
                     DraftRow(draft: draft)
-                        .tag(draft.letterId)
+                        .tag(SidebarItem.draft(draft.letterId))
                 }
                 .onDelete { indexSet in
                     for index in indexSet {
