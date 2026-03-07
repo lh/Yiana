@@ -154,17 +154,7 @@ def render_latex(body: str) -> str:
             parts.append(f"{prefix}{text}{suffix}")
 
         elif t == "list":
-            ordered = token["attrs"].get("ordered", False)
-            env = "enumerate" if ordered else "itemize"
-            items = []
-            for item in token["children"]:
-                item_text = _render_latex_children(item["children"])
-                items.append(f"  \\item {item_text}")
-            parts.append(
-                f"\\begin{{{env}}}[nosep]\n"
-                + "\n".join(items)
-                + f"\n\\end{{{env}}}"
-            )
+            parts.append(_render_latex_list(token))
 
         elif t == "thematic_break":
             parts.append("\\vspace{6pt}\\hrule\\vspace{6pt}")
@@ -193,6 +183,59 @@ def render_latex(body: str) -> str:
     return "\n\n\\vspace{10pt}\n\n".join(parts)
 
 
+_MAX_LATEX_LIST_DEPTH = 4  # LaTeX hard limit for itemize/enumerate
+
+
+def _render_latex_list(token: dict, depth: int = 1) -> str:
+    """Render a list (with possible nesting) to LaTeX.
+
+    LaTeX supports at most 4 levels of nesting. Items beyond that
+    are rendered as indented text with a bullet/number prefix.
+    """
+    ordered = token["attrs"].get("ordered", False)
+    env = "enumerate" if ordered else "itemize"
+    items = []
+    for idx, item in enumerate(token["children"], 1):
+        # Separate inline content from nested block children (sub-lists)
+        inline_children = []
+        nested_blocks = []
+        for child in item["children"]:
+            if child["type"] == "list":
+                nested_blocks.append(
+                    _render_latex_list(child, depth + 1)
+                )
+            elif child["type"] in ("paragraph", "block_text"):
+                inline_children.extend(child.get("children", []))
+            else:
+                inline_children.append(child)
+        item_text = _render_latex_children(inline_children)
+        if nested_blocks:
+            item_text += "\n" + "\n".join(nested_blocks)
+        items.append(f"  \\item {item_text}")
+
+    if depth > _MAX_LATEX_LIST_DEPTH:
+        # Beyond LaTeX nesting limit — render as indented text
+        bullet = "---" if not ordered else ""
+        flat_items = []
+        for idx, item in enumerate(token["children"], 1):
+            inline_children = []
+            for child in item["children"]:
+                if child["type"] in ("paragraph", "block_text"):
+                    inline_children.extend(child.get("children", []))
+                elif child["type"] != "list":
+                    inline_children.append(child)
+            text = _render_latex_children(inline_children)
+            prefix = f"{idx}." if ordered else bullet
+            flat_items.append(f"\\hspace{{1em}}{prefix} {text}")
+        return " \\\\\n".join(flat_items)
+
+    return (
+        f"\\begin{{{env}}}[nosep]\n"
+        + "\n".join(items)
+        + f"\n\\end{{{env}}}"
+    )
+
+
 def _render_latex_block_tokens(tokens: list[dict]) -> str:
     """Render a list of block tokens (for blockquotes, etc.)."""
     parts = []
@@ -200,6 +243,8 @@ def _render_latex_block_tokens(tokens: list[dict]) -> str:
         t = token["type"]
         if t == "paragraph":
             parts.append(_render_latex_children(token["children"]))
+        elif t == "list":
+            parts.append(_render_latex_list(token))
         elif t == "blank_line":
             continue
         elif "children" in token:
@@ -310,13 +355,7 @@ def render_html(body: str) -> str:
             parts.append(f"<h{level}>{text}</h{level}>")
 
         elif t == "list":
-            ordered = token["attrs"].get("ordered", False)
-            tag = "ol" if ordered else "ul"
-            items = []
-            for item in token["children"]:
-                item_text = _render_html_children(item["children"])
-                items.append(f"  <li>{item_text}</li>")
-            parts.append(f"<{tag}>\n" + "\n".join(items) + f"\n</{tag}>")
+            parts.append(_render_html_list(token))
 
         elif t == "thematic_break":
             parts.append("<hr>")
@@ -341,6 +380,28 @@ def render_html(body: str) -> str:
     return "\n\n".join(parts)
 
 
+def _render_html_list(token: dict) -> str:
+    """Render a list (with possible nesting) to HTML."""
+    ordered = token["attrs"].get("ordered", False)
+    tag = "ol" if ordered else "ul"
+    items = []
+    for item in token["children"]:
+        inline_children = []
+        nested_blocks = []
+        for child in item["children"]:
+            if child["type"] == "list":
+                nested_blocks.append(_render_html_list(child))
+            elif child["type"] in ("paragraph", "block_text"):
+                inline_children.extend(child.get("children", []))
+            else:
+                inline_children.append(child)
+        item_text = _render_html_children(inline_children)
+        if nested_blocks:
+            item_text += "\n" + "\n".join(nested_blocks)
+        items.append(f"  <li>{item_text}</li>")
+    return f"<{tag}>\n" + "\n".join(items) + f"\n</{tag}>"
+
+
 def _render_html_block_tokens(tokens: list[dict]) -> str:
     """Render block tokens inside a blockquote."""
     parts = []
@@ -348,6 +409,8 @@ def _render_html_block_tokens(tokens: list[dict]) -> str:
         t = token["type"]
         if t == "paragraph":
             parts.append(f"<p>{_render_html_children(token['children'])}</p>")
+        elif t == "list":
+            parts.append(_render_html_list(token))
         elif t == "blank_line":
             continue
         elif "children" in token:
