@@ -283,8 +283,8 @@ struct DocumentListView: View {
                     }
             }
 
-            WorkListPanelView(viewModel: workListViewModel) { item in
-                searchText = item.surname
+            WorkListPanelView(viewModel: workListViewModel) { url in
+                navigationPath.append(url)
             }
         }
         .listStyle(.sidebar)
@@ -612,12 +612,17 @@ struct DocumentListView: View {
                     Divider().padding(.leading, CGFloat(depth) * 16 + 16)
                 }
 
-                WorkListPanelView(viewModel: workListViewModel) { item in
-                    searchText = item.surname
-                }
             }
+
+            workListSidebarSection
         }
         .navigationTitle("Folders")
+    }
+
+    private var workListSidebarSection: some View {
+        WorkListPanelView(viewModel: workListViewModel) { url in
+            navigationPath.append(url)
+        }
     }
     #endif
 

@@ -5,19 +5,27 @@ import SwiftUI
 /// iPad: rendered as a `DisclosureGroup` inside the `ScrollView + LazyVStack`.
 struct WorkListPanelView: View {
     @Bindable var viewModel: WorkListViewModel
-    var onSelectPatient: (WorkListItem) -> Void
+    /// Navigate directly to a document URL.
+    var onNavigate: (URL) -> Void
 
     @State private var addSurname = ""
     @State private var addFirstName = ""
     @State private var pasteText = ""
     @State private var showingPasteSheet = false
+    @State private var pickerItem: WorkListItem?
+    @State private var pickerURLs: [URL] = []
 
     var body: some View {
-        #if os(macOS)
-        macOSContent
-        #else
-        iPadContent
-        #endif
+        Group {
+            #if os(macOS)
+            macOSContent
+            #else
+            iPadContent
+            #endif
+        }
+        .sheet(item: $pickerItem) { item in
+            pickerSheet(for: item)
+        }
     }
 
     // MARK: - macOS (Section inside List)
@@ -51,7 +59,18 @@ struct WorkListPanelView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
+                if !viewModel.items.isEmpty {
+                    clearButton
+                }
                 pasteButton
+            }
+        }
+        .confirmationDialog(
+            "Clear all patients from the clinic list?",
+            isPresented: $viewModel.showingClearConfirmation
+        ) {
+            Button("Clear All", role: .destructive) {
+                viewModel.clearAll()
             }
         }
     }
@@ -99,10 +118,21 @@ struct WorkListPanelView: View {
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
+                    if !viewModel.items.isEmpty {
+                        clearButton
+                    }
                     pasteButton
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 8)
+            }
+        }
+        .confirmationDialog(
+            "Clear all patients from the clinic list?",
+            isPresented: $viewModel.showingClearConfirmation
+        ) {
+            Button("Clear All", role: .destructive) {
+                viewModel.clearAll()
             }
         }
         .sheet(isPresented: $showingPasteSheet) {
@@ -114,22 +144,52 @@ struct WorkListPanelView: View {
     // MARK: - Shared
 
     private func workListRow(_ item: WorkListItem) -> some View {
-        Button {
-            onSelectPatient(item)
-        } label: {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("\(item.surname), \(item.firstName)")
-                    .lineLimit(1)
+        let matchCount = viewModel.resolvedURLs[item.mrn]?.count ?? 0
 
-                if let detail = rowDetail(for: item) {
-                    Text(detail)
+        return Button {
+            handleTap(item)
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(item.surname), \(item.firstName)")
+                        .lineLimit(1)
+
+                    if let detail = rowDetail(for: item) {
+                        Text(detail)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                Spacer()
+                if matchCount == 0 {
+                    Image(systemName: "questionmark.circle")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                } else if matchCount > 1 && viewModel.resolvedURL(for: item) == nil {
+                    Text("\(matchCount)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(Capsule().fill(.secondary.opacity(0.2)))
                 }
             }
         }
         .buttonStyle(.plain)
+    }
+
+    private func handleTap(_ item: WorkListItem) {
+        if let url = viewModel.resolvedURL(for: item) {
+            onNavigate(url)
+        } else {
+            let urls = viewModel.resolvedURLs[item.mrn] ?? []
+            if urls.count > 1 {
+                pickerURLs = urls
+                pickerItem = item
+            }
+            // If 0 matches, do nothing — the ? icon indicates no document
+        }
     }
 
     private func rowDetail(for item: WorkListItem) -> String? {
@@ -143,6 +203,42 @@ struct WorkListPanelView: View {
         }
         return parts.isEmpty ? nil : parts.joined(separator: " - ")
     }
+
+    // MARK: - Picker
+
+    private func pickerSheet(for item: WorkListItem) -> some View {
+        NavigationStack {
+            List(pickerURLs, id: \.self) { url in
+                Button {
+                    viewModel.saveChoice(mrn: item.mrn, url: url)
+                    pickerItem = nil
+                    onNavigate(url)
+                } label: {
+                    Text(url.deletingPathExtension().lastPathComponent.replacingOccurrences(of: "_", with: " "))
+                }
+            }
+            .navigationTitle("Choose Document")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { pickerItem = nil }
+                }
+            }
+            #else
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { pickerItem = nil }
+                }
+            }
+            #endif
+        }
+        #if os(macOS)
+        .frame(minWidth: 300, minHeight: 200)
+        #endif
+    }
+
+    // MARK: - Add / Paste / Clear
 
     private var addButton: some View {
         VStack(spacing: 4) {
@@ -187,6 +283,17 @@ struct WorkListPanelView: View {
             }
         }
         .padding(.vertical, 4)
+    }
+
+    private var clearButton: some View {
+        Button {
+            viewModel.showingClearConfirmation = true
+        } label: {
+            Image(systemName: "trash")
+                .font(.caption)
+        }
+        .buttonStyle(.plain)
+        .help("Clear all patients")
     }
 
     private var pasteButton: some View {
