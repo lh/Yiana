@@ -160,41 +160,48 @@ struct WorkListPanelView: View {
     private func workListRow(_ item: WorkListItem) -> some View {
         let matchCount = viewModel.resolvedURLs[item.mrn]?.count ?? 0
 
-        return HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("\(item.surname), \(item.firstName)")
-                    .font(.subheadline.weight(.medium))
-                    .lineLimit(1)
-
-                if let detail = rowDetail(for: item) {
-                    Text(detail)
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+        return Button {
+            handleTap(item)
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(item.surname), \(item.firstName)")
+                        .font(.subheadline.weight(.medium))
                         .lineLimit(1)
+
+                    if let detail = rowDetail(for: item) {
+                        Text(detail)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                    }
+                }
+                Spacer()
+                if matchCount == 0 {
+                    Image(systemName: "questionmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else if matchCount > 1 && viewModel.resolvedURL(for: item) == nil {
+                    Text("\(matchCount)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(Capsule().fill(.secondary.opacity(0.2)))
                 }
             }
-            Spacer()
-            if matchCount == 0 {
-                Image(systemName: "questionmark.circle")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else if matchCount > 1 && viewModel.resolvedURL(for: item) == nil {
-                Text("\(matchCount)")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .background(Capsule().fill(.secondary.opacity(0.2)))
-            }
         }
-        .contentShape(Rectangle())
-        .onTapGesture { handleTap(item) }
+        .buttonStyle(.plain)
     }
 
     private func handleTap(_ item: WorkListItem) {
         if let url = viewModel.resolvedURL(for: item) {
-            selectedMRN = item.mrn
-            sidebarSelection?.wrappedValue = nil
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                selectedMRN = item.mrn
+                sidebarSelection?.wrappedValue = nil
+            }
             onNavigate(url)
         } else {
             let urls = viewModel.resolvedURLs[item.mrn] ?? []
