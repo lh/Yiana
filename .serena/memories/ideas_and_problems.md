@@ -15,10 +15,6 @@ Quick-capture list for things that come to mind mid-task.
 
 1. **Connected scanner support on macOS** -- Interesting but out of scope. Bulk scanning from a connected scanner is more of a DevonTHINK use case. We are not trying to compete with or be as complex as that. Would also need external LLM integration to be truly useful (auto-classify, auto-title, auto-folder scanned pages). Park indefinitely unless the product direction changes. Logged 2026-02-25.
 
-## Work List Navigation (macOS) — BLOCKED (2026-03-08)
+## Work List — reverted and redesigning (2026-03-08)
 
-Six attempts to fix work list click navigation have failed. Root cause: work list rows live inside `List(selection: $selectedSidebarFolder)` which is designed for folder navigation. Any interaction with that selection binding during a work list tap triggers NavigationSplitView to rebuild the detail column, racing with `navigationPath.append()`.
-
-Full analysis and uninvestigated hypotheses in `docs/work-list-navigation-failures.md`.
-
-Key hypothesis to test next: the List itself may set selectedSidebarFolder to nil when an untagged row is clicked, and/or navigationPath.append needs to be dispatched asynchronously to escape the view update cycle. Moving work list out of the List entirely may be necessary.
+All work list code reverted from Yiana (commit cd5340a). Eight attempts to fix click navigation inside `List(selection:)` failed. The feature will be reimplemented from scratch with the work list OUTSIDE the sidebar List. Full spec and architectural constraint documented in `HANDOFF.md`. Diagnostic history in `docs/work-list-navigation-failures.md`.
