@@ -1030,10 +1030,12 @@ struct DocumentListView: View {
     private func navigationDestination(_ url: URL) -> some View {
         #if os(iOS)
         DocumentEditView(documentURL: url)
+            .environmentObject(workListViewModel)
             .onAppear { importHandler.activeDocumentURL = url }
             .onDisappear { importHandler.activeDocumentURL = nil }
         #else
         DocumentReadView(documentURL: url)
+            .environmentObject(workListViewModel)
             .onAppear { importHandler.activeDocumentURL = url }
             .onDisappear { importHandler.activeDocumentURL = nil }
         #endif
@@ -1043,10 +1045,12 @@ struct DocumentListView: View {
     private func navigationDestinationForDocument(_ data: DocumentNavigationData) -> some View {
         #if os(iOS)
         DocumentEditView(documentURL: data.url)
+            .environmentObject(workListViewModel)
             .onAppear { importHandler.activeDocumentURL = data.url }
             .onDisappear { importHandler.activeDocumentURL = nil }
         #else
         DocumentReadView(documentURL: data.url, searchResult: data.searchResult)
+            .environmentObject(workListViewModel)
             .onAppear { importHandler.activeDocumentURL = data.url }
             .onDisappear { importHandler.activeDocumentURL = nil }
         #endif
