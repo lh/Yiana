@@ -2,99 +2,67 @@
 
 ## What was completed
 
-### Reverted work list feature for redesign
+### Work list feature reimplemented on `feature/work-list-redesign`
 
-All work list code has been removed from the Yiana app (commit `cd5340a`). Eight attempts to make click navigation work inside the macOS sidebar `List(selection:)` failed. The root cause is architectural: `List(selection:)` uses ForEach item identity as implicit `.tag()`, so clicking any work list row sets the sidebar selection binding to the item's MRN, triggering folder navigation with a bogus path and wiping the navigation stack. No row-level modifier (`.selectionDisabled()`, tag guards, async dispatch) reliably prevents this because NSTableView owns the click at the platform level.
+Four commits on the branch implement the full work list feature from the approved plan:
 
-Full diagnostic evidence preserved in `docs/work-list-navigation-failures.md`.
+1. **Data layer** (`84fca92`) — `WorkListEntry` model, `WorkListRepository` (iCloud persistence), `ClinicListParser` (restored and adapted), `WorkListViewModel` (resolution, auto-resolve, Yiale merge), `YialeSyncService` (NSMetadataQuery watching `.worklist.json`)
 
-The inline document rename feature (`5b21e8e`, `41bd43c`) was preserved through the revert.
+2. **Sidebar UI** (`33b5302`) — `DocumentSidebarMode` segmented picker ("Folders" / "Work List") in both macOS and iPad sidebars. `WorkListView` using `ScrollView + LazyVStack` (not List). Folder sidebar code extracted to `folderSidebarContent` computed property. iPhone shows folders only.
 
-**Deleted files:**
-- `Yiana/Yiana/Models/WorkList.swift`
-- `Yiana/Yiana/Services/ClinicListParser.swift`
+3. **Star button** (`bbbc67a`) — `WorkListViewModel` injected as `@EnvironmentObject` on navigation destinations. Star button in `DocumentReadView` toolbar (macOS) and `DocumentEditView` toolbar (iPad) toggles documents in/out of work list.
+
+4. **Polish** (`5eca8bd`) — Fixed filename stem handling to avoid double-stripping extensions on names containing dots.
+
+### Key architectural decisions
+
+- **Segmented control** replaces the divider approach from the previous handoff. Folders and work list never coexist — they swap the entire sidebar content.
+- **Work list is completely outside `List(selection:)`** — macOS sidebar wraps both views in a VStack with the picker above. No List selection interaction.
+- **Resolution via SearchIndexService** — entries search the FTS5 index. 0 matches = `?` indicator, 1 match = auto-resolve, N matches = picker sheet.
+- **File format**: `.yiana-worklist.json` in iCloud Documents folder. Separate from Yiale's `.worklist.json`.
+- **Yiale sync**: `YialeSyncService` watches `.worklist.json` via `NSMetadataQuery`, posts `.yialeWorkListChanged` notification. ViewModel merges by MRN — adds new, removes gone, keeps existing.
+
+### Files created (6)
+- `Yiana/Yiana/Models/WorkListEntry.swift`
 - `Yiana/Yiana/Services/WorkListRepository.swift`
-- `Yiana/Yiana/Services/WorkListSyncService.swift`
+- `Yiana/Yiana/Services/ClinicListParser.swift`
+- `Yiana/Yiana/Services/YialeSyncService.swift`
 - `Yiana/Yiana/ViewModels/WorkListViewModel.swift`
-- `Yiana/Yiana/Views/WorkListPanelView.swift`
+- `Yiana/Yiana/Views/WorkListView.swift`
 
-**Note:** The Yiale app still has its own work list implementation (paste import, sidebar, patient boost). That code is untouched.
+### Files modified (4)
+- `Yiana/Yiana/AppDelegate.swift` — added `.yialeWorkListChanged` notification name
+- `Yiana/Yiana/Views/DocumentListView.swift` — segmented picker, sidebar mode state, environment object injection
+- `Yiana/Yiana/Views/DocumentReadView.swift` — star button in toolbar (macOS)
+- `Yiana/Yiana/Views/DocumentEditView.swift` — star button in toolbar (iPad)
 
-## What's next: work list feature redesign
+### Build status
+- macOS: passes
+- iOS: passes
 
-The work list needs to be reimplemented from scratch. The specification below captures what the user wants.
+### Branch status
+- Branch: `feature/work-list-redesign` (4 commits ahead of main)
+- Clean working tree (no uncommitted changes)
+- Not pushed to remote
 
-### Specification
+## What needs testing
 
-**Purpose:** Quick reference to files needed in a session. Lives in the sidebar, gives one-click access to documents the user is actively working with.
+1. **macOS:** segmented control switches cleanly, folder navigation unaffected
+2. **macOS:** add manual entry, click, verify document opens
+3. **macOS:** star button in toolbar toggles entry, reflected in work list
+4. **iPad:** same as 1-3
+5. **Multiple matches:** picker appears, selection persists across clicks
+6. **Auto-resolution:** create entry for non-existent document name, import/create that document, verify entry auto-resolves on next `.yianaDocumentsChanged`
+7. **Clear all:** wipes everything, Yiale re-sync repopulates
+8. **Stale resolution:** rename a document after resolution, click entry, verify falls back to search
+9. **Paste import:** macOS clipboard paste, iPad paste sheet — verify clinic list parsing
 
-**Core behaviours:**
+## What could need adjustment after testing
 
-1. **Click to open.** Clicking a work list entry opens the associated document. Must work reliably on first click, every time.
-
-2. **Accepts ambiguity, encourages specificity.** A name may match zero, one, or several documents:
-   - Zero matches: `?` icon, no action. Common for Yiale-imported names where the note hasn't been created yet.
-   - One match: click opens the document directly.
-   - Multiple matches: picker sheet offers a choice. Once chosen, the association is saved.
-
-3. **Persistent association.** Once a document is associated with a work list entry (by unique match or user choice), the association survives across sessions until the entry is removed.
-
-4. **Yiale import.** The work list accepts lists from Yiale (the letter app). These may contain names for patients not yet seen. Once a document is created for that patient, the work list should find it (re-resolve when documents change).
-
-5. **Add from within a document.** A mechanism from inside an open document to add it to the work list, with the document already associated.
-
-6. **Remove.** Individual entries via context menu. Clear all via confirmation dialog.
-
-### Architectural constraint (the lesson from eight failed attempts)
-
-**The work list must NOT be inside the macOS sidebar `List(selection:)`.** The folder List uses `List(selection: $selectedSidebarFolder)` backed by NSTableView, which owns click gestures for all rows. Work list rows need a completely different click behaviour (push onto NavigationPath, not change sidebar selection).
-
-The macOS sidebar should be structured as:
-```
-VStack(spacing: 0) {
-    List(selection: $selectedSidebarFolder) {
-        "Documents" row
-        OutlineGroup (folders)
-    }
-    .listStyle(.sidebar)
-
-    Divider()
-
-    WorkListPanelView(...)  // Outside the List
-}
-```
-
-On macOS, `WorkListPanelView` should use `DisclosureGroup` (standalone), not `Section` (requires List parent).
-
-The iPad sidebar already uses `ScrollView + LazyVStack` (not List), so the work list can sit inside it as it did before. The iPad implementation worked correctly.
-
-### Previous implementation (for reference)
-
-The deleted code is available in git history. Key files and their roles:
-- `WorkList.swift` — `WorkListItem` model (surname, firstName, MRN, doctor, age, gender)
-- `ClinicListParser.swift` — Parses pasted clinic lists (`MRN / Surname, First (Gender, Age) / Doctor`)
-- `WorkListRepository.swift` — Load/save `.worklist.json` from iCloud container
-- `WorkListSyncService.swift` — Watches for external changes to `.worklist.json`, re-resolves URLs when documents change
-- `WorkListViewModel.swift` — Observable viewmodel with add/remove/clear/import/resolve logic
-- `WorkListPanelView.swift` — SwiftUI view (Section for macOS, DisclosureGroup for iPad)
-
-The matching logic used surname + firstName (not MRN) to find documents. MRN was only used as a dictionary key for resolved URLs.
-
-### What the previous implementation got wrong
-
-1. Rendered inside `List(selection:)` on macOS — the root cause of all navigation failures
-2. Used `Section(isExpanded:)` which requires a List parent
-3. Used `.listRowBackground` which only works inside a List
-4. Eight iterations of workarounds (tag guards, async dispatch, selectionDisabled, etc.) all failed
-
-### What the previous implementation got right
-
-1. The model (`WorkListItem`) and parser (`ClinicListParser`) were solid
-2. Name-based matching (surname + firstName) worked
-3. The picker sheet for ambiguous matches worked
-4. The iPad rendering (DisclosureGroup in ScrollView) worked
-5. The iCloud sync via `.worklist.json` worked
-6. The paste import flow worked
+- Picker sheet sizing and presentation (may need tuning)
+- Whether auto-resolve on `.yianaDocumentsChanged` is fast enough or needs debouncing
+- The segmented control label ("Work List (N)") could look crowded with many entries
+- Whether `NSMetadataQueryUbiquitousDocumentsScope` correctly scopes to find `.worklist.json` — may need `NSMetadataQueryUbiquitousDataScope` instead
 
 ## Known issues
 - iCloud `[ERROR] [Progress]` noise when InjectWatcher renames/deletes `.processing` file — harmless
