@@ -124,8 +124,11 @@ Task { doSomething(with: captured) }
 ### `.task {}` and File I/O (CRITICAL)
 SwiftUI `.task {}` inherits the main actor. Wrap file I/O in `Task.detached { ... }.value`. Extract `@MainActor` methods to free functions if needed for `@Sendable` compliance.
 
-### List Selection vs NavigationLink
-`List(selection:)` is silently broken when rows contain `NavigationLink` or `Button`. Conditionally render plain content in select mode, NavigationLink in normal mode.
+### List(selection:) Owns All Clicks (CRITICAL)
+`List(selection:)` backed by NSTableView/UITableView owns click/tap gestures for every row. You cannot have rows with different click semantics inside the same `List(selection:)`. If two groups of rows need different behaviour (e.g. folder navigation vs document open), use a segmented control, tab view, or separate containers — never the same List. Workarounds (`.selectionDisabled()`, tag guards, async dispatch) do not work.
+
+### .sheet(item:) Not .sheet(isPresented:) When Sheet Needs Data
+Setting `@State` data and `showingSheet = true` in the same update cycle causes the sheet to render with stale/empty data on first open. Use `.sheet(item:)` with an `Identifiable` struct so presentation trigger and data are the same object.
 
 ### iOS List Rows Cannot Be Drop Targets
 `.onDrop` on individual rows inside an iOS `List` does not work (UITableView intercepts). Use `ScrollView` + `LazyVStack` for drop targets. macOS `List` is fine.
