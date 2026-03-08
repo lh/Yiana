@@ -60,6 +60,7 @@ struct DocumentEditView: View {
     @State private var showSidebarDeleteAlert = false
     @State private var pendingDeleteIndices: [Int] = []
     @State private var shouldRestoreSidebarAfterPageManagement = false
+    @EnvironmentObject var workListViewModel: WorkListViewModel
     @State private var awaitingDownload = false
 
     private let scanningService = ScanningService()
@@ -363,6 +364,16 @@ struct DocumentEditView: View {
 
                         Spacer()
 
+                        // Work list star button
+                        Button(action: { toggleWorkList() }) {
+                            Image(systemName: isInWorkList ? "star.fill" : "star")
+                                .font(.title3)
+                                .foregroundColor(isInWorkList ? .yellow : .accentColor)
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .padding(.trailing, 4)
+
                         // Markup button
                         if viewModel.pdfData != nil {
                             Button(action: {
@@ -633,6 +644,21 @@ struct DocumentEditView: View {
             }
             .padding()
         }
+    }
+
+    // MARK: - Work List
+
+    private var documentFilenameStem: String {
+        documentURL.deletingPathExtension().lastPathComponent
+    }
+
+    private var isInWorkList: Bool {
+        workListViewModel.containsDocument(filename: documentFilenameStem)
+    }
+
+    private func toggleWorkList() {
+        let filename = documentFilenameStem
+        Task { await workListViewModel.toggleDocument(filename: filename) }
     }
 
     private func loadDocument() async {

@@ -24,6 +24,7 @@ struct DocumentReadView: View {
     @State private var initialPageToShow: Int?
     @State private var showingExportError = false
     @State private var exportErrorMessage = ""
+    @EnvironmentObject var workListViewModel: WorkListViewModel
 
     // New state for sidebar management
     @State private var isSidebarVisible = true
@@ -169,6 +170,12 @@ struct DocumentReadView: View {
 
             ToolbarItem(placement: .primaryAction) {
                 HStack(spacing: 10) {
+                    Button(action: toggleWorkList) {
+                        Label(isInWorkList ? "Remove from Work List" : "Add to Work List",
+                              systemImage: isInWorkList ? "star.fill" : "star")
+                    }
+                    .help(isInWorkList ? "Remove from work list" : "Add to work list")
+
                     if hasPDFContent {
                         Button(action: handleManagePages) {
                             Label("Manage Pages", systemImage: "rectangle.stack")
@@ -194,6 +201,21 @@ struct DocumentReadView: View {
             }
         }
         .toolbarTitleDisplayMode(.inline)
+    }
+
+    // MARK: - Work List
+
+    private var documentFilenameStem: String {
+        documentURL.deletingPathExtension().lastPathComponent
+    }
+
+    private var isInWorkList: Bool {
+        workListViewModel.containsDocument(filename: documentFilenameStem)
+    }
+
+    private func toggleWorkList() {
+        let filename = documentFilenameStem
+        Task { await workListViewModel.toggleDocument(filename: filename) }
     }
 
     private func loadDocument() async {
