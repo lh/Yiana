@@ -5,6 +5,14 @@
 
 import SwiftUI
 
+/// Data for the multi-match picker sheet. Using `.sheet(item:)` so the
+/// URLs are available on first render (avoids empty-sheet-on-first-open bug).
+private struct PickerData: Identifiable {
+    let id = UUID()
+    let entryID: UUID
+    let urls: [URL]
+}
+
 /// Sidebar work list view. Uses ScrollView + LazyVStack (not List).
 /// Click handling: resolved entries navigate directly, unresolved entries search and resolve.
 struct WorkListView: View {
@@ -13,9 +21,7 @@ struct WorkListView: View {
 
     @State private var manualSearchText = ""
     @State private var showingClearConfirmation = false
-    @State private var showingPicker = false
-    @State private var pickerURLs: [URL] = []
-    @State private var pickerEntryID: UUID?
+    @State private var pickerData: PickerData?
     @State private var showingPasteSheet = false
     @State private var pasteText = ""
 
@@ -32,8 +38,8 @@ struct WorkListView: View {
         #if os(macOS)
         .navigationSplitViewColumnWidth(min: 160, ideal: 220, max: 400)
         #endif
-        .sheet(isPresented: $showingPicker) {
-            pickerSheet
+        .sheet(item: $pickerData) { data in
+            pickerSheet(data: data)
         }
         #if os(iOS)
         .sheet(isPresented: $showingPasteSheet) {
@@ -219,26 +225,22 @@ struct WorkListView: View {
         if urls.count == 1 {
             onNavigate(urls[0])
         } else if urls.count > 1 {
-            pickerURLs = urls
-            pickerEntryID = entryID
-            showingPicker = true
+            pickerData = PickerData(entryID: entryID, urls: urls)
         }
         // 0 matches: do nothing (status indicator shows ?)
     }
 
     // MARK: - Picker Sheet
 
-    private var pickerSheet: some View {
+    private func pickerSheet(data: PickerData) -> some View {
         NavigationStack {
-            List(pickerURLs, id: \.self) { url in
+            List(data.urls, id: \.self) { url in
                 Button {
-                    let entryID = pickerEntryID
-                    showingPicker = false
-                    if let id = entryID {
-                        Task {
-                            await viewModel.resolveToURL(entryID: id, url: url)
-                            await MainActor.run { onNavigate(url) }
-                        }
+                    let entryID = data.entryID
+                    pickerData = nil
+                    Task {
+                        await viewModel.resolveToURL(entryID: entryID, url: url)
+                        await MainActor.run { onNavigate(url) }
                     }
                 } label: {
                     VStack(alignment: .leading) {
@@ -255,14 +257,14 @@ struct WorkListView: View {
             #if os(macOS)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { showingPicker = false }
+                    Button("Cancel") { pickerData = nil }
                 }
             }
             #endif
             #if os(iOS)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { showingPicker = false }
+                    Button("Cancel") { pickerData = nil }
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
