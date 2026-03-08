@@ -41,6 +41,7 @@ struct WorkListPanelView: View {
             } else {
                 ForEach(viewModel.items) { item in
                     workListRow(item)
+                        .selectionDisabled()
                         .listRowBackground(
                             selectedMRN == item.mrn
                                 ? RoundedRectangle(cornerRadius: 5).fill(Color.accentColor.opacity(0.2))
@@ -187,7 +188,8 @@ struct WorkListPanelView: View {
     }
 
     private func handleTap(_ item: WorkListItem) {
-        if let url = viewModel.resolvedURL(for: item) {
+        let url = viewModel.resolvedURL(for: item)
+        if let url {
             selectedMRN = item.mrn
             onNavigate(url)
         } else {

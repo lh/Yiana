@@ -284,7 +284,9 @@ struct DocumentListView: View {
             }
 
             WorkListPanelView(viewModel: workListViewModel) { url in
-                navigationPath.append(url)
+                Task { @MainActor in
+                    navigationPath.append(url)
+                }
             }
         }
         .listStyle(.sidebar)
