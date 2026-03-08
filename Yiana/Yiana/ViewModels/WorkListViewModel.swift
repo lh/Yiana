@@ -85,6 +85,13 @@ class WorkListViewModel: ObservableObject {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
+        // Skip if already present (by search text or resolved filename)
+        let lowered = trimmed.lowercased()
+        if entries.contains(where: {
+            $0.searchText.lowercased() == lowered ||
+            $0.resolvedFilename?.lowercased() == lowered
+        }) { return }
+
         let entry = WorkListEntry(
             id: UUID(),
             searchText: trimmed,
@@ -102,6 +109,9 @@ class WorkListViewModel: ObservableObject {
     /// Add a document to the work list with pre-resolved filename.
     /// `filename` should be the stem (no extension).
     func addFromDocument(filename: String) async {
+        // Skip if this document is already in the list
+        if entries.contains(where: { $0.resolvedFilename == filename }) { return }
+
         let entry = WorkListEntry(
             id: UUID(),
             searchText: filename.replacingOccurrences(of: "_", with: " "),
