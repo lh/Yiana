@@ -17,10 +17,16 @@ struct PDFImportData: Identifiable {
 }
 #endif
 
+enum DocumentSidebarMode: String, CaseIterable {
+    case folders = "Folders"
+    case workList = "Work List"
+}
+
 struct DocumentListView: View {
     @EnvironmentObject var importHandler: DocumentImportHandler
     @StateObject private var viewModel = DocumentListViewModel()
     @StateObject private var downloadManager = DownloadManager.shared
+    @StateObject private var workListViewModel = WorkListViewModel()
     @State private var showingCreateAlert = false
     @State private var newDocumentTitle = ""
     @State private var navigationPath = NavigationPath()
@@ -67,10 +73,14 @@ struct DocumentListView: View {
     @State private var selectedDocumentIDs: Set<UUID> = []
     @State private var showingBulkDeleteConfirmation = false
 
+    // Sidebar mode (folders vs work list) — iPhone excluded
     #if os(macOS)
+    @State private var sidebarMode: DocumentSidebarMode = .folders
     /// Selected folder in sidebar. Empty string = root "Documents".
     @State private var selectedSidebarFolder: String? = ""
     @State private var sidebarColumnVisibility: NavigationSplitViewVisibility = .automatic
+    #elseif os(iOS)
+    @State private var sidebarMode: DocumentSidebarMode = .folders
     #endif
 
     enum RenameTarget {
@@ -110,6 +120,9 @@ struct DocumentListView: View {
             #endif
         }
         .task {
+            workListViewModel.start()
+            YialeSyncService.shared.start()
+            await workListViewModel.load()
             await loadDocuments()
             await MainActor.run {
                 if contentCountKey > 0 {
@@ -216,6 +229,21 @@ struct DocumentListView: View {
 
     @ViewBuilder
     private var sidebarContent: some View {
+        VStack(spacing: 0) {
+            sidebarModePicker
+            if sidebarMode == .folders {
+                folderSidebarContent
+            } else {
+                WorkListView(viewModel: workListViewModel) { url in
+                    navigationPath.append(url)
+                }
+            }
+        }
+        .navigationSplitViewColumnWidth(min: 160, ideal: 220, max: 400)
+    }
+
+    @ViewBuilder
+    private var folderSidebarContent: some View {
         let currentURL = currentFolderURL
         List(selection: $selectedSidebarFolder) {
             Label("Documents", systemImage: selectedSidebarFolder == "" ? "doc.on.doc.fill" : "doc.on.doc")
@@ -279,7 +307,6 @@ struct DocumentListView: View {
             }
         }
         .listStyle(.sidebar)
-        .navigationSplitViewColumnWidth(min: 160, ideal: 220, max: 400)
     }
 
     @ViewBuilder
@@ -465,6 +492,21 @@ struct DocumentListView: View {
     }
     #endif
 
+    // MARK: - Sidebar Mode Picker
+
+    private var sidebarModePicker: some View {
+        Picker("", selection: $sidebarMode) {
+            Text("Folders").tag(DocumentSidebarMode.folders)
+            Text(workListViewModel.entryCount > 0
+                 ? "Work List (\(workListViewModel.entryCount))"
+                 : "Work List")
+                .tag(DocumentSidebarMode.workList)
+        }
+        .pickerStyle(.segmented)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+    }
+
     // MARK: - iOS Navigation Structure
 
     #if os(iOS)
@@ -514,6 +556,23 @@ struct DocumentListView: View {
     }
 
     private var iosFolderSidebar: some View {
+        VStack(spacing: 0) {
+            if isIPad {
+                sidebarModePicker
+            }
+
+            if sidebarMode == .workList && isIPad {
+                WorkListView(viewModel: workListViewModel) { url in
+                    navigationPath.append(url)
+                }
+            } else {
+                iosFolderList
+            }
+        }
+        .navigationTitle(sidebarMode == .folders || !isIPad ? "Folders" : "Work List")
+    }
+
+    private var iosFolderList: some View {
         // ScrollView instead of List — UITableView (backing List) intercepts
         // drop gestures and prevents performDrop from firing on rows.
         let allFolders = viewModel.allFolderPaths()
@@ -604,7 +663,6 @@ struct DocumentListView: View {
                 }
             }
         }
-        .navigationTitle("Folders")
     }
     #endif
 
