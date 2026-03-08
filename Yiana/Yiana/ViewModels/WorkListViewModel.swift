@@ -99,12 +99,13 @@ class WorkListViewModel: ObservableObject {
         await save()
     }
 
+    /// Add a document to the work list with pre-resolved filename.
+    /// `filename` should be the stem (no extension).
     func addFromDocument(filename: String) async {
-        let stem = (filename as NSString).deletingPathExtension
         let entry = WorkListEntry(
             id: UUID(),
-            searchText: stem.replacingOccurrences(of: "_", with: " "),
-            resolvedFilename: stem,
+            searchText: filename.replacingOccurrences(of: "_", with: " "),
+            resolvedFilename: filename,
             source: .document,
             added: ISO8601DateFormatter().string(from: Date())
         )
@@ -126,14 +127,12 @@ class WorkListViewModel: ObservableObject {
 
     /// Check whether a document (by filename stem, no extension) is in the work list.
     func containsDocument(filename: String) -> Bool {
-        let stem = (filename as NSString).deletingPathExtension
-        return entries.contains { $0.resolvedFilename == stem }
+        entries.contains { $0.resolvedFilename == filename }
     }
 
     /// Toggle a document in/out of the work list.
     func toggleDocument(filename: String) async {
-        let stem = (filename as NSString).deletingPathExtension
-        if let existing = entries.first(where: { $0.resolvedFilename == stem }) {
+        if let existing = entries.first(where: { $0.resolvedFilename == filename }) {
             await remove(entryID: existing.id)
         } else {
             await addFromDocument(filename: filename)
