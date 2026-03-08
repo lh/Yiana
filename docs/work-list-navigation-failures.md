@@ -108,12 +108,42 @@ The fundamental problem may be that work list rows cannot coexist inside a `List
 
 **Test:** Move `WorkListPanelView` out of the `List { ... }` block and into a `VStack` alongside it, with its own independent scroll region if needed.
 
-## Recommendation
+## Diagnostic Results (2026-03-08)
 
-Before the next attempt, add diagnostic logging to answer the three open questions:
+Logging added to three points: `handleTap`, the `onNavigate` closure, and `.onChange(of: selectedSidebarFolder)`. Results from clicking two work list items (Jeremy Pearson, Bushra Pearson):
 
-1. Does `selectedSidebarFolder` change when a work list row is clicked (even without explicit code to change it)?
-2. Does `navigationPath.append()` actually execute, and does the path length increase?
-3. Does `resolvedURL(for:)` return a valid URL on every click?
+### Question 1: Does selectedSidebarFolder change on its own? YES
 
-The answers will determine whether the fix is (a) moving work list out of the List, (b) dispatching navigation asynchronously, (c) fixing a data race in URL resolution, or some combination.
+```
+handleTap: Pearson, mrn=Y-853bb9e9, resolvedURL=Pearson_Jeremy_301043.yianazip
+onNavigate: path count before=0, after=1          <-- append succeeds
+selectedSidebarFolder changed: Y-54907ac6 -> Y-853bb9e9   <-- List sets it to MRN!
+```
+
+**Root cause found:** `List(selection:)` uses `ForEach` item identity as an implicit `.tag()`. `WorkListItem` conforms to `Identifiable` with `id` being the MRN string, so clicking a work list row sets `selectedSidebarFolder` to that MRN value. This triggers `.onChange` which calls `navigateToFolderPath()` with a bogus path (an MRN, not a folder path), causing the detail column to rebuild.
+
+### Question 2: Is navigationPath.append swallowed? YES
+
+The append succeeds (count goes 0 -> 1), but the subsequent `selectedSidebarFolder` change triggers a detail column rebuild that resets the path. On the next click, `path count before=0` — the previous append was wiped.
+
+### Question 3: Does resolvedURL return nil? NO
+
+Every call returns a valid URL with count=1. This is not a data race issue.
+
+### Additional finding: two competing highlight systems
+
+A "darker blue" (List's native selection lozenge from the implicit tag match) and a "brighter blue" (manual `.listRowBackground` with `Color.accentColor.opacity(0.2)`) appear on the same row. Two independent highlight systems fighting over the same rows.
+
+## Known Issue: MRN-based lookup is unreliable
+
+The `handleTap` and `resolvedURL(for:)` functions use MRN to find documents. MRN is not a reliable identifier — patients are matched by surname + first name. This is a separate issue from the navigation bug but needs fixing independently.
+
+## Confirmed Fix Strategy
+
+Both problems stem from work list rows living inside `List(selection: $selectedSidebarFolder)`:
+
+1. **Move `WorkListPanelView` out of the `List` block.** This eliminates implicit tagging and the native selection lozenge. Put it in a `VStack` below the List or replace the sidebar with `ScrollView` + `LazyVStack` if unified scrolling is needed.
+
+2. **Wrap `navigationPath.append` in `Task { @MainActor in }`** to break it out of the view update cycle. Belt and suspenders — may not be needed once problem 1 is fixed, but costs nothing.
+
+3. **Fix the MRN-based document lookup** to use surname + first name matching instead.

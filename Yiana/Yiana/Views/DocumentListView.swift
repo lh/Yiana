@@ -67,9 +67,6 @@ struct DocumentListView: View {
     @State private var selectedDocumentIDs: Set<UUID> = []
     @State private var showingBulkDeleteConfirmation = false
 
-    // Work list
-    @State private var workListViewModel = WorkListViewModel()
-
     #if os(macOS)
     /// Selected folder in sidebar. Empty string = root "Documents".
     @State private var selectedSidebarFolder: String? = ""
@@ -114,8 +111,6 @@ struct DocumentListView: View {
         }
         .task {
             await loadDocuments()
-            await workListViewModel.load()
-            workListViewModel.startObserving()
             await MainActor.run {
                 if contentCountKey > 0 {
                     hasLoadedAnyContent = true
@@ -281,12 +276,6 @@ struct DocumentListView: View {
                             Label("Delete", systemImage: "trash")
                         }
                     }
-            }
-
-            WorkListPanelView(viewModel: workListViewModel) { url in
-                Task { @MainActor in
-                    navigationPath.append(url)
-                }
             }
         }
         .listStyle(.sidebar)
@@ -613,18 +602,9 @@ struct DocumentListView: View {
                     }
                     Divider().padding(.leading, CGFloat(depth) * 16 + 16)
                 }
-
             }
-
-            workListSidebarSection
         }
         .navigationTitle("Folders")
-    }
-
-    private var workListSidebarSection: some View {
-        WorkListPanelView(viewModel: workListViewModel) { url in
-            navigationPath.append(url)
-        }
     }
     #endif
 
