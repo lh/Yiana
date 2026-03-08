@@ -7,8 +7,6 @@ struct WorkListPanelView: View {
     @Bindable var viewModel: WorkListViewModel
     /// Navigate directly to a document URL.
     var onNavigate: (URL) -> Void
-    /// Binding to the sidebar folder selection — cleared when a work list item is tapped.
-    var sidebarSelection: Binding<String?>? = nil
 
     @State private var addSurname = ""
     @State private var addFirstName = ""
@@ -28,12 +26,6 @@ struct WorkListPanelView: View {
         }
         .sheet(item: $pickerItem) { item in
             pickerSheet(for: item)
-        }
-        .onChange(of: sidebarSelection?.wrappedValue) { _, newValue in
-            // A folder was selected — clear work list highlight
-            if newValue != nil {
-                selectedMRN = nil
-            }
         }
     }
 
@@ -196,12 +188,7 @@ struct WorkListPanelView: View {
 
     private func handleTap(_ item: WorkListItem) {
         if let url = viewModel.resolvedURL(for: item) {
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                selectedMRN = item.mrn
-                sidebarSelection?.wrappedValue = nil
-            }
+            selectedMRN = item.mrn
             onNavigate(url)
         } else {
             let urls = viewModel.resolvedURLs[item.mrn] ?? []

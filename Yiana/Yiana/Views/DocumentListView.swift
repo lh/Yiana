@@ -283,9 +283,9 @@ struct DocumentListView: View {
                     }
             }
 
-            WorkListPanelView(viewModel: workListViewModel, onNavigate: { url in
+            WorkListPanelView(viewModel: workListViewModel) { url in
                 navigationPath.append(url)
-            }, sidebarSelection: $selectedSidebarFolder)
+            }
         }
         .listStyle(.sidebar)
         .navigationSplitViewColumnWidth(min: 160, ideal: 220, max: 400)
