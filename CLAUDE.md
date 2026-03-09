@@ -6,11 +6,13 @@
 2. **Build for BOTH iOS and macOS after any code change.** Use the `/check` skill or the xcode-mcp-server. Never assume shared code only affects one platform.
 3. **Clean desk.** Run `git status` before starting any new task. Address uncommitted changes first. A SessionStart hook reminds you, but do not rely on it alone.
 4. **Log ideas and problems** to Serena memory `ideas_and_problems` using `edit_memory`. Do not use Vestige for this.
+5. **Verify before claiming.** Never include capabilities in documentation, proposals, or analyses without verifying them against the actual codebase.
+6. **Use local resources first.** Check the repository (`resources/`, `assets/`, `docs/`) before fetching from the internet.
 
 ## Session Protocol
 
 - **Start:** Read `HANDOFF.md` if it exists. Run `git status`.
-- **End:** Write a detailed handoff to `HANDOFF.md` — what was completed, what's in progress, what's next, known issues.
+- **End:** Commit and push all changes before ending. Write a detailed handoff to `HANDOFF.md` — what was completed, what's in progress, what's next, known issues.
 
 ## Project Overview
 
@@ -53,6 +55,8 @@ Primary languages: **Swift** (app) and **Python** (server services).
 
 ### Deployment
 Use the `/deploy` skill. Protocol: stop launchd service FIRST → wait for confirmation → copy binary → start service → verify. Never deploy without explicit user confirmation. Check log file sizes before verification.
+
+When deploying to Devon: always run commands on the remote server, not locally. Watch for `~` expansion, PATH differences in launchd environments, and PYTHONPATH issues. When deploying plist services, set full environment variables explicitly.
 
 ## Build & Test
 
@@ -141,6 +145,11 @@ Setting `@State` data and `showingSheet = true` in the same update cycle causes 
 ### Adding Dependencies
 Only when: complex subsystem, 10x time savings, 5+ years maturity, safety-critical.
 Not for: <50 lines of code, Apple framework duplicates, unmaintained projects, heavy frameworks used at 10%.
+
+## Debugging
+
+- Exhaust the simplest hypothesis first before exploring complex ones (TCC permissions, race conditions, etc.)
+- Check for actual crash logs and output before theorizing about root causes
 
 ## Design Principles
 
