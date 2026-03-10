@@ -121,3 +121,6 @@ scripts/dashboard.pdf
 # Personal deployment configuration (contains IP addresses, usernames, paths)
 YianaOCRService/DEPLOYMENT-PERSONAL.md
 YianaOCRService/deploy-to-devon.sh
+
+# Icon design assets
+Icon_material/
