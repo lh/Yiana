@@ -2,77 +2,70 @@
 
 ## What was completed
 
-### Work list feature reimplemented on `feature/work-list-redesign`
+### Work list feature — implemented, tested, merged to main
 
-Four commits on the branch implement the full work list feature from the approved plan:
+Full work list redesign using segmented control to separate folders and work list in the sidebar. Merged to main via `0221d7a`. All phases of the plan completed including two bug fixes found during user testing.
 
-1. **Data layer** (`84fca92`) — `WorkListEntry` model, `WorkListRepository` (iCloud persistence), `ClinicListParser` (restored and adapted), `WorkListViewModel` (resolution, auto-resolve, Yiale merge), `YialeSyncService` (NSMetadataQuery watching `.worklist.json`)
+**Bug fixes during testing:**
+- Picker sheet empty on first open — switched from `.sheet(isPresented:)` to `.sheet(item:)` with `PickerData` struct (`2db8b67`)
+- Duplicate entries allowed — added dedup guards to `addManual` and `addFromDocument` (`93f7358`)
 
-2. **Sidebar UI** (`33b5302`) — `DocumentSidebarMode` segmented picker ("Folders" / "Work List") in both macOS and iPad sidebars. `WorkListView` using `ScrollView + LazyVStack` (not List). Folder sidebar code extracted to `folderSidebarContent` computed property. iPhone shows folders only.
+### TestFlight deployments
 
-3. **Star button** (`bbbc67a`) — `WorkListViewModel` injected as `@EnvironmentObject` on navigation destinations. Star button in `DocumentReadView` toolbar (macOS) and `DocumentEditView` toolbar (iPad) toggles documents in/out of work list.
+- **Yiana** build 41 uploaded to App Store Connect (iOS + macOS) — `3796d4a`
+- **Yiale** build 1 uploaded to App Store Connect (macOS only) — first-ever TestFlight submission
+  - Created `Yiale/ExportOptions.plist` for uploads (`3b36405`)
+  - Added `ITSAppUsesNonExemptEncryption = NO` to Yiale pbxproj (`699d290`)
+  - **Status: Waiting for Apple beta review** — first macOS TestFlight build requires manual review (24-48 hours typical)
 
-4. **Polish** (`5eca8bd`) — Fixed filename stem handling to avoid double-stripping extensions on names containing dots.
+### CLAUDE.md updates
 
-### Key architectural decisions
+Added rules learned from work list implementation (`95ac55e`):
+- `List(selection:)` owns all clicks — never mix interaction models
+- `.sheet(item:)` not `.sheet(isPresented:)` for data-dependent sheets
+- Deployment gotchas for Devon (launchd env, PATH)
+- Debugging: simplest hypothesis first
+- Session protocol: commit and push before session end
 
-- **Segmented control** replaces the divider approach from the previous handoff. Folders and work list never coexist — they swap the entire sidebar content.
-- **Work list is completely outside `List(selection:)`** — macOS sidebar wraps both views in a VStack with the picker above. No List selection interaction.
-- **Resolution via SearchIndexService** — entries search the FTS5 index. 0 matches = `?` indicator, 1 match = auto-resolve, N matches = picker sheet.
-- **File format**: `.yiana-worklist.json` in iCloud Documents folder. Separate from Yiale's `.worklist.json`.
-- **Yiale sync**: `YialeSyncService` watches `.worklist.json` via `NSMetadataQuery`, posts `.yialeWorkListChanged` notification. ViewModel merges by MRN — adds new, removes gone, keeps existing.
+### Housekeeping
 
-### Files created (6)
+- Tracked `Yiale/Yiale.xcodeproj/project.xcworkspace/contents.xcworkspacedata` (`d585d48`)
+- Added `Icon_material/` to `.gitignore`
+
+## Files created this session
+
 - `Yiana/Yiana/Models/WorkListEntry.swift`
 - `Yiana/Yiana/Services/WorkListRepository.swift`
 - `Yiana/Yiana/Services/ClinicListParser.swift`
 - `Yiana/Yiana/Services/YialeSyncService.swift`
 - `Yiana/Yiana/ViewModels/WorkListViewModel.swift`
 - `Yiana/Yiana/Views/WorkListView.swift`
+- `Yiale/ExportOptions.plist`
 
-### Files modified (4)
-- `Yiana/Yiana/AppDelegate.swift` — added `.yialeWorkListChanged` notification name
-- `Yiana/Yiana/Views/DocumentListView.swift` — segmented picker, sidebar mode state, environment object injection
-- `Yiana/Yiana/Views/DocumentReadView.swift` — star button in toolbar (macOS)
-- `Yiana/Yiana/Views/DocumentEditView.swift` — star button in toolbar (iPad)
+## Files modified this session
 
-### Build status
-- macOS: passes
-- iOS: passes
+- `Yiana/Yiana/AppDelegate.swift` — `.yialeWorkListChanged` notification
+- `Yiana/Yiana/Views/DocumentListView.swift` — segmented sidebar, environment object injection
+- `Yiana/Yiana/Views/DocumentReadView.swift` — star button (macOS)
+- `Yiana/Yiana/Views/DocumentEditView.swift` — star button (iPad)
+- `Yiana/Yiana.xcodeproj/project.pbxproj` — build 41, new source files
+- `Yiale/Yiale.xcodeproj/project.pbxproj` — export compliance flag
+- `CLAUDE.md` — new rules
+- `.gitignore` — Icon_material/
 
-### Branch status
-- Branch: `feature/work-list-redesign` (4 commits ahead of main)
-- Clean working tree (no uncommitted changes)
-- Not pushed to remote
+## Pending / needs attention
 
-## What needs testing
-
-1. **macOS:** segmented control switches cleanly, folder navigation unaffected
-2. **macOS:** add manual entry, click, verify document opens
-3. **macOS:** star button in toolbar toggles entry, reflected in work list
-4. **iPad:** same as 1-3
-5. **Multiple matches:** picker appears, selection persists across clicks
-6. **Auto-resolution:** create entry for non-existent document name, import/create that document, verify entry auto-resolves on next `.yianaDocumentsChanged`
-7. **Clear all:** wipes everything, Yiale re-sync repopulates
-8. **Stale resolution:** rename a document after resolution, click entry, verify falls back to search
-9. **Paste import:** macOS clipboard paste, iPad paste sheet — verify clinic list parsing
-
-## What could need adjustment after testing
-
-- Picker sheet sizing and presentation (may need tuning)
-- Whether auto-resolve on `.yianaDocumentsChanged` is fast enough or needs debouncing
-- The segmented control label ("Work List (N)") could look crowded with many entries
-- Whether `NSMetadataQueryUbiquitousDocumentsScope` correctly scopes to find `.worklist.json` — may need `NSMetadataQueryUbiquitousDataScope` instead
+- **Yiale TestFlight review** — check App Store Connect; should clear within 24-48 hours
+- **Work list end-to-end Yiale sync** — not yet tested with real Yiale data (Yiale needs to be running with `.worklist.json` output)
+- **Auto-resolution on document import** — works via `.yianaDocumentsChanged` notification; verify with real documents
 
 ## Known issues
+
 - iCloud `[ERROR] [Progress]` noise when InjectWatcher renames/deletes `.processing` file — harmless
 - Transient "database is locked" on reindex after inject append — resolves on next UbiquityMonitor cycle
-- Untracked `Yiale/Yiale.xcodeproj/project.xcworkspace/` — auto-generated, not committed
 
-## Devon services status
-| Service | Type | Status |
-|---|---|---|
-| `com.vitygas.yiana-ocr` | LaunchDaemon | Running |
-| `com.vitygas.yiana-extraction` | LaunchAgent | Running |
-| `com.vitygas.yiana-dashboard` | LaunchAgent | Running |
-| `com.vitygas.yiana-render` | LaunchAgent | Running |
+## Branch status
+
+- All work merged to `main`, pushed to remote
+- `feature/work-list-redesign` branch still exists (can be deleted)
+- Working tree clean
