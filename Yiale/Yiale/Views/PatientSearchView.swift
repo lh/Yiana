@@ -4,6 +4,7 @@ struct PatientSearchView: View {
     @State private var searchText = ""
     @State private var results: [ResolvedPatient] = []
     @State private var isLoading = true
+    @State private var loadError: String?
 
     let addressService: AddressSearchService
     let workListItems: [WorkListItem]
@@ -27,9 +28,7 @@ struct PatientSearchView: View {
                     try service.loadAll()
                 }.value
             } catch {
-                #if DEBUG
-                print("[PatientSearch] Load failed: \(error)")
-                #endif
+                loadError = error.localizedDescription
             }
             isLoading = false
         }
@@ -62,10 +61,12 @@ struct PatientSearchView: View {
                 } else {
                     emptySearchPlaceholder
                 }
-            } else if results.isEmpty {
+            } else if results.isEmpty && addressService.patientCount > 0 {
                 Text("No patients matching \"\(searchText)\"")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if results.isEmpty {
+                emptySearchPlaceholder
             } else {
                 List(results) { patient in
                     PatientResultRow(patient: patient, isWorkList: isWorkListPatient(patient))
@@ -100,15 +101,48 @@ struct PatientSearchView: View {
     }
 
     private var emptySearchPlaceholder: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "person.text.rectangle")
+        Group {
+            if let loadError {
+                noDataView(
+                    icon: "exclamationmark.icloud",
+                    iconColor: .orange,
+                    title: "Unable to load patient data",
+                    message: loadError
+                )
+            } else if addressService.patientCount == 0 {
+                noDataView(
+                    icon: "building.2",
+                    iconColor: .secondary,
+                    title: "No patient data available",
+                    message: "Yiale requires patient data from Yiana to compose letters.\nImport and process documents in Yiana first, then patient records will appear here automatically via iCloud."
+                )
+            } else {
+                VStack(spacing: 8) {
+                    Image(systemName: "person.text.rectangle")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.secondary)
+                    Text("Search for a patient to start a letter")
+                        .foregroundStyle(.secondary)
+                    Text("\(addressService.patientCount) patients available")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+    }
+
+    private func noDataView(icon: String, iconColor: Color, title: String, message: String) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: icon)
                 .font(.system(size: 48))
+                .foregroundStyle(iconColor)
+            Text(title)
+                .font(.title3.bold())
+            Text(message)
+                .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
-            Text("Search for a patient to start a letter")
-                .foregroundStyle(.secondary)
-            Text("\(addressService.patientCount) patients available")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+                .frame(maxWidth: 400)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
