@@ -4,32 +4,33 @@ title: Privacy Policy
 permalink: /privacy/
 ---
 
-**Last updated: January 2025**
+**Last updated: March 2026**
 
-Yiana is designed with your privacy as a priority. We believe your documents are your business, not ours.
+This policy covers **Yiana** (document scanning and management) and **Yiale** (clinical letter writing). Both apps are designed with your privacy as a priority. We believe your documents are your business, not ours.
 
 ## Data Collection
 
-**Yiana does not collect, store, or transmit any personal data to us.**
+**Our apps do not collect, store, or transmit any personal data to us.**
 
-We have no servers. We don't run analytics. We don't track you.
+We don't run analytics. We don't track you.
 
 ## Your Data Stays With You
 
-- **All documents** are stored in your personal iCloud Drive account
+- **All documents and drafts** are stored in your personal iCloud Drive account
 - **Document processing** happens entirely on your device
-- **We have no access** to your documents or any data within the app
+- **We have no access** to your documents or any data within the apps
+- **Yiale** reads patient data created by Yiana within the same shared iCloud container on your account
 
 ## iCloud
 
-Yiana uses Apple's iCloud to sync your documents across your devices. This data is:
+Both apps use Apple's iCloud to sync data across your devices. This data is:
 - Stored in **your personal iCloud account**
 - Governed by [Apple's Privacy Policy](https://www.apple.com/legal/privacy/)
 - **Not accessible to us** in any way
 
 ## Third-Party Services
 
-Yiana does not use any:
+Our apps do not use any:
 - Analytics services
 - Advertising networks
 - Crash reporting services
@@ -37,16 +38,18 @@ Yiana does not use any:
 
 ## Permissions
 
-Yiana requests the following permissions:
-
+**Yiana** requests the following permissions:
 - **Camera** — To scan documents using your device's camera
 - **iCloud** — To sync your documents across your devices
+
+**Yiale** requests the following permissions:
+- **iCloud** — To access patient data and store letter drafts
 
 These permissions are used solely for the stated purposes.
 
 ## Children's Privacy
 
-Yiana does not knowingly collect any information from children under 13. The app contains no mechanisms for data collection from any user.
+Our apps do not knowingly collect any information from children under 13. The apps contain no mechanisms for data collection from any user.
 
 ## Contact
 
@@ -60,4 +63,4 @@ We may update this privacy policy from time to time. Any changes will be posted 
 
 ---
 
-*This privacy policy is effective as of January 2025.*
+*This privacy policy is effective as of March 2026.*
