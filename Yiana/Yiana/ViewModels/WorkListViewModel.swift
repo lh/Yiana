@@ -18,6 +18,7 @@ class WorkListViewModel: ObservableObject {
     private let searchIndex = SearchIndexService.shared
     private var observers: [NSObjectProtocol] = []
     private var hasStarted = false
+    private var autoResolveTask: Task<Void, Never>?
 
     func start() {
         guard !hasStarted else { return }
@@ -26,14 +27,19 @@ class WorkListViewModel: ObservableObject {
         // Cache iCloud container URL on main thread before any detached file I/O
         repository.cacheContainerURL()
 
-        // Watch for document changes to auto-resolve unresolved entries
+        // Watch for document changes to auto-resolve unresolved entries (debounced)
         let documentsObserver = NotificationCenter.default.addObserver(
             forName: .yianaDocumentsChanged,
             object: nil,
             queue: .main
         ) { [weak self] _ in
             guard let self else { return }
-            Task { await self.autoResolveUnresolved() }
+            self.autoResolveTask?.cancel()
+            self.autoResolveTask = Task {
+                try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 second debounce
+                guard !Task.isCancelled else { return }
+                await self.autoResolveUnresolved()
+            }
         }
         observers.append(documentsObserver)
 
@@ -236,7 +242,7 @@ class WorkListViewModel: ObservableObject {
                     entries[index].resolvedFilename = stem
                     matchCounts.removeValue(forKey: id)
                     changed = true
-                } else {
+                } else if matchCounts[id] != results.count {
                     matchCounts[id] = results.count
                 }
             } catch {

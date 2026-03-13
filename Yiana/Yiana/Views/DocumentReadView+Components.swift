@@ -105,6 +105,8 @@ extension DocumentReadView {
                     errorView(error: error)
                 } else if pdfData != nil {
                     pdfContentView
+                } else if viewModel != nil {
+                    emptyDocumentView
                 } else {
                     downloadingView
                 }
@@ -127,6 +129,22 @@ extension DocumentReadView {
                     .font(.title2)
                 Text(error)
                     .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+
+        private var emptyDocumentView: some View {
+            VStack(spacing: 16) {
+                Image(systemName: "doc")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.secondary)
+                Text("Empty Document")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                Text("This document has no pages yet. Import or scan pages to add content.")
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: 300)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
