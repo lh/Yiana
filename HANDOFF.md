@@ -1,52 +1,85 @@
-# Session Handoff — 2026-03-14
+# Session Handoff — 2026-03-14 (evening)
 
-## What was completed
+## Session Summary
 
-### iPad sidebar inline page editing — implemented, merged, deployed
+Major address panel overhaul plus "Address it!" text extraction feature. Two tracks: address card UI improvements merged to main, and experimental text extraction on `feature/address-from-selection`.
 
-Replaced the PageManagementView sheet on iPad with direct inline editing in the thumbnail sidebar. The sheet remains for iPhone (no sidebar available).
+## What Was Completed
 
-**Interaction model:**
-- **Nav mode (default):** Tap navigates to page, double-tap enters edit mode selecting that page
-- **Edit mode:** Tap toggles selection (checkmark badge), long-press + drag to reorder (native iOS List `.onMove`), compact icon toolbar at top for cut/copy/paste/duplicate/delete, Done to exit
-- **PDFViewer page indicator tap:** On iPad, shows sidebar + enters edit mode. On iPhone, opens PageManagementView sheet (unchanged)
+### On `main` (merged)
 
-**Architecture change:** The sidebar previously used `ScrollView` + `LazyVStack` with `.onDrag`/`.onDrop` (system drag-and-drop API via `NSItemProvider`). This caused two problems: (1) long-press conflicted with context menus, (2) items would visually lift and elastic-back because the drop wasn't completing properly. Switched to `List` + `ForEach` + `.onMove(perform:)` which gives native iOS reorder — grab handle, smooth displacement animation, proper placement.
+1. **Name field split** — surname/firstname surfaced from filename parse through enrichment pipeline. Edit mode shows Title / First name(s) / Surname. Save joins back to fullName for backward compat.
+2. **is_prime cleanup** — Extraction service no longer auto-sets is_prime. Cleared 1433 migrated auto-primes. Only human-set primes preserved.
+3. **Address card UI cleanup:**
+   - "Specialist" renamed to "Other" (display only, JSON stays "specialist")
+   - `key` field on `AddressTypeDefinition` decouples display label from JSON value
+   - Subtype name TextField removed from card header
+   - Type picker and prime toggle in edit mode only
+   - Grey header for non-prime cards
+4. **Manual address entry** — page-0 virtual addresses via overrides. Add Address menu. Delete for manual, Dismiss for extracted.
+5. **Auto-save on prime toggle** during editing
+6. **matchAddressType tracking** — fixes dismiss/save using wrong override key
+7. **selectedType for field display** — changing type in edit mode shows correct fields
+8. **Address status indicator** includes page-0 manual overrides
 
-**Files changed:**
-- `DocumentViewModel.swift` — added `movePages(from:to:)` using `IndexSet`/`Int` (standard `Array.move` API)
-- `ThumbnailSidebarView.swift` — `SidebarEditAction` enum, edit mode toolbar, `List` with `.onMove`, selection badges, cut dimming
-- `DocumentEditView.swift` — new state for sidebar editing, `handleSidebarEditAction` dispatcher, updated tap/double-tap callbacks, iPad vs iPhone routing for page management, removed dead sidebar-hide-on-sheet code
+### On `feature/address-from-selection` (not merged)
 
-### TestFlight deployment
+1. **SelectableTextView** — NSTextView wrapper for OCR panel. Scroll elasticity disabled.
+2. **"Address it!" button** — menu with Patient/GP/Optician/Other. Inline preview card below OCR text. Save/Discard.
+3. **Text parser** (three layers):
+   - NLTagger (NER) for person names
+   - NSDataDetector for addresses, phones, dates
+   - Label fallbacks ("Name:", "DOB:", "Add:")
+   - Title-prefix fallback (greedy, up to 5 words)
+   - UK postcode regex fallback
+4. **Address status filter bar** — coloured dots (grey/green/red/blue) above document list. Debug aid, marked for easy removal.
+5. **NHS lookup database** — `nhs_lookup.db` (NOT in git, licensing):
+   - 1,592 GP practices with full addresses (ODS API)
+   - 3,900 branch surgeries (NHS CSV)
+   - 7,008 opticians (NHS CSV)
+   - Deployed to Devon at `~/Data/nhs_lookup.db`
+   - Local copy at `AddressExtractor/nhs_lookup.db`
 
-Build 43 uploaded to App Store Connect (iOS + macOS). Branch `sidebar-inline-editing` merged to main via fast-forward.
+## Next Step: Wire NHS Lookup into "Address it!"
 
-## Lessons learned
+When user clicks "Address it! > GP" and parser finds a postcode:
+- Look up postcode in `nhs_lookup.db` → gp_practices table
+- One match: auto-fill practice name + address in preview
+- Multiple matches: show picker
+- Same for "Address it! > Optician" → opticians table
 
-### Use native List `.onMove` for within-list reorder, not `.onDrag`/`.onDrop`
-- `.onDrag`/`.onDrop` with `NSItemProvider` is the cross-app drag-and-drop API — wrong tool for within-list reordering
-- Even with an empty `NSItemProvider`, iOS shows a lift animation that elastics back when no drop completes — confusing UX
-- `.onMove(perform:)` on a `ForEach` inside a `List` with `.environment(\.editMode, .constant(.active))` gives native iOS reorder: grab handle, smooth item displacement, proper drop placement
-- This only works with `List`, not `ScrollView` + `LazyVStack`
-- The old "iOS List rows can't be drop targets" note in MEMORY.md is about EXTERNAL drops — internal reorder via `.onMove` works fine
+**Decision needed:** how to make the DB accessible to the Swift app:
+- **Bundle in app** (1.7MB, simplest, works offline)
+- **Query Devon via network** (adds latency, but always current)
+- Bundling recommended for now
 
-### Context menus and drag gestures conflict on iOS
-- Long-press is used for both context menu activation and drag initiation
-- If you need both, they'll fight each other — one or both will be unreliable
-- Solution: choose one. For reorder, use `.onMove` (no long-press needed — List provides grab handles). Put operations in a toolbar instead of context menu
+## Known Issues
 
-### Start with native platform mechanisms before building custom
-- Three iterations of custom drag machinery (`.onDrag`/`.onDrop`, then context menu, then toolbar + drag) before landing on the native `.onMove` that iOS provides out of the box
-- The user spotted the elastic-back behavior and correctly identified that the system "wanted" to do native reorder — trust that instinct
+- **Dismiss needs re-testing** on GP type after matchAddressType fix
+- **Parser limitations** — NLTagger struggles with OCR line breaks. Label fallbacks help but don't cover all cases
+- **Dead code** — `highlightedText()` in DocumentInfoPanel, `updateAddressType()` in AddressesView. Clean up when stable.
+- **Feature branch not merged** — needs more testing
 
-## Branch status
+## Key Files
 
-- All work merged to `main`, pushed to remote
-- `sidebar-inline-editing` branch exists (can be deleted)
-- Working tree clean (untracked: `scripts/bulk-import.sh`)
+| File | Changes |
+|------|---------|
+| `AddressExtractor/backend_db.py` | Enrichment writes surname/firstname |
+| `AddressExtractor/extraction_service.py` | is_prime defaults to None |
+| `AddressExtractor/letter_generator.py` | Uses enriched surname |
+| `Yiana/Models/ExtractedAddress.swift` | surname/firstname/title/isDismissed/matchAddressType |
+| `Yiana/Models/AddressTypeConfiguration.swift` | key field, "Other" label |
+| `Yiana/Views/AddressesView.swift` | Edit mode controls, manual/dismiss/delete |
+| `Yiana/Services/AddressRepository.swift` | Manual addresses, dismiss, page-0 resolution |
+| `Yiana/Views/DocumentInfoPanel.swift` | SelectableTextView, TextAddressParser, preview (feature branch) |
+| `Yiana/Views/DocumentListView.swift` | Status filter bar (feature branch) |
 
-## Known issues
+## Branch Status
 
-- iCloud `[ERROR] [Progress]` noise when InjectWatcher renames/deletes `.processing` file — harmless
-- Transient "database is locked" on reindex after inject append — resolves on next UbiquityMonitor cycle
+- `main` — all address card improvements merged and pushed
+- `feature/address-from-selection` — pushed to remote, not merged. Active development.
+- Devon SSH: `devon@devon-6` (key auth works)
+
+## Future Work (in Serena memory `ideas_and_problems`)
+
+**Swift extraction service on Devon** — replace Python extractors with Swift using NLTagger + NSDataDetector. Devon runs macOS 14.8 (Sonoma), frameworks fully available. Build alongside Python, compare, cut over.
