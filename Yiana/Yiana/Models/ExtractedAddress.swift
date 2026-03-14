@@ -328,6 +328,16 @@ extension ExtractedAddress {
     }
 }
 
+// MARK: - Empty Address Init
+
+extension ExtractedAddress {
+    /// Create an empty address for a given document and page (for manual entry)
+    init(documentId: String, pageNumber: Int) {
+        self.documentId = documentId
+        self.pageNumber = pageNumber
+    }
+}
+
 // MARK: - Manual Address Init
 
 extension ExtractedAddress {

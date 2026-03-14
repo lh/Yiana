@@ -73,8 +73,10 @@ struct DocumentInfoPanel: View {
                         MetadataView(metadata: document.metadata)
                             .padding()
                     case "ocr":
-                        OCRView(document: document, isLoading: $isLoadingOCR)
-                            .padding()
+                        OCRView(document: document, isLoading: $isLoadingOCR) {
+                            selectedTab = "addresses"
+                        }
+                        .padding()
                     case "debug":
                         DebugView(document: document)
                             .padding()
@@ -139,9 +141,12 @@ struct MetadataView: View {
 struct OCRView: View {
     let document: NoteDocument
     @Binding var isLoading: Bool
+    var onAddressExtracted: (() -> Void)?
 
     private var metadata: DocumentMetadata { document.metadata }
     @State private var searchText = ""
+    @State private var selectedText = ""
+    @StateObject private var repository = AddressRepository()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -206,20 +211,30 @@ struct OCRView: View {
 
                         // Text view
                         GroupBox {
-                            ScrollView {
-                                Text(highlightedText(fullText, search: searchText))
-                                    .font(.system(.body, design: .monospaced))
-                                    .textSelection(.enabled)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(8)
-                            }
+                            SelectableTextView(
+                                text: fullText,
+                                searchText: searchText,
+                                selectedText: $selectedText
+                            )
                             .frame(minHeight: 200)
                         }
 
-                        // Character count
-                        Text("\(fullText.count) characters")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        // Character count and Address it! button
+                        HStack {
+                            Text("\(fullText.count) characters")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+
+                            Spacer()
+
+                            Button {
+                                Task { await extractAddressFromSelection() }
+                            } label: {
+                                Label("Address it!", systemImage: "mappin.and.ellipse")
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(selectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
 
                         reprocessOCRButton
                     }
@@ -299,6 +314,38 @@ struct OCRView: View {
                 .frame(maxWidth: .infinity)
                 .padding()
             }
+        }
+    }
+
+    private func extractAddressFromSelection() async {
+        let parsed = TextAddressParser.parse(selectedText)
+        let documentId = document.metadata.title
+
+        // Build a pre-filled address and save as manual override
+        var address = ExtractedAddress(documentId: documentId, pageNumber: 0)
+        address.fullName = parsed.fullName
+        address.title = parsed.title
+        address.firstname = parsed.firstName
+        address.surname = parsed.surname
+        address.dateOfBirth = parsed.dateOfBirth
+        address.addressLine1 = parsed.addressLine1
+        address.addressLine2 = parsed.addressLine2
+        address.city = parsed.city
+        address.postcode = parsed.postcode
+        address.phoneHome = parsed.phone
+        address.addressType = "patient"
+
+        do {
+            try await repository.saveOverride(
+                documentId: documentId,
+                pageNumber: 0,
+                matchAddressType: "patient",
+                updatedAddress: address,
+                reason: "manual"
+            )
+            onAddressExtracted?()
+        } catch {
+            print("Failed to save extracted address: \(error)")
         }
     }
 
@@ -550,6 +597,179 @@ struct OCRStatusBadge: View {
         .background(isCompleted ? Color.green.opacity(0.1) : Color.orange.opacity(0.1))
         .foregroundColor(isCompleted ? .green : .orange)
         .cornerRadius(4)
+    }
+}
+
+// MARK: - Selectable Text View (NSTextView wrapper)
+
+struct SelectableTextView: NSViewRepresentable {
+    let text: String
+    let searchText: String
+    @Binding var selectedText: String
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSTextView.scrollableTextView()
+        let textView = scrollView.documentView as! NSTextView
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.font = NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+        textView.backgroundColor = .clear
+        textView.textContainerInset = NSSize(width: 8, height: 8)
+        textView.delegate = context.coordinator
+        return scrollView
+    }
+
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        let textView = scrollView.documentView as! NSTextView
+        let storage = textView.textStorage!
+
+        // Only update text content if it changed
+        if storage.string != text {
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular),
+                .foregroundColor: NSColor.textColor
+            ]
+            storage.setAttributedString(NSAttributedString(string: text, attributes: attrs))
+        }
+
+        // Apply search highlighting
+        storage.removeAttribute(.backgroundColor, range: NSRange(location: 0, length: storage.length))
+        if !searchText.isEmpty {
+            let lowered = text.lowercased()
+            let searchLowered = searchText.lowercased()
+            var searchStart = lowered.startIndex
+            while let range = lowered[searchStart...].range(of: searchLowered) {
+                let nsRange = NSRange(range, in: text)
+                storage.addAttribute(.backgroundColor, value: NSColor.yellow.withAlphaComponent(0.3), range: nsRange)
+                searchStart = range.upperBound
+            }
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(selectedText: $selectedText)
+    }
+
+    class Coordinator: NSObject, NSTextViewDelegate {
+        @Binding var selectedText: String
+
+        init(selectedText: Binding<String>) {
+            _selectedText = selectedText
+        }
+
+        func textViewDidChangeSelection(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView else { return }
+            let ranges = textView.selectedRanges
+            guard let range = ranges.first?.rangeValue, range.length > 0 else {
+                selectedText = ""
+                return
+            }
+            selectedText = (textView.string as NSString).substring(with: range)
+        }
+    }
+}
+
+// MARK: - Text Address Parser
+
+struct TextAddressParser {
+    struct Result {
+        var fullName: String?
+        var title: String?
+        var firstName: String?
+        var surname: String?
+        var dateOfBirth: String?
+        var addressLine1: String?
+        var addressLine2: String?
+        var city: String?
+        var postcode: String?
+        var phone: String?
+    }
+
+    static func parse(_ text: String) -> Result {
+        var result = Result()
+        let lines = text.components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+
+        let postcodePattern = #"[A-Z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}"#
+
+        // Find UK postcode
+        if let match = text.range(of: postcodePattern, options: .regularExpression) {
+            result.postcode = String(text[match]).uppercased()
+        }
+
+        // Find name with title
+        let titlePattern = #"(?:^|\b)(Mr|Mrs|Ms|Miss|Dr|Prof)\.?\s+([A-Z][a-zA-Z'\-]+(?:\s+[A-Z][a-zA-Z'\-]+)+)"#
+        if let regex = try? NSRegularExpression(pattern: titlePattern),
+           let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+           let titleRange = Range(match.range(at: 1), in: text),
+           let nameRange = Range(match.range(at: 2), in: text) {
+            result.title = String(text[titleRange])
+            result.fullName = "\(text[titleRange]) \(text[nameRange])"
+            let nameParts = String(text[nameRange]).components(separatedBy: " ").filter { !$0.isEmpty }
+            if nameParts.count >= 2 {
+                result.firstName = nameParts.dropLast().joined(separator: " ")
+                result.surname = nameParts.last
+            }
+        }
+
+        // Find date of birth
+        let dobPatterns = [
+            #"(?:DOB|D\.O\.B|Date of Birth)[:\s]+(\d{1,2}[/\-]\d{1,2}[/\-]\d{2,4})"#,
+            #"(?:DOB|D\.O\.B|Date of Birth)[:\s]+(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{2,4})"#,
+            #"\b(\d{2}/\d{2}/\d{4})\b"#
+        ]
+        for pattern in dobPatterns {
+            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+               let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+               let range = Range(match.range(at: 1), in: text) {
+                result.dateOfBirth = String(text[range])
+                break
+            }
+        }
+
+        // Find phone number (UK formats)
+        let phonePattern = #"\b(0\d{3,4}\s?\d{5,7}|07\d{3}\s?\d{6})\b"#
+        if let regex = try? NSRegularExpression(pattern: phonePattern),
+           let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+           let range = Range(match.range(at: 1), in: text) {
+            result.phone = String(text[range])
+        }
+
+        // Extract address lines before the postcode
+        if let pc = result.postcode {
+            let pcLine = lines.firstIndex {
+                $0.contains(pc) || $0.range(of: postcodePattern, options: .regularExpression) != nil
+            }
+            if let pcIdx = pcLine {
+                var addressLines: [String] = []
+                let skipTerms = [result.fullName, result.dateOfBirth, "DOB", "Date of Birth"]
+                    .compactMap { $0?.lowercased() }
+                for i in stride(from: pcIdx - 1, through: max(0, pcIdx - 4), by: -1) {
+                    let line = lines[i]
+                    let lower = line.lowercased()
+                    if skipTerms.contains(where: { lower.contains($0) }) { continue }
+                    if line.range(of: phonePattern, options: .regularExpression) != nil { continue }
+                    addressLines.insert(line, at: 0)
+                }
+                if !addressLines.isEmpty { result.addressLine1 = addressLines[0] }
+                if addressLines.count > 1 { result.addressLine2 = addressLines[1] }
+                if addressLines.count > 2 { result.city = addressLines[2] }
+
+                // Check for city name before postcode on the same line
+                let pcLineText = lines[pcIdx]
+                if let pcRange = pcLineText.range(of: pc) {
+                    let beforePC = pcLineText[pcLineText.startIndex..<pcRange.lowerBound]
+                        .trimmingCharacters(in: .whitespaces)
+                        .trimmingCharacters(in: CharacterSet(charactersIn: ","))
+                    if !beforePC.isEmpty && result.city == nil {
+                        result.city = beforePC
+                    }
+                }
+            }
+        }
+
+        return result
     }
 }
 
