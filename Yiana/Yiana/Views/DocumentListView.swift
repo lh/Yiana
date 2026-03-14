@@ -74,8 +74,9 @@ struct DocumentListView: View {
     @State private var showingBulkDeleteConfirmation = false
 
     // Address status filter (debug aid — filter documents by indicator strip colour)
+    // Uses String key: "grey", "green", "red", "blue", or nil for no filter
     #if os(macOS)
-    @State private var addressStatusFilter: AddressRepository.AddressStatus?
+    @State private var addressStatusFilterKey: String?
     #endif
 
     // Sidebar mode (folders vs work list) — iPhone excluded
@@ -1231,12 +1232,12 @@ struct DocumentListView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
 
-            ForEach(filterOptions, id: \.label) { option in
+            ForEach(filterOptions, id: \.key) { option in
                 Button {
-                    if addressStatusFilter == option.status {
-                        addressStatusFilter = nil
+                    if addressStatusFilterKey == option.key {
+                        addressStatusFilterKey = nil
                     } else {
-                        addressStatusFilter = option.status
+                        addressStatusFilterKey = option.key
                     }
                 } label: {
                     Circle()
@@ -1244,16 +1245,16 @@ struct DocumentListView: View {
                         .frame(width: 12, height: 12)
                         .overlay(
                             Circle()
-                                .strokeBorder(Color.primary, lineWidth: addressStatusFilter == option.status ? 2 : 0)
+                                .strokeBorder(Color.primary, lineWidth: addressStatusFilterKey == option.key ? 2 : 0)
                         )
                 }
                 .buttonStyle(.plain)
                 .help(option.label)
             }
 
-            if addressStatusFilter != nil {
+            if addressStatusFilterKey != nil {
                 Button("Clear") {
-                    addressStatusFilter = nil
+                    addressStatusFilterKey = nil
                 }
                 .font(.caption)
                 .buttonStyle(.plain)
@@ -1267,11 +1268,12 @@ struct DocumentListView: View {
         .background(Color.secondary.opacity(0.05))
     }
 
-    private var filterOptions: [(label: String, status: AddressRepository.AddressStatus, color: Color)] {
+    private var filterOptions: [(key: String, label: String, color: Color)] {
         [
-            ("No addresses (green)", .noAddresses, .green),
-            ("Unconfirmed (red)", .unconfirmed, .red),
-            ("Confirmed (blue)", .confirmed, .blue),
+            ("grey", "Not processed (grey)", .gray),
+            ("green", "No addresses (green)", .green),
+            ("red", "Unconfirmed (red)", .red),
+            ("blue", "Confirmed (blue)", .blue),
         ]
     }
     #endif
@@ -1344,10 +1346,19 @@ struct DocumentListView: View {
     @ViewBuilder
     private var filteredDocuments: [DocumentListItem] {
         #if os(macOS)
-        guard let filter = addressStatusFilter else { return viewModel.documents }
+        guard let filterKey = addressStatusFilterKey else { return viewModel.documents }
         return viewModel.documents.filter { item in
+            if !item.ocrCompleted || item.pageCount == 0 {
+                return filterKey == "grey"
+            }
             let documentId = item.url.deletingPathExtension().lastPathComponent
-            return AddressRepository.addressStatus(forDocumentId: documentId) == filter
+            let status = AddressRepository.addressStatus(forDocumentId: documentId)
+            switch filterKey {
+            case "green": return status == .noAddresses
+            case "red": return status == .unconfirmed
+            case "blue": return status == .confirmed
+            default: return false
+            }
         }
         #else
         return viewModel.documents
