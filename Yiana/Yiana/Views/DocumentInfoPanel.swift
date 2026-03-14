@@ -704,6 +704,10 @@ struct SelectableTextView: NSViewRepresentable {
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         let textView = scrollView.documentView as! NSTextView
         let storage = textView.textStorage!
+        let coordinator = context.coordinator
+
+        coordinator.isUpdatingStorage = true
+        defer { coordinator.isUpdatingStorage = false }
 
         // Only update text content if it changed
         if storage.string != text {
@@ -734,12 +738,14 @@ struct SelectableTextView: NSViewRepresentable {
 
     class Coordinator: NSObject, NSTextViewDelegate {
         @Binding var selectedText: String
+        var isUpdatingStorage = false
 
         init(selectedText: Binding<String>) {
             _selectedText = selectedText
         }
 
         func textViewDidChangeSelection(_ notification: Notification) {
+            guard !isUpdatingStorage else { return }
             guard let textView = notification.object as? NSTextView else { return }
             let ranges = textView.selectedRanges
             guard let range = ranges.first?.rangeValue, range.length > 0 else {
