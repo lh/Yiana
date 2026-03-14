@@ -226,7 +226,7 @@ struct AddressCard: View {
 
                     // Subtype name input (if type requires it)
                     if let typeDef = currentTypeDefinition, typeDef.requiresSubtype {
-                        TextField("\(typeDef.name) name", text: $subtypeName)
+                        TextField("Specify", text: $subtypeName)
                             .textFieldStyle(.roundedBorder)
                             .frame(maxWidth: 150)
                             .onSubmit {
@@ -533,7 +533,7 @@ struct AddressCard: View {
     private var addressTypeLabel: String {
         if let typeDef = currentTypeDefinition {
             if typeDef.requiresSubtype && !subtypeName.isEmpty {
-                return "\(subtypeName) (\(typeDef.name))"
+                return subtypeName
             }
             return "\(typeDef.name) Information"
         }
