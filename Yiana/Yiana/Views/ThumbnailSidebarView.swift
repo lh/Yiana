@@ -3,105 +3,135 @@ import SwiftUI
 import PDFKit
 import UIKit
 
+enum SidebarEditAction {
+    case toggleSelection(Int)
+    case delete, duplicate, cut, copy, paste, restoreCut
+    case move(IndexSet, Int)
+    case done
+}
+
 struct ThumbnailSidebarView: View {
     let document: PDFDocument
     let currentPage: Int
     let provisionalPageRange: Range<Int>?
     let thumbnailSize: SidebarThumbnailSize
     let refreshID: UUID
-    let isSelecting: Bool
-    let selectedPages: Set<Int>
     var onTap: (Int) -> Void
     var onDoubleTap: (Int) -> Void
-    var onClearSelection: (() -> Void)?
-    var onToggleSelectionMode: (() -> Void)?
-    var onDeleteSelection: (() -> Void)?
-    var onDuplicateSelection: (() -> Void)?
+
+    // Edit mode parameters
+    var isEditing: Bool = false
+    var selectedPages: Set<Int> = []
+    var cutPageIndices: Set<Int>?
+    var clipboardHasPayload: Bool = false
+    var hasCutToRestore: Bool = false
+    var onEditAction: ((SidebarEditAction) -> Void)?
+
+    private var hasSelection: Bool { !selectedPages.isEmpty }
+    private var pageIndices: [Int] { Array(0..<document.pageCount) }
 
     var body: some View {
-        VStack(spacing: 8) {
-            HStack(alignment: .center, spacing: 8) {
-                if let onToggleSelectionMode {
-                    Button(isSelecting ? "Done" : "Select") {
-                        onToggleSelectionMode()
-                    }
-                    .font(.subheadline.weight(.semibold))
-                }
-                Spacer()
-                if isSelecting {
-                    Text("\(selectedPages.count)")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.accentColor)
-                        .clipShape(Capsule())
-                    if let onClearSelection {
-                        Button("Clear") { onClearSelection() }
-                            .font(.footnote)
-                    }
-                }
+        VStack(spacing: 0) {
+            if isEditing {
+                editModeToolbar
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 12)
 
-            ScrollView {
-                LazyVStack(spacing: 18) {
-                    ForEach(0..<document.pageCount, id: \.self) { index in
-                        if let page = document.page(at: index) {
+            List {
+                ForEach(pageIndices, id: \.self) { index in
+                    if let page = document.page(at: index) {
+                        let isProvisional = provisionalPageRange?.contains(index) ?? false
+                        let isCut = cutPageIndices?.contains(index) ?? false
                         ThumbnailCell(
                             page: page,
                             index: index,
                             isCurrent: index == currentPage,
-                            isSelected: selectedPages.contains(index),
-                            isSelecting: isSelecting,
-                            isProvisional: provisionalPageRange?.contains(index) ?? false,
+                            isProvisional: isProvisional,
                             thumbnailSize: thumbnailSize,
+                            isEditing: isEditing,
+                            isSelected: selectedPages.contains(index),
+                            isCut: isCut,
                             onTap: { onTap(index) },
                             onDoubleTap: { onDoubleTap(index) }
                         )
+                        .opacity(isCut ? 0.4 : 1.0)
+                        .overlay(isCut ? Color.red.opacity(0.1) : Color.clear)
+                        .moveDisabled(isProvisional)
+                        .listRowInsets(EdgeInsets(top: 6, leading: 4, bottom: 6, trailing: 4))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
                     }
                 }
+                .onMove { source, destination in
+                    onEditAction?(.move(source, destination))
                 }
-                .padding(.vertical, 16)
-                .padding(.horizontal, 8)
             }
+            .listStyle(.plain)
+            .environment(\.editMode, .constant(isEditing ? .active : .inactive))
             .id(refreshID)
-            if isSelecting {
-                HStack(spacing: 12) {
-                    if let onDuplicateSelection {
-                        Button {
-                            onDuplicateSelection()
-                        } label: {
-                            Image(systemName: "plus.square.on.square")
-                                .font(.system(size: 18, weight: .semibold))
-                        }
-                        .buttonStyle(.bordered)
-                        .labelStyle(.iconOnly)
-                    }
-
-                    if let onDeleteSelection {
-                        Button(role: .destructive) {
-                            onDeleteSelection()
-                        } label: {
-                            Image(systemName: "trash")
-                                .font(.system(size: 18, weight: .semibold))
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.red)
-                        .labelStyle(.iconOnly)
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
-            } else {
-                Spacer(minLength: 12)
-            }
         }
         .frame(width: thumbnailSize.sidebarWidth)
         .background(Color(.secondarySystemBackground))
         .accessibilityLabel("Page thumbnails")
+    }
+
+    private var editModeToolbar: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                Button { onEditAction?(.done) } label: {
+                    Text("Done")
+                        .font(.body.weight(.semibold))
+                }
+                .padding(.leading, 12)
+
+                Spacer()
+
+                HStack(spacing: 4) {
+                    Button { onEditAction?(.cut) } label: {
+                        Image(systemName: "scissors")
+                            .frame(width: 32, height: 32)
+                    }
+                    .disabled(!hasSelection)
+
+                    Button { onEditAction?(.copy) } label: {
+                        Image(systemName: "doc.on.doc")
+                            .frame(width: 32, height: 32)
+                    }
+                    .disabled(!hasSelection)
+
+                    Button { onEditAction?(.paste) } label: {
+                        Image(systemName: "doc.on.clipboard")
+                            .frame(width: 32, height: 32)
+                    }
+                    .disabled(!clipboardHasPayload)
+
+                    Button { onEditAction?(.duplicate) } label: {
+                        Image(systemName: "plus.square.on.square")
+                            .frame(width: 32, height: 32)
+                    }
+                    .disabled(!hasSelection)
+
+                    Button(role: .destructive) { onEditAction?(.delete) } label: {
+                        Image(systemName: "trash")
+                            .frame(width: 32, height: 32)
+                    }
+                    .disabled(!hasSelection)
+                }
+                .font(.footnote)
+                .padding(.trailing, 8)
+            }
+            .frame(height: 44)
+
+            if hasCutToRestore {
+                Button { onEditAction?(.restoreCut) } label: {
+                    Label("Restore Cut", systemImage: "arrow.uturn.backward")
+                        .font(.caption)
+                }
+                .padding(.bottom, 4)
+            }
+
+            Divider()
+        }
+        .background(Color(.secondarySystemBackground))
     }
 }
 
@@ -109,10 +139,11 @@ private struct ThumbnailCell: View {
     let page: PDFPage
     let index: Int
     let isCurrent: Bool
-    let isSelected: Bool
-    let isSelecting: Bool
     let isProvisional: Bool
     let thumbnailSize: SidebarThumbnailSize
+    let isEditing: Bool
+    let isSelected: Bool
+    let isCut: Bool
     let onTap: () -> Void
     let onDoubleTap: () -> Void
 
@@ -135,10 +166,11 @@ private struct ThumbnailCell: View {
                         .padding(6)
                 }
 
-                if isSelecting {
-                    SelectionBadge(isSelected: isSelected)
+                if isEditing && !isProvisional {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(isSelected ? .accentColor : .gray)
+                        .background(Circle().fill(Color.white))
                         .padding(6)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
             }
 
@@ -154,7 +186,9 @@ private struct ThumbnailCell: View {
     }
 
     private var borderColor: Color {
-        if isCurrent {
+        if isEditing && isSelected {
+            return Color.accentColor
+        } else if isCurrent {
             return Color.accentColor
         } else if isProvisional {
             return Color.yellow
@@ -164,12 +198,12 @@ private struct ThumbnailCell: View {
     }
 
     private var borderWidth: CGFloat {
-        if isCurrent {
+        if isEditing && isSelected {
+            return 3
+        } else if isCurrent {
             return 3
         } else if isProvisional {
             return 2
-        } else if isSelecting {
-            return 1
         } else {
             return 0
         }
@@ -213,27 +247,6 @@ private struct DraftTag: View {
             .foregroundColor(.black)
             .clipShape(Capsule())
             .accessibilityLabel("Draft page")
-    }
-}
-
-private struct SelectionBadge: View {
-    let isSelected: Bool
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .fill(Color(.systemBackground))
-                .frame(width: 20, height: 20)
-                .shadow(radius: 1)
-            Circle()
-                .stroke(Color.accentColor, lineWidth: 1)
-                .frame(width: 18, height: 18)
-            if isSelected {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.accentColor)
-                    .font(.system(size: 18))
-            }
-        }
     }
 }
 

@@ -115,6 +115,16 @@ struct PageManagementView: View {
                     .accessibilityValue(clipboardHasPayload ? "Clipboard ready" : "Clipboard empty")
                     .disabled(!clipboardHasPayload)
 
+                    // Duplicate button
+                    Button {
+                        duplicateSelectedPages()
+                    } label: {
+                        Label("Duplicate", systemImage: "plus.square.on.square")
+                    }
+                    .toolbarActionAccessibility(label: "Duplicate pages")
+                    .accessibilityValue(selectedPages.isEmpty ? "" : "\(selectedPages.count) selected")
+                    .disabled(selectedPages.isEmpty)
+
                     Spacer()
 
                     // Delete button - on the right
@@ -172,6 +182,17 @@ struct PageManagementView: View {
                         .accessibilityValue(clipboardHasPayload ? "Clipboard ready" : "Clipboard empty")
                         .disabled(!clipboardHasPayload)
                         .keyboardShortcut("v", modifiers: .command)
+
+                        // Duplicate button
+                        Button {
+                            duplicateSelectedPages()
+                        } label: {
+                            Label("Duplicate", systemImage: "plus.square.on.square")
+                        }
+                        .toolbarActionAccessibility(label: "Duplicate pages", keyboardShortcut: "Command D")
+                        .accessibilityValue(selectedPages.isEmpty ? "" : "\(selectedPages.count) selected")
+                        .disabled(selectedPages.isEmpty)
+                        .keyboardShortcut("d", modifiers: .command)
 
                         // Restore Cut button - shown when there's an active cut for this document
                         if PageClipboard.shared.activeCutPayload(for: viewModel.documentID) != nil {
@@ -591,6 +612,25 @@ struct PageManagementView: View {
                 alertMessage = error.localizedDescription
                 AccessibilityAnnouncer.shared.post("Error: \(error.localizedDescription)")
             }
+        }
+    }
+
+    private func duplicateSelectedPages() {
+        let transferable = selectedPages.filter { index in
+            if let range = provisionalPageRange {
+                return !range.contains(index)
+            }
+            return true
+        }
+        guard !transferable.isEmpty else { return }
+        let vm = viewModel
+        let count = transferable.count
+        let indices = Array(transferable)
+        Task {
+            await vm.duplicatePages(at: indices)
+            selectedPages.removeAll()
+            loadPages()
+            AccessibilityAnnouncer.shared.post("Duplicated \(count) \(count == 1 ? "page" : "pages")")
         }
     }
 

@@ -304,6 +304,46 @@ class DocumentViewModel: ObservableObject {
         await refreshDisplayPDF()
     }
 
+    func movePages(from source: IndexSet, to destination: Int) async {
+        guard let currentData = pdfData,
+              let pdfDocument = PDFDocument(data: currentData) else { return }
+
+        // Build ordered page array, apply the move, then rebuild the PDF
+        var pageOrder = Array(0..<pdfDocument.pageCount)
+        pageOrder.move(fromOffsets: source, toOffset: destination)
+
+        let newDoc = PDFDocument()
+        for oldIndex in pageOrder {
+            guard let page = pdfDocument.page(at: oldIndex),
+                  let copy = page.copy() as? PDFPage else { continue }
+            newDoc.insert(copy, at: newDoc.pageCount)
+        }
+
+        guard let updatedData = newDoc.dataRepresentation() else { return }
+
+        // Reorder pageProcessingStates to match
+        let states = document.metadata.pageProcessingStates
+        if states.count == pdfDocument.pageCount {
+            var reordered: [PageProcessingState] = []
+            for (newIndex, oldIndex) in pageOrder.enumerated() {
+                let old = states[oldIndex]
+                reordered.append(PageProcessingState(
+                    pageNumber: newIndex + 1,
+                    needsOCR: old.needsOCR,
+                    needsExtraction: old.needsExtraction,
+                    ocrProcessedAt: old.ocrProcessedAt,
+                    addressExtractedAt: old.addressExtractedAt
+                ))
+            }
+            document.metadata.pageProcessingStates = reordered
+        }
+
+        document.metadata.modified = Date()
+        pdfData = updatedData
+        hasChanges = true
+        await refreshDisplayPDF()
+    }
+
     func duplicatePages(at indices: [Int]) async {
         guard let currentData = pdfData, let pdfDocument = PDFDocument(data: currentData) else { return }
 
@@ -937,6 +977,65 @@ final class DocumentViewModel: ObservableObject {
             }
             document.metadata.pageProcessingStates = newStates
             document.metadata.pageCount = pdfDocument.pageCount
+            document.metadata.modified = Date()
+            hasChanges = true
+        }
+    }
+
+    func duplicatePages(at indices: [Int]) async {
+        guard let currentData = pdfData, let pdfDocument = PDFDocument(data: currentData) else { return }
+
+        let sortedIndices = indices.sorted()
+        var insertedCount = 0
+        var insertedPositions: [Int] = []
+
+        for index in sortedIndices {
+            let adjustedIndex = index + insertedCount
+            guard adjustedIndex >= 0 && adjustedIndex < pdfDocument.pageCount,
+                  let original = pdfDocument.page(at: adjustedIndex) else { continue }
+
+            let insertIndex = min(adjustedIndex + 1, pdfDocument.pageCount)
+            if let copy = original.copy() as? PDFPage {
+                pdfDocument.insert(copy, at: insertIndex)
+                insertedPositions.append(insertIndex)
+                insertedCount += 1
+            }
+        }
+
+        guard let updatedData = pdfDocument.dataRepresentation() else { return }
+        pdfData = updatedData
+
+        if let document = document {
+            var newStates: [PageProcessingState] = []
+            let newPageCount = pdfDocument.pageCount
+            var oldStateIndex = 0
+            let insertedSet = Set(insertedPositions)
+
+            for pageIndex in 0..<newPageCount {
+                if insertedSet.contains(pageIndex) {
+                    newStates.append(PageProcessingState(
+                        pageNumber: pageIndex + 1,
+                        needsOCR: true,
+                        needsExtraction: false
+                    ))
+                } else {
+                    if oldStateIndex < document.metadata.pageProcessingStates.count {
+                        let oldState = document.metadata.pageProcessingStates[oldStateIndex]
+                        newStates.append(PageProcessingState(
+                            pageNumber: pageIndex + 1,
+                            needsOCR: oldState.needsOCR,
+                            needsExtraction: oldState.needsExtraction,
+                            ocrProcessedAt: oldState.ocrProcessedAt,
+                            addressExtractedAt: oldState.addressExtractedAt
+                        ))
+                        oldStateIndex += 1
+                    } else {
+                        newStates.append(PageProcessingState(pageNumber: pageIndex + 1, needsOCR: true))
+                    }
+                }
+            }
+            document.metadata.pageProcessingStates = newStates
+            document.metadata.pageCount = newPageCount
             document.metadata.modified = Date()
             hasChanges = true
         }

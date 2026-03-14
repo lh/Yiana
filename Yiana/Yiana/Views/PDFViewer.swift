@@ -188,7 +188,7 @@ struct PDFKitView: ViewRepresentable {
 
     func updateUIView(_ pdfView: PDFView, context: Context) {
         context.coordinator.pdfView = pdfView
-        let signature = pdfData.count
+        let signature = pdfData.hashValue
         let previousSignature = context.coordinator.pdfDataSignature ?? -1
         let boundsSize = pdfView.bounds.size
         let currentScale = pdfView.scaleFactor
@@ -279,7 +279,7 @@ struct PDFKitView: ViewRepresentable {
 
     func updateNSView(_ pdfView: PDFView, context: Context) {
         context.coordinator.pdfView = pdfView
-        let signature = pdfData.count
+        let signature = pdfData.hashValue
         let previousSignature = context.coordinator.pdfDataSignature ?? -1
         let boundsSize = pdfView.bounds.size
         let currentScale = pdfView.scaleFactor
