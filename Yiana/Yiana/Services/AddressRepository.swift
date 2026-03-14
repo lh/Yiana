@@ -392,14 +392,25 @@ final class AddressRepository: ObservableObject {
         }
 
         // Include manual addresses (unmatched overrides on page 0)
-        let manualAddresses = file.overrides.enumerated()
-            .filter { !matchedOverrides.contains($0.offset) && $0.element.pageNumber == 0 }
-            .map { (_, override) in
-                ExtractedAddress(
-                    documentId: file.documentId,
-                    manualOverride: override
-                )
+        // Deduplicate by matchAddressType, keeping the most recent
+        var manualByType: [String: AddressOverrideEntry] = [:]
+        for (idx, override) in file.overrides.enumerated() {
+            guard !matchedOverrides.contains(idx), override.pageNumber == 0 else { continue }
+            let key = override.matchAddressType
+            if let existing = manualByType[key] {
+                if (override.overrideDate ?? "") > (existing.overrideDate ?? "") {
+                    manualByType[key] = override
+                }
+            } else {
+                manualByType[key] = override
             }
+        }
+        let manualAddresses = manualByType.values.map { override in
+            ExtractedAddress(
+                documentId: file.documentId,
+                manualOverride: override
+            )
+        }
 
         return pageAddresses + manualAddresses
     }
