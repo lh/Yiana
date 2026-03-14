@@ -232,14 +232,15 @@ struct AddressCard: View {
 
                 // Type and Prime controls
                 HStack {
-                    // Type selector (only interactive in edit mode)
-                    Picker("Type", selection: $selectedType) {
-                        ForEach(configManager.currentConfiguration.types) { typeDef in
-                            Text(typeDef.name).tag(typeDef.key)
+                    // Type selector (only shown in edit mode)
+                    if isEditingPatient {
+                        Picker("Type", selection: $selectedType) {
+                            ForEach(configManager.currentConfiguration.types) { typeDef in
+                                Text(typeDef.name).tag(typeDef.key)
+                            }
                         }
+                        .pickerStyle(.menu)
                     }
-                    .pickerStyle(.menu)
-                    .disabled(!isEditingPatient)
 
                     Spacer()
 
