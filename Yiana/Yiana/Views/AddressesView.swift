@@ -280,6 +280,17 @@ struct AddressCard: View {
 
                     // Edit/Save/Cancel buttons
                     if isEditingPatient {
+                        // Delete button for manual addresses (page 0)
+                        if address.pageNumber == 0 {
+                            Button(role: .destructive) {
+                                Task { await deleteManualAddress() }
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.plain)
+                        }
+
                         Button("Cancel") {
                             resetFields()
                             isEditingPatient = false
@@ -456,6 +467,18 @@ struct AddressCard: View {
         }
 
         isSavingPatient = false
+    }
+
+    private func deleteManualAddress() async {
+        do {
+            try await repository.deleteManualAddress(
+                documentId: documentId,
+                addressType: address.addressType ?? "patient"
+            )
+            onSave() // Trigger refresh
+        } catch {
+            print("Failed to delete address: \(error)")
+        }
     }
 
     private func confidenceColor(_ confidence: Double) -> Color {

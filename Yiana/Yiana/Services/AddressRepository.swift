@@ -347,6 +347,14 @@ final class AddressRepository: ObservableObject {
         logger.info("Added manual \(addressType) address for \(documentId)")
     }
 
+    /// Delete all page-0 overrides for a given address type
+    func deleteManualAddress(documentId: String, addressType: String) async throws {
+        var file = try readOrCreateFile(forDocument: documentId)
+        file.overrides.removeAll { $0.pageNumber == 0 && $0.matchAddressType == addressType }
+        try atomicWrite(file: file)
+        logger.info("Deleted manual \(addressType) address for \(documentId)")
+    }
+
     // MARK: - Private Helpers
 
     /// Read and decode an address JSON file

@@ -227,12 +227,15 @@ struct OCRView: View {
 
                             Spacer()
 
-                            Button {
-                                Task { await extractAddressFromSelection() }
+                            Menu {
+                                Button("Patient") { Task { await extractAddressFromSelection(type: "patient") } }
+                                Button("GP") { Task { await extractAddressFromSelection(type: "gp") } }
+                                Button("Optician") { Task { await extractAddressFromSelection(type: "optician") } }
+                                Button("Other") { Task { await extractAddressFromSelection(type: "specialist") } }
                             } label: {
                                 Label("Address it!", systemImage: "mappin.and.ellipse")
                             }
-                            .buttonStyle(.borderedProminent)
+                            .menuStyle(.borderedButton)
                             .disabled(selectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
 
@@ -317,7 +320,7 @@ struct OCRView: View {
         }
     }
 
-    private func extractAddressFromSelection() async {
+    private func extractAddressFromSelection(type: String) async {
         let parsed = TextAddressParser.parse(selectedText)
         let documentId = document.metadata.title
 
@@ -333,13 +336,20 @@ struct OCRView: View {
         address.city = parsed.city
         address.postcode = parsed.postcode
         address.phoneHome = parsed.phone
-        address.addressType = "patient"
+        address.addressType = type
+
+        // For GP type, put the name in gpName instead of fullName
+        if type == "gp" {
+            address.gpName = parsed.fullName
+            address.gpPostcode = parsed.postcode
+            address.fullName = nil
+        }
 
         do {
             try await repository.saveOverride(
                 documentId: documentId,
                 pageNumber: 0,
-                matchAddressType: "patient",
+                matchAddressType: type,
                 updatedAddress: address,
                 reason: "manual"
             )
