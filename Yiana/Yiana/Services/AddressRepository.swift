@@ -45,6 +45,62 @@ final class AddressRepository: ObservableObject {
         Self.isDatabaseAvailable
     }
 
+    /// Address confirmation status for indicator strip
+    enum AddressStatus {
+        case noAddresses      // no file or empty pages — green
+        case unconfirmed      // has addresses but not fully primed — red
+        case confirmed        // patient and GP both primed — blue
+    }
+
+    /// Lightweight check of address status without full resolution.
+    /// Safe to call from any context (no @MainActor requirement on the static helper).
+    static func addressStatus(forDocumentId documentId: String) -> AddressStatus {
+        guard let dirURL = addressesDirectoryURL else { return .noAddresses }
+        let fileURL = dirURL.appendingPathComponent("\(documentId).json")
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return .noAddresses }
+
+        do {
+            let data = try Data(contentsOf: fileURL)
+            let file = try JSONDecoder().decode(DocumentAddressFile.self, from: data)
+
+            // No pages = no addresses
+            if file.pages.isEmpty { return .noAddresses }
+
+            // Check for dismissed overrides — if all pages are dismissed, treat as no addresses
+            // (future: override with dismissed flag)
+
+            // Resolve effective isPrime for each page by checking overrides
+            var hasPatientPrime = false
+            var hasGPPrime = false
+
+            for page in file.pages {
+                let override = file.overrides
+                    .filter { $0.pageNumber == page.pageNumber && $0.matchAddressType == (page.addressType ?? "patient") }
+                    .sorted { ($0.overrideDate ?? "") > ($1.overrideDate ?? "") }
+                    .first
+
+                let effectivePrime = override?.isPrime ?? page.isPrime ?? false
+                let effectiveType = override?.addressType ?? page.addressType ?? "patient"
+
+                if effectivePrime {
+                    switch effectiveType {
+                    case "patient": hasPatientPrime = true
+                    case "gp": hasGPPrime = true
+                    default: break
+                    }
+                }
+            }
+
+            if hasPatientPrime && hasGPPrime {
+                return .confirmed
+            }
+            return .unconfirmed
+
+        } catch {
+            return .noAddresses
+        }
+    }
+
     init() {
         if let dirURL = Self.addressesDirectoryURL {
             logger.info("Addresses directory: \(dirURL.path)")

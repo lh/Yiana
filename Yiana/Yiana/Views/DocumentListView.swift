@@ -2296,9 +2296,9 @@ struct DocumentRow: View {
             // Status indicator line (hidden during search)
             if searchResult == nil {
                 Rectangle()
-                    .fill(isDownloading ? Color.red : statusColor)
+                    .fill(isDownloading ? Color.yellow : statusColor)
                     .frame(width: isDownloading ? 3 : 1.5)
-                    .opacity(isDownloading ? (isPulsing ? 1.0 : 0.2) : 1.0)
+                    .opacity(isDownloading ? (isPulsing ? 1.0 : 0.3) : 1.0)
                     .animation(
                         isDownloading
                             ? .easeInOut(duration: 0.6).repeatForever(autoreverses: true)
@@ -2443,10 +2443,20 @@ struct DocumentRow: View {
 
         if item.pageCount == 0 {
             statusColor = .gray
-        } else if item.ocrCompleted {
-            statusColor = .green
+        } else if !item.ocrCompleted {
+            // OCR not done yet — grey (still processing)
+            statusColor = Color.gray.opacity(0.5)
         } else {
-            statusColor = .red
+            // OCR done — check address status
+            let documentId = item.url.deletingPathExtension().lastPathComponent
+            switch AddressRepository.addressStatus(forDocumentId: documentId) {
+            case .confirmed:
+                statusColor = .blue
+            case .unconfirmed:
+                statusColor = .red
+            case .noAddresses:
+                statusColor = .green
+            }
         }
     }
 

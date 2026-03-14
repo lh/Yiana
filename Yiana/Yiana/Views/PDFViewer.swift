@@ -911,6 +911,10 @@ struct PDFKitView: ViewRepresentable {
         @objc func handleKeyDown(_ event: NSEvent) -> Bool {
             guard let pdfView = pdfView else { return false }
 
+            // Only handle when PDFView is the first responder — otherwise
+            // text fields (e.g. address editing) need these keys
+            guard pdfView.window?.firstResponder == pdfView else { return false }
+
             switch event.keyCode {
             case 123: // Left arrow
                 if pdfView.canGoToPreviousPage {

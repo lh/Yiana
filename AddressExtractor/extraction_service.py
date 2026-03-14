@@ -347,7 +347,7 @@ class OCRFileHandler(FileSystemEventHandler):
         for i, result in enumerate(results):
             # Default: first result per page is patient+prime, subsequent are not prime
             default_type = result.get('address_type', 'patient')
-            default_prime = result.get('is_prime', i == 0)
+            default_prime = result.get('is_prime', False)
 
             page_data = {
                 'page_number': result.get('page_number'),
