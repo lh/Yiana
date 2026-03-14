@@ -11,7 +11,8 @@ import SwiftUI
 /// Definition of a single address type
 struct AddressTypeDefinition: Codable, Identifiable, Equatable {
     var id: UUID
-    var name: String              // "Patient", "Client", "Supplier", etc.
+    var key: String              // JSON value: "patient", "gp", "specialist", etc.
+    var name: String              // Display label: "Patient", "GP", "Other", etc.
     var icon: String             // SF Symbol name
     var colorName: String        // Color identifier
     var allowsMultiple: Bool     // true if multiple addresses of this type can be prime
@@ -19,6 +20,7 @@ struct AddressTypeDefinition: Codable, Identifiable, Equatable {
 
     init(
         id: UUID = UUID(),
+        key: String? = nil,
         name: String,
         icon: String,
         colorName: String,
@@ -26,6 +28,7 @@ struct AddressTypeDefinition: Codable, Identifiable, Equatable {
         requiresSubtype: Bool = false
     ) {
         self.id = id
+        self.key = key ?? name.lowercased()
         self.name = name
         self.icon = icon
         self.colorName = colorName
@@ -73,9 +76,9 @@ struct AddressTypeConfiguration: Codable, Identifiable, Equatable {
         self.modifiedAt = modifiedAt
     }
 
-    /// Find a type definition by name
+    /// Find a type definition by key (JSON value like "patient", "gp", "specialist")
     func type(named: String) -> AddressTypeDefinition? {
-        types.first { $0.name.lowercased() == named.lowercased() }
+        types.first { $0.key == named.lowercased() }
     }
 
     /// Check if a type name exists
@@ -113,6 +116,7 @@ extension AddressTypeConfiguration {
                 requiresSubtype: false
             ),
             AddressTypeDefinition(
+                key: "specialist",
                 name: "Other",
                 icon: "stethoscope",
                 colorName: "green",

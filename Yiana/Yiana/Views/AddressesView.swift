@@ -210,7 +210,7 @@ struct AddressCard: View {
                     // Type selector
                     Picker("Type", selection: $selectedType) {
                         ForEach(configManager.currentConfiguration.types) { typeDef in
-                            Text(typeDef.name).tag(typeDef.name.lowercased())
+                            Text(typeDef.name).tag(typeDef.key)
                         }
                     }
                     .pickerStyle(.menu)
