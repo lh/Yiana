@@ -869,7 +869,7 @@ struct TextAddressParser {
                 #"(?:DOB|D\.O\.B\.?|Date of Birth|Born|Date of birth)[:\s]+(.+)"#,
             ]),
             ("address", [
-                #"(?:Address)[:\s]+(.+)"#,
+                #"(?:Address|Addr|Add)[:\s]+(.+)"#,
             ]),
         ]
         for (field, patterns) in labelPatterns {
@@ -886,28 +886,32 @@ struct TextAddressParser {
                 case "dob":
                     if result.dateOfBirth == nil { result.dateOfBirth = value }
                 case "address":
-                    // Parse "18 Link Brow, The Mount, Fetcham, KT22 9DU" into components
                     if result.addressLine1 == nil {
-                        let parts = value.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-                        // Last part with a postcode goes to postcode
+                        let cleaned = value.trimmingCharacters(in: CharacterSet(charactersIn: "."))
                         let postcodePattern = #"[A-Z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}"#
-                        var addressParts: [String] = []
-                        for part in parts {
-                            if result.postcode == nil,
-                               let pcMatch = part.range(of: postcodePattern, options: .regularExpression) {
-                                result.postcode = String(part[pcMatch]).uppercased()
-                                // Text before postcode in this segment is city/town
-                                let beforePC = part[part.startIndex..<pcMatch.lowerBound]
-                                    .trimmingCharacters(in: .whitespaces)
-                                    .trimmingCharacters(in: CharacterSet(charactersIn: ","))
-                                if !beforePC.isEmpty { addressParts.append(beforePC) }
-                            } else {
-                                addressParts.append(part)
-                            }
+
+                        // Extract postcode first
+                        if result.postcode == nil,
+                           let pcMatch = cleaned.range(of: postcodePattern, options: .regularExpression) {
+                            result.postcode = String(cleaned[pcMatch]).uppercased()
                         }
-                        if !addressParts.isEmpty { result.addressLine1 = addressParts[0] }
-                        if addressParts.count > 1 { result.addressLine2 = addressParts[1] }
-                        if addressParts.count > 2 && result.city == nil { result.city = addressParts.last }
+
+                        // Remove postcode from the address text
+                        var addrText = cleaned
+                        if let pc = result.postcode {
+                            addrText = addrText.replacingOccurrences(of: pc, with: "")
+                                .trimmingCharacters(in: .whitespaces)
+                                .trimmingCharacters(in: CharacterSet(charactersIn: ",."))
+                        }
+
+                        // Split by comma if present, otherwise treat as single line
+                        let parts = addrText.components(separatedBy: ",")
+                            .map { $0.trimmingCharacters(in: .whitespaces) }
+                            .filter { !$0.isEmpty }
+
+                        if !parts.isEmpty { result.addressLine1 = parts[0] }
+                        if parts.count > 1 { result.addressLine2 = parts[1] }
+                        if parts.count > 2 && result.city == nil { result.city = parts.last }
                     }
                 default:
                     break
