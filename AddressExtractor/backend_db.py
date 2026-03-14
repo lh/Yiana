@@ -1192,6 +1192,132 @@ class BackendDatabase:
             print("\n  No systematic patterns detected yet (more corrections needed).")
 
 
+def print_review(failure_log_path: str, db: BackendDatabase):
+    """Print extraction review: failure patterns, correction patterns, and actionable summary."""
+    # --- Section 1: Failure patterns from JSONL ---
+    failures = []
+    failure_path = Path(failure_log_path)
+    if failure_path.exists():
+        with open(failure_path) as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    try:
+                        failures.append(json.loads(line))
+                    except json.JSONDecodeError:
+                        continue
+
+    print("\n" + "=" * 70)
+    print("EXTRACTION REVIEW")
+    print("=" * 70)
+
+    print(f"\n1. FAILURE PATTERNS ({len(failures)} total failures)")
+    print("-" * 50)
+
+    if not failures:
+        print("  No failure log found. Run --reprocess-failures first.")
+    else:
+        # Group by category
+        by_category = {}
+        for f in failures:
+            cat = f.get('category', 'unknown')
+            by_category.setdefault(cat, []).append(f)
+
+        for cat, items in sorted(by_category.items(), key=lambda x: -len(x[1])):
+            print(f"\n  {cat}: {len(items)} failures ({100 * len(items) / len(failures):.1f}%)")
+
+            # Per-extractor reason breakdown
+            reason_counts = {}
+            for item in items:
+                for ext in item.get('extractors_tried', []):
+                    key = f"{ext.get('extractor', '?')}: {ext.get('reason', '?')}"
+                    reason_counts[key] = reason_counts.get(key, 0) + 1
+
+            if reason_counts:
+                print("    Extractor reasons:")
+                for reason, count in sorted(reason_counts.items(), key=lambda x: -x[1])[:5]:
+                    print(f"      {reason} ({count}x)")
+
+            # Example text snippets
+            print("    Examples:")
+            for item in items[:3]:
+                snippet = (item.get('text_snippet', '') or '')[:120].replace('\n', ' ')
+                print(f"      [{item.get('document_id', '?')} p{item.get('page_number', '?')}] {snippet}")
+
+    # --- Section 2: Correction patterns from DB ---
+    print(f"\n2. CORRECTION PATTERNS")
+    print("-" * 50)
+
+    corr_rows = db.conn.execute(
+        """
+        SELECT c.field_name, e.extraction_method,
+               c.original_value, c.corrected_value, c.document_id
+        FROM corrections c
+        LEFT JOIN extractions e ON c.extraction_id = e.id
+        ORDER BY c.field_name
+        """
+    ).fetchall()
+
+    if not corr_rows:
+        print("  No corrections recorded yet.")
+    else:
+        # Group by extraction_method + field_name
+        by_method_field = {}
+        for r in corr_rows:
+            key = (r["extraction_method"] or "unknown", r["field_name"])
+            by_method_field.setdefault(key, []).append(r)
+
+        for (method, field), items in sorted(by_method_field.items(), key=lambda x: -len(x[1])):
+            print(f"\n  {method} / {field}: {len(items)} correction(s)")
+            for item in items[:3]:
+                orig = item["original_value"] or "(empty)"
+                corr = item["corrected_value"]
+                print(f"    {item['document_id']}: \"{orig}\" -> \"{corr}\"")
+
+    # --- Section 3: Actionable summary ---
+    print(f"\n3. ACTIONABLE SUMMARY")
+    print("-" * 50)
+
+    if failures:
+        top_cat = max(by_category.items(), key=lambda x: len(x[1]))
+        print(f"  Top failure bucket: {top_cat[0]} ({len(top_cat[1])} failures)")
+    else:
+        print("  No failure data available.")
+
+    if corr_rows:
+        field_counts = {}
+        for r in corr_rows:
+            field_counts[r["field_name"]] = field_counts.get(r["field_name"], 0) + 1
+        top_field = max(field_counts.items(), key=lambda x: x[1])
+        print(f"  Most-corrected field: {top_field[0]} ({top_field[1]} corrections)")
+    else:
+        print("  No correction data available.")
+
+    # Total counts
+    total_ocr = "?"
+    ocr_dir = os.getenv('OCR_DIR', os.path.join(
+        os.getenv('YIANA_DATA_DIR', os.path.expanduser('~/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents')),
+        '.ocr_results'
+    ))
+    ocr_path = Path(ocr_dir)
+    if ocr_path.exists():
+        total_ocr = len(list(ocr_path.rglob('*.json')))
+
+    addresses_dir = os.getenv('ADDRESSES_DIR', os.path.join(
+        os.getenv('YIANA_DATA_DIR', os.path.expanduser('~/Library/Mobile Documents/iCloud~com~vitygas~Yiana/Documents')),
+        '.addresses'
+    ))
+    addr_path = Path(addresses_dir)
+    total_addr = len(list(addr_path.glob('*.json'))) if addr_path.exists() else 0
+
+    print(f"\n  OCR files: {total_ocr}")
+    print(f"  Successful extractions: {total_addr}")
+    print(f"  Failed pages in log: {len(failures)}")
+    if corr_rows:
+        print(f"  Total corrections: {len(corr_rows)}")
+    print()
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Backend Address Database — ingest .addresses/*.json into SQLite"
@@ -1223,6 +1349,16 @@ def main():
         "--corrections",
         action="store_true",
         help="Show field-level corrections and name aliases",
+    )
+    parser.add_argument(
+        "--review",
+        action="store_true",
+        help="Show top failure patterns (from JSONL) and correction patterns for extraction review",
+    )
+    parser.add_argument(
+        "--failure-log",
+        default=os.path.expanduser("~/Data/.extraction_failures.jsonl"),
+        help="Path to extraction failures JSONL file",
     )
     parser.add_argument(
         "--enrich",
@@ -1266,6 +1402,8 @@ def main():
             db.print_top_patient_practitioner_links()
         elif args.corrections:
             db.print_corrections()
+        elif args.review:
+            print_review(args.failure_log, db)
         elif args.enrich:
             db.ingest_directory(args.addresses_dir)
             db.enrich_directory(args.addresses_dir)

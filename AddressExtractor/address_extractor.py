@@ -143,14 +143,14 @@ class AddressExtractor:
         
         return results
     
-    def extract_from_form(self, text: str, page_num: int) -> Optional[Dict]:
+    def extract_from_form(self, text: str, page_num: int, diagnostics: list | None = None) -> Optional[Dict]:
         """Extract from form-like structure (field: value)"""
         lines = text.split('\n')
         result = {}
-        
+
         for i, line in enumerate(lines):
             line_lower = line.lower()
-            
+
             # Look for name field
             for name_key in self.FORM_FIELDS['name']:
                 if name_key in line_lower:
@@ -163,7 +163,7 @@ class AddressExtractor:
                         next_line = lines[i + 1].strip()
                         if next_line and not ':' in next_line:
                             result['full_name'] = self.clean_name(next_line)
-            
+
             # Look for DOB field
             for dob_key in self.FORM_FIELDS['dob']:
                 if dob_key in line_lower:
@@ -171,7 +171,7 @@ class AddressExtractor:
                     date = self.extract_date_from_context(line, lines[i:i+2])
                     if date:
                         result['date_of_birth'] = date
-            
+
             # Look for address field
             for addr_key in self.FORM_FIELDS['address']:
                 if addr_key in line_lower:
@@ -179,22 +179,36 @@ class AddressExtractor:
                     addr = self.extract_address_block(lines[i:i+6])
                     if addr:
                         result.update(addr)
-        
+
         # Must have at least name and address to be valid
         if result.get('full_name') and result.get('postcode'):
             result['extraction_confidence'] = 0.8
             return result
-        
+
+        if diagnostics is not None:
+            if not result:
+                diagnostics.append({'extractor': 'form', 'reason': 'no_form_fields'})
+            else:
+                missing = []
+                if not result.get('full_name'):
+                    missing.append('full_name')
+                if not result.get('postcode'):
+                    missing.append('postcode')
+                partial = {k: v for k, v in result.items() if v}
+                diagnostics.append({'extractor': 'form', 'reason': f'missing: {", ".join(missing)}', 'partial': partial})
+
         return None
     
-    def extract_from_label(self, text: str, page_num: int) -> Optional[Dict]:
+    def extract_from_label(self, text: str, page_num: int, diagnostics: list | None = None) -> Optional[Dict]:
         """Extract from address label format"""
         lines = [l.strip() for l in text.split('\n') if l.strip()]
-        
+
+        has_postcode = bool(self.extract_postcode(text))
+
         # Look for a block with name and postcode
         for i in range(len(lines) - 3):
             block = lines[i:i+6]
-            
+
             # Check if this block contains a postcode
             postcode = None
             postcode_line = -1
@@ -204,7 +218,7 @@ class AddressExtractor:
                     postcode = pc
                     postcode_line = j
                     break
-            
+
             if postcode:
                 # Assume first line is name
                 result = {
@@ -212,7 +226,7 @@ class AddressExtractor:
                     'postcode': postcode,
                     'extraction_confidence': 0.7
                 }
-                
+
                 # Address lines are between name and postcode
                 if postcode_line > 1:
                     addr_lines = block[1:postcode_line]
@@ -220,50 +234,63 @@ class AddressExtractor:
                         result['address_line_1'] = addr_lines[0]
                         if len(addr_lines) > 1:
                             result['address_line_2'] = addr_lines[1]
-                        
+
                         # Last line before postcode often has city
                         last_addr = block[postcode_line - 1]
                         result['city'] = self.extract_city(last_addr)
-                
+
                 # Look for DOB nearby
                 dob = self.find_date_near_name(text, result['full_name'])
                 if dob:
                     result['date_of_birth'] = dob
-                
+
                 return result
-        
+
+        if diagnostics is not None:
+            if not has_postcode:
+                diagnostics.append({'extractor': 'label', 'reason': 'no_postcode_in_text'})
+            else:
+                diagnostics.append({'extractor': 'label', 'reason': 'postcode_found_but_no_label_block',
+                                    'partial': {'postcode': self.extract_postcode(text)}})
+
         return None
     
-    def extract_unstructured(self, text: str, page_num: int) -> Optional[Dict]:
+    def extract_unstructured(self, text: str, page_num: int, diagnostics: list | None = None) -> Optional[Dict]:
         """Extract from unstructured text using patterns"""
         result = {}
-        
+
         # Find postcode first as anchor
         postcode = self.extract_postcode(text)
         if not postcode:
+            if diagnostics is not None:
+                diagnostics.append({'extractor': 'unstructured', 'reason': 'no_uk_postcode'})
             return None
-        
+
         result['postcode'] = postcode
-        
+
         # Find name (look for Title + First + Last pattern)
         name = self.extract_name_pattern(text)
         if name:
             result['full_name'] = name
-        
+
         # Find date
         date = self.extract_any_date(text)
         if date:
             result['date_of_birth'] = date
-        
+
         # Extract address around postcode
         addr = self.extract_address_around_postcode(text, postcode)
         if addr:
             result.update(addr)
-        
+
         if result.get('full_name'):
             result['extraction_confidence'] = 0.5
             return result
-        
+
+        if diagnostics is not None:
+            diagnostics.append({'extractor': 'unstructured', 'reason': 'postcode_found_no_name',
+                                'partial': {'postcode': postcode}})
+
         return None
     
     def extract_postcode(self, text: str) -> Optional[str]:

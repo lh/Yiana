@@ -30,6 +30,9 @@ DB_PATH = os.getenv('DB_PATH', os.path.join(ICLOUD_CONTAINER, 'addresses.db'))
 ADDRESSES_DIR = os.getenv('ADDRESSES_DIR', os.path.join(ICLOUD_CONTAINER, '.addresses'))
 USE_LLM = os.getenv('USE_LLM', 'false').lower() == 'true'
 OUTPUT_FORMAT = os.getenv('OUTPUT_FORMAT', 'both')  # 'db', 'json', 'both'
+FAILURE_LOG_PATH = os.getenv('FAILURE_LOG_PATH', os.path.join(
+    os.path.expanduser('~/Data'), '.extraction_failures.jsonl'
+))
 
 # Health monitoring — matches OCR service pattern (~/Library/Application Support/YianaOCR/health/)
 HEALTH_DIR = os.path.join(
@@ -80,6 +83,36 @@ def write_health_error(msg: str):
         logger.warning(f"Failed to write health error: {e}")
 
 
+def classify_failure(diagnostics: list, text: str) -> str:
+    """Categorize a failure based on diagnostic reasons and page text."""
+    if len(text.strip()) < 50:
+        return 'insufficient_text'
+
+    reasons = {d.get('reason', '') for d in diagnostics}
+    has_partial = any(d.get('partial') for d in diagnostics)
+
+    # Spire detected but couldn't parse
+    if any(r.startswith('missing:') and d.get('extractor') == 'spire_form'
+           for d in diagnostics for r in [d.get('reason', '')]):
+        return 'spire_parse_failure'
+
+    # Form fields detected but required fields missing
+    if any(r.startswith('missing:') and d.get('extractor') == 'form'
+           for d in diagnostics for r in [d.get('reason', '')]):
+        return 'form_but_incomplete'
+
+    # Postcode found but no name (partial match)
+    if has_partial:
+        return 'partial_match'
+
+    # No postcode found by any extractor
+    if all(r in ('no_form_fields', 'no_postcode_in_text', 'no_uk_postcode', 'not_spire_form')
+           for r in reasons):
+        return 'no_address_content'
+
+    return 'unknown'
+
+
 class OCRFileHandler(FileSystemEventHandler):
     """Handle new OCR files"""
     
@@ -127,53 +160,46 @@ class OCRFileHandler(FileSystemEventHandler):
     def process_file(self, file_path: str):
         """Process a single OCR file"""
         doc_id = Path(file_path).stem
-        
+
         # Skip if already processed
         if doc_id in self.processed_files:
             logger.debug(f"Skipping already processed: {doc_id}")
             return
-        
+
         logger.info(f"Processing: {file_path}")
-        
+
         try:
             with open(file_path, 'r') as f:
                 ocr_data = json.load(f)
-            
+
             all_results = []
-            
+
             for page in ocr_data.get('pages', []):
                 page_num = page.get('pageNumber', 1)
                 text = page.get('text', '')
-                
+
                 # Extract based on configuration
                 if self.hybrid_extractor:
                     result = self.hybrid_extractor.extract(text, page_num)
+                    diagnostics = None
                 else:
-                    # Try Spire form first
-                    if "Spire Healthcare" in text:
-                        result = extract_from_spire_form(text)
-                        if result:
-                            result['extraction_method'] = 'spire_form'
-                    else:
-                        # Try standard extraction
-                        result = self.extractor.extract_from_form(text, page_num)
-                        if not result:
-                            result = self.extractor.extract_from_label(text, page_num)
-                        if not result:
-                            result = self.extractor.extract_unstructured(text, page_num)
-                
+                    diagnostics = []
+                    result = self._extract_cascade(text, page_num, diagnostics)
+
                 if result:
                     # Add metadata
                     result['document_id'] = doc_id
                     result['page_number'] = page_num
                     result['raw_text'] = text[:1000]
                     result['ocr_json'] = json.dumps(page)[:2000]
-                    
+
                     all_results.append(result)
-                    
+
                     logger.info(f"Extracted from {doc_id} page {page_num}: "
                               f"{result.get('full_name')} - {result.get('postcode')}")
-            
+                elif diagnostics is not None:
+                    self._log_failure(doc_id, page_num, text, diagnostics)
+
             # Save results
             if all_results:
                 # Always save to .addresses/ (iCloud-synced JSON)
@@ -191,10 +217,56 @@ class OCRFileHandler(FileSystemEventHandler):
                 logger.info(f"Saved {len(all_results)} records from {doc_id}")
             else:
                 logger.warning(f"No data extracted from {doc_id}")
-        
+
         except Exception as e:
             logger.error(f"Error processing {file_path}: {e}")
             write_health_error(str(e))
+
+    def _extract_cascade(self, text: str, page_num: int, diagnostics: list) -> dict | None:
+        """Try all extractors sequentially. Returns first success or None."""
+        # 1. Spire form
+        result = extract_from_spire_form(text, diagnostics=diagnostics)
+        if result:
+            result['extraction_method'] = 'spire_form'
+            return result
+
+        # 2. Form-based
+        result = self.extractor.extract_from_form(text, page_num, diagnostics=diagnostics)
+        if result:
+            result['extraction_method'] = 'form'
+            return result
+
+        # 3. Label-based
+        result = self.extractor.extract_from_label(text, page_num, diagnostics=diagnostics)
+        if result:
+            result['extraction_method'] = 'label'
+            return result
+
+        # 4. Unstructured
+        result = self.extractor.extract_unstructured(text, page_num, diagnostics=diagnostics)
+        if result:
+            result['extraction_method'] = 'unstructured'
+            return result
+
+        return None
+
+    def _log_failure(self, doc_id: str, page_num: int, text: str, diagnostics: list):
+        """Append a failure record to the JSONL log."""
+        record = {
+            'document_id': doc_id,
+            'page_number': page_num,
+            'text_snippet': text[:300],
+            'extractors_tried': diagnostics,
+            'category': classify_failure(diagnostics, text),
+            'timestamp': datetime.now().astimezone().isoformat(),
+        }
+        try:
+            failure_dir = Path(FAILURE_LOG_PATH).parent
+            failure_dir.mkdir(parents=True, exist_ok=True)
+            with open(FAILURE_LOG_PATH, 'a') as f:
+                f.write(json.dumps(record) + '\n')
+        except OSError as e:
+            logger.warning(f"Failed to write failure log: {e}")
     
     def save_json_output(self, doc_id: str, results: List[Dict]):
         """Save extraction results as JSON"""
@@ -347,7 +419,7 @@ def process_existing_files(handler: OCRFileHandler):
         logger.error(f"OCR directory not found: {OCR_DIR}")
         return
     
-    json_files = list(ocr_dir.glob('*.json'))
+    json_files = list(ocr_dir.rglob('*.json'))
     unprocessed = [f for f in json_files if f.stem not in handler.processed_files]
     
     if unprocessed:
@@ -361,7 +433,7 @@ def process_existing_files(handler: OCRFileHandler):
 def watch_directory(handler: OCRFileHandler):
     """Watch OCR directory for new files"""
     observer = Observer()
-    observer.schedule(handler, OCR_DIR, recursive=False)
+    observer.schedule(handler, OCR_DIR, recursive=True)
     observer.start()
 
     logger.info(f"Watching directory: {OCR_DIR}")
@@ -429,6 +501,42 @@ def query_database():
     conn.close()
 
 
+def reprocess_failures():
+    """Re-run extraction on OCR files that have no .addresses/ output.
+
+    Bypasses the processed_files check so diagnostics are collected for
+    documents that previously failed. Results (if any) are saved normally;
+    failures are logged to the JSONL failure log.
+    """
+    ocr_dir = Path(OCR_DIR)
+    addresses_dir = Path(ADDRESSES_DIR)
+
+    if not ocr_dir.exists():
+        logger.error(f"OCR directory not found: {OCR_DIR}")
+        return
+
+    # Find OCR files with no corresponding .addresses/ output
+    existing_addresses = set()
+    if addresses_dir.exists():
+        existing_addresses = {f.stem for f in addresses_dir.glob('*.json')}
+
+    all_ocr = list(ocr_dir.rglob('*.json'))
+    to_reprocess = [f for f in all_ocr if f.stem not in existing_addresses]
+
+    logger.info(f"Reprocessing {len(to_reprocess)} of {len(all_ocr)} OCR files (no .addresses/ output)")
+
+    handler = OCRFileHandler()
+    # Clear processed_files so nothing is skipped
+    handler.processed_files = set()
+
+    for i, file_path in enumerate(to_reprocess, 1):
+        handler.process_file(str(file_path))
+        if i % 100 == 0:
+            logger.info(f"Progress: {i}/{len(to_reprocess)}")
+
+    logger.info(f"Reprocessing complete. Failure log at: {FAILURE_LOG_PATH}")
+
+
 def main():
     """Main entry point"""
     global USE_LLM, OUTPUT_FORMAT
@@ -445,24 +553,28 @@ def main():
     parser.add_argument('--format', choices=['db', 'json', 'both'],
                        default=OUTPUT_FORMAT,
                        help='Output format')
-    
+    parser.add_argument('--reprocess-failures', action='store_true',
+                       help='Re-run extraction on all OCR files with no .addresses/ output (populates failure log)')
+
     args = parser.parse_args()
-    
+
     # Update global settings
     if args.use_llm:
         USE_LLM = True
     OUTPUT_FORMAT = args.format
-    
+
     if args.query:
         query_database()
+    elif args.reprocess_failures:
+        reprocess_failures()
     else:
         # Initialize handler
         handler = OCRFileHandler()
-        
+
         # Process existing files
         if not args.watch or args.no_watch:
             process_existing_files(handler)
-        
+
         # Watch for new files
         if args.watch and not args.no_watch:
             watch_directory(handler)

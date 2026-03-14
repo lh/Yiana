@@ -14,13 +14,15 @@ logger = logging.getLogger(__name__)
 class SpireFormExtractor:
     """Extract data from Spire Healthcare Registration Forms"""
     
-    def extract(self, text: str) -> Optional[Dict]:
+    def extract(self, text: str, diagnostics: list | None = None) -> Optional[Dict]:
         """Extract address data from Spire form"""
-        
+
         result = {}
-        
+
         # Check if this is a Spire form
         if "Spire Healthcare" not in text or "Registration Form" not in text:
+            if diagnostics is not None:
+                diagnostics.append({'extractor': 'spire_form', 'reason': 'not_spire_form'})
             return None
         
         logger.info("Detected Spire Healthcare Registration Form")
@@ -260,14 +262,23 @@ class SpireFormExtractor:
         if result.get('full_name') and result.get('postcode'):
             logger.info(f"Extracted: {result.get('full_name')} - {result.get('postcode')}")
             return result
-        
+
+        if diagnostics is not None:
+            missing = []
+            if not result.get('full_name'):
+                missing.append('full_name')
+            if not result.get('postcode'):
+                missing.append('postcode')
+            partial = {k: v for k, v in result.items() if v and k not in ('extraction_method', 'extraction_confidence')}
+            diagnostics.append({'extractor': 'spire_form', 'reason': f'missing: {", ".join(missing)}', 'partial': partial})
+
         return None
 
 
-def extract_from_spire_form(text: str) -> Optional[Dict]:
+def extract_from_spire_form(text: str, diagnostics: list | None = None) -> Optional[Dict]:
     """Convenience function to extract from Spire form"""
     extractor = SpireFormExtractor()
-    return extractor.extract(text)
+    return extractor.extract(text, diagnostics=diagnostics)
 
 
 if __name__ == "__main__":
