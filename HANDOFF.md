@@ -1,71 +1,52 @@
-# Session Handoff — 2026-03-08
+# Session Handoff — 2026-03-14
 
 ## What was completed
 
-### Work list feature — implemented, tested, merged to main
+### iPad sidebar inline page editing — implemented, merged, deployed
 
-Full work list redesign using segmented control to separate folders and work list in the sidebar. Merged to main via `0221d7a`. All phases of the plan completed including two bug fixes found during user testing.
+Replaced the PageManagementView sheet on iPad with direct inline editing in the thumbnail sidebar. The sheet remains for iPhone (no sidebar available).
 
-**Bug fixes during testing:**
-- Picker sheet empty on first open — switched from `.sheet(isPresented:)` to `.sheet(item:)` with `PickerData` struct (`2db8b67`)
-- Duplicate entries allowed — added dedup guards to `addManual` and `addFromDocument` (`93f7358`)
+**Interaction model:**
+- **Nav mode (default):** Tap navigates to page, double-tap enters edit mode selecting that page
+- **Edit mode:** Tap toggles selection (checkmark badge), long-press + drag to reorder (native iOS List `.onMove`), compact icon toolbar at top for cut/copy/paste/duplicate/delete, Done to exit
+- **PDFViewer page indicator tap:** On iPad, shows sidebar + enters edit mode. On iPhone, opens PageManagementView sheet (unchanged)
 
-### TestFlight deployments
+**Architecture change:** The sidebar previously used `ScrollView` + `LazyVStack` with `.onDrag`/`.onDrop` (system drag-and-drop API via `NSItemProvider`). This caused two problems: (1) long-press conflicted with context menus, (2) items would visually lift and elastic-back because the drop wasn't completing properly. Switched to `List` + `ForEach` + `.onMove(perform:)` which gives native iOS reorder — grab handle, smooth displacement animation, proper placement.
 
-- **Yiana** build 41 uploaded to App Store Connect (iOS + macOS) — `3796d4a`
-- **Yiale** build 1 uploaded to App Store Connect (macOS only) — first-ever TestFlight submission
-  - Created `Yiale/ExportOptions.plist` for uploads (`3b36405`)
-  - Added `ITSAppUsesNonExemptEncryption = NO` to Yiale pbxproj (`699d290`)
-  - **Status: Waiting for Apple beta review** — first macOS TestFlight build requires manual review (24-48 hours typical)
+**Files changed:**
+- `DocumentViewModel.swift` — added `movePages(from:to:)` using `IndexSet`/`Int` (standard `Array.move` API)
+- `ThumbnailSidebarView.swift` — `SidebarEditAction` enum, edit mode toolbar, `List` with `.onMove`, selection badges, cut dimming
+- `DocumentEditView.swift` — new state for sidebar editing, `handleSidebarEditAction` dispatcher, updated tap/double-tap callbacks, iPad vs iPhone routing for page management, removed dead sidebar-hide-on-sheet code
 
-### CLAUDE.md updates
+### TestFlight deployment
 
-Added rules learned from work list implementation (`95ac55e`):
-- `List(selection:)` owns all clicks — never mix interaction models
-- `.sheet(item:)` not `.sheet(isPresented:)` for data-dependent sheets
-- Deployment gotchas for Devon (launchd env, PATH)
-- Debugging: simplest hypothesis first
-- Session protocol: commit and push before session end
+Build 43 uploaded to App Store Connect (iOS + macOS). Branch `sidebar-inline-editing` merged to main via fast-forward.
 
-### Housekeeping
+## Lessons learned
 
-- Tracked `Yiale/Yiale.xcodeproj/project.xcworkspace/contents.xcworkspacedata` (`d585d48`)
-- Added `Icon_material/` to `.gitignore`
+### Use native List `.onMove` for within-list reorder, not `.onDrag`/`.onDrop`
+- `.onDrag`/`.onDrop` with `NSItemProvider` is the cross-app drag-and-drop API — wrong tool for within-list reordering
+- Even with an empty `NSItemProvider`, iOS shows a lift animation that elastics back when no drop completes — confusing UX
+- `.onMove(perform:)` on a `ForEach` inside a `List` with `.environment(\.editMode, .constant(.active))` gives native iOS reorder: grab handle, smooth item displacement, proper drop placement
+- This only works with `List`, not `ScrollView` + `LazyVStack`
+- The old "iOS List rows can't be drop targets" note in MEMORY.md is about EXTERNAL drops — internal reorder via `.onMove` works fine
 
-## Files created this session
+### Context menus and drag gestures conflict on iOS
+- Long-press is used for both context menu activation and drag initiation
+- If you need both, they'll fight each other — one or both will be unreliable
+- Solution: choose one. For reorder, use `.onMove` (no long-press needed — List provides grab handles). Put operations in a toolbar instead of context menu
 
-- `Yiana/Yiana/Models/WorkListEntry.swift`
-- `Yiana/Yiana/Services/WorkListRepository.swift`
-- `Yiana/Yiana/Services/ClinicListParser.swift`
-- `Yiana/Yiana/Services/YialeSyncService.swift`
-- `Yiana/Yiana/ViewModels/WorkListViewModel.swift`
-- `Yiana/Yiana/Views/WorkListView.swift`
-- `Yiale/ExportOptions.plist`
+### Start with native platform mechanisms before building custom
+- Three iterations of custom drag machinery (`.onDrag`/`.onDrop`, then context menu, then toolbar + drag) before landing on the native `.onMove` that iOS provides out of the box
+- The user spotted the elastic-back behavior and correctly identified that the system "wanted" to do native reorder — trust that instinct
 
-## Files modified this session
+## Branch status
 
-- `Yiana/Yiana/AppDelegate.swift` — `.yialeWorkListChanged` notification
-- `Yiana/Yiana/Views/DocumentListView.swift` — segmented sidebar, environment object injection
-- `Yiana/Yiana/Views/DocumentReadView.swift` — star button (macOS)
-- `Yiana/Yiana/Views/DocumentEditView.swift` — star button (iPad)
-- `Yiana/Yiana.xcodeproj/project.pbxproj` — build 41, new source files
-- `Yiale/Yiale.xcodeproj/project.pbxproj` — export compliance flag
-- `CLAUDE.md` — new rules
-- `.gitignore` — Icon_material/
-
-## Pending / needs attention
-
-- **Yiale TestFlight review** — check App Store Connect; should clear within 24-48 hours
-- **Work list end-to-end Yiale sync** — not yet tested with real Yiale data (Yiale needs to be running with `.worklist.json` output)
-- **Auto-resolution on document import** — works via `.yianaDocumentsChanged` notification; verify with real documents
+- All work merged to `main`, pushed to remote
+- `sidebar-inline-editing` branch exists (can be deleted)
+- Working tree clean (untracked: `scripts/bulk-import.sh`)
 
 ## Known issues
 
 - iCloud `[ERROR] [Progress]` noise when InjectWatcher renames/deletes `.processing` file — harmless
 - Transient "database is locked" on reindex after inject append — resolves on next UbiquityMonitor cycle
-
-## Branch status
-
-- All work merged to `main`, pushed to remote
-- `feature/work-list-redesign` branch still exists (can be deleted)
-- Working tree clean
