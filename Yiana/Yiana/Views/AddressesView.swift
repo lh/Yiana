@@ -133,6 +133,9 @@ struct AddressCard: View {
 
     // Editable fields
     @State private var fullName: String
+    @State private var title: String
+    @State private var firstName: String
+    @State private var surname: String
     @State private var dateOfBirth: String
     @State private var addressLine1: String
     @State private var addressLine2: String
@@ -161,6 +164,9 @@ struct AddressCard: View {
         self.documentId = documentId
         self.onSave = onSave
         _fullName = State(initialValue: address.fullName ?? "")
+        _title = State(initialValue: address.title ?? "")
+        _firstName = State(initialValue: address.firstname ?? "")
+        _surname = State(initialValue: address.surname ?? "")
         _dateOfBirth = State(initialValue: address.dateOfBirth ?? "")
         _addressLine1 = State(initialValue: address.addressLine1 ?? "")
         _addressLine2 = State(initialValue: address.addressLine2 ?? "")
@@ -330,7 +336,9 @@ struct AddressCard: View {
                 } else {
                     // Patient/Optician/Specialist fields
                     if isEditingPatient {
-                        EditableField(label: "Name", text: $fullName, icon: "person", onSubmit: { Task { await saveChanges() } })
+                        EditableField(label: "Title", text: $title, icon: "person", onSubmit: { Task { await saveChanges() } })
+                        EditableField(label: "First name(s)", text: $firstName, icon: "person", onSubmit: { Task { await saveChanges() } })
+                        EditableField(label: "Surname", text: $surname, icon: "person", onSubmit: { Task { await saveChanges() } })
                         EditableField(label: "Date of Birth", text: $dateOfBirth, icon: "calendar", onSubmit: { Task { await saveChanges() } })
                         EditableField(label: "Address Line 1", text: $addressLine1, icon: "house", onSubmit: { Task { await saveChanges() } })
                         EditableField(label: "Address Line 2", text: $addressLine2, icon: "house", onSubmit: { Task { await saveChanges() } })
@@ -379,6 +387,9 @@ struct AddressCard: View {
 
     private func resetFields() {
         fullName = address.fullName ?? ""
+        title = address.title ?? ""
+        firstName = address.firstname ?? ""
+        surname = address.surname ?? ""
         dateOfBirth = address.dateOfBirth ?? ""
         addressLine1 = address.addressLine1 ?? ""
         addressLine2 = address.addressLine2 ?? ""
@@ -406,7 +417,12 @@ struct AddressCard: View {
             updatedAddress.gpAddress = gpAddress.isEmpty ? "" : gpAddress
             updatedAddress.gpPostcode = gpPostcode.isEmpty ? "" : gpPostcode
         } else {
-            updatedAddress.fullName = fullName.isEmpty ? "" : fullName
+            // Join split name fields back into fullName for the override
+            let composedName = [title, firstName, surname]
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+            updatedAddress.fullName = composedName.isEmpty ? "" : composedName
             updatedAddress.dateOfBirth = dateOfBirth.isEmpty ? "" : dateOfBirth
             updatedAddress.addressLine1 = addressLine1.isEmpty ? "" : addressLine1
             updatedAddress.addressLine2 = addressLine2.isEmpty ? "" : addressLine2

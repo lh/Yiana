@@ -898,7 +898,8 @@ class BackendDatabase:
         ).fetchall()
 
         # Only enrich files with filename-parsed patients
-        has_patient = patient_row is not None and parse_patient_filename(json_path.name) is not None
+        filename_patient = parse_patient_filename(json_path.name)
+        has_patient = patient_row is not None and filename_patient is not None
         has_practitioners = len(practitioner_rows) > 0
 
         if not has_patient and not has_practitioners:
@@ -909,6 +910,8 @@ class BackendDatabase:
         if has_patient:
             enriched_content["patient"] = {
                 "full_name": patient_row["full_name"],
+                "surname": filename_patient["surname"],
+                "firstname": filename_patient["firstname"],
                 "date_of_birth": patient_row["date_of_birth"],
                 "source": "filename",
                 "document_count": patient_row["document_count"],

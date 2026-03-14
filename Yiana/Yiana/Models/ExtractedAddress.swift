@@ -148,12 +148,16 @@ struct AddressOverrideEntry: Codable {
 
 struct EnrichedPatientInfo: Codable {
     var fullName: String?
+    var surname: String?
+    var firstname: String?
     var dateOfBirth: String?
     var source: String?
     var documentCount: Int?
 
     private enum CodingKeys: String, CodingKey {
         case fullName = "full_name"
+        case surname
+        case firstname
         case dateOfBirth = "date_of_birth"
         case source
         case documentCount = "document_count"
@@ -194,6 +198,9 @@ struct ExtractedAddress {
 
     // Patient Information
     var fullName: String?
+    var surname: String?
+    var firstname: String?
+    var title: String?
     var dateOfBirth: String?
 
     // Address
@@ -305,6 +312,17 @@ extension ExtractedAddress {
             }
             if let dob = ep.dateOfBirth, !dob.isEmpty {
                 self.dateOfBirth = dob
+            }
+            self.surname = ep.surname
+            self.firstname = ep.firstname
+        }
+
+        // Infer title from fullName if it starts with a known title prefix
+        if self.title == nil, let name = self.fullName {
+            let knownTitles = ["Mr", "Mrs", "Ms", "Miss", "Dr", "Prof"]
+            for t in knownTitles where name.hasPrefix(t + " ") {
+                self.title = t
+                break
             }
         }
     }
