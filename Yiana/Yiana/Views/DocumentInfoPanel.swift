@@ -713,11 +713,15 @@ struct TextAddressParser {
             }
         }
 
-        // Find date of birth
+        // Find date of birth — labelled first, then standalone
         let dobPatterns = [
-            #"(?:DOB|D\.O\.B|Date of Birth)[:\s]+(\d{1,2}[/\-]\d{1,2}[/\-]\d{2,4})"#,
-            #"(?:DOB|D\.O\.B|Date of Birth)[:\s]+(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{2,4})"#,
-            #"\b(\d{2}/\d{2}/\d{4})\b"#
+            // With label: DOB, D.O.B, Date of Birth, Born, etc.
+            #"(?:DOB|D\.O\.B\.?|Date of Birth|Born)[:\s]+(\d{1,2}[/\.\-]\d{1,2}[/\.\-]\d{2,4})"#,
+            #"(?:DOB|D\.O\.B\.?|Date of Birth|Born)[:\s]+(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{2,4})"#,
+            // Standalone: DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY (2 or 4 digit year)
+            #"\b(\d{1,2}[/\.\-]\d{1,2}[/\.\-]\d{2,4})\b"#,
+            // Standalone: 16 July 1939, 16 Jul 39
+            #"\b(\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.?\s+\d{2,4})\b"#,
         ]
         for pattern in dobPatterns {
             if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
