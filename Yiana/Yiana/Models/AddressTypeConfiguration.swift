@@ -113,7 +113,7 @@ extension AddressTypeConfiguration {
                 requiresSubtype: false
             ),
             AddressTypeDefinition(
-                name: "Specialist",
+                name: "Other",
                 icon: "stethoscope",
                 colorName: "green",
                 allowsMultiple: true,
