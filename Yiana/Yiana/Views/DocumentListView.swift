@@ -73,6 +73,11 @@ struct DocumentListView: View {
     @State private var selectedDocumentIDs: Set<UUID> = []
     @State private var showingBulkDeleteConfirmation = false
 
+    // Address status filter (debug aid — filter documents by indicator strip colour)
+    #if os(macOS)
+    @State private var addressStatusFilter: AddressRepository.AddressStatus?
+    #endif
+
     // Sidebar mode (folders vs work list) — iPhone excluded
     #if os(macOS)
     @State private var sidebarMode: DocumentSidebarMode = .folders
@@ -334,6 +339,10 @@ struct DocumentListView: View {
                 if viewModel.isSyncing {
                     iCloudSyncIndicator
                 }
+
+                #if os(macOS)
+                addressStatusFilterBar
+                #endif
 
                 List(selection: isSelectMode ? $selectedDocumentIDs : nil) {
                     documentsSection
@@ -1214,6 +1223,60 @@ struct DocumentListView: View {
         .background(Color.secondary.opacity(0.1))
     }
 
+    // MARK: - Address Status Filter (debug aid — remove if not needed)
+    #if os(macOS)
+    private var addressStatusFilterBar: some View {
+        HStack(spacing: 12) {
+            Text("Filter:")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            ForEach(filterOptions, id: \.label) { option in
+                Button {
+                    if addressStatusFilter == option.status {
+                        addressStatusFilter = nil
+                    } else {
+                        addressStatusFilter = option.status
+                    }
+                } label: {
+                    Circle()
+                        .fill(option.color)
+                        .frame(width: 12, height: 12)
+                        .overlay(
+                            Circle()
+                                .strokeBorder(Color.primary, lineWidth: addressStatusFilter == option.status ? 2 : 0)
+                        )
+                }
+                .buttonStyle(.plain)
+                .help(option.label)
+            }
+
+            if addressStatusFilter != nil {
+                Button("Clear") {
+                    addressStatusFilter = nil
+                }
+                .font(.caption)
+                .buttonStyle(.plain)
+                .foregroundColor(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 4)
+        .background(Color.secondary.opacity(0.05))
+    }
+
+    private var filterOptions: [(label: String, status: AddressRepository.AddressStatus, color: Color)] {
+        [
+            ("No addresses (green)", .noAddresses, .green),
+            ("Unconfirmed (red)", .unconfirmed, .red),
+            ("Confirmed (blue)", .confirmed, .blue),
+        ]
+    }
+    #endif
+    // END Address Status Filter
+
     #if os(iOS)
     private var iosSearchProgress: some View {
         HStack {
@@ -1279,10 +1342,23 @@ struct DocumentListView: View {
     }
 
     @ViewBuilder
+    private var filteredDocuments: [DocumentListItem] {
+        #if os(macOS)
+        guard let filter = addressStatusFilter else { return viewModel.documents }
+        return viewModel.documents.filter { item in
+            let documentId = item.url.deletingPathExtension().lastPathComponent
+            return AddressRepository.addressStatus(forDocumentId: documentId) == filter
+        }
+        #else
+        return viewModel.documents
+        #endif
+    }
+
+    @ViewBuilder
     private var documentsSection: some View {
-        if !viewModel.documents.isEmpty {
+        if !filteredDocuments.isEmpty {
             Section(viewModel.isSearching ? "In This Folder" : "Documents") {
-                ForEach(viewModel.documents) { item in
+                ForEach(filteredDocuments) { item in
                     documentNavigationRow(for: item)
                         .swipeActions(edge: .leading, allowsFullSwipe: true) {
                             Button {
