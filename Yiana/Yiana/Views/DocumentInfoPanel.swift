@@ -766,7 +766,64 @@ struct TextAddressParser {
             }
         }
 
-        // 3. Postcode fallback — NSDataDetector sometimes misses UK postcodes
+        // 3. Label-based fallbacks for structured/form text
+        // NLTagger and NSDataDetector struggle with "Name: James Barr" style labels.
+        let labelPatterns: [(field: String, patterns: [String])] = [
+            ("name", [
+                #"(?:Name|Patient|Patient Name|Full Name)[:\s]+(.+)"#,
+            ]),
+            ("dob", [
+                #"(?:DOB|D\.O\.B\.?|Date of Birth|Born|Date of birth)[:\s]+(.+)"#,
+            ]),
+            ("address", [
+                #"(?:Address)[:\s]+(.+)"#,
+            ]),
+        ]
+        for (field, patterns) in labelPatterns {
+            for pattern in patterns {
+                guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+                      let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+                      let range = Range(match.range(at: 1), in: text) else { continue }
+                let value = String(text[range]).trimmingCharacters(in: .whitespaces)
+                if value.isEmpty { continue }
+
+                switch field {
+                case "name":
+                    if result.fullName == nil { result.fullName = value }
+                case "dob":
+                    if result.dateOfBirth == nil { result.dateOfBirth = value }
+                case "address":
+                    // Parse "18 Link Brow, The Mount, Fetcham, KT22 9DU" into components
+                    if result.addressLine1 == nil {
+                        let parts = value.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                        // Last part with a postcode goes to postcode
+                        let postcodePattern = #"[A-Z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}"#
+                        var addressParts: [String] = []
+                        for part in parts {
+                            if result.postcode == nil,
+                               let pcMatch = part.range(of: postcodePattern, options: .regularExpression) {
+                                result.postcode = String(part[pcMatch]).uppercased()
+                                // Text before postcode in this segment is city/town
+                                let beforePC = part[part.startIndex..<pcMatch.lowerBound]
+                                    .trimmingCharacters(in: .whitespaces)
+                                    .trimmingCharacters(in: CharacterSet(charactersIn: ","))
+                                if !beforePC.isEmpty { addressParts.append(beforePC) }
+                            } else {
+                                addressParts.append(part)
+                            }
+                        }
+                        if !addressParts.isEmpty { result.addressLine1 = addressParts[0] }
+                        if addressParts.count > 1 { result.addressLine2 = addressParts[1] }
+                        if addressParts.count > 2 && result.city == nil { result.city = addressParts.last }
+                    }
+                default:
+                    break
+                }
+                break // found a match for this field, move to next
+            }
+        }
+
+        // 4. Postcode fallback — NSDataDetector sometimes misses UK postcodes
         if result.postcode == nil {
             let postcodePattern = #"[A-Z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}"#
             if let match = text.range(of: postcodePattern, options: .regularExpression) {
