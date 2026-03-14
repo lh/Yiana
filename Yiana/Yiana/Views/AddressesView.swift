@@ -232,22 +232,14 @@ struct AddressCard: View {
 
                 // Type and Prime controls
                 HStack {
-                    // Type selector
+                    // Type selector (only interactive in edit mode)
                     Picker("Type", selection: $selectedType) {
                         ForEach(configManager.currentConfiguration.types) { typeDef in
                             Text(typeDef.name).tag(typeDef.key)
                         }
                     }
                     .pickerStyle(.menu)
-                    .onChange(of: selectedType) { _, newType in
-                        if let typeDef = configManager.currentConfiguration.type(named: newType),
-                           typeDef.requiresSubtype && subtypeName.isEmpty {
-                            showingSubtypeNameInput = true
-                        }
-                        Task {
-                            await updateAddressType()
-                        }
-                    }
+                    .disabled(!isEditingPatient)
 
                     Spacer()
 
@@ -449,6 +441,9 @@ struct AddressCard: View {
             updatedAddress.phoneWork = phoneWork.isEmpty ? "" : phoneWork
             updatedAddress.phoneMobile = phoneMobile.isEmpty ? "" : phoneMobile
         }
+
+        // Include type change if user changed it during editing
+        updatedAddress.addressType = selectedType
 
         do {
             try await repository.saveOverride(
