@@ -801,6 +801,25 @@ struct TextAddressParser {
             result.fullName = best.name
         }
 
+        // 1b. Title-prefix fallback — NLTagger struggles with OCR line breaks
+        // and "Re: Mr Terence Dillon Cedar House" patterns. If we got no name
+        // or only a single word, look for title + 2-3 words.
+        let nameWordCount = result.fullName?.components(separatedBy: " ").count ?? 0
+        if nameWordCount < 2 {
+            // Flatten line breaks for matching — OCR often splits mid-name
+            let flat = text.replacingOccurrences(of: "\n", with: " ")
+                .replacingOccurrences(of: "\r", with: " ")
+            let titleNamePattern = #"(?:^|[\s,:])(Mr|Mrs|Ms|Miss|Dr|Prof)\.?\s+([A-Z][a-zA-Z'\-]+(?:\s+[A-Z][a-zA-Z'\-]+){1,2})"#
+            if let regex = try? NSRegularExpression(pattern: titleNamePattern),
+               let match = regex.firstMatch(in: flat, range: NSRange(flat.startIndex..., in: flat)),
+               let titleRange = Range(match.range(at: 1), in: flat),
+               let nameRange = Range(match.range(at: 2), in: flat) {
+                let titleStr = String(flat[titleRange])
+                let nameStr = String(flat[nameRange])
+                result.fullName = "\(titleStr) \(nameStr)"
+            }
+        }
+
         // 2. Find addresses, phones, dates via NSDataDetector
         let detectorTypes: NSTextCheckingResult.CheckingType = [.address, .phoneNumber, .date]
         if let detector = try? NSDataDetector(types: detectorTypes.rawValue) {
