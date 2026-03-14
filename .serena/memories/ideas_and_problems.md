@@ -15,6 +15,26 @@ Quick-capture list for things that come to mind mid-task.
 
 1. **Connected scanner support on macOS** -- Interesting but out of scope. Bulk scanning from a connected scanner is more of a DevonTHINK use case. We are not trying to compete with or be as complex as that. Would also need external LLM integration to be truly useful (auto-classify, auto-title, auto-folder scanned pages). Park indefinitely unless the product direction changes. Logged 2026-02-25.
 
+## Swift Extraction Service on Devon (logged 2026-03-14)
+
+**Goal:** Replace Python extraction service + backend DB + letter generator with Swift equivalents on Devon.
+
+**Why:**
+- Mac mini already has NLTagger, NSDataDetector, Vision — better than Python regex cascade
+- OCR service is already Swift; one language simplifies deployment and maintenance
+- Eliminates Python venv/PYTHONPATH/launchd headaches
+- NLTagger+NSDataDetector parser (90 lines) already outperforms Python regex extractors
+
+**Approach:**
+- Build Swift extraction service alongside existing Python — run both in parallel, compare outputs
+- No need to take Python down until Swift is proven
+- Backend DB: GRDB.swift (already approved dependency)
+- Letter generator: port last (most complex, lowest priority)
+
+**Blocker:** Devon runs older macOS. NLTagger NER needs macOS 10.14+ (should be fine). NSDataDetector since 10.7. Check Devon's exact macOS version before starting. Tahoe upgrade possible but painful — only needed for Apple Intelligence, not for core NLP frameworks.
+
+**Scope:** extraction_service.py, address_extractor.py, spire_form_extractor.py, backend_db.py, letter_generator.py, letter_system_db_simple.py
+
 ## Work List — reverted and redesigning (2026-03-08)
 
 All work list code reverted from Yiana (commit cd5340a). Eight attempts to fix click navigation inside `List(selection:)` failed. The feature will be reimplemented from scratch with the work list OUTSIDE the sidebar List. Full spec and architectural constraint documented in `HANDOFF.md`. Diagnostic history in `docs/work-list-navigation-failures.md`.
