@@ -329,9 +329,9 @@ struct AddressCard: View {
 
             Divider()
 
-            // Fields based on address type
+            // Fields based on address type (use selectedType during editing)
             VStack(alignment: .leading, spacing: 8) {
-                if address.typedAddressType == .gp {
+                if (isEditingPatient ? selectedType : address.addressType ?? "patient") == "gp" {
                     // GP fields
                     if isEditingPatient {
                         EditableField(label: "GP Name", text: $gpName, icon: "stethoscope", onSubmit: { Task { await saveChanges() } })
@@ -432,8 +432,8 @@ struct AddressCard: View {
 
         var updatedAddress = address
 
-        // Update fields based on address type
-        if address.typedAddressType == .gp {
+        // Update fields based on selected type (not original type)
+        if selectedType == "gp" {
             updatedAddress.gpName = gpName.isEmpty ? "" : gpName
             updatedAddress.gpPractice = gpPractice.isEmpty ? "" : gpPractice
             updatedAddress.gpAddress = gpAddress.isEmpty ? "" : gpAddress
