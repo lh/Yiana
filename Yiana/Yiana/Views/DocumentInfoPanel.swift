@@ -685,44 +685,30 @@ struct TextAddressParser {
         var phone: String?
     }
 
+    private static let postcodePattern = #"[A-Z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}"#
+    private static let phonePattern = #"\b(0\d{3,4}\s?\d{5,7}|07\d{3}\s?\d{6})\b"#
+    private static let dobPatterns = [
+        // With label: DOB, D.O.B, Date of Birth, Born
+        #"(?:DOB|D\.O\.B\.?|Date of Birth|Born)[:\s]+(\d{1,2}[/\.\-]\d{1,2}[/\.\-]\d{2,4})"#,
+        #"(?:DOB|D\.O\.B\.?|Date of Birth|Born)[:\s]+(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{2,4})"#,
+        // Standalone: DD/MM/YYYY, DD-MM-YY, DD.MM.YYYY
+        #"\b(\d{1,2}[/\.\-]\d{1,2}[/\.\-]\d{2,4})\b"#,
+        // Standalone: 16 July 1939, 16 Jul 39
+        #"\b(\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.?\s+\d{2,4})\b"#,
+    ]
+
     static func parse(_ text: String) -> Result {
         var result = Result()
         let lines = text.components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
 
-        let postcodePattern = #"[A-Z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}"#
-
-        // Find UK postcode
+        // Step 1: Find postcode (anchor)
         if let match = text.range(of: postcodePattern, options: .regularExpression) {
             result.postcode = String(text[match]).uppercased()
         }
 
-        // Find name with title
-        let titlePattern = #"(?:^|\b)(Mr|Mrs|Ms|Miss|Dr|Prof)\.?\s+([A-Z][a-zA-Z'\-]+(?:\s+[A-Z][a-zA-Z'\-]+)+)"#
-        if let regex = try? NSRegularExpression(pattern: titlePattern),
-           let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
-           let titleRange = Range(match.range(at: 1), in: text),
-           let nameRange = Range(match.range(at: 2), in: text) {
-            result.title = String(text[titleRange])
-            result.fullName = "\(text[titleRange]) \(text[nameRange])"
-            let nameParts = String(text[nameRange]).components(separatedBy: " ").filter { !$0.isEmpty }
-            if nameParts.count >= 2 {
-                result.firstName = nameParts.dropLast().joined(separator: " ")
-                result.surname = nameParts.last
-            }
-        }
-
-        // Find date of birth — labelled first, then standalone
-        let dobPatterns = [
-            // With label: DOB, D.O.B, Date of Birth, Born, etc.
-            #"(?:DOB|D\.O\.B\.?|Date of Birth|Born)[:\s]+(\d{1,2}[/\.\-]\d{1,2}[/\.\-]\d{2,4})"#,
-            #"(?:DOB|D\.O\.B\.?|Date of Birth|Born)[:\s]+(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{2,4})"#,
-            // Standalone: DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY (2 or 4 digit year)
-            #"\b(\d{1,2}[/\.\-]\d{1,2}[/\.\-]\d{2,4})\b"#,
-            // Standalone: 16 July 1939, 16 Jul 39
-            #"\b(\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.?\s+\d{2,4})\b"#,
-        ]
+        // Step 2: Find DOB
         for pattern in dobPatterns {
             if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
                let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
@@ -732,46 +718,133 @@ struct TextAddressParser {
             }
         }
 
-        // Find phone number (UK formats)
-        let phonePattern = #"\b(0\d{3,4}\s?\d{5,7}|07\d{3}\s?\d{6})\b"#
+        // Step 3: Find phone
         if let regex = try? NSRegularExpression(pattern: phonePattern),
            let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
            let range = Range(match.range(at: 1), in: text) {
             result.phone = String(text[range])
         }
 
-        // Extract address lines before the postcode
-        if let pc = result.postcode {
-            let pcLine = lines.firstIndex {
-                $0.contains(pc) || $0.range(of: postcodePattern, options: .regularExpression) != nil
-            }
-            if let pcIdx = pcLine {
-                var addressLines: [String] = []
-                let skipTerms = [result.fullName, result.dateOfBirth, "DOB", "Date of Birth"]
-                    .compactMap { $0?.lowercased() }
-                for i in stride(from: pcIdx - 1, through: max(0, pcIdx - 4), by: -1) {
-                    let line = lines[i]
-                    let lower = line.lowercased()
-                    if skipTerms.contains(where: { lower.contains($0) }) { continue }
-                    if line.range(of: phonePattern, options: .regularExpression) != nil { continue }
-                    addressLines.insert(line, at: 0)
-                }
-                if !addressLines.isEmpty { result.addressLine1 = addressLines[0] }
-                if addressLines.count > 1 { result.addressLine2 = addressLines[1] }
-                if addressLines.count > 2 { result.city = addressLines[2] }
+        // Step 4: Walk backwards from postcode to find address lines.
+        // Classify each line as: postcode, DOB, phone, or "content".
+        // Content lines between the first content line and the postcode are address.
+        // Content lines before the address block are name candidates.
+        guard result.postcode != nil else { return result }
 
-                // Check for city name before postcode on the same line
-                let pcLineText = lines[pcIdx]
-                if let pcRange = pcLineText.range(of: pc) {
-                    let beforePC = pcLineText[pcLineText.startIndex..<pcRange.lowerBound]
-                        .trimmingCharacters(in: .whitespaces)
-                        .trimmingCharacters(in: CharacterSet(charactersIn: ","))
-                    if !beforePC.isEmpty && result.city == nil {
-                        result.city = beforePC
+        let pcLineIdx = lines.lastIndex {
+            $0.range(of: postcodePattern, options: .regularExpression) != nil
+        }
+        guard let pcIdx = pcLineIdx else { return result }
+
+        // Classify lines by what they contain
+        var lineRoles: [String] = Array(repeating: "content", count: lines.count)
+        for (i, line) in lines.enumerated() {
+            if line.range(of: postcodePattern, options: .regularExpression) != nil {
+                lineRoles[i] = "postcode"
+            } else if line.range(of: phonePattern, options: .regularExpression) != nil {
+                lineRoles[i] = "phone"
+            } else {
+                for pattern in dobPatterns {
+                    if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+                       regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)) != nil {
+                        lineRoles[i] = "dob"
+                        break
                     }
                 }
             }
         }
+
+        // Walk backwards from postcode, collecting address lines (content only)
+        var addressLines: [String] = []
+        for i in stride(from: pcIdx - 1, through: 0, by: -1) {
+            if lineRoles[i] != "content" { continue }
+            // Stop collecting address if we've got enough (max 4 lines)
+            if addressLines.count >= 4 { break }
+            addressLines.insert(lines[i], at: 0)
+        }
+
+        // The postcode line itself may have a city/town before the postcode
+        let pcLineText = lines[pcIdx]
+        if let pcRange = pcLineText.range(of: postcodePattern, options: .regularExpression) {
+            let beforePC = pcLineText[pcLineText.startIndex..<pcRange.lowerBound]
+                .trimmingCharacters(in: .whitespaces)
+                .trimmingCharacters(in: CharacterSet(charactersIn: ","))
+            if !beforePC.isEmpty {
+                addressLines.append(beforePC)
+            }
+        }
+
+        // Step 5: Separate name from address.
+        // If the first address line contains a title (Mr/Mrs/etc), split it there.
+        // The title+name part becomes the name, the rest stays as address.
+        let titles = ["Mr", "Mrs", "Ms", "Miss", "Dr", "Prof"]
+        let titlePattern = #"^((?:Mr|Mrs|Ms|Miss|Dr|Prof)\.?\s+[A-Za-z'\-]+(?:\s+[A-Za-z'\-]+)?)"#
+
+        if let firstLine = addressLines.first,
+           let regex = try? NSRegularExpression(pattern: titlePattern),
+           let match = regex.firstMatch(in: firstLine, range: NSRange(firstLine.startIndex..., in: firstLine)),
+           let nameRange = Range(match.range(at: 1), in: firstLine) {
+            // Found title+name at start of first address line
+            let namePart = String(firstLine[nameRange])
+            let remainder = String(firstLine[nameRange.upperBound...])
+                .trimmingCharacters(in: .whitespaces)
+                .trimmingCharacters(in: CharacterSet(charactersIn: ","))
+
+            result.fullName = namePart
+            // Replace first address line with remainder (if any)
+            if remainder.isEmpty {
+                addressLines.removeFirst()
+            } else {
+                addressLines[0] = remainder
+            }
+        } else {
+            // No title found in address lines — check all content lines before postcode
+            // that aren't already classified. The first content line might be a name.
+            for i in 0..<(pcIdx) {
+                if lineRoles[i] == "content" {
+                    let line = lines[i]
+                    // Check if this line has a title
+                    if titles.contains(where: { line.hasPrefix($0) }) {
+                        if let regex = try? NSRegularExpression(pattern: titlePattern),
+                           let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
+                           let nameRange = Range(match.range(at: 1), in: line) {
+                            result.fullName = String(line[nameRange])
+                            let remainder = String(line[nameRange.upperBound...])
+                                .trimmingCharacters(in: .whitespaces)
+                                .trimmingCharacters(in: CharacterSet(charactersIn: ","))
+                            if !remainder.isEmpty {
+                                addressLines.insert(remainder, at: 0)
+                            }
+                            // Remove this line from address if it was there
+                            addressLines.removeAll { $0 == line }
+                        }
+                    }
+                    break
+                }
+            }
+        }
+
+        // Split name into title/first/surname
+        if let name = result.fullName {
+            for t in titles where name.hasPrefix(t + ".") || name.hasPrefix(t + " ") {
+                result.title = t
+                let afterTitle = name.dropFirst(t.count)
+                    .trimmingCharacters(in: CharacterSet(charactersIn: ". "))
+                let parts = afterTitle.components(separatedBy: " ").filter { !$0.isEmpty }
+                if parts.count >= 2 {
+                    result.firstName = parts.dropLast().joined(separator: " ")
+                    result.surname = parts.last
+                } else if parts.count == 1 {
+                    result.surname = parts[0]
+                }
+                break
+            }
+        }
+
+        // Assign address fields
+        if !addressLines.isEmpty { result.addressLine1 = addressLines[0] }
+        if addressLines.count > 1 { result.addressLine2 = addressLines[1] }
+        if addressLines.count > 2 { result.city = addressLines[2] }
 
         return result
     }
