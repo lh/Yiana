@@ -464,7 +464,7 @@ struct AddressCard: View {
             try await repository.saveOverride(
                 documentId: documentId,
                 pageNumber: address.pageNumber ?? 1,
-                matchAddressType: address.addressType ?? "patient",
+                matchAddressType: address.matchAddressType ?? address.addressType ?? "patient",
                 updatedAddress: updatedAddress,
                 reason: "corrected"
             )
@@ -482,7 +482,7 @@ struct AddressCard: View {
             try await repository.dismissAddress(
                 documentId: documentId,
                 pageNumber: address.pageNumber ?? 1,
-                addressType: address.addressType ?? "patient"
+                addressType: address.matchAddressType ?? address.addressType ?? "patient"
             )
             isEditingPatient = false
             onSave()

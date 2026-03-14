@@ -240,6 +240,7 @@ struct ExtractedAddress {
     var ocrJson: String?
 
     // Prime Address System
+    var matchAddressType: String?  // Original page type for override matching
     var addressType: String?
     var isPrime: Bool?
     var specialistName: String?
@@ -295,6 +296,7 @@ extension ExtractedAddress {
         }
 
         // Override fields take precedence
+        self.matchAddressType = page.addressType ?? "patient"
         self.addressType = override?.addressType ?? page.addressType
         self.isPrime = override?.isPrime ?? page.isPrime
         self.specialistName = override?.specialistName ?? page.specialistName
@@ -372,6 +374,7 @@ extension ExtractedAddress {
         self.gpAddress = gp?.address
         self.gpPostcode = gp?.postcode
 
+        self.matchAddressType = manualOverride.matchAddressType
         self.addressType = manualOverride.addressType ?? manualOverride.matchAddressType
         self.isPrime = manualOverride.isPrime
         self.specialistName = manualOverride.specialistName
