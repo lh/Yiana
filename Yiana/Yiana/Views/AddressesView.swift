@@ -256,6 +256,9 @@ struct AddressCard: View {
                         .toggleStyle(.switch)
                         .onChange(of: isPrime) { _, newValue in
                             Task {
+                                if isEditingPatient {
+                                    await saveChanges()
+                                }
                                 await togglePrimeStatus(newValue)
                             }
                         }
