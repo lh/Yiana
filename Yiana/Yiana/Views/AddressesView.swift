@@ -96,6 +96,9 @@ struct AddressesView: View {
                     }
                 }
             }
+
+            // Add Address button
+            addAddressMenu
         }
         .task {
             await loadAddresses()
@@ -104,6 +107,28 @@ struct AddressesView: View {
             Task {
                 await loadAddresses()
             }
+        }
+    }
+
+    private var addAddressMenu: some View {
+        Menu {
+            Button("Patient") { Task { await addAddress(type: "patient") } }
+            Button("GP") { Task { await addAddress(type: "gp") } }
+            Button("Optician") { Task { await addAddress(type: "optician") } }
+            Button("Other") { Task { await addAddress(type: "specialist") } }
+        } label: {
+            Label("Add Address", systemImage: "plus")
+        }
+        .buttonStyle(.bordered)
+        .frame(maxWidth: .infinity, alignment: .trailing)
+    }
+
+    private func addAddress(type: String) async {
+        do {
+            try await repository.addManualAddress(documentId: documentId, addressType: type)
+            refreshTrigger.toggle()
+        } catch {
+            errorMessage = "Failed to add address: \(error.localizedDescription)"
         }
     }
 

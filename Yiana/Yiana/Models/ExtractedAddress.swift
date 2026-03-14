@@ -328,6 +328,54 @@ extension ExtractedAddress {
     }
 }
 
+// MARK: - Manual Address Init
+
+extension ExtractedAddress {
+    /// Create from a manual override (page 0, no extraction data)
+    init(documentId: String, manualOverride: AddressOverrideEntry) {
+        self.documentId = documentId
+        self.pageNumber = 0
+
+        let patient = manualOverride.patient
+        self.fullName = patient?.fullName
+        self.dateOfBirth = patient?.dateOfBirth
+        self.phoneHome = patient?.phones?.home
+        self.phoneWork = patient?.phones?.work
+        self.phoneMobile = patient?.phones?.mobile
+
+        let address = manualOverride.address
+        self.addressLine1 = address?.line1
+        self.addressLine2 = address?.line2
+        self.city = address?.city
+        self.county = address?.county
+        self.postcode = address?.postcode
+        self.postcodeValid = address?.postcodeValid
+        self.postcodeDistrict = address?.postcodeDistrict
+
+        let gp = manualOverride.gp
+        self.gpName = gp?.name
+        self.gpPractice = gp?.practice
+        self.gpAddress = gp?.address
+        self.gpPostcode = gp?.postcode
+
+        self.addressType = manualOverride.addressType ?? manualOverride.matchAddressType
+        self.isPrime = manualOverride.isPrime
+        self.specialistName = manualOverride.specialistName
+
+        self.extractionConfidence = nil
+        self.extractionMethod = nil
+        self.extractedAt = nil
+        self.country = nil
+        self.gpOdsCode = nil
+        self.gpOfficialName = nil
+        self.rawText = nil
+        self.ocrJson = nil
+        self.surname = nil
+        self.firstname = nil
+        self.title = nil
+    }
+}
+
 // MARK: - Identifiable
 
 extension ExtractedAddress {

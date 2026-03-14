@@ -318,6 +318,23 @@ final class AddressRepository: ObservableObject {
         logger.info("Updated address type for \(documentId) page \(pageNumber) to \(newType)")
     }
 
+    /// Add a manual address (not from extraction) on virtual page 0
+    func addManualAddress(documentId: String, addressType: String) async throws {
+        var file = try readOrCreateFile(forDocument: documentId)
+
+        let override = AddressOverrideEntry(
+            pageNumber: 0,
+            matchAddressType: addressType,
+            addressType: addressType,
+            overrideReason: "manual",
+            overrideDate: ISO8601DateFormatter().string(from: Date())
+        )
+        file.overrides.append(override)
+
+        try atomicWrite(file: file)
+        logger.info("Added manual \(addressType) address for \(documentId)")
+    }
+
     // MARK: - Private Helpers
 
     /// Read and decode an address JSON file
@@ -351,21 +368,40 @@ final class AddressRepository: ObservableObject {
 
     /// Resolve pages + overrides into flat ExtractedAddress array
     private func resolveAddresses(from file: DocumentAddressFile) -> [ExtractedAddress] {
-        file.pages.map { page in
+        // Track which overrides are consumed by page entries
+        var matchedOverrides = Set<Int>()
+
+        let pageAddresses = file.pages.map { page in
             // Find the most recent override matching this page
-            let override = file.overrides
-                .filter { $0.pageNumber == page.pageNumber && $0.matchAddressType == (page.addressType ?? "patient") }
-                .sorted { ($0.overrideDate ?? "") > ($1.overrideDate ?? "") }
+            let overrideWithIndex = file.overrides.enumerated()
+                .filter { $0.element.pageNumber == page.pageNumber && $0.element.matchAddressType == (page.addressType ?? "patient") }
+                .sorted { ($0.element.overrideDate ?? "") > ($1.element.overrideDate ?? "") }
                 .first
+
+            if let match = overrideWithIndex {
+                matchedOverrides.insert(match.offset)
+            }
 
             return ExtractedAddress(
                 documentId: file.documentId,
                 page: page,
-                override: override,
+                override: overrideWithIndex?.element,
                 extractedAt: file.extractedAt,
                 enriched: file.enriched
             )
         }
+
+        // Include manual addresses (unmatched overrides on page 0)
+        let manualAddresses = file.overrides.enumerated()
+            .filter { !matchedOverrides.contains($0.offset) && $0.element.pageNumber == 0 }
+            .map { (_, override) in
+                ExtractedAddress(
+                    documentId: file.documentId,
+                    manualOverride: override
+                )
+            }
+
+        return pageAddresses + manualAddresses
     }
 
     /// Atomic write: encode to temp file, then replace
