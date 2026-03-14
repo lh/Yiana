@@ -91,6 +91,18 @@ final class AddressRepository: ObservableObject {
                 }
             }
 
+            // Check manual addresses (page 0 overrides not matched to any page)
+            for override in file.overrides where override.pageNumber == 0 {
+                let effectiveType = override.addressType ?? override.matchAddressType
+                if override.isPrime == true {
+                    switch effectiveType {
+                    case "patient": hasPatientPrime = true
+                    case "gp": hasGPPrime = true
+                    default: break
+                    }
+                }
+            }
+
             if hasPatientPrime && hasGPPrime {
                 return .confirmed
             }
