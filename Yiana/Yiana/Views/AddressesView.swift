@@ -216,10 +216,10 @@ struct AddressCard: View {
             VStack(spacing: 8) {
                 HStack {
                     Image(systemName: currentTypeDefinition?.icon ?? "folder.fill")
-                        .foregroundColor(currentTypeDefinition?.color ?? .gray)
-                        .opacity(isPrime ? 1.0 : 0.5)
+                        .foregroundColor(isPrime ? (currentTypeDefinition?.color ?? .gray) : .secondary)
                     Text(addressTypeLabel)
                         .font(.headline)
+                        .foregroundColor(isPrime ? .primary : .secondary)
                     Spacer()
 
                     // Page number
