@@ -242,19 +242,13 @@ struct AddressCard: View {
                         .pickerStyle(.menu)
                     }
 
-                    Spacer()
+                    if isEditingPatient {
+                        Spacer()
 
-                    // Prime toggle
-                    Toggle("Prime", isOn: $isPrime)
-                        .toggleStyle(.switch)
-                        .onChange(of: isPrime) { _, newValue in
-                            Task {
-                                if isEditingPatient {
-                                    await saveChanges()
-                                }
-                                await togglePrimeStatus(newValue)
-                            }
-                        }
+                        // Prime toggle
+                        Toggle("Prime", isOn: $isPrime)
+                            .toggleStyle(.switch)
+                    }
                 }
                 .font(.caption)
 
@@ -443,8 +437,9 @@ struct AddressCard: View {
             updatedAddress.phoneMobile = phoneMobile.isEmpty ? "" : phoneMobile
         }
 
-        // Include type change if user changed it during editing
+        // Include type and prime changes from editing
         updatedAddress.addressType = selectedType
+        updatedAddress.isPrime = isPrime
 
         do {
             try await repository.saveOverride(
