@@ -147,6 +147,8 @@ struct OCRView: View {
     private var metadata: DocumentMetadata { document.metadata }
     @State private var searchText = ""
     @State private var selectedText = ""
+    @State private var parsedPreview: TextAddressParser.Result?
+    @State private var previewType: String = "patient"
     @StateObject private var repository = AddressRepository()
 
     var body: some View {
@@ -229,15 +231,20 @@ struct OCRView: View {
                             Spacer()
 
                             Menu {
-                                Button("Patient") { Task { await extractAddressFromSelection(type: "patient") } }
-                                Button("GP") { Task { await extractAddressFromSelection(type: "gp") } }
-                                Button("Optician") { Task { await extractAddressFromSelection(type: "optician") } }
-                                Button("Other") { Task { await extractAddressFromSelection(type: "specialist") } }
+                                Button("Patient") { parsePreview(type: "patient") }
+                                Button("GP") { parsePreview(type: "gp") }
+                                Button("Optician") { parsePreview(type: "optician") }
+                                Button("Other") { parsePreview(type: "specialist") }
                             } label: {
                                 Label("Address it!", systemImage: "mappin.and.ellipse")
                             }
                             .menuStyle(.borderedButton)
                             .disabled(selectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
+
+                        // Inline preview of parsed address
+                        if let preview = parsedPreview {
+                            addressPreviewCard(preview)
                         }
 
                         reprocessOCRButton
@@ -321,28 +328,91 @@ struct OCRView: View {
         }
     }
 
-    private func extractAddressFromSelection(type: String) async {
-        let parsed = TextAddressParser.parse(selectedText)
+    private func parsePreview(type: String) {
+        parsedPreview = TextAddressParser.parse(selectedText)
+        previewType = type
+    }
+
+    private func addressPreviewCard(_ preview: TextAddressParser.Result) -> some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(previewType.capitalized)
+                        .font(.caption.bold())
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Button("Discard") {
+                        parsedPreview = nil
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.secondary)
+
+                    Button("Save") {
+                        Task { await savePreview(preview) }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                }
+
+                Divider()
+
+                if let name = preview.fullName {
+                    previewRow("Name", name)
+                }
+                if let dob = preview.dateOfBirth {
+                    previewRow("DOB", dob)
+                }
+                if let addr = preview.addressLine1 {
+                    previewRow("Address", [addr, preview.addressLine2, preview.city]
+                        .compactMap { $0 }.joined(separator: ", "))
+                }
+                if let pc = preview.postcode {
+                    previewRow("Postcode", pc)
+                }
+                if let phone = preview.phone {
+                    previewRow("Phone", phone)
+                }
+
+                if preview.fullName == nil && preview.postcode == nil && preview.phone == nil {
+                    Text("Nothing recognised — try selecting different text")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+            }
+            .padding(4)
+        }
+    }
+
+    private func previewRow(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(width: 60, alignment: .trailing)
+            Text(value)
+                .font(.caption)
+        }
+    }
+
+    private func savePreview(_ preview: TextAddressParser.Result) async {
         let documentId = document.metadata.title
 
-        // Build a pre-filled address and save as manual override
         var address = ExtractedAddress(documentId: documentId, pageNumber: 0)
-        address.fullName = parsed.fullName
-        address.title = parsed.title
-        address.firstname = parsed.firstName
-        address.surname = parsed.surname
-        address.dateOfBirth = parsed.dateOfBirth
-        address.addressLine1 = parsed.addressLine1
-        address.addressLine2 = parsed.addressLine2
-        address.city = parsed.city
-        address.postcode = parsed.postcode
-        address.phoneHome = parsed.phone
-        address.addressType = type
+        address.fullName = preview.fullName
+        address.title = preview.title
+        address.firstname = preview.firstName
+        address.surname = preview.surname
+        address.dateOfBirth = preview.dateOfBirth
+        address.addressLine1 = preview.addressLine1
+        address.addressLine2 = preview.addressLine2
+        address.city = preview.city
+        address.postcode = preview.postcode
+        address.phoneHome = preview.phone
+        address.addressType = previewType
 
-        // For GP type, put the name in gpName instead of fullName
-        if type == "gp" {
-            address.gpName = parsed.fullName
-            address.gpPostcode = parsed.postcode
+        if previewType == "gp" {
+            address.gpName = preview.fullName
+            address.gpPostcode = preview.postcode
             address.fullName = nil
         }
 
@@ -350,10 +420,11 @@ struct OCRView: View {
             try await repository.saveOverride(
                 documentId: documentId,
                 pageNumber: 0,
-                matchAddressType: type,
+                matchAddressType: previewType,
                 updatedAddress: address,
                 reason: "manual"
             )
+            parsedPreview = nil
             onAddressExtracted?()
         } catch {
             print("Failed to save extracted address: \(error)")
