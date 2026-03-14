@@ -380,9 +380,26 @@ extension ExtractedAddress {
         self.gpOfficialName = nil
         self.rawText = nil
         self.ocrJson = nil
+        // Infer title/firstname/surname from fullName
         self.surname = nil
         self.firstname = nil
         self.title = nil
+        if let name = self.fullName {
+            let knownTitles = ["Mr", "Mrs", "Ms", "Miss", "Dr", "Prof"]
+            for t in knownTitles where name.hasPrefix(t + " ") || name.hasPrefix(t + ". ") {
+                self.title = t
+                let afterTitle = String(name.dropFirst(t.count))
+                    .trimmingCharacters(in: CharacterSet(charactersIn: ". "))
+                let parts = afterTitle.components(separatedBy: " ").filter { !$0.isEmpty }
+                if parts.count >= 2 {
+                    self.firstname = parts.dropLast().joined(separator: " ")
+                    self.surname = parts.last
+                } else if parts.count == 1 {
+                    self.surname = parts[0]
+                }
+                break
+            }
+        }
     }
 }
 
