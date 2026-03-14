@@ -347,6 +347,23 @@ final class AddressRepository: ObservableObject {
         logger.info("Added manual \(addressType) address for \(documentId)")
     }
 
+    /// Dismiss an extracted address (hide from UI without deleting)
+    func dismissAddress(documentId: String, pageNumber: Int, addressType: String) async throws {
+        var file = try readOrCreateFile(forDocument: documentId)
+
+        let override = AddressOverrideEntry(
+            pageNumber: pageNumber,
+            matchAddressType: addressType,
+            overrideReason: "dismissed",
+            overrideDate: ISO8601DateFormatter().string(from: Date()),
+            isDismissed: true
+        )
+        file.overrides.append(override)
+
+        try atomicWrite(file: file)
+        logger.info("Dismissed \(addressType) on page \(pageNumber) for \(documentId)")
+    }
+
     /// Delete all page-0 overrides for a given address type
     func deleteManualAddress(documentId: String, addressType: String) async throws {
         var file = try readOrCreateFile(forDocument: documentId)
@@ -432,7 +449,7 @@ final class AddressRepository: ObservableObject {
             )
         }
 
-        return pageAddresses + manualAddresses
+        return (pageAddresses + manualAddresses).filter { $0.isDismissed != true }
     }
 
     /// Atomic write: encode to temp file, then replace

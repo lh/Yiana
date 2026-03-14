@@ -129,6 +129,7 @@ struct AddressOverrideEntry: Codable {
     var specialistName: String?
     var overrideReason: String?
     var overrideDate: String?
+    var isDismissed: Bool?
 
     private enum CodingKeys: String, CodingKey {
         case pageNumber = "page_number"
@@ -141,6 +142,7 @@ struct AddressOverrideEntry: Codable {
         case specialistName = "specialist_name"
         case overrideReason = "override_reason"
         case overrideDate = "override_date"
+        case isDismissed = "is_dismissed"
     }
 }
 
@@ -241,6 +243,7 @@ struct ExtractedAddress {
     var addressType: String?
     var isPrime: Bool?
     var specialistName: String?
+    var isDismissed: Bool?
 }
 
 // MARK: - Conversion from JSON structs to view model
@@ -295,6 +298,7 @@ extension ExtractedAddress {
         self.addressType = override?.addressType ?? page.addressType
         self.isPrime = override?.isPrime ?? page.isPrime
         self.specialistName = override?.specialistName ?? page.specialistName
+        self.isDismissed = override?.isDismissed
 
         // Fields not in the JSON schema
         self.country = nil
@@ -371,6 +375,7 @@ extension ExtractedAddress {
         self.addressType = manualOverride.addressType ?? manualOverride.matchAddressType
         self.isPrime = manualOverride.isPrime
         self.specialistName = manualOverride.specialistName
+        self.isDismissed = manualOverride.isDismissed
 
         self.extractionConfidence = nil
         self.extractionMethod = nil

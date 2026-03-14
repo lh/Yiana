@@ -280,12 +280,20 @@ struct AddressCard: View {
 
                     // Edit/Save/Cancel buttons
                     if isEditingPatient {
-                        // Delete button for manual addresses (page 0)
+                        // Delete (page 0) or Dismiss (extracted) button
                         if address.pageNumber == 0 {
                             Button(role: .destructive) {
                                 Task { await deleteManualAddress() }
                             } label: {
                                 Label("Delete", systemImage: "trash")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            Button(role: .destructive) {
+                                Task { await dismissAddress() }
+                            } label: {
+                                Label("Dismiss", systemImage: "eye.slash")
                                     .font(.caption)
                             }
                             .buttonStyle(.plain)
@@ -467,6 +475,20 @@ struct AddressCard: View {
         }
 
         isSavingPatient = false
+    }
+
+    private func dismissAddress() async {
+        do {
+            try await repository.dismissAddress(
+                documentId: documentId,
+                pageNumber: address.pageNumber ?? 1,
+                addressType: address.addressType ?? "patient"
+            )
+            isEditingPatient = false
+            onSave()
+        } catch {
+            print("Failed to dismiss address: \(error)")
+        }
     }
 
     private func deleteManualAddress() async {
