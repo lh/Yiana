@@ -224,18 +224,6 @@ struct AddressCard: View {
                         }
                     }
 
-                    // Subtype name input (if type requires it)
-                    if let typeDef = currentTypeDefinition, typeDef.requiresSubtype {
-                        TextField("Specify", text: $subtypeName)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(maxWidth: 150)
-                            .onSubmit {
-                                Task {
-                                    await updateAddressType()
-                                }
-                            }
-                    }
-
                     Spacer()
 
                     // Prime toggle
