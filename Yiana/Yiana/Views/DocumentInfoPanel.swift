@@ -819,7 +819,8 @@ struct TextAddressParser {
             // Greedy: take title + up to 5 capitalised words. Better to over-match
             // (user deletes "Cedar House") than under-match (user has to type the name).
             // Stops at comma, digits, or known labels.
-            let titleNamePattern = #"(?:^|[\s,:])(Mr|Mrs|Ms|Miss|Dr|Prof)\.?\s+((?:[A-Z][a-zA-Z'\-]+\s+){1,4}[A-Z][a-zA-Z'\-]+)"#
+            // Allow single-letter initials (e.g. "Dr T Smith-Meighoo")
+            let titleNamePattern = #"(?:^|[\s,:])(Mr|Mrs|Ms|Miss|Dr|Prof)\.?\s+((?:[A-Z][a-zA-Z'\-]*\s+){1,4}[A-Z][a-zA-Z'\-]+)"#
             if let regex = try? NSRegularExpression(pattern: titleNamePattern),
                let match = regex.firstMatch(in: flat, range: NSRange(flat.startIndex..., in: flat)),
                let titleRange = Range(match.range(at: 1), in: flat),
