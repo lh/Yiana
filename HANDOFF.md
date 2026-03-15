@@ -2,7 +2,7 @@
 
 ## Session Summary
 
-Wired NHS ODS lookup database into the backend extraction pipeline. GP postcodes in address data are now automatically enriched with practice name, address, and ODS code. Multiple UI improvements to address cards.
+Wired NHS ODS lookup database into the backend extraction pipeline. GP postcodes in address data are now automatically enriched with practice name, address, and ODS code. Multiple UI improvements to address cards. Search performance fix.
 
 ## What Was Completed
 
@@ -23,6 +23,12 @@ Wired NHS ODS lookup database into the backend extraction pipeline. GP postcodes
 4. **Quick dismiss** — red trash icon on non-prime card headers (dismiss for extracted, delete for manual page-0 entries). No need to enter edit mode
 5. **Field clear button** — red X below icon on editable fields, visible when field has content
 6. **View reload on appear** — addresses reload when switching back to a document (picks up iCloud-synced enrichment)
+
+### Search Improvements
+
+1. **Search on Enter only** — macOS custom toolbar TextField and iOS .searchable both submit on Enter, not per-keystroke. Eliminates spinning wheel on every character
+2. **Results clear on document open** — navigating to a document from search results clears the filter, restoring the full document list. Search text stays in the field for easy re-search
+3. **Removed duplicate search bar** — macOS had both a custom TextField and .searchable; now only the toolbar TextField
 
 ## Architecture Decision
 
@@ -52,6 +58,7 @@ NHS data stays on Devon only (not bundled in app). The app is a general-purpose 
 | `AddressExtractor/nhs_lookup.db` | Cleaned DB (not in git — licensing) |
 | `Yiana/Yiana/Models/ExtractedAddress.swift` | NHSCandidate struct, GPInfo extensions |
 | `Yiana/Yiana/Views/AddressesView.swift` | Per-type fields, quick dismiss, field clear, NHS candidates view |
+| `Yiana/Yiana/Views/DocumentListView.swift` | Search on Enter, clear results on navigation |
 
 ## Branch Status
 
