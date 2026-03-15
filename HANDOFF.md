@@ -1,67 +1,49 @@
-# Session Handoff — 2026-03-15
+# Session Handoff — 2026-03-15 (evening)
 
-## Session Summary
+## Branch
+`feature/worklist-integration` — 2 commits ahead of main.
 
-Wired NHS ODS lookup database into the backend extraction pipeline. GP postcodes in address data are now automatically enriched with practice name, address, and ODS code. Multiple UI improvements to address cards. Search performance fix.
+## Completed
 
-## What Was Completed
+### MRN in address data (commit 570a447, merged to main)
+- `mrn: String?` added to `PatientInfo` in both Yiana and Yiale
+- `ExtractedAddress` struct and both init paths carry MRN through
+- `AddressRepository.saveOverride()` passes MRN to PatientInfo
+- AddressCard UI: MRN field in edit form (first field before Title) and read-only display
+- Yiale `ResolvedPatient` reads `patient?.mrn` instead of parsing DOB from filename
 
-### NHS Lookup Enrichment (Backend)
+### Unified work list (commit 570a447, merged to main)
+- `SharedWorkList`/`SharedWorkListItem` model in both apps, shared via `.worklist.json`
+- `id: String` (MRN for clinic list items, UUID string for manual/document)
+- Yiana watches `.worklist.json` via NSMetadataQuery (replaces deleted YialeSyncService)
+- One-time migration from `.yiana-worklist.json` on first Yiana load
+- Yiale updated: WorkList/WorkListItem are typealiases to shared types
 
-1. **NHSLookup class** in `extraction_service.py` — queries `nhs_lookup.db` (on Devon at `~/Data/nhs_lookup.db`)
-2. **Post-extraction enrichment** — when OCR extraction finds a GP postcode, looks it up immediately
-3. **`--nhs-enrich` CLI** — batch enrichment of existing `.addresses/` files. Scans pages[] and overrides[] for GP postcodes without ODS codes
-4. **Cron on Devon** — `*/2 * * * *` runs `--nhs-enrich` every 2 minutes for near-real-time enrichment
-5. **District fallback** — if exact postcode match fails, searches by postcode district and scores candidates using name/address hints from page data. Handles cases where the source document has a slightly wrong postcode (e.g., NR11 7NP vs NR11 7NN for Aldborough Surgery)
-6. **Database cleanup** — merged `branch_surgeries` into `gp_practices` (single table), removed COVID vaccination services, PCN hubs, out-of-hours entries, and other administrative noise. 4,016 GP practices, 7,008 opticians
+### MRN extraction from OCR (commit 7b4f03d, on feature branch)
+- `spire_form_extractor.py`: extracts MRN from `Patient_ XXXXXXXX` pattern (6-10 digits)
+- `extraction_service.py`: passes `mrn` through to patient dict in `.addresses/*.json`
+- Added `--reprocess-all` flag; ran on Devon — 548 documents now have MRNs
 
-### Swift App Changes
+### OCR service crash-loop fix (commit 128a8d3, on feature branch, deployed to Devon)
+- **Root cause**: `DocumentMetadata.init(from:)` in OCR service tried `1...0` range when `pageCount == 0` and no `pageProcessingStates` existed — fatal SIGTRAP
+- App had `count > 0` guard but OCR service copy didn't
+- The crash-loop was preventing ALL OCR processing since whenever the 0-page document appeared
+- Fix applied, binary built and deployed to Devon — service now stable
 
-1. **NHS data decoding** — `GPInfo` extended with `odsCode`, `officialName`, `nhsCandidates` fields. `NHSCandidate` struct for multiple-match display
-2. **Per-type field layouts** — Patient cards show DOB/title/name split; GP cards show practice/address/ODS; Optician/Specialist cards show name/address/phone (no DOB)
-3. **Postcode deduplication** — removed postcode from `formattedPatientAddress` since it's shown separately in its own row
-4. **Quick dismiss** — red trash icon on non-prime card headers (dismiss for extracted, delete for manual page-0 entries). No need to enter edit mode
-5. **Field clear button** — red X below icon on editable fields, visible when field has content
-6. **View reload on appear** — addresses reload when switching back to a document (picks up iCloud-synced enrichment)
+## Needs Verification
 
-### Search Improvements
+### OCR reprocess button
+- Triggered "Reprocess OCR" on `Zivilik_Mark_020661` — Devon picked it up at 22:58 and produced results
+- Yiana showed "not processed" — likely iCloud sync delay
+- **Check in morning**: does the document show OCR results after sync?
 
-1. **Search on Enter only** — macOS custom toolbar TextField and iOS .searchable both submit on Enter, not per-keystroke. Eliminates spinning wheel on every character
-2. **Results clear on document open** — navigating to a document from search results clears the filter, restoring the full document list. Search text stays in the field for easy re-search
-3. **Removed duplicate search bar** — macOS had both a custom TextField and .searchable; now only the toolbar TextField
+## Next Steps
 
-## Architecture Decision
-
-NHS data stays on Devon only (not bundled in app). The app is a general-purpose document manager; healthcare-specific data belongs in the backend. Enrichment flows through iCloud sync: app saves postcode → iCloud syncs to Devon → cron enriches → iCloud syncs back.
-
-## Deployment State
-
-- `extraction_service.py` copied directly to Devon (not via git pull — feature branch not merged)
-- `nhs_lookup.db` deployed to `~/Data/nhs_lookup.db` on Devon
-- Cron active: `*/2 * * * *` running `--nhs-enrich`
-- Extraction service restarted with updated code
-- First batch enrichment run: 81 files enriched, ~80 with candidates
+1. **Re-extract button in info sidebar** — trigger address re-extraction without redoing OCR
+2. **Page-specific OCR reprocess** — currently reprocesses entire document
+3. **Merge feature branch to main** — once verified
+4. **OCR service model drift** — `YianaDocument.swift` in OCR service is missing `hasPendingTextPage`, `pdfHash` fields and uses `String?` for `ocrSource` instead of `OCRSource` enum. Not crashing but should be synced.
 
 ## Known Issues
-
-- **iCloud sync latency** — enrichment round-trip is 2min cron + iCloud sync both ways. Usually under 5 minutes total
-- **Stale candidates** — some files still have `nhs_candidates` from before DB cleanup. These will persist until the override is re-saved or manually cleared
-- **Optician lookup not wired** — `lookup_optician()` exists but enrichment only runs for GP postcodes currently
-- **Multiple overrides accumulate** — each edit creates a new override entry rather than updating in place. Works but makes files verbose
-- **Dead code** — `highlightedText()` in DocumentInfoPanel, `updateAddressType()` in AddressesView. Clean up when stable
-
-## Key Files
-
-| File | Changes |
-|------|---------|
-| `AddressExtractor/extraction_service.py` | NHSLookup class, enrichment pipeline, district fallback |
-| `AddressExtractor/nhs_lookup.db` | Cleaned DB (not in git — licensing) |
-| `Yiana/Yiana/Models/ExtractedAddress.swift` | NHSCandidate struct, GPInfo extensions |
-| `Yiana/Yiana/Views/AddressesView.swift` | Per-type fields, quick dismiss, field clear, NHS candidates view |
-| `Yiana/Yiana/Views/DocumentListView.swift` | Search on Enter, clear results on navigation |
-
-## Branch Status
-
-- `main` — stable, all prior work merged
-- `feature/address-from-selection` — active development, pushed to remote
-- Devon has the latest `extraction_service.py` via direct scp (not git)
+- OCR service reprocesses test files every scan cycle (Latex rusTeX, "2 is a very short name", McTestface) — noisy but harmless
+- Extraction service `on_modified` handler skips files already in `processed_files` set — need separate trigger mechanism for re-extract
