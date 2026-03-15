@@ -1,85 +1,60 @@
-# Session Handoff — 2026-03-14 (evening)
+# Session Handoff — 2026-03-15
 
 ## Session Summary
 
-Major address panel overhaul plus "Address it!" text extraction feature. Two tracks: address card UI improvements merged to main, and experimental text extraction on `feature/address-from-selection`.
+Wired NHS ODS lookup database into the backend extraction pipeline. GP postcodes in address data are now automatically enriched with practice name, address, and ODS code. Multiple UI improvements to address cards.
 
 ## What Was Completed
 
-### On `main` (merged)
+### NHS Lookup Enrichment (Backend)
 
-1. **Name field split** — surname/firstname surfaced from filename parse through enrichment pipeline. Edit mode shows Title / First name(s) / Surname. Save joins back to fullName for backward compat.
-2. **is_prime cleanup** — Extraction service no longer auto-sets is_prime. Cleared 1433 migrated auto-primes. Only human-set primes preserved.
-3. **Address card UI cleanup:**
-   - "Specialist" renamed to "Other" (display only, JSON stays "specialist")
-   - `key` field on `AddressTypeDefinition` decouples display label from JSON value
-   - Subtype name TextField removed from card header
-   - Type picker and prime toggle in edit mode only
-   - Grey header for non-prime cards
-4. **Manual address entry** — page-0 virtual addresses via overrides. Add Address menu. Delete for manual, Dismiss for extracted.
-5. **Auto-save on prime toggle** during editing
-6. **matchAddressType tracking** — fixes dismiss/save using wrong override key
-7. **selectedType for field display** — changing type in edit mode shows correct fields
-8. **Address status indicator** includes page-0 manual overrides
+1. **NHSLookup class** in `extraction_service.py` — queries `nhs_lookup.db` (on Devon at `~/Data/nhs_lookup.db`)
+2. **Post-extraction enrichment** — when OCR extraction finds a GP postcode, looks it up immediately
+3. **`--nhs-enrich` CLI** — batch enrichment of existing `.addresses/` files. Scans pages[] and overrides[] for GP postcodes without ODS codes
+4. **Cron on Devon** — `*/2 * * * *` runs `--nhs-enrich` every 2 minutes for near-real-time enrichment
+5. **District fallback** — if exact postcode match fails, searches by postcode district and scores candidates using name/address hints from page data. Handles cases where the source document has a slightly wrong postcode (e.g., NR11 7NP vs NR11 7NN for Aldborough Surgery)
+6. **Database cleanup** — merged `branch_surgeries` into `gp_practices` (single table), removed COVID vaccination services, PCN hubs, out-of-hours entries, and other administrative noise. 4,016 GP practices, 7,008 opticians
 
-### On `feature/address-from-selection` (not merged)
+### Swift App Changes
 
-1. **SelectableTextView** — NSTextView wrapper for OCR panel. Scroll elasticity disabled.
-2. **"Address it!" button** — menu with Patient/GP/Optician/Other. Inline preview card below OCR text. Save/Discard.
-3. **Text parser** (three layers):
-   - NLTagger (NER) for person names
-   - NSDataDetector for addresses, phones, dates
-   - Label fallbacks ("Name:", "DOB:", "Add:")
-   - Title-prefix fallback (greedy, up to 5 words)
-   - UK postcode regex fallback
-4. **Address status filter bar** — coloured dots (grey/green/red/blue) above document list. Debug aid, marked for easy removal.
-5. **NHS lookup database** — `nhs_lookup.db` (NOT in git, licensing):
-   - 1,592 GP practices with full addresses (ODS API)
-   - 3,900 branch surgeries (NHS CSV)
-   - 7,008 opticians (NHS CSV)
-   - Deployed to Devon at `~/Data/nhs_lookup.db`
-   - Local copy at `AddressExtractor/nhs_lookup.db`
+1. **NHS data decoding** — `GPInfo` extended with `odsCode`, `officialName`, `nhsCandidates` fields. `NHSCandidate` struct for multiple-match display
+2. **Per-type field layouts** — Patient cards show DOB/title/name split; GP cards show practice/address/ODS; Optician/Specialist cards show name/address/phone (no DOB)
+3. **Postcode deduplication** — removed postcode from `formattedPatientAddress` since it's shown separately in its own row
+4. **Quick dismiss** — red trash icon on non-prime card headers (dismiss for extracted, delete for manual page-0 entries). No need to enter edit mode
+5. **Field clear button** — red X below icon on editable fields, visible when field has content
+6. **View reload on appear** — addresses reload when switching back to a document (picks up iCloud-synced enrichment)
 
-## Next Step: Wire NHS Lookup into "Address it!"
+## Architecture Decision
 
-When user clicks "Address it! > GP" and parser finds a postcode:
-- Look up postcode in `nhs_lookup.db` → gp_practices table
-- One match: auto-fill practice name + address in preview
-- Multiple matches: show picker
-- Same for "Address it! > Optician" → opticians table
+NHS data stays on Devon only (not bundled in app). The app is a general-purpose document manager; healthcare-specific data belongs in the backend. Enrichment flows through iCloud sync: app saves postcode → iCloud syncs to Devon → cron enriches → iCloud syncs back.
 
-**Decision needed:** how to make the DB accessible to the Swift app:
-- **Bundle in app** (1.7MB, simplest, works offline)
-- **Query Devon via network** (adds latency, but always current)
-- Bundling recommended for now
+## Deployment State
+
+- `extraction_service.py` copied directly to Devon (not via git pull — feature branch not merged)
+- `nhs_lookup.db` deployed to `~/Data/nhs_lookup.db` on Devon
+- Cron active: `*/2 * * * *` running `--nhs-enrich`
+- Extraction service restarted with updated code
+- First batch enrichment run: 81 files enriched, ~80 with candidates
 
 ## Known Issues
 
-- **Dismiss needs re-testing** on GP type after matchAddressType fix
-- **Parser limitations** — NLTagger struggles with OCR line breaks. Label fallbacks help but don't cover all cases
-- **Dead code** — `highlightedText()` in DocumentInfoPanel, `updateAddressType()` in AddressesView. Clean up when stable.
-- **Feature branch not merged** — needs more testing
+- **iCloud sync latency** — enrichment round-trip is 2min cron + iCloud sync both ways. Usually under 5 minutes total
+- **Stale candidates** — some files still have `nhs_candidates` from before DB cleanup. These will persist until the override is re-saved or manually cleared
+- **Optician lookup not wired** — `lookup_optician()` exists but enrichment only runs for GP postcodes currently
+- **Multiple overrides accumulate** — each edit creates a new override entry rather than updating in place. Works but makes files verbose
+- **Dead code** — `highlightedText()` in DocumentInfoPanel, `updateAddressType()` in AddressesView. Clean up when stable
 
 ## Key Files
 
 | File | Changes |
 |------|---------|
-| `AddressExtractor/backend_db.py` | Enrichment writes surname/firstname |
-| `AddressExtractor/extraction_service.py` | is_prime defaults to None |
-| `AddressExtractor/letter_generator.py` | Uses enriched surname |
-| `Yiana/Models/ExtractedAddress.swift` | surname/firstname/title/isDismissed/matchAddressType |
-| `Yiana/Models/AddressTypeConfiguration.swift` | key field, "Other" label |
-| `Yiana/Views/AddressesView.swift` | Edit mode controls, manual/dismiss/delete |
-| `Yiana/Services/AddressRepository.swift` | Manual addresses, dismiss, page-0 resolution |
-| `Yiana/Views/DocumentInfoPanel.swift` | SelectableTextView, TextAddressParser, preview (feature branch) |
-| `Yiana/Views/DocumentListView.swift` | Status filter bar (feature branch) |
+| `AddressExtractor/extraction_service.py` | NHSLookup class, enrichment pipeline, district fallback |
+| `AddressExtractor/nhs_lookup.db` | Cleaned DB (not in git — licensing) |
+| `Yiana/Yiana/Models/ExtractedAddress.swift` | NHSCandidate struct, GPInfo extensions |
+| `Yiana/Yiana/Views/AddressesView.swift` | Per-type fields, quick dismiss, field clear, NHS candidates view |
 
 ## Branch Status
 
-- `main` — all address card improvements merged and pushed
-- `feature/address-from-selection` — pushed to remote, not merged. Active development.
-- Devon SSH: `devon@devon-6` (key auth works)
-
-## Future Work (in Serena memory `ideas_and_problems`)
-
-**Swift extraction service on Devon** — replace Python extractors with Swift using NLTagger + NSDataDetector. Devon runs macOS 14.8 (Sonoma), frameworks fully available. Build alongside Python, compare, cut over.
+- `main` — stable, all prior work merged
+- `feature/address-from-selection` — active development, pushed to remote
+- Devon has the latest `extraction_service.py` via direct scp (not git)
