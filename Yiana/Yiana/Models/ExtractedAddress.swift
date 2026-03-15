@@ -80,12 +80,41 @@ struct AddressInfo: Codable {
     }
 }
 
+/// NHS candidate from nhs_lookup.db (multiple matches for a postcode)
+struct NHSCandidate: Codable {
+    var source: String?
+    var odsCode: String?
+    var name: String?
+    var addressLine1: String?
+    var town: String?
+    var postcode: String?
+
+    enum CodingKeys: String, CodingKey {
+        case source
+        case odsCode = "ods_code"
+        case name
+        case addressLine1 = "address_line1"
+        case town
+        case postcode
+    }
+}
+
 /// GP information nested object
 struct GPInfo: Codable {
     var name: String?
     var practice: String?
     var address: String?
     var postcode: String?
+    var odsCode: String?
+    var officialName: String?
+    var nhsCandidates: [NHSCandidate]?
+
+    enum CodingKeys: String, CodingKey {
+        case name, practice, address, postcode
+        case odsCode = "ods_code"
+        case officialName = "official_name"
+        case nhsCandidates = "nhs_candidates"
+    }
 }
 
 /// Extraction metadata nested object
@@ -225,6 +254,7 @@ struct ExtractedAddress {
     var gpPostcode: String?
     var gpOdsCode: String?
     var gpOfficialName: String?
+    var nhsGPCandidates: [NHSCandidate]?
 
     // Metadata
     var extractionConfidence: Double?
@@ -279,6 +309,9 @@ extension ExtractedAddress {
         self.gpPractice = gp?.practice
         self.gpAddress = gp?.address
         self.gpPostcode = gp?.postcode
+        self.gpOdsCode = gp?.odsCode
+        self.gpOfficialName = gp?.officialName
+        self.nhsGPCandidates = gp?.nhsCandidates
 
         self.extractionConfidence = page.extraction?.confidence
         self.extractionMethod = page.extraction?.method
@@ -304,8 +337,6 @@ extension ExtractedAddress {
 
         // Fields not in the JSON schema
         self.country = nil
-        self.gpOdsCode = nil
-        self.gpOfficialName = nil
         self.rawText = nil
         self.ocrJson = nil
 
@@ -373,6 +404,8 @@ extension ExtractedAddress {
         self.gpPractice = gp?.practice
         self.gpAddress = gp?.address
         self.gpPostcode = gp?.postcode
+        self.gpOdsCode = gp?.odsCode
+        self.gpOfficialName = gp?.officialName
 
         self.matchAddressType = manualOverride.matchAddressType
         self.addressType = manualOverride.addressType ?? manualOverride.matchAddressType
@@ -384,8 +417,6 @@ extension ExtractedAddress {
         self.extractionMethod = nil
         self.extractedAt = nil
         self.country = nil
-        self.gpOdsCode = nil
-        self.gpOfficialName = nil
         self.rawText = nil
         self.ocrJson = nil
         // Infer title/firstname/surname from fullName
@@ -423,9 +454,9 @@ extension ExtractedAddress {
 // MARK: - Computed Properties
 
 extension ExtractedAddress {
-    /// Formatted full address for patient
+    /// Formatted full address for patient (postcode shown separately)
     var formattedPatientAddress: String? {
-        let components = [addressLine1, addressLine2, city, county, postcode, country]
+        let components = [addressLine1, addressLine2, city, county, country]
             .compactMap { $0 }
             .filter { !$0.isEmpty }
         return components.isEmpty ? nil : components.joined(separator: "\n")

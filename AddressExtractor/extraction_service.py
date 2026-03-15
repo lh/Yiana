@@ -33,6 +33,9 @@ OUTPUT_FORMAT = os.getenv('OUTPUT_FORMAT', 'both')  # 'db', 'json', 'both'
 FAILURE_LOG_PATH = os.getenv('FAILURE_LOG_PATH', os.path.join(
     os.path.expanduser('~/Data'), '.extraction_failures.jsonl'
 ))
+NHS_LOOKUP_DB = os.getenv('NHS_LOOKUP_DB', os.path.join(
+    os.path.expanduser('~/Data'), 'nhs_lookup.db'
+))
 
 # Health monitoring — matches OCR service pattern (~/Library/Application Support/YianaOCR/health/)
 HEALTH_DIR = os.path.join(
@@ -113,12 +116,212 @@ def classify_failure(diagnostics: list, text: str) -> str:
     return 'unknown'
 
 
+def _gather_gp_hints(data: dict) -> tuple[str | None, str | None]:
+    """Extract GP name and address hints from page data for NHS lookup."""
+    name_hint = None
+    address_hint = None
+    for page in data.get('pages', []):
+        gp = page.get('gp', {})
+        if not name_hint:
+            hint = gp.get('name') or gp.get('practice')
+            if hint and hint.strip():
+                name_hint = hint.strip()
+        if not address_hint:
+            hint = gp.get('address')
+            if hint and hint.strip():
+                address_hint = hint.strip()
+        if name_hint and address_hint:
+            break
+    return name_hint, address_hint
+
+
+class NHSLookup:
+    """Look up GP practices and opticians by postcode from NHS ODS data."""
+
+    def __init__(self, db_path: str = NHS_LOOKUP_DB):
+        self.db_path = db_path
+        self._conn = None
+        if not Path(db_path).exists():
+            logger.warning(f"NHS lookup DB not found at {db_path} — lookups disabled")
+
+    @property
+    def available(self) -> bool:
+        return Path(self.db_path).exists()
+
+    def _get_conn(self) -> sqlite3.Connection:
+        if self._conn is None:
+            self._conn = sqlite3.connect(self.db_path)
+            self._conn.row_factory = sqlite3.Row
+        return self._conn
+
+    def _normalise_postcode(self, postcode: str) -> tuple[str, str]:
+        """Normalise a UK postcode. Returns (spaced, district)."""
+        normalised = postcode.upper().strip().replace(' ', '')
+        if len(normalised) >= 5:
+            spaced = normalised[:-3] + ' ' + normalised[-3:]
+            district = normalised[:-3]
+        else:
+            spaced = normalised
+            district = normalised
+        return spaced, district
+
+    def _rows_to_matches(self, rows) -> List[Dict]:
+        """Convert sqlite3.Row results to match dicts."""
+        matches = []
+        for row in rows:
+            m = {
+                'ods_code': row['ods_code'],
+                'name': row['name'],
+                'address_line1': row['address_line1'],
+                'town': row['town'] or '',
+                'postcode': row['postcode'],
+            }
+            # These columns only exist in gp_practices, not opticians
+            try:
+                m['address_line2'] = row['address_line2'] or ''
+                m['county'] = row['county'] or ''
+            except (IndexError, KeyError):
+                pass
+            matches.append(m)
+        return matches
+
+    @staticmethod
+    def _score_match(match: Dict, name_hint: str = None, address_hint: str = None) -> int:
+        """Score a match by how well it fits available hints. Lower is better."""
+        score = 10  # base score for district-level match
+        name = match['name'].lower()
+        addr = match.get('address_line1', '').lower()
+
+        if name_hint:
+            # Check each word from the hint against the practice name
+            hint_words = [w for w in name_hint.lower().split() if len(w) > 2
+                          and w not in ('the', 'surgery', 'practice', 'medical', 'centre', 'center', 'group', 'dr')]
+            for word in hint_words:
+                if word in name:
+                    score -= 3
+
+        if address_hint:
+            hint_words = [w for w in address_hint.lower().split() if len(w) > 2
+                          and w not in ('the', 'road', 'street', 'lane', 'avenue', 'close', 'drive')]
+            for word in hint_words:
+                if word in name or word in addr:
+                    score -= 3
+
+        return score
+
+    def lookup_gp(self, postcode: str, name_hint: str = None, address_hint: str = None) -> List[Dict]:
+        """Look up GP practices by postcode, with district fallback.
+
+        1. Exact postcode match — return all matches.
+        2. If no exact match and name_hint/address_hint available, fall back to
+           postcode district and score candidates by name/address similarity.
+           Auto-select if one strong match; present candidates otherwise.
+        """
+        if not self.available:
+            return []
+
+        spaced, district = self._normalise_postcode(postcode)
+        conn = self._get_conn()
+        matches = []
+
+        # 1. Exact postcode match
+        try:
+            rows = conn.execute(
+                "SELECT ods_code, name, address_line1, address_line2, town, county, postcode "
+                "FROM gp_practices WHERE postcode = ? AND status = 'Active'",
+                (spaced,)
+            ).fetchall()
+            matches = self._rows_to_matches(rows)
+        except sqlite3.OperationalError as e:
+            logger.warning(f"NHS lookup query failed on gp_practices: {e}")
+
+        # 2. District fallback if no exact match and we have hints
+        if not matches and (name_hint or address_hint):
+            try:
+                rows = conn.execute(
+                    "SELECT ods_code, name, address_line1, address_line2, town, county, postcode "
+                    "FROM gp_practices WHERE postcode_district = ? AND status = 'Active'",
+                    (district,)
+                ).fetchall()
+                candidates = self._rows_to_matches(rows)
+            except sqlite3.OperationalError as e:
+                logger.warning(f"NHS district lookup failed: {e}")
+                candidates = []
+
+            if candidates:
+                # Score and sort by relevance
+                scored = [(self._score_match(c, name_hint, address_hint), c) for c in candidates]
+                scored.sort(key=lambda x: x[0])
+
+                best_score = scored[0][0]
+                if best_score <= 7 and (len(scored) == 1 or scored[1][0] > best_score + 2):
+                    # Strong single match — return it
+                    matches = [scored[0][1]]
+                    logger.info(f"NHS district fallback: {postcode} -> {matches[0]['name']} "
+                                f"(score {best_score}, district {district})")
+                else:
+                    # Ambiguous — return top candidates
+                    matches = [s[1] for s in scored[:2]]
+                    logger.info(f"NHS district fallback: {postcode} -> {len(candidates)} in district, "
+                                f"top scores: {[s[0] for s in scored[:3]]}")
+
+        # Sort: name_hint matches first if provided (for exact matches)
+        if name_hint and matches:
+            hint_lower = name_hint.lower()
+            matches.sort(key=lambda m: (0 if hint_lower in m['name'].lower() else 1, m['name']))
+
+        return matches
+
+    def lookup_optician(self, postcode: str, name_hint: str = None) -> List[Dict]:
+        """Look up opticians by postcode."""
+        if not self.available:
+            return []
+
+        normalised = postcode.upper().strip().replace(' ', '')
+        if len(normalised) >= 5:
+            spaced = normalised[:-3] + ' ' + normalised[-3:]
+        else:
+            spaced = normalised
+
+        conn = self._get_conn()
+        matches = []
+
+        try:
+            rows = conn.execute(
+                "SELECT * FROM opticians WHERE postcode = ? AND status = 'Active'",
+                (spaced,)
+            ).fetchall()
+            for row in rows:
+                matches.append({
+                    'source': 'optician',
+                    'ods_code': row['ods_code'],
+                    'name': row['name'],
+                    'address_line1': row['address_line1'],
+                    'town': row['town'],
+                    'postcode': row['postcode'],
+                })
+        except sqlite3.OperationalError as e:
+            logger.warning(f"NHS lookup query failed on opticians: {e}")
+
+        if name_hint and matches:
+            hint_lower = name_hint.lower()
+            matches.sort(key=lambda m: (0 if hint_lower in m['name'].lower() else 1, m['name']))
+
+        return matches
+
+    def close(self):
+        if self._conn:
+            self._conn.close()
+            self._conn = None
+
+
 class OCRFileHandler(FileSystemEventHandler):
     """Handle new OCR files"""
-    
+
     def __init__(self):
         self.extractor = AddressExtractor(DB_PATH)
         self.hybrid_extractor = HybridExtractor(use_llm=USE_LLM) if USE_LLM else None
+        self.nhs_lookup = NHSLookup()
         self.processed_files = self.load_processed_files()
         
         # Ensure output directories exist
@@ -200,6 +403,10 @@ class OCRFileHandler(FileSystemEventHandler):
                 elif diagnostics is not None:
                     self._log_failure(doc_id, page_num, text, diagnostics)
 
+            # NHS lookup enrichment
+            for result in all_results:
+                self._enrich_from_nhs(result, doc_id)
+
             # Save results
             if all_results:
                 # Always save to .addresses/ (iCloud-synced JSON)
@@ -267,7 +474,41 @@ class OCRFileHandler(FileSystemEventHandler):
                 f.write(json.dumps(record) + '\n')
         except OSError as e:
             logger.warning(f"Failed to write failure log: {e}")
-    
+
+    def _enrich_from_nhs(self, result: dict, doc_id: str):
+        """Look up GP/optician postcode in NHS ODS data and enrich the result.
+
+        - One match: auto-fill practice name, address, ODS code.
+        - Multiple matches: attach up to 2 candidates for manual review.
+        - Zero matches: log and move on.
+        """
+        gp_postcode = result.get('gp_postcode')
+        if gp_postcode:
+            gp_name_hint = result.get('gp_name') or result.get('gp_practice')
+            gp_address_hint = result.get('gp_address')
+            matches = self.nhs_lookup.lookup_gp(gp_postcode, name_hint=gp_name_hint, address_hint=gp_address_hint)
+
+            if len(matches) == 1:
+                m = matches[0]
+                result['gp_practice'] = m['name']
+                result['gp_ods_code'] = m['ods_code']
+                result['gp_official_name'] = m['name']
+                result['gp_address'] = ', '.join(
+                    part for part in [m['address_line1'], m.get('address_line2'), m['town']] if part
+                )
+                logger.info(f"NHS lookup: {doc_id} GP postcode {gp_postcode} -> {m['name']} ({m['ods_code']})")
+            elif len(matches) > 1:
+                # Present up to 2 candidates for manual verification
+                candidates = matches[:2]
+                result['nhs_gp_candidates'] = candidates
+                names = ', '.join(c['name'] for c in candidates)
+                logger.info(
+                    f"NHS lookup: {doc_id} GP postcode {gp_postcode} -> "
+                    f"{len(matches)} matches, presenting {len(candidates)}: {names}"
+                )
+            elif matches == []:
+                logger.debug(f"NHS lookup: {doc_id} GP postcode {gp_postcode} -> no matches")
+
     def save_json_output(self, doc_id: str, results: List[Dict]):
         """Save extraction results as JSON"""
         output_file = Path(JSON_OUTPUT_DIR) / f"{doc_id}.json"
@@ -373,7 +614,10 @@ class OCRFileHandler(FileSystemEventHandler):
                     'name': result.get('gp_name'),
                     'practice': result.get('gp_practice'),
                     'address': result.get('gp_address'),
-                    'postcode': result.get('gp_postcode')
+                    'postcode': result.get('gp_postcode'),
+                    'ods_code': result.get('gp_ods_code'),
+                    'official_name': result.get('gp_official_name'),
+                    'nhs_candidates': result.get('nhs_gp_candidates'),
                 },
                 'extraction': {
                     'method': result.get('extraction_method'),
@@ -434,6 +678,7 @@ def watch_directory(handler: OCRFileHandler):
     """Watch OCR directory for new files"""
     observer = Observer()
     observer.schedule(handler, OCR_DIR, recursive=True)
+
     observer.start()
 
     logger.info(f"Watching directory: {OCR_DIR}")
@@ -537,6 +782,99 @@ def reprocess_failures():
     logger.info(f"Reprocessing complete. Failure log at: {FAILURE_LOG_PATH}")
 
 
+def nhs_enrich_addresses(doc_filter: str = None):
+    """Scan .addresses/ for GP/optician postcodes and enrich from nhs_lookup.db.
+
+    Looks at both pages[] and overrides[] for GP postcodes that lack an ODS code.
+    Writes enriched data back into the JSON (atomic write).
+
+    Args:
+        doc_filter: optional document ID substring to process only matching files.
+    """
+    lookup = NHSLookup()
+    if not lookup.available:
+        logger.error("NHS lookup DB not available — cannot enrich")
+        return
+
+    addresses_dir = Path(ADDRESSES_DIR)
+    if not addresses_dir.exists():
+        logger.error(f"Addresses directory not found: {ADDRESSES_DIR}")
+        return
+
+    json_files = sorted(addresses_dir.glob('*.json'))
+    if doc_filter:
+        json_files = [f for f in json_files if doc_filter in f.stem]
+
+    stats = {'enriched': 0, 'skipped': 0, 'errors': 0, 'candidates': 0}
+
+    for json_path in json_files:
+        try:
+            with open(json_path) as f:
+                data = json.load(f)
+
+            modified = False
+            page_name_hint, page_address_hint = _gather_gp_hints(data)
+
+            # Check all GP sections in pages[] and overrides[]
+            for section_name in ('pages', 'overrides'):
+                for entry in data.get(section_name, []):
+                    gp = entry.get('gp')
+                    if not gp or not isinstance(gp, dict):
+                        continue
+
+                    postcode = gp.get('postcode')
+                    if not postcode or not postcode.strip():
+                        continue
+
+                    # Skip if already enriched with ODS code
+                    if gp.get('ods_code'):
+                        continue
+
+                    name_hint = gp.get('name') or gp.get('practice') or page_name_hint
+                    address_hint = gp.get('address') or page_address_hint
+                    matches = lookup.lookup_gp(postcode, name_hint=name_hint, address_hint=address_hint)
+
+                    if len(matches) == 1:
+                        m = matches[0]
+                        gp['practice'] = m['name']
+                        gp['ods_code'] = m['ods_code']
+                        gp['official_name'] = m['name']
+                        gp['address'] = ', '.join(
+                            part for part in [m['address_line1'], m.get('address_line2'), m['town']] if part
+                        )
+                        modified = True
+                        logger.info(f"NHS enrich: {json_path.stem} [{section_name}] "
+                                    f"{postcode} -> {m['name']} ({m['ods_code']})")
+                    elif len(matches) > 1:
+                        gp['nhs_candidates'] = matches[:2]
+                        modified = True
+                        stats['candidates'] += 1
+                        names = ', '.join(c['name'] for c in matches[:2])
+                        logger.info(f"NHS enrich: {json_path.stem} [{section_name}] "
+                                    f"{postcode} -> {len(matches)} matches: {names}")
+
+            if modified:
+                # Atomic write
+                tmp = json_path.with_suffix('.json.nhs_tmp')
+                with open(tmp, 'w') as f:
+                    json.dump(data, f, indent=2)
+                os.replace(str(tmp), str(json_path))
+                stats['enriched'] += 1
+            else:
+                stats['skipped'] += 1
+
+        except Exception as e:
+            logger.error(f"Error enriching {json_path.name}: {e}")
+            stats['errors'] += 1
+
+    lookup.close()
+    logger.info(
+        f"NHS enrichment complete: {stats['enriched']} enriched, "
+        f"{stats['candidates']} with candidates, "
+        f"{stats['skipped']} skipped, {stats['errors']} errors"
+    )
+
+
 def main():
     """Main entry point"""
     global USE_LLM, OUTPUT_FORMAT
@@ -555,6 +893,8 @@ def main():
                        help='Output format')
     parser.add_argument('--reprocess-failures', action='store_true',
                        help='Re-run extraction on all OCR files with no .addresses/ output (populates failure log)')
+    parser.add_argument('--nhs-enrich', nargs='?', const='', default=None, metavar='DOC_ID',
+                       help='Enrich .addresses/ GP postcodes from nhs_lookup.db. Optional DOC_ID filters to matching files.')
 
     args = parser.parse_args()
 
@@ -567,6 +907,8 @@ def main():
         query_database()
     elif args.reprocess_failures:
         reprocess_failures()
+    elif args.nhs_enrich is not None:
+        nhs_enrich_addresses(args.nhs_enrich or None)
     else:
         # Initialize handler
         handler = OCRFileHandler()

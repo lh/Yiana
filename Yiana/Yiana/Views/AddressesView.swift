@@ -103,6 +103,9 @@ struct AddressesView: View {
         .task {
             await loadAddresses()
         }
+        .onAppear {
+            Task { await loadAddresses() }
+        }
         .onChange(of: refreshTrigger) {
             Task {
                 await loadAddresses()
@@ -215,6 +218,31 @@ struct AddressCard: View {
             // Header with type/prime controls
             VStack(spacing: 8) {
                 HStack {
+                    // Quick dismiss/delete for non-prime cards
+                    if !isPrime && !isEditingPatient {
+                        if address.pageNumber == 0 {
+                            Button {
+                                Task { await deleteManualAddress() }
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                            }
+                            .buttonStyle(.plain)
+                            .help("Delete this address")
+                        } else {
+                            Button {
+                                Task { await dismissAddress() }
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                            }
+                            .buttonStyle(.plain)
+                            .help("Dismiss this address")
+                        }
+                    }
+
                     Image(systemName: currentTypeDefinition?.icon ?? "folder.fill")
                         .foregroundColor(isPrime ? (currentTypeDefinition?.color ?? .gray) : .secondary)
                     Text(addressTypeLabel)
@@ -354,9 +382,10 @@ struct AddressCard: View {
                         if let odsCode = address.gpOdsCode {
                             AddressInfoRow(label: "ODS Code", value: odsCode, icon: "number")
                         }
+                        nhsCandidatesView
                     }
-                } else {
-                    // Patient/Optician/Specialist fields
+                } else if (isEditingPatient ? selectedType : address.addressType ?? "patient") == "patient" {
+                    // Patient fields
                     if isEditingPatient {
                         EditableField(label: "Title", text: $title, icon: "person", onSubmit: { Task { await saveChanges() } })
                         EditableField(label: "First name(s)", text: $firstName, icon: "person", onSubmit: { Task { await saveChanges() } })
@@ -376,6 +405,30 @@ struct AddressCard: View {
                         }
                         if !dateOfBirth.isEmpty {
                             AddressInfoRow(label: "Date of Birth", value: dateOfBirth, icon: "calendar")
+                        }
+                        if let formattedAddr = address.formattedPatientAddress {
+                            AddressInfoRow(label: "Address", value: formattedAddr, icon: "house")
+                        }
+                        if !postcode.isEmpty {
+                            PostcodeRow(postcode: postcode, isValid: address.postcodeValid)
+                        }
+                        if let phones = address.formattedPhones {
+                            AddressInfoRow(label: "Phone", value: phones, icon: "phone")
+                        }
+                    }
+                } else {
+                    // Optician/Specialist fields — name, address, postcode, phone (no DOB)
+                    if isEditingPatient {
+                        EditableField(label: "Name", text: $fullName, icon: "building.2", onSubmit: { Task { await saveChanges() } })
+                        EditableField(label: "Address Line 1", text: $addressLine1, icon: "house", onSubmit: { Task { await saveChanges() } })
+                        EditableField(label: "Address Line 2", text: $addressLine2, icon: "house", onSubmit: { Task { await saveChanges() } })
+                        EditableField(label: "City", text: $city, icon: "building.2", onSubmit: { Task { await saveChanges() } })
+                        EditableField(label: "County", text: $county, icon: "map", onSubmit: { Task { await saveChanges() } })
+                        EditableField(label: "Postcode", text: $postcode, icon: "mappin.circle", onSubmit: { Task { await saveChanges() } }, isPostcode: true)
+                        EditableField(label: "Phone", text: $phoneHome, icon: "phone", onSubmit: { Task { await saveChanges() } })
+                    } else {
+                        if !fullName.isEmpty {
+                            AddressInfoRow(label: "Name", value: fullName, icon: "building.2")
                         }
                         if let formattedAddr = address.formattedPatientAddress {
                             AddressInfoRow(label: "Address", value: formattedAddr, icon: "house")
@@ -510,6 +563,19 @@ struct AddressCard: View {
             return .orange
         } else {
             return .red
+        }
+    }
+
+    @ViewBuilder
+    private var nhsCandidatesView: some View {
+        if let candidates = address.nhsGPCandidates, !candidates.isEmpty {
+            Divider()
+            Text("NHS Matches")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            ForEach(candidates, id: \.odsCode) { candidate in
+                NHSCandidateRow(candidate: candidate)
+            }
         }
     }
 
@@ -657,9 +723,21 @@ private struct EditableField: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Image(systemName: icon)
-                .foregroundColor(.secondary)
-                .frame(width: 20)
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .foregroundColor(.secondary)
+                if !text.isEmpty {
+                    Button {
+                        text = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.caption2)
+                            .foregroundColor(.red.opacity(0.6))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .frame(width: 20)
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
                     .font(.caption)
@@ -700,6 +778,28 @@ private struct PostcodeRow: View {
                     .font(.caption)
             }
         }
+    }
+}
+
+// MARK: - NHS Candidate Row
+private struct NHSCandidateRow: View {
+    let candidate: NHSCandidate
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(candidate.name ?? "Unknown")
+                .font(.caption)
+                .fontWeight(.medium)
+            if let addr = candidate.addressLine1 {
+                Text("\(addr), \(candidate.town ?? "")")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            Text(candidate.odsCode ?? "")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+        }
+        .padding(.vertical, 2)
     }
 }
 
