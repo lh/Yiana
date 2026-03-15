@@ -161,12 +161,19 @@ struct DocumentListView: View {
             }
         }
         .refreshable { await refreshDocuments() }
-#if os(iOS)
-        .searchable(text: $searchText, prompt: "Search documents")
-        .accessibilityHint("Search by document title or document contents")
-#endif
+        .onSubmit(of: .search) {
+            handleSearchChange(searchText)
+        }
         .onChange(of: searchText) { _, newValue in
-            handleSearchChange(newValue)
+            if newValue.isEmpty {
+                handleSearchChange(newValue)
+            }
+        }
+        .onChange(of: navigationPath) { _, newPath in
+            if !newPath.isEmpty && viewModel.isSearching {
+                // Document opened from search results — clear filter but keep search text
+                Task { await viewModel.filterDocuments(searchText: "") }
+            }
         }
         .onChange(of: contentCountKey) { _, newValue in
             if newValue > 0 {
@@ -563,6 +570,14 @@ struct DocumentListView: View {
         }
         .searchable(text: $searchText, prompt: "Search documents")
         .accessibilityHint("Search by document title or document contents")
+        .onSubmit(of: .search) {
+            handleSearchChange(searchText)
+        }
+        .onChange(of: searchText) { _, newValue in
+            if newValue.isEmpty {
+                handleSearchChange(newValue)
+            }
+        }
     }
 
     private var iosFolderSidebar: some View {
@@ -1915,6 +1930,9 @@ struct DocumentListView: View {
             TextField("Search", text: $searchText)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 200)
+                .onSubmit {
+                    handleSearchChange(searchText)
+                }
             if !searchText.isEmpty {
                 Button(action: clearSearch) {
                     Image(systemName: "xmark.circle.fill")
