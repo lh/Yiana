@@ -24,9 +24,21 @@ class SpireFormExtractor:
             if diagnostics is not None:
                 diagnostics.append({'extractor': 'spire_form', 'reason': 'not_spire_form'})
             return None
-        
+
         logger.info("Detected Spire Healthcare Registration Form")
-        
+
+        # Extract MRN (Patient_ NUMBER on Spire registration forms)
+        mrn_patterns = [
+            r'Patient_?\s*(\d{6,10})',       # "Patient_ 33204127" or "Patient 33204127"
+            r'Patient\s*No\.?\s*(\d{6,10})', # "Patient No 33204127"
+        ]
+        for pattern in mrn_patterns:
+            mrn_match = re.search(pattern, text)
+            if mrn_match:
+                result['mrn'] = mrn_match.group(1)
+                logger.info(f"Extracted MRN: {result['mrn']}")
+                break
+
         # Extract Patient Name
         # In OCR output, the actual name appears after the address fields
         # Two patterns:

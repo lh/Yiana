@@ -531,7 +531,8 @@ class OCRFileHandler(FileSystemEventHandler):
                         'home': result.get('phone_home'),
                         'work': result.get('phone_work'),
                         'mobile': result.get('phone_mobile')
-                    }
+                    },
+                    'mrn': result.get('mrn')
                 },
                 'address': {
                     'line_1': result.get('address_line_1'),
@@ -599,7 +600,8 @@ class OCRFileHandler(FileSystemEventHandler):
                         'home': result.get('phone_home'),
                         'work': result.get('phone_work'),
                         'mobile': result.get('phone_mobile')
-                    }
+                    },
+                    'mrn': result.get('mrn')
                 },
                 'address': {
                     'line_1': result.get('address_line_1'),
@@ -782,6 +784,32 @@ def reprocess_failures():
     logger.info(f"Reprocessing complete. Failure log at: {FAILURE_LOG_PATH}")
 
 
+def reprocess_all():
+    """Re-run extraction on ALL OCR files, updating .addresses/ output.
+
+    Preserves overrides and enriched data in existing .addresses/ files.
+    Use after adding new extraction capabilities (e.g. MRN extraction).
+    """
+    ocr_dir = Path(OCR_DIR)
+
+    if not ocr_dir.exists():
+        logger.error(f"OCR directory not found: {OCR_DIR}")
+        return
+
+    all_ocr = list(ocr_dir.rglob('*.json'))
+    logger.info(f"Reprocessing all {len(all_ocr)} OCR files")
+
+    handler = OCRFileHandler()
+    handler.processed_files = set()
+
+    for i, file_path in enumerate(all_ocr, 1):
+        handler.process_file(str(file_path))
+        if i % 100 == 0:
+            logger.info(f"Progress: {i}/{len(all_ocr)}")
+
+    logger.info(f"Reprocessing complete. {len(all_ocr)} files processed.")
+
+
 def nhs_enrich_addresses(doc_filter: str = None):
     """Scan .addresses/ for GP/optician postcodes and enrich from nhs_lookup.db.
 
@@ -893,6 +921,8 @@ def main():
                        help='Output format')
     parser.add_argument('--reprocess-failures', action='store_true',
                        help='Re-run extraction on all OCR files with no .addresses/ output (populates failure log)')
+    parser.add_argument('--reprocess-all', action='store_true',
+                       help='Re-run extraction on ALL OCR files, updating .addresses/ (preserves overrides)')
     parser.add_argument('--nhs-enrich', nargs='?', const='', default=None, metavar='DOC_ID',
                        help='Enrich .addresses/ GP postcodes from nhs_lookup.db. Optional DOC_ID filters to matching files.')
 
@@ -905,6 +935,8 @@ def main():
 
     if args.query:
         query_database()
+    elif args.reprocess_all:
+        reprocess_all()
     elif args.reprocess_failures:
         reprocess_failures()
     elif args.nhs_enrich is not None:
