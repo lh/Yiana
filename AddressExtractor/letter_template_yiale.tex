@@ -39,12 +39,8 @@
 
 % Sender's details (top right)
 \begin{flushright}
-    \textbf{<SENDER_NAME>}\\
+    \textbf{<SENDER_NAME>, <SENDER_CREDENTIALS>}\\
     <SENDER_ROLE>\\
-    <SENDER_CREDENTIALS>\\
-    \vspace{3mm}
-    <SENDER_DEPARTMENT>\\
-    <SENDER_HOSPITAL>\\
     \vspace{3mm}
     <LETTER_DATE>
 \end{flushright}
@@ -82,13 +78,17 @@ Yours sincerely,
 \vspace{15mm}
 
 \noindent
-\textbf{<SENDER_NAME>}\\
-<SENDER_ROLE>\\
-<SENDER_CREDENTIALS>
+\textbf{<SENDER_NAME>, <SENDER_CREDENTIALS>}\\
+<SENDER_ROLE>
 
 \vspace{10mm}
 
 % Copy list
 <COPY_LIST>
+
+\vspace{\fill}
+
+% Contact footer
+<CONTACT_FOOTER>
 
 \end{document}

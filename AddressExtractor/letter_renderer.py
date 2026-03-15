@@ -150,6 +150,39 @@ class LetterRenderer:
             return f"{patient.title} {surname}"
         return patient.name
 
+    def _build_contact_footer(self, sender: SenderConfig) -> str:
+        """Build the contact details block for the bottom of the letter."""
+        lines = [
+            "\\noindent",
+            "\\rule{\\textwidth}{0.4pt}",
+            "\\vspace{2mm}",
+            "\\begin{small}",
+            "\\noindent",
+        ]
+
+        # Secretary line
+        if sender.secretary:
+            sec = sender.secretary
+            parts = [f"Secretary: {self.escape_latex(sec.name)}"]
+            if sec.phone:
+                parts.append(f"Tel: {self.escape_latex(sec.phone)}")
+            if sec.email:
+                parts.append(f"Email: {self.escape_latex(sec.email)}")
+            lines.append(" \\textbar{} ".join(parts) + "\\\\")
+
+        # Hospital line
+        contact_parts = [self.escape_latex(sender.hospital)]
+        if sender.address:
+            contact_parts.append(
+                ", ".join(self.escape_latex(a) for a in sender.address)
+            )
+        if sender.phone:
+            contact_parts.append(f"Tel: {self.escape_latex(sender.phone)}")
+        lines.append(" \\textbar{} ".join(contact_parts))
+
+        lines.append("\\end{small}")
+        return "\n".join(lines)
+
     def fill_template(self, sender: SenderConfig, patient: Patient,
                       recipient: Recipient, body: str,
                       cc_line: str, is_patient_copy: bool,
@@ -163,8 +196,6 @@ class LetterRenderer:
             "SENDER_NAME": self.escape_latex(sender.name),
             "SENDER_ROLE": self.escape_latex(sender.role),
             "SENDER_CREDENTIALS": self.escape_latex(sender.credentials),
-            "SENDER_DEPARTMENT": self.escape_latex(sender.department),
-            "SENDER_HOSPITAL": self.escape_latex(sender.hospital),
             "LETTER_DATE": self._format_letter_date(letter_date),
             "ADDRESS_BLOCK": self._build_address_block(recipient, include_address),
             "PATIENT_NAME": self.escape_latex(patient.name),
@@ -173,6 +204,7 @@ class LetterRenderer:
             "SALUTATION": self.escape_latex(self._build_salutation(patient)),
             "CLINICAL_CONTENT": self.format_body(body),
             "COPY_LIST": cc_line,
+            "CONTACT_FOOTER": self._build_contact_footer(sender),
         }
 
         # Body font size for patient copies
