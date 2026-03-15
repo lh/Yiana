@@ -34,6 +34,23 @@ struct DraftDetailView: View {
         }
         .navigationTitle(draft.patient.name)
         .toolbar {
+            if draft.status == .rendered && !pdfURLs.isEmpty {
+                ToolbarItem(placement: .automatic) {
+                    Button {
+                        printSelected()
+                    } label: {
+                        Label("Print", systemImage: "printer")
+                    }
+                    .disabled(selectedPDF == nil)
+                    .help("Print selected PDF")
+                }
+                ToolbarItem(placement: .automatic) {
+                    Button("Print All") {
+                        printAll()
+                    }
+                    .help("Print all copies")
+                }
+            }
             ToolbarItem(placement: .primaryAction) {
                 if draft.status == .rendered {
                     Button("Dismiss Letter") {
@@ -66,6 +83,47 @@ struct DraftDetailView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+    }
+
+    private func printSelected() {
+        guard let url = selectedPDF else { return }
+        printPDFs([url])
+    }
+
+    private func printAll() {
+        let urls = pdfURLs.filter { !$0.lastPathComponent.contains("hospital_records") }
+        guard !urls.isEmpty else { return }
+        printPDFs(urls)
+    }
+
+    private func printPDFs(_ urls: [URL]) {
+        let printInfo = NSPrintInfo.shared.copy() as! NSPrintInfo
+        printInfo.isHorizontallyCentered = true
+        printInfo.isVerticallyCentered = false
+        printInfo.scalingFactor = 1.0
+        printInfo.topMargin = 0
+        printInfo.bottomMargin = 0
+        printInfo.leftMargin = 0
+        printInfo.rightMargin = 0
+
+        let combined = PDFDocument()
+        for url in urls {
+            guard let doc = PDFDocument(url: url) else { continue }
+            for i in 0..<doc.pageCount {
+                guard let page = doc.page(at: i) else { continue }
+                combined.insert(page, at: combined.pageCount)
+            }
+        }
+
+        guard combined.pageCount > 0,
+              let window = NSApp.keyWindow else { return }
+
+        let printOp = combined.printOperation(
+            for: printInfo, scalingMode: .pageScaleToFit, autoRotate: true
+        )
+        printOp?.showsPrintPanel = true
+        printOp?.showsProgressPanel = true
+        printOp?.runModal(for: window, delegate: nil, didRun: nil, contextInfo: nil)
     }
 
     private func loadPDFs() async {
