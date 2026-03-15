@@ -340,18 +340,24 @@ extension ExtractedAddress {
         self.rawText = nil
         self.ocrJson = nil
 
-        // Enriched patient name/DOB: override > enriched > page.
-        // Filename-derived names are more reliable than OCR, so enriched
-        // replaces OCR data — but never overwrites user corrections.
-        if let ep = enriched?.patient, override?.patient == nil {
-            if let name = ep.fullName, !name.isEmpty {
+        // Enriched patient data fills gaps in override/page data.
+        // Override may have partial patient info (e.g. just a title like "Mrs")
+        // so use enriched values when the resolved name looks incomplete.
+        if let ep = enriched?.patient {
+            let nameIsSubstantive = (self.fullName ?? "").split(separator: " ").count >= 2
+            if !nameIsSubstantive, let name = ep.fullName, !name.isEmpty {
                 self.fullName = name
             }
-            if let dob = ep.dateOfBirth, !dob.isEmpty {
+            if (self.dateOfBirth == nil || self.dateOfBirth?.isEmpty == true),
+               let dob = ep.dateOfBirth, !dob.isEmpty {
                 self.dateOfBirth = dob
             }
-            self.surname = ep.surname
-            self.firstname = ep.firstname
+            if self.surname == nil || self.surname?.isEmpty == true {
+                self.surname = ep.surname
+            }
+            if self.firstname == nil || self.firstname?.isEmpty == true {
+                self.firstname = ep.firstname
+            }
         }
 
         // Infer title from fullName if it starts with a known title prefix

@@ -208,17 +208,40 @@ struct ResolvedPatient: Identifiable {
         // Resolve patient info: override > enriched > page
         let patient = override?.patient ?? primePage?.patient
         let addr = override?.address ?? primePage?.address
-        let gp = override?.gp ?? primePage?.gp
+
+        // GP: try the patient card first, then look for a separate GP card
+        var gp = override?.gp ?? primePage?.gp
+        let gpHasData = gp?.name != nil && !(gp?.name?.isEmpty ?? true)
+        if !gpHasData {
+            // Find a GP-type override (most recent)
+            let gpOverride = file.overrides
+                .filter { $0.matchAddressType == "gp" }
+                .sorted { ($0.overrideDate ?? "") > ($1.overrideDate ?? "") }
+                .first
+            if let gpData = gpOverride?.gp {
+                gp = gpData
+            } else {
+                // Fall back to a GP-type page
+                let gpPage = file.pages.first(where: { $0.addressType == "gp" })
+                if let gpData = gpPage?.gp {
+                    gp = gpData
+                }
+            }
+        }
 
         var name = patient?.fullName ?? ""
         var dob = patient?.dateOfBirth
 
-        // Enriched name/DOB (from backend DB) replaces OCR data, unless user overrode
-        if let ep = file.enriched?.patient, override?.patient == nil {
-            if let enrichedName = ep.fullName, !enrichedName.isEmpty {
+        // Enriched name/DOB (from backend DB) fills gaps in override/page data.
+        // Override may have partial patient info (e.g. just a title like "Mrs")
+        // so use enriched values when the resolved name looks incomplete.
+        if let ep = file.enriched?.patient {
+            let nameIsSubstantive = name.split(separator: " ").count >= 2
+            if !nameIsSubstantive, let enrichedName = ep.fullName, !enrichedName.isEmpty {
                 name = enrichedName
             }
-            if let enrichedDob = ep.dateOfBirth, !enrichedDob.isEmpty {
+            if dob == nil || dob?.isEmpty == true,
+               let enrichedDob = ep.dateOfBirth, !enrichedDob.isEmpty {
                 dob = enrichedDob
             }
         }
