@@ -165,6 +165,7 @@ struct AddressCard: View {
     @State private var firstName: String
     @State private var surname: String
     @State private var dateOfBirth: String
+    @State private var mrn: String
     @State private var addressLine1: String
     @State private var addressLine2: String
     @State private var city: String
@@ -196,6 +197,7 @@ struct AddressCard: View {
         _firstName = State(initialValue: address.firstname ?? "")
         _surname = State(initialValue: address.surname ?? "")
         _dateOfBirth = State(initialValue: address.dateOfBirth ?? "")
+        _mrn = State(initialValue: address.mrn ?? "")
         _addressLine1 = State(initialValue: address.addressLine1 ?? "")
         _addressLine2 = State(initialValue: address.addressLine2 ?? "")
         _city = State(initialValue: address.city ?? "")
@@ -387,6 +389,7 @@ struct AddressCard: View {
                 } else if (isEditingPatient ? selectedType : address.addressType ?? "patient") == "patient" {
                     // Patient fields
                     if isEditingPatient {
+                        EditableField(label: "MRN", text: $mrn, icon: "number", onSubmit: { Task { await saveChanges() } })
                         EditableField(label: "Title", text: $title, icon: "person", onSubmit: { Task { await saveChanges() } })
                         EditableField(label: "First name(s)", text: $firstName, icon: "person", onSubmit: { Task { await saveChanges() } })
                         EditableField(label: "Surname", text: $surname, icon: "person", onSubmit: { Task { await saveChanges() } })
@@ -402,6 +405,9 @@ struct AddressCard: View {
                     } else {
                         if !fullName.isEmpty {
                             AddressInfoRow(label: "Name", value: fullName, icon: "person")
+                        }
+                        if !mrn.isEmpty {
+                            AddressInfoRow(label: "MRN", value: mrn, icon: "number")
                         }
                         if !dateOfBirth.isEmpty {
                             AddressInfoRow(label: "Date of Birth", value: dateOfBirth, icon: "calendar")
@@ -466,6 +472,7 @@ struct AddressCard: View {
         firstName = address.firstname ?? ""
         surname = address.surname ?? ""
         dateOfBirth = address.dateOfBirth ?? ""
+        mrn = address.mrn ?? ""
         addressLine1 = address.addressLine1 ?? ""
         addressLine2 = address.addressLine2 ?? ""
         city = address.city ?? ""
@@ -499,6 +506,7 @@ struct AddressCard: View {
                 .joined(separator: " ")
             updatedAddress.fullName = composedName.isEmpty ? "" : composedName
             updatedAddress.dateOfBirth = dateOfBirth.isEmpty ? "" : dateOfBirth
+            updatedAddress.mrn = mrn.isEmpty ? nil : mrn
             updatedAddress.addressLine1 = addressLine1.isEmpty ? "" : addressLine1
             updatedAddress.addressLine2 = addressLine2.isEmpty ? "" : addressLine2
             updatedAddress.city = city.isEmpty ? "" : city

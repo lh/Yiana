@@ -9,7 +9,7 @@ import SwiftUI
 /// URLs are available on first render (avoids empty-sheet-on-first-open bug).
 private struct PickerData: Identifiable {
     let id = UUID()
-    let entryID: UUID
+    let entryID: String
     let urls: [URL]
 }
 
@@ -111,7 +111,7 @@ struct WorkListView: View {
         }
     }
 
-    private func entryRow(_ entry: WorkListEntry) -> some View {
+    private func entryRow(_ entry: SharedWorkListItem) -> some View {
         Button {
             handleTap(entry)
         } label: {
@@ -147,7 +147,7 @@ struct WorkListView: View {
     }
 
     @ViewBuilder
-    private func statusIndicator(_ entry: WorkListEntry) -> some View {
+    private func statusIndicator(_ entry: SharedWorkListItem) -> some View {
         if entry.resolvedFilename != nil {
             Image(systemName: "checkmark.circle.fill")
                 .foregroundColor(.green)
@@ -168,11 +168,12 @@ struct WorkListView: View {
         }
     }
 
-    private func sourceLabel(_ entry: WorkListEntry) -> String? {
+    private func sourceLabel(_ entry: SharedWorkListItem) -> String? {
         switch entry.source {
-        case .yiale: return "From Yiale"
-        case .manual: return nil
-        case .document: return nil
+        case "clinic_list": return "From clinic list"
+        case "manual": return nil
+        case "document": return nil
+        default: return nil
         }
     }
 
@@ -199,7 +200,7 @@ struct WorkListView: View {
 
     // MARK: - Tap Handling
 
-    private func handleTap(_ entry: WorkListEntry) {
+    private func handleTap(_ entry: SharedWorkListItem) {
         let entryID = entry.id
         if entry.resolvedFilename != nil {
             // Resolved — look up URL and navigate
@@ -221,7 +222,7 @@ struct WorkListView: View {
         }
     }
 
-    private func handleResolveResult(_ urls: [URL], entryID: UUID) {
+    private func handleResolveResult(_ urls: [URL], entryID: String) {
         if urls.count == 1 {
             onNavigate(urls[0])
         } else if urls.count > 1 {

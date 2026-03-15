@@ -211,7 +211,8 @@ final class AddressRepository: ObservableObject {
                     home: updatedAddress.phoneHome,
                     work: updatedAddress.phoneWork,
                     mobile: updatedAddress.phoneMobile
-                )
+                ),
+                mrn: updatedAddress.mrn
             ),
             address: AddressInfo(
                 line1: updatedAddress.addressLine1,

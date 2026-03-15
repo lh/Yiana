@@ -13,12 +13,12 @@ struct DraftsListView: View {
                 Section {
                     ForEach(workListViewModel.items) { item in
                         WorkListRow(item: item)
-                            .tag(SidebarItem.workListPatient(item.mrn))
+                            .tag(SidebarItem.workListPatient(item.id))
                     }
                     .onDelete { indexSet in
-                        let mrns = indexSet.map { workListViewModel.items[$0].mrn }
-                        for mrn in mrns {
-                            workListViewModel.remove(mrn: mrn)
+                        let ids = indexSet.map { workListViewModel.items[$0].id }
+                        for id in ids {
+                            workListViewModel.remove(id: id)
                         }
                     }
                 } header: {
@@ -78,16 +78,18 @@ struct DraftsListView: View {
 }
 
 private struct WorkListRow: View {
-    let item: WorkListItem
+    let item: SharedWorkListItem
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("\(item.surname), \(item.firstName)")
+            Text(item.displayText)
                 .font(.body)
             HStack(spacing: 8) {
-                Text(item.mrn)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if let mrn = item.mrn {
+                    Text(mrn)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 if let doctor = item.doctor {
                     Text(doctor)
                         .font(.caption)

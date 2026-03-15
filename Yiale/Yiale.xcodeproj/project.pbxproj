@@ -32,6 +32,7 @@
 		A10022 /* WorkListRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20023 /* WorkListRepository.swift */; };
 		A10023 /* WorkListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20024 /* WorkListViewModel.swift */; };
 		A10024 /* ClinicListImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20025 /* ClinicListImportSheet.swift */; };
+		A10025 /* SharedWorkList.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20026 /* SharedWorkList.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -61,6 +62,7 @@
 		A20023 /* WorkListRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkListRepository.swift; sourceTree = "<group>"; };
 		A20024 /* WorkListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkListViewModel.swift; sourceTree = "<group>"; };
 		A20025 /* ClinicListImportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClinicListImportSheet.swift; sourceTree = "<group>"; };
+		A20026 /* SharedWorkList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedWorkList.swift; sourceTree = "<group>"; };
 		A30001 /* Yiale.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Yiale.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -113,6 +115,7 @@
 				A20005 /* SenderConfig.swift */,
 				A20006 /* AddressData.swift */,
 				A20021 /* WorkList.swift */,
+				A20026 /* SharedWorkList.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -249,6 +252,7 @@
 				A10022 /* WorkListRepository.swift in Sources */,
 				A10023 /* WorkListViewModel.swift in Sources */,
 				A10024 /* ClinicListImportSheet.swift in Sources */,
+				A10025 /* SharedWorkList.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

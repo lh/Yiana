@@ -26,11 +26,13 @@ struct PatientInfo: Codable {
     var fullName: String?
     var dateOfBirth: String?
     var phones: PhoneInfo?
+    var mrn: String?
 
     private enum CodingKeys: String, CodingKey {
         case fullName = "full_name"
         case dateOfBirth = "date_of_birth"
         case phones
+        case mrn
     }
 }
 
@@ -261,13 +263,7 @@ struct ResolvedPatient: Identifiable {
 
         self.dateOfBirth = dob
 
-        // Parse MRN from documentId (Surname_First_MRN convention)
-        let parts = file.documentId.split(separator: "_")
-        if parts.count >= 3 {
-            self.mrn = String(parts.last!)
-        } else {
-            self.mrn = nil
-        }
+        self.mrn = patient?.mrn
 
         // Build address lines
         var addressLines: [String] = []

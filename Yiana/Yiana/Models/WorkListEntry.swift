@@ -2,29 +2,21 @@
 //  WorkListEntry.swift
 //  Yiana
 //
+//  Legacy types replaced by SharedWorkList. This file kept for migration support.
 
 import Foundation
 
-enum WorkListEntrySource: String, Codable {
-    case yiale
-    case manual
-    case document
-}
-
-struct WorkListEntry: Codable, Identifiable, Equatable {
+/// Legacy work list format (pre-unification). Used only for one-time migration.
+struct LegacyWorkListEntry: Codable, Identifiable {
     let id: UUID
     var searchText: String
     var resolvedFilename: String?
-    let source: WorkListEntrySource
+    let source: String
     let added: String
     var yialeMRN: String?
-
-    var displayText: String {
-        resolvedFilename?.replacingOccurrences(of: "_", with: " ") ?? searchText
-    }
 }
 
-struct YianaWorkList: Codable {
+struct LegacyYianaWorkList: Codable {
     var modified: String
-    var entries: [WorkListEntry]
+    var entries: [LegacyWorkListEntry]
 }

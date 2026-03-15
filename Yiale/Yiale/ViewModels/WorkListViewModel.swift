@@ -2,7 +2,7 @@ import SwiftUI
 
 @Observable
 final class WorkListViewModel {
-    var items: [WorkListItem] = []
+    var items: [SharedWorkListItem] = []
     var errorMessage: String?
 
     func load() async {
@@ -16,13 +16,13 @@ final class WorkListViewModel {
         }
     }
 
-    /// Parse and merge new items by MRN — existing items are kept, new ones added.
+    /// Parse and merge new items by id — existing items are kept, new ones added.
     func importClinicList(_ text: String) {
         let parsed = ClinicListParser.parse(text)
         guard !parsed.isEmpty else { return }
 
-        let existingMRNs = Set(items.map(\.mrn))
-        let newItems = parsed.filter { !existingMRNs.contains($0.mrn) }
+        let existingIDs = Set(items.map(\.id))
+        let newItems = parsed.filter { !existingIDs.contains($0.id) }
         items.append(contentsOf: newItems)
         save()
     }
@@ -36,8 +36,8 @@ final class WorkListViewModel {
         save()
     }
 
-    func remove(mrn: String) {
-        items.removeAll { $0.mrn == mrn }
+    func remove(id: String) {
+        items.removeAll { $0.id == id }
         save()
     }
 
@@ -48,13 +48,13 @@ final class WorkListViewModel {
         }
     }
 
-    /// Find the work list item for a given MRN.
-    func item(forMRN mrn: String) -> WorkListItem? {
-        items.first { $0.mrn == mrn }
+    /// Find the work list item for a given id.
+    func item(forID id: String) -> SharedWorkListItem? {
+        items.first { $0.id == id }
     }
 
     private func save() {
-        let snapshot = WorkList(
+        let snapshot = SharedWorkList(
             modified: ISO8601DateFormatter().string(from: Date()),
             items: items
         )

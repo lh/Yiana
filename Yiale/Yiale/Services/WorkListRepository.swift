@@ -3,22 +3,22 @@ import Foundation
 final class WorkListRepository {
     /// Load the work list from `.worklist.json`.
     /// Call from `Task.detached` (file I/O off main thread).
-    func load() throws -> WorkList {
+    func load() throws -> SharedWorkList {
         guard let url = ICloudContainer.shared.workListURL else {
             throw ServiceError.iCloudUnavailable
         }
 
         guard FileManager.default.fileExists(atPath: url.path) else {
-            return WorkList(modified: ISO8601DateFormatter().string(from: Date()), items: [])
+            return SharedWorkList(modified: ISO8601DateFormatter().string(from: Date()), items: [])
         }
 
         let data = try Data(contentsOf: url)
-        return try JSONDecoder().decode(WorkList.self, from: data)
+        return try JSONDecoder().decode(SharedWorkList.self, from: data)
     }
 
     /// Save the work list with atomic write.
     /// Call from `Task.detached` (file I/O off main thread).
-    func save(_ workList: WorkList) throws {
+    func save(_ workList: SharedWorkList) throws {
         guard let url = ICloudContainer.shared.workListURL else {
             throw ServiceError.iCloudUnavailable
         }

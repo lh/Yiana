@@ -5,19 +5,8 @@
 
 import Foundation
 
-/// Intermediate result from parsing a clinic list line block.
-/// Converted to `WorkListEntry` at the call site.
-struct ClinicListItem {
-    let mrn: String
-    let surname: String
-    let firstName: String
-    let gender: String?
-    let age: Int?
-    let doctor: String?
-}
-
 enum ClinicListParser {
-    /// Parse pasted clinic list text into intermediate items.
+    /// Parse pasted clinic list text into shared work list items.
     ///
     /// Expected format per block (separated by blank lines):
     /// ```
@@ -29,15 +18,16 @@ enum ClinicListParser {
     /// Line 1: MRN (all digits)
     /// Line 2: Surname, Firstname (Gender, Age)
     /// Line 3 (optional): Doctor name
-    static func parse(_ text: String) -> [ClinicListItem] {
+    static func parse(_ text: String) -> [SharedWorkListItem] {
         let blocks = text
             .components(separatedBy: "\n\n")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
 
         let namePattern = #/^(.+?),\s*(.+?)\s*\((\w+),\s*(\d+)\)$/#
+        let now = ISO8601DateFormatter().string(from: Date())
 
-        var items: [ClinicListItem] = []
+        var items: [SharedWorkListItem] = []
         for block in blocks {
             let lines = block.components(separatedBy: "\n")
                 .map { $0.trimmingCharacters(in: .whitespaces) }
@@ -57,30 +47,18 @@ enum ClinicListParser {
 
             let doctor: String? = lines.count >= 3 ? lines[2] : nil
 
-            items.append(ClinicListItem(
+            items.append(SharedWorkListItem(
+                id: mrnLine,
                 mrn: mrnLine,
                 surname: surname,
                 firstName: firstName,
                 gender: gender,
                 age: age,
-                doctor: doctor
+                doctor: doctor,
+                source: "clinic_list",
+                added: now
             ))
         }
         return items
-    }
-
-    /// Convert parsed clinic list items to work list entries.
-    static func toWorkListEntries(_ items: [ClinicListItem]) -> [WorkListEntry] {
-        let now = ISO8601DateFormatter().string(from: Date())
-        return items.map { item in
-            WorkListEntry(
-                id: UUID(),
-                searchText: "\(item.surname) \(item.firstName)",
-                resolvedFilename: nil,
-                source: .yiale,
-                added: now,
-                yialeMRN: item.mrn
-            )
-        }
     }
 }

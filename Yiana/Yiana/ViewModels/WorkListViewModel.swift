@@ -11,14 +11,16 @@ import Combine
 /// Uses `ObservableObject` + `@Published` per project convention.
 /// All file I/O runs in `Task.detached` (`.task {}` inherits main actor).
 class WorkListViewModel: ObservableObject {
-    @Published var entries: [WorkListEntry] = []
-    @Published var matchCounts: [UUID: Int] = [:]
+    @Published var entries: [SharedWorkListItem] = []
+    @Published var matchCounts: [String: Int] = [:]
 
     private let repository = WorkListRepository.shared
     private let searchIndex = SearchIndexService.shared
     private var observers: [NSObjectProtocol] = []
     private var hasStarted = false
     private var autoResolveTask: Task<Void, Never>?
+    private var fileWatchQuery: NSMetadataQuery?
+    private var fileWatchObservers: [NSObjectProtocol] = []
 
     func start() {
         guard !hasStarted else { return }
@@ -43,23 +45,58 @@ class WorkListViewModel: ObservableObject {
         }
         observers.append(documentsObserver)
 
-        // Watch for Yiale work list changes
-        let yialeObserver = NotificationCenter.default.addObserver(
-            forName: .yialeWorkListChanged,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            guard let self else { return }
-            let items = notification.userInfo?["items"] as? [ClinicListItem] ?? []
-            self.mergeYialeItems(items)
-        }
-        observers.append(yialeObserver)
+        // Watch .worklist.json for changes from Yiale
+        startFileWatch()
     }
 
     deinit {
         for observer in observers {
             NotificationCenter.default.removeObserver(observer)
         }
+        stopFileWatch()
+    }
+
+    // MARK: - File Watching
+
+    private func startFileWatch() {
+        let query = NSMetadataQuery()
+        query.searchScopes = [NSMetadataQueryUbiquitousDocumentsScope]
+        query.predicate = NSPredicate(format: "%K == %@",
+            NSMetadataItemFSNameKey, ".worklist.json")
+
+        let gatherObserver = NotificationCenter.default.addObserver(
+            forName: .NSMetadataQueryDidFinishGathering,
+            object: query,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleFileChange()
+        }
+        fileWatchObservers.append(gatherObserver)
+
+        let updateObserver = NotificationCenter.default.addObserver(
+            forName: .NSMetadataQueryDidUpdate,
+            object: query,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleFileChange()
+        }
+        fileWatchObservers.append(updateObserver)
+
+        fileWatchQuery = query
+        query.start()
+    }
+
+    private func stopFileWatch() {
+        fileWatchQuery?.stop()
+        fileWatchQuery = nil
+        for observer in fileWatchObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        fileWatchObservers.removeAll()
+    }
+
+    private func handleFileChange() {
+        Task { await load() }
     }
 
     // MARK: - Load / Save
@@ -70,16 +107,16 @@ class WorkListViewModel: ObservableObject {
         }.value
 
         if let workList = loaded {
-            entries = workList.entries
+            entries = workList.items
         }
     }
 
     private func save() async {
         let entriesToSave = entries
         await Task.detached { [repository] in
-            let workList = YianaWorkList(
+            let workList = SharedWorkList(
                 modified: ISO8601DateFormatter().string(from: Date()),
-                entries: entriesToSave
+                items: entriesToSave
             )
             try? repository.save(workList)
         }.value
@@ -94,15 +131,21 @@ class WorkListViewModel: ObservableObject {
         // Skip if already present (by search text or resolved filename)
         let lowered = trimmed.lowercased()
         if entries.contains(where: {
-            $0.searchText.lowercased() == lowered ||
+            $0.displayText.lowercased() == lowered ||
             $0.resolvedFilename?.lowercased() == lowered
         }) { return }
 
-        let entry = WorkListEntry(
-            id: UUID(),
-            searchText: trimmed,
+        // Parse "Surname Firstname" from search text
+        let parts = trimmed.components(separatedBy: " ")
+        let surname = parts.first
+        let firstName = parts.count > 1 ? parts.dropFirst().joined(separator: " ") : nil
+
+        let entry = SharedWorkListItem(
+            id: UUID().uuidString,
+            surname: surname,
+            firstName: firstName,
             resolvedFilename: nil,
-            source: .manual,
+            source: "manual",
             added: ISO8601DateFormatter().string(from: Date())
         )
         entries.append(entry)
@@ -118,18 +161,24 @@ class WorkListViewModel: ObservableObject {
         // Skip if this document is already in the list
         if entries.contains(where: { $0.resolvedFilename == filename }) { return }
 
-        let entry = WorkListEntry(
-            id: UUID(),
-            searchText: filename.replacingOccurrences(of: "_", with: " "),
+        // Parse surname/firstName from filename (Surname_Firstname_DOB)
+        let parts = filename.components(separatedBy: "_")
+        let surname = parts.count > 0 ? parts[0] : nil
+        let firstName = parts.count > 1 ? parts[1] : nil
+
+        let entry = SharedWorkListItem(
+            id: UUID().uuidString,
+            surname: surname,
+            firstName: firstName,
             resolvedFilename: filename,
-            source: .document,
+            source: "document",
             added: ISO8601DateFormatter().string(from: Date())
         )
         entries.append(entry)
         await save()
     }
 
-    func remove(entryID: UUID) async {
+    func remove(entryID: String) async {
         entries.removeAll { $0.id == entryID }
         matchCounts.removeValue(forKey: entryID)
         await save()
@@ -162,11 +211,11 @@ class WorkListViewModel: ObservableObject {
     /// - 0 matches: returns empty, marks `?`
     /// - 1 match: auto-resolves (sets `resolvedFilename`), saves, returns the URL
     /// - N matches: returns URLs for picker (caller must handle)
-    func resolve(entryID: UUID) async -> [URL] {
+    func resolve(entryID: String) async -> [URL] {
         guard let index = entries.firstIndex(where: { $0.id == entryID }) else { return [] }
         let entry = entries[index]
 
-        let query = entry.searchText
+        let query = entry.displayText
         guard !query.isEmpty else { return [] }
 
         do {
@@ -193,7 +242,7 @@ class WorkListViewModel: ObservableObject {
     }
 
     /// Manually resolve an entry to a specific URL (after picker selection).
-    func resolveToURL(entryID: UUID, url: URL) async {
+    func resolveToURL(entryID: String, url: URL) async {
         guard let index = entries.firstIndex(where: { $0.id == entryID }) else { return }
         let stem = url.deletingPathExtension().lastPathComponent
         entries[index].resolvedFilename = stem
@@ -203,7 +252,7 @@ class WorkListViewModel: ObservableObject {
 
     /// Look up the current URL for a resolved entry by searching for its filename.
     /// Returns nil if the document can't be found (e.g., renamed or deleted).
-    func urlForResolved(_ entry: WorkListEntry) async -> URL? {
+    func urlForResolved(_ entry: SharedWorkListItem) async -> URL? {
         guard let resolvedFilename = entry.resolvedFilename else { return nil }
 
         do {
@@ -218,7 +267,7 @@ class WorkListViewModel: ObservableObject {
     }
 
     /// Try to resolve a single entry by ID. Used internally.
-    private func resolveEntry(id: UUID) async {
+    private func resolveEntry(id: String) async {
         _ = await resolve(entryID: id)
     }
 
@@ -236,7 +285,7 @@ class WorkListViewModel: ObservableObject {
             let entry = entries[index]
 
             do {
-                let results = try await searchIndex.search(query: entry.searchText, limit: 5)
+                let results = try await searchIndex.search(query: entry.displayText, limit: 5)
                 if results.count == 1 {
                     let stem = results[0].url.deletingPathExtension().lastPathComponent
                     entries[index].resolvedFilename = stem
@@ -255,39 +304,17 @@ class WorkListViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Yiale Merge
-
-    /// Merge items from Yiale sync. New MRNs are added at front, removed MRNs are deleted.
-    func mergeYialeItems(_ items: [ClinicListItem]) {
-        let incomingMRNs = Set(items.map(\.mrn))
-        let existingMRNs = Set(entries.compactMap(\.yialeMRN))
-
-        // Remove entries whose MRN is no longer in the Yiale list
-        entries.removeAll { entry in
-            guard let mrn = entry.yialeMRN, entry.source == .yiale else { return false }
-            return !incomingMRNs.contains(mrn)
-        }
-
-        // Add new entries at the front (preserving Yiale order)
-        let newItems = items.filter { !existingMRNs.contains($0.mrn) }
-        if !newItems.isEmpty {
-            let newEntries = ClinicListParser.toWorkListEntries(newItems)
-            entries.insert(contentsOf: newEntries, at: 0)
-        }
-
-        Task { await save() }
-    }
-
     /// Import clinic list items from a pasted text.
     func importClinicList(_ text: String) async {
         let items = ClinicListParser.parse(text)
         guard !items.isEmpty else { return }
 
-        let newEntries = ClinicListParser.toWorkListEntries(items)
-        entries.insert(contentsOf: newEntries, at: 0)
+        let existingIDs = Set(entries.map(\.id))
+        let newItems = items.filter { !existingIDs.contains($0.id) }
+        entries.insert(contentsOf: newItems, at: 0)
 
         // Try to auto-resolve new entries
-        for entry in newEntries {
+        for entry in newItems {
             await resolveEntry(id: entry.id)
         }
         await save()

@@ -44,11 +44,13 @@ struct PatientInfo: Codable {
     var fullName: String?
     var dateOfBirth: String?
     var phones: PhoneInfo?
+    var mrn: String?
 
     private enum CodingKeys: String, CodingKey {
         case fullName = "full_name"
         case dateOfBirth = "date_of_birth"
         case phones
+        case mrn
     }
 }
 
@@ -233,6 +235,7 @@ struct ExtractedAddress {
     var firstname: String?
     var title: String?
     var dateOfBirth: String?
+    var mrn: String?
 
     // Address
     var addressLine1: String?
@@ -293,6 +296,7 @@ extension ExtractedAddress {
 
         self.fullName = patient?.fullName
         self.dateOfBirth = patient?.dateOfBirth
+        self.mrn = patient?.mrn
         self.phoneHome = patient?.phones?.home
         self.phoneWork = patient?.phones?.work
         self.phoneMobile = patient?.phones?.mobile
@@ -392,6 +396,7 @@ extension ExtractedAddress {
         let patient = manualOverride.patient
         self.fullName = patient?.fullName
         self.dateOfBirth = patient?.dateOfBirth
+        self.mrn = patient?.mrn
         self.phoneHome = patient?.phones?.home
         self.phoneWork = patient?.phones?.work
         self.phoneMobile = patient?.phones?.mobile

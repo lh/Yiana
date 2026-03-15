@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum SidebarItem: Hashable {
-    case workListPatient(String)  // MRN
+    case workListPatient(String)  // work list item id
     case draft(String)            // letterId
 }
 
@@ -33,8 +33,8 @@ struct ContentView: View {
         .frame(minWidth: 800, minHeight: 600)
         .onChange(of: sidebarSelection) { _, newValue in
             switch newValue {
-            case .workListPatient(let mrn):
-                startNewLetterForMRN(mrn)
+            case .workListPatient(let itemID):
+                startNewLetterForID(itemID)
             case .draft(let letterId):
                 loadDraftForEditing(letterId)
             case nil:
@@ -131,9 +131,9 @@ struct ContentView: View {
         composeViewModel = ComposeViewModel()
     }
 
-    private func startNewLetterForMRN(_ mrn: String) {
+    private func startNewLetterForID(_ itemID: String) {
         composeViewModel = nil
-        guard let workListItem = workListViewModel.item(forMRN: mrn) else { return }
+        guard let workListItem = workListViewModel.item(forID: itemID) else { return }
         if let patient = addressService.findPatient(for: workListItem) {
             let vm = ComposeViewModel()
             vm.selectPatient(patient)

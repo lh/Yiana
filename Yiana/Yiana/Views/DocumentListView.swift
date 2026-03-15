@@ -127,7 +127,6 @@ struct DocumentListView: View {
         }
         .task {
             workListViewModel.start()
-            YialeSyncService.shared.start()
             await workListViewModel.load()
             await loadDocuments()
             await MainActor.run {
