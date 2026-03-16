@@ -24,5 +24,5 @@ description: Bumps the build number, archives, and uploads to TestFlight via App
    xcodebuild -exportArchive -archivePath /tmp/Yiana-macOS.xcarchive -exportOptionsPlist Yiana/ExportOptions.plist -exportPath /tmp/YianaExport-macOS -allowProvisioningUpdates
    ```
    If the build fails, show the errors and stop.
-6. **Report result** — show success or failure for each platform. On success, remind the user to check App Store Connect for processing status.
-7. **Do NOT push to git automatically** — ask the user if they want to push the build number bump.
+6. **Push the build number bump** — `git push` to remote.
+7. **Report result** — show success or failure for each platform. On success, remind the user to check App Store Connect for processing status.
