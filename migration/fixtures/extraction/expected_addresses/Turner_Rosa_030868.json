@@ -1,0 +1,294 @@
+{
+  "schema_version": 1,
+  "document_id": "Turner_Rosa_030868",
+  "extracted_at": "2026-03-15T22:43:32.442504",
+  "page_count": 7,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Tara Mason",
+        "date_of_birth": "16/06/1993",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "134 Pine Road",
+        "line_2": "92 Station Road",
+        "city": "Dorking",
+        "county": null,
+        "postcode": "RR7 5VD",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "form",
+        "confidence": 0.8
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Tara Mason",
+        "date_of_birth": "16/06/1993",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "134 Pine Road",
+        "line_2": "74 The Green",
+        "city": "Dorking",
+        "county": null,
+        "postcode": "RR7 5VD",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "form",
+        "confidence": 0.8
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 3,
+      "patient": {
+        "full_name": "Derek Drew",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "50 Church Road",
+        "line_2": "62 Birch Lane",
+        "city": "Guildford",
+        "county": null,
+        "postcode": "NN4 3AJ",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 4,
+      "patient": {
+        "full_name": "Finn Zhao",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "22 Park Avenue",
+        "line_2": "32 Manor Way",
+        "city": "Crawley",
+        "county": null,
+        "postcode": "FF6 1LG",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 5,
+      "patient": {
+        "full_name": "Uma Fisher",
+        "date_of_birth": "16/06/1993",
+        "phones": {
+          "home": "01234816017",
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "109 Victoria Road",
+        "line_2": "56 Mill Lane",
+        "city": "Horsham",
+        "county": "Oxfordshire",
+        "postcode": "NN4 3AJ",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr C Patel",
+        "practice": "BROOKSIDE HEALTH CENTRE",
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 6,
+      "patient": {
+        "full_name": "Zach Jacobs",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "116 Maple Drive",
+        "line_2": "137 Ash Grove",
+        "city": "Horsham",
+        "county": null,
+        "postcode": "NN4 3AJ",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 9,
+      "patient": {
+        "full_name": "Jay Parker",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "109 Victoria Road",
+        "line_2": "116 Maple Drive",
+        "city": "Guildford",
+        "county": null,
+        "postcode": "NN4 3AJ",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Clara Underwood",
+      "surname": "Turner",
+      "firstname": "Rosa",
+      "date_of_birth": "16/06/1993",
+      "source": "filename",
+      "document_count": 1
+    },
+    "practitioners": [
+      {
+        "name": "Dr C Patel",
+        "type": "GP",
+        "practice": "THE PINES SURGERY",
+        "document_count": 16
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:09.925155Z"
+  }
+}

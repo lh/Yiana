@@ -492,32 +492,54 @@ def select_documents():
     print(f"  has_overrides: {len(has_overrides)}")
     print(f"  no_pages: {len(no_pages)}")
 
-    # Select sample (target from plan: 10 clearwater, 15 form, 10 label, 10 unstructured, 5 edge)
+    # Select sample targeting balanced coverage across extractor methods.
+    # Real corpus distribution: ~880 registration, ~527 label, ~35 form-only,
+    # 3 unstructured, 4 empty. We prioritise under-represented methods.
     rng = random.Random(42)  # reproducible selection
     selected = set()
 
-    # Clearwater forms: 10
-    clearwater = list(set(by_method.get("clearwater_form", [])))
-    rng.shuffle(clearwater)
-    selected.update(clearwater[:10])
+    # Identify documents by PRIMARY method (first page) to avoid pulling in
+    # registration-form documents when we want form-based ones.
+    doc_primary_method = {}
+    for f in sorted(ADDRESSES_DIR.iterdir()):
+        if not f.name.endswith(".json"):
+            continue
+        with open(f) as fh:
+            data = json.load(fh)
+        pages = data.get("pages", [])
+        if not pages:
+            doc_primary_method[f.stem] = "empty"
+        else:
+            doc_primary_method[f.stem] = pages[0].get("extraction", {}).get("method", "unknown")
 
-    # Form-based: 15 (or all if fewer)
-    form = list(set(by_method.get("form", [])))
+    by_primary = {}
+    for doc_id, method in doc_primary_method.items():
+        by_primary.setdefault(method, []).append(doc_id)
+
+    # Registration forms: 10
+    reg = by_primary.get("spire_form", [])
+    rng.shuffle(reg)
+    selected.update(reg[:10])
+
+    # Form-based (primary method = form): 15 (or all if fewer — only ~29 exist)
+    form = by_primary.get("form", [])
     rng.shuffle(form)
     selected.update(form[:15])
 
-    # Label-based: 10
-    label = list(set(by_method.get("label", [])))
+    # Label-based (primary): 15
+    label = by_primary.get("label", [])
     rng.shuffle(label)
-    selected.update(label[:10])
+    selected.update(label[:15])
 
-    # Unstructured: all (only 5 exist)
-    unstructured = list(set(by_method.get("unstructured", [])))
+    # Unstructured: all (only 1-3 exist as primary)
+    unstructured = by_primary.get("unstructured", [])
     selected.update(unstructured)
+    # Also add documents that contain unstructured on any page
+    for doc_id in by_method.get("unstructured", []):
+        selected.add(doc_id)
 
-    # Edge cases: no pages + documents with overrides (up to 5 each)
+    # Edge cases: empty documents + documents with overrides
     selected.update(no_pages[:4])
-    # Add override documents not already selected
     override_extra = [d for d in has_overrides if d not in selected]
     rng.shuffle(override_extra)
     selected.update(override_extra[:6])

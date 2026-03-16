@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "document_id": "Ingram_Jay_231245",
+  "extracted_at": "2026-03-15T22:43:25.726775",
+  "page_count": 3,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Tessa Lloyd",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "112 Kings Road",
+        "line_2": "32 Station Road",
+        "city": "Reigate",
+        "county": null,
+        "postcode": "QQ6 9AT",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "form",
+        "confidence": 0.8
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Paul Jones",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "118 Willow Court",
+        "line_2": "109 Beech Avenue",
+        "city": "Dorking",
+        "county": null,
+        "postcode": "HH8 8SA",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 4,
+      "patient": {
+        "full_name": "Wendy Dixon",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "57 Mill Lane",
+        "line_2": null,
+        "city": "Sevenoaks",
+        "county": null,
+        "postcode": "QQ6 9UD",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Will Cooper",
+      "surname": "Ingram",
+      "firstname": "Jay",
+      "date_of_birth": "06/07/1970",
+      "source": "filename",
+      "document_count": 1
+    },
+    "enriched_at": "2026-03-14T14:17:10.513428Z"
+  }
+}

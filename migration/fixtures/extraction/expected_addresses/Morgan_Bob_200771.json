@@ -1,0 +1,248 @@
+{
+  "schema_version": 1,
+  "document_id": "Morgan_Bob_200771",
+  "extracted_at": "2026-03-15T22:43:24.227283",
+  "page_count": 6,
+  "pages": [
+    {
+      "page_number": 10,
+      "patient": {
+        "full_name": "Mary Taylor",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "133 Manor Way",
+        "line_2": "47 Mill Lane",
+        "city": "Brighton",
+        "county": null,
+        "postcode": "GG7 8WN",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 11,
+      "patient": {
+        "full_name": "Wendy Owen",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": null,
+        "line_2": null,
+        "city": null,
+        "county": null,
+        "postcode": "GG7 8WN",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 13,
+      "patient": {
+        "full_name": "Sean Grant",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "81 Cedar Way",
+        "line_2": null,
+        "city": "Brighton",
+        "county": null,
+        "postcode": "GG7 8WN",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 14,
+      "patient": {
+        "full_name": "Xavier Blake",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "66 Kings Road",
+        "line_2": "141 Park Avenue",
+        "city": "Epsom",
+        "county": null,
+        "postcode": "GG7 8WN",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 15,
+      "patient": {
+        "full_name": "Jay Stone",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "122 Oak Lane",
+        "line_2": null,
+        "city": "Dorking",
+        "county": null,
+        "postcode": "PP5 2BC",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 17,
+      "patient": {
+        "full_name": "Iona Smith",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "52 Ash Grove",
+        "line_2": "36 Elm Close",
+        "city": "Maidstone",
+        "county": null,
+        "postcode": "KK1 6KH",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Will Harris",
+      "surname": "Morgan",
+      "firstname": "Bob",
+      "date_of_birth": "27/03/1973",
+      "source": "filename",
+      "document_count": 1
+    },
+    "enriched_at": "2026-03-14T14:17:10.554120Z"
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "document_id": "Harris_Tara_281262",
+  "extracted_at": "2026-03-15T22:43:29.052319",
+  "page_count": 4,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Will Clarke",
+        "date_of_birth": "19/03/1949",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": "07700352232"
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "51 Manor Way",
+        "line_2": "88 Elm Close",
+        "city": "Farnham",
+        "county": "East Sussex",
+        "postcode": "LL2 8LD",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr E Svensson",
+        "practice": "BROOKSIDE HEALTH CENTRE",
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Mira Blake",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "53 Oak Lane",
+        "line_2": "65 Holly Lane",
+        "city": "Tonbridge",
+        "county": null,
+        "postcode": "RR7 5TM",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 3,
+      "patient": {
+        "full_name": "Iona Anderson",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "13 Queens Drive",
+        "line_2": "51 Manor Way",
+        "city": "Redhill",
+        "county": null,
+        "postcode": "LL2 8LD",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 4,
+      "patient": {
+        "full_name": "Simon Jones",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "137 Beech Avenue",
+        "line_2": "44 Maple Drive",
+        "city": "Redhill",
+        "county": null,
+        "postcode": "LL2 8LD",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Will Clarke",
+      "surname": "Harris",
+      "firstname": "Tara",
+      "date_of_birth": "19/03/1949",
+      "source": "filename",
+      "document_count": 2
+    },
+    "practitioners": [
+      {
+        "name": "Dr E Svensson",
+        "type": "GP",
+        "practice": "BROOKSIDE HEALTH CENTRE",
+        "document_count": 2
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:10.427561Z"
+  }
+}

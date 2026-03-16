@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "document_id": "Cooper_Mary_120492",
+  "extracted_at": "2026-03-15T22:43:24.106551",
+  "page_count": 2,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Jay Turner",
+        "date_of_birth": "23/11/1998",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": "07700134573"
+        },
+        "mrn": "50783101"
+      },
+      "address": {
+        "line_1": "40 Mill Lane",
+        "line_2": null,
+        "city": null,
+        "county": "Buckinghamshire",
+        "postcode": "HH8 6AG",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr L Fraser",
+        "practice": "HILLSIDE MEDICAL CENTRE",
+        "address": "133 Willow Court",
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Clara Holmes",
+        "date_of_birth": "27/02/1950",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "115 High Street",
+        "line_2": "40 Mill Lane",
+        "city": "Chichester",
+        "county": null,
+        "postcode": "HH8 6AG",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Jay Turner",
+      "surname": "Cooper",
+      "firstname": "Mary",
+      "date_of_birth": "23/11/1998",
+      "source": "filename",
+      "document_count": 2
+    },
+    "practitioners": [
+      {
+        "name": "Dr L Fraser",
+        "type": "GP",
+        "practice": "HILLSIDE MEDICAL CENTRE",
+        "document_count": 2
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:10.178239Z"
+  }
+}

@@ -236,6 +236,8 @@ def main():
         ("Green_Sean_250481", 7): "minimal data page, no synthetic equivalent",
         ("Green_Sean_250481", 9): "minimal data page, no synthetic equivalent",
         ("Knight_Alice_091065", 1): "name + postcode only, no address block for label extractor",
+        ("Dixon_Peter_040770", 15): "name + postcode only, no address block for label extractor",
+        ("Morgan_Bob_200771", 11): "name + postcode only, no address block for label extractor",
     }
 
     total_docs = 0

@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "document_id": "Nelson_Xena_100250",
+  "extracted_at": "2026-03-15T22:43:24.306098",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Finn Mason",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "86 Queens Drive",
+        "line_2": "27 Church Road",
+        "city": "Epsom",
+        "county": null,
+        "postcode": "AA1 3XY",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Peter Roberts",
+      "surname": "Nelson",
+      "firstname": "Xena",
+      "date_of_birth": "27/01/1997",
+      "source": "filename",
+      "document_count": 1
+    },
+    "enriched_at": "2026-03-14T14:17:09.946296Z"
+  }
+}

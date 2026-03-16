@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "document_id": "Dixon_Peter_040770",
+  "extracted_at": "2026-03-15T22:43:25.279563",
+  "page_count": 2,
+  "pages": [
+    {
+      "page_number": 8,
+      "patient": {
+        "full_name": "Simon Foster",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "139 Beech Avenue",
+        "line_2": "64 Ash Grove",
+        "city": "Tunbridge Wells",
+        "county": null,
+        "postcode": "GG7 1LW",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "form",
+        "confidence": 0.8
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 15,
+      "patient": {
+        "full_name": "Luke Jacobs",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": null,
+        "line_2": null,
+        "city": null,
+        "county": null,
+        "postcode": "GG7 1LW",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Zach Irving",
+      "surname": "Dixon",
+      "firstname": "Peter",
+      "date_of_birth": "26/01/1984",
+      "source": "filename",
+      "document_count": 1
+    },
+    "enriched_at": "2026-03-14T14:17:10.061847Z"
+  }
+}

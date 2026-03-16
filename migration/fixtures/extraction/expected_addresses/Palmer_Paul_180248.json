@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "document_id": "Palmer_Paul_180248",
+  "extracted_at": "2026-03-15T22:43:30.022513",
+  "page_count": 2,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Xena Smith",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "48 The Green",
+        "line_2": "40 Willow Court",
+        "city": "Guildford",
+        "county": null,
+        "postcode": "HH8 8FE",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Yusuf Drew",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "134 Kings Road",
+        "line_2": "51 High Street",
+        "city": "Sevenoaks",
+        "county": null,
+        "postcode": "EE5 4GV",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Bob Cooper",
+      "surname": "Palmer",
+      "firstname": "Paul",
+      "date_of_birth": "25/04/1970",
+      "source": "filename",
+      "document_count": 1
+    },
+    "enriched_at": "2026-03-14T14:17:09.912398Z"
+  }
+}

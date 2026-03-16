@@ -1,0 +1,256 @@
+{
+  "documentId": "Nelson_Xena_100250",
+  "confidence": 0.85,
+  "engineVersion": "1.0.0",
+  "id": "SYNTH-Nelson_Xena_100250",
+  "metadata": {
+    "detectedLanguages": [
+      "en-US"
+    ],
+    "options": {
+      "recognitionLevel": "accurate",
+      "useLanguageCorrection": true,
+      "languages": [
+        "en-US"
+      ]
+    },
+    "pageCount": 1,
+    "processingTime": 1.2,
+    "warnings": []
+  },
+  "processedAt": "2026-03-16T00:00:00Z",
+  "pages": [
+    {
+      "pageNumber": 2,
+      "confidence": 0.85,
+      "text": "Finn Mason\n86 Queens Drive\n27 Church Road\nEpsom\nAA1 3XY",
+      "textBlocks": [
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.05,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Finn Mason",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.05,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Finn Mason",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Finn"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Mason"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.08,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "86 Queens Drive",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.08,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "86 Queens Drive",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.08,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "86"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.08,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Queens"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.08,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Drive"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.11,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "27 Church Road",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.11,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "27 Church Road",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.11,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "27"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.11,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Church"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.11,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Road"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.14,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Epsom",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.14,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Epsom",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.14,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Epsom"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.17,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "AA1 3XY",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.17,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "AA1 3XY",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.17,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "AA1"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.17,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "3XY"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

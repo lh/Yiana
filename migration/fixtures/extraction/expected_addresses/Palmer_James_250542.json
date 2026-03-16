@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "document_id": "Palmer_James_250542",
+  "extracted_at": "2026-03-15T22:43:32.475763",
+  "page_count": 2,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Brent Ellis",
+        "date_of_birth": "10/01/1956",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": "07700770218"
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "97 Pine Road",
+        "line_2": "34 Birch Lane",
+        "city": "Chichester",
+        "county": "Berkshire",
+        "postcode": "PP5 6AX",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr E Svensson",
+        "practice": "GREENFIELD MEDICAL PRACTICE",
+        "address": "123 Beech Avenue",
+        "postcode": "PP5 6AX",
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": [
+          {
+            "ods_code": "D94005",
+            "name": "BROOKSIDE HEALTH CENTRE",
+            "address_line1": "118 High Street",
+            "town": "Tunbridge Wells",
+            "postcode": "PP5 6AX",
+            "address_line2": "141 Cedar Way",
+            "county": "WEST SUSSEX"
+          },
+          {
+            "ods_code": "J44245",
+            "name": "LAKESIDE MEDICAL PRACTICE",
+            "address_line1": "118 High Street",
+            "town": "Tunbridge Wells",
+            "postcode": "PP5 6AX",
+            "address_line2": "141 Cedar Way",
+            "county": "WEST SUSSEX"
+          }
+        ]
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Uri Clarke",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "43 Willow Court",
+        "line_2": "148 Elm Close",
+        "city": "Chichester",
+        "county": null,
+        "postcode": "NN4 6KT",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Brent Ellis",
+      "surname": "Palmer",
+      "firstname": "James",
+      "date_of_birth": "10/01/1956",
+      "source": "filename",
+      "document_count": 2
+    },
+    "practitioners": [
+      {
+        "name": "Dr E Svensson",
+        "type": "GP",
+        "practice": "BROOKSIDE HEALTH CENTRE",
+        "document_count": 11
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:09.977280Z"
+  }
+}

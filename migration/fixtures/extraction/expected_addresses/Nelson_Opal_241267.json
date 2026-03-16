@@ -1,0 +1,294 @@
+{
+  "schema_version": 1,
+  "document_id": "Nelson_Opal_241267",
+  "extracted_at": "2026-03-15T22:43:24.023300",
+  "page_count": 7,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Olivia Harris",
+        "date_of_birth": "05/02/2001",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": "07700917498"
+        },
+        "mrn": "77197071"
+      },
+      "address": {
+        "line_1": null,
+        "line_2": null,
+        "city": null,
+        "county": null,
+        "postcode": "RR7 2SW",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr H Amara",
+        "practice": "THE PINES SURGERY",
+        "address": "22 Park Avenue",
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Iona Drew",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "3 Station Road",
+        "line_2": "95 Victoria Road",
+        "city": "Oxford",
+        "county": null,
+        "postcode": "RR7 2SW",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 3,
+      "patient": {
+        "full_name": "Kira Edwards",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "22 The Green",
+        "line_2": "64 Queens Drive",
+        "city": "Oxford",
+        "county": null,
+        "postcode": "PP5 5LM",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 4,
+      "patient": {
+        "full_name": "Iona Drew",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "3 Station Road",
+        "line_2": "95 Victoria Road",
+        "city": "Oxford",
+        "county": null,
+        "postcode": "RR7 2SW",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 5,
+      "patient": {
+        "full_name": "Iona Drew",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "3 Station Road",
+        "line_2": "95 Victoria Road",
+        "city": "Oxford",
+        "county": null,
+        "postcode": "RR7 2SW",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 6,
+      "patient": {
+        "full_name": "Simon Young",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "59 Kings Road",
+        "line_2": "40 Holly Lane",
+        "city": "Horsham",
+        "county": null,
+        "postcode": "RR7 2SW",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 7,
+      "patient": {
+        "full_name": "Iona Drew",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "7 Church Road",
+        "line_2": "95 Victoria Road",
+        "city": "Oxford",
+        "county": null,
+        "postcode": "RR7 2SW",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Olivia Harris",
+      "surname": "Nelson",
+      "firstname": "Opal",
+      "date_of_birth": "05/02/2001",
+      "source": "filename",
+      "document_count": 2
+    },
+    "practitioners": [
+      {
+        "name": "Dr H Amara",
+        "type": "GP",
+        "practice": "THE PINES SURGERY",
+        "document_count": 4
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:10.148434Z"
+  }
+}
