@@ -23,7 +23,7 @@
     {
       "pageNumber": 1,
       "confidence": 0.85,
-      "text": "Noah Drew\n1 Unknown Street\nEE5 4BP",
+      "text": "Noah Drew\nEE5 4BP",
       "textBlocks": [
         {
           "boundingBox": {
@@ -76,7 +76,7 @@
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "1 Unknown Street",
+          "text": "EE5 4BP",
           "lines": [
             {
               "boundingBox": {
@@ -85,65 +85,12 @@
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "1 Unknown Street",
-              "words": [
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.08,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "1"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.08,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Unknown"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.08,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Street"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "boundingBox": {
-            "x": 0.08,
-            "y": 0.11,
-            "width": 0.8,
-            "height": 0.025
-          },
-          "confidence": 0.85,
-          "text": "EE5 4BP",
-          "lines": [
-            {
-              "boundingBox": {
-                "x": 0.08,
-                "y": 0.11,
-                "width": 0.8,
-                "height": 0.025
-              },
               "text": "EE5 4BP",
               "words": [
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.11,
+                    "y": 0.08,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -153,7 +100,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.11,
+                    "y": 0.08,
                     "width": 0.15,
                     "height": 0.025
                   },

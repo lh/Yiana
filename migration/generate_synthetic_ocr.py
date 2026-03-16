@@ -242,8 +242,9 @@ def generate_label_text(page: dict) -> str:
     # Label format: name on first line, address below, postcode at end
     lines = [
         full_name or "Unknown",
-        addr_1 or "1 Unknown Street",
     ]
+    if addr_1:
+        lines.append(addr_1)
     if addr_2:
         lines.append(addr_2)
     if city:
@@ -267,14 +268,26 @@ def generate_unstructured_text(page: dict) -> str:
     addr_1 = address.get("line_1", "1 Test Street")
     dob = patient.get("date_of_birth", "")
 
-    # Unstructured: text with postcode and name scattered in prose
+    # Unstructured: text with postcode and name scattered in prose.
+    # Must NOT look like a label block (name on line 1 + postcode nearby).
+    # The label extractor scans 6-line windows for: line that looks like a
+    # name, followed by address lines, ending in a postcode. To avoid
+    # triggering it, we ensure the name appears on the same line as other
+    # words (not standalone), and put enough non-address lines around it.
     lines = [
-        "Private and Confidential",
+        "CONFIDENTIAL",
+        "REF: 2026/03/001",
+        "DEPARTMENT OF GENERAL SURGERY",
         "",
-        f"This letter concerns Mr {full_name or 'Unknown'} who attended clinic on",
-        "Monday for review of ongoing symptoms.",
+        "OUTPATIENT CLINIC REPORT",
         "",
-        "The patient resides at",
+        "DISCHARGE SUMMARY",
+        "",
+        f"Mr {full_name or 'Unknown'} attended clinic on Monday for review of ongoing symptoms.",
+        "The clinical findings were unremarkable and no further intervention is required.",
+        "The patient was discharged with follow-up in 6 weeks.",
+        "",
+        "Current address on file:",
         addr_1 or "1 Unknown Street",
         postcode or "AA1 1AA",
         "",

@@ -23,7 +23,7 @@
     {
       "pageNumber": 1,
       "confidence": 0.85,
-      "text": "Xena Taylor\n1 Unknown Street\nAA1 8HS\n\nDOB: 01/05/1986",
+      "text": "Xena Taylor\nAA1 8HS\n\nDOB: 01/05/1986",
       "textBlocks": [
         {
           "boundingBox": {
@@ -76,7 +76,7 @@
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "1 Unknown Street",
+          "text": "AA1 8HS",
           "lines": [
             {
               "boundingBox": {
@@ -85,65 +85,12 @@
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "1 Unknown Street",
-              "words": [
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.08,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "1"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.08,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Unknown"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.08,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Street"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "boundingBox": {
-            "x": 0.08,
-            "y": 0.11,
-            "width": 0.8,
-            "height": 0.025
-          },
-          "confidence": 0.85,
-          "text": "AA1 8HS",
-          "lines": [
-            {
-              "boundingBox": {
-                "x": 0.08,
-                "y": 0.11,
-                "width": 0.8,
-                "height": 0.025
-              },
               "text": "AA1 8HS",
               "words": [
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.11,
+                    "y": 0.08,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -153,7 +100,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.11,
+                    "y": 0.08,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -167,7 +114,7 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.16,
+            "y": 0.13,
             "width": 0.8,
             "height": 0.025
           },
@@ -177,7 +124,7 @@
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.16,
+                "y": 0.13,
                 "width": 0.8,
                 "height": 0.025
               },
@@ -186,7 +133,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.16,
+                    "y": 0.13,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -196,7 +143,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.16,
+                    "y": 0.13,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -444,7 +391,7 @@
     {
       "pageNumber": 3,
       "confidence": 0.85,
-      "text": "Xena Taylor\n1 Unknown Street\nAA1 8HS\n\nDOB: 23/09/1950",
+      "text": "Xena Taylor\nAA1 8HS\n\nDOB: 23/09/1950",
       "textBlocks": [
         {
           "boundingBox": {
@@ -497,7 +444,7 @@
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "1 Unknown Street",
+          "text": "AA1 8HS",
           "lines": [
             {
               "boundingBox": {
@@ -506,65 +453,12 @@
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "1 Unknown Street",
-              "words": [
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.08,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "1"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.08,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Unknown"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.08,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Street"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "boundingBox": {
-            "x": 0.08,
-            "y": 0.11,
-            "width": 0.8,
-            "height": 0.025
-          },
-          "confidence": 0.85,
-          "text": "AA1 8HS",
-          "lines": [
-            {
-              "boundingBox": {
-                "x": 0.08,
-                "y": 0.11,
-                "width": 0.8,
-                "height": 0.025
-              },
               "text": "AA1 8HS",
               "words": [
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.11,
+                    "y": 0.08,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -574,7 +468,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.11,
+                    "y": 0.08,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -588,7 +482,7 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.16,
+            "y": 0.13,
             "width": 0.8,
             "height": 0.025
           },
@@ -598,7 +492,7 @@
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.16,
+                "y": 0.13,
                 "width": 0.8,
                 "height": 0.025
               },
@@ -607,7 +501,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.16,
+                    "y": 0.13,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -617,7 +511,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.16,
+                    "y": 0.13,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -865,7 +759,7 @@
     {
       "pageNumber": 5,
       "confidence": 0.85,
-      "text": "Xena Taylor\n1 Unknown Street\nAA1 8HS\n\nDOB: 15/07/2005",
+      "text": "Xena Taylor\nAA1 8HS\n\nDOB: 15/07/2005",
       "textBlocks": [
         {
           "boundingBox": {
@@ -918,7 +812,7 @@
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "1 Unknown Street",
+          "text": "AA1 8HS",
           "lines": [
             {
               "boundingBox": {
@@ -927,65 +821,12 @@
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "1 Unknown Street",
-              "words": [
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.08,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "1"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.08,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Unknown"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.08,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Street"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "boundingBox": {
-            "x": 0.08,
-            "y": 0.11,
-            "width": 0.8,
-            "height": 0.025
-          },
-          "confidence": 0.85,
-          "text": "AA1 8HS",
-          "lines": [
-            {
-              "boundingBox": {
-                "x": 0.08,
-                "y": 0.11,
-                "width": 0.8,
-                "height": 0.025
-              },
               "text": "AA1 8HS",
               "words": [
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.11,
+                    "y": 0.08,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -995,7 +836,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.11,
+                    "y": 0.08,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -1009,7 +850,7 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.16,
+            "y": 0.13,
             "width": 0.8,
             "height": 0.025
           },
@@ -1019,7 +860,7 @@
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.16,
+                "y": 0.13,
                 "width": 0.8,
                 "height": 0.025
               },
@@ -1028,7 +869,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.16,
+                    "y": 0.13,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -1038,7 +879,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.16,
+                    "y": 0.13,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -1054,7 +895,7 @@
     {
       "pageNumber": 6,
       "confidence": 0.85,
-      "text": "Private and Confidential\n\nThis letter concerns Mr James Reed who attended clinic on\nMonday for review of ongoing symptoms.\n\nThe patient resides at\n121 Mill Lane\nBB2 6PR\n\nFurther follow-up in 6 weeks.\nWith best wishes,\nConsultant",
+      "text": "CONFIDENTIAL\nREF: 2026/03/001\nDEPARTMENT OF GENERAL SURGERY\n\nOUTPATIENT CLINIC REPORT\n\nDISCHARGE SUMMARY\n\nMr James Reed attended clinic on Monday for review of ongoing symptoms.\nThe clinical findings were unremarkable and no further intervention is required.\nThe patient was discharged with follow-up in 6 weeks.\n\nCurrent address on file:\n121 Mill Lane\nBB2 6PR\n\nFurther follow-up in 6 weeks.\nWith best wishes,\nConsultant",
       "textBlocks": [
         {
           "boundingBox": {
@@ -1064,7 +905,7 @@
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "Private and Confidential",
+          "text": "CONFIDENTIAL",
           "lines": [
             {
               "boundingBox": {
@@ -1073,7 +914,7 @@
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "Private and Confidential",
+              "text": "CONFIDENTIAL",
               "words": [
                 {
                   "boundingBox": {
@@ -1083,27 +924,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "Private"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.05,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "and"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.05,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Confidential"
+                  "text": "CONFIDENTIAL"
                 }
               ]
             }
@@ -1112,121 +933,41 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.1,
+            "y": 0.08,
             "width": 0.8,
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "This letter concerns Mr James Reed who attended clinic on",
+          "text": "REF: 2026/03/001",
           "lines": [
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.1,
+                "y": 0.08,
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "This letter concerns Mr James Reed who attended clinic on",
+              "text": "REF: 2026/03/001",
               "words": [
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.1,
+                    "y": 0.08,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "This"
+                  "text": "REF:"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.1,
+                    "y": 0.08,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "letter"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "concerns"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Mr"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "James"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Reed"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "who"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "attended"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "clinic"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "on"
+                  "text": "2026/03/001"
                 }
               ]
             }
@@ -1235,81 +976,61 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.13,
+            "y": 0.11,
             "width": 0.8,
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "Monday for review of ongoing symptoms.",
+          "text": "DEPARTMENT OF GENERAL SURGERY",
           "lines": [
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.13,
+                "y": 0.11,
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "Monday for review of ongoing symptoms.",
+              "text": "DEPARTMENT OF GENERAL SURGERY",
               "words": [
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.13,
+                    "y": 0.11,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "Monday"
+                  "text": "DEPARTMENT"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.13,
+                    "y": 0.11,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "for"
+                  "text": "OF"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.13,
+                    "y": 0.11,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "review"
+                  "text": "GENERAL"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.13,
+                    "y": 0.11,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "of"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.13,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "ongoing"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.13,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "symptoms."
+                  "text": "SURGERY"
                 }
               ]
             }
@@ -1318,61 +1039,51 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.18,
+            "y": 0.16,
             "width": 0.8,
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "The patient resides at",
+          "text": "OUTPATIENT CLINIC REPORT",
           "lines": [
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.18,
+                "y": 0.16,
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "The patient resides at",
+              "text": "OUTPATIENT CLINIC REPORT",
               "words": [
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.18,
+                    "y": 0.16,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "The"
+                  "text": "OUTPATIENT"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.18,
+                    "y": 0.16,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "patient"
+                  "text": "CLINIC"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.18,
+                    "y": 0.16,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "resides"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.18,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "at"
+                  "text": "REPORT"
                 }
               ]
             }
@@ -1386,7 +1097,7 @@
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "121 Mill Lane",
+          "text": "DISCHARGE SUMMARY",
           "lines": [
             {
               "boundingBox": {
@@ -1395,7 +1106,7 @@
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "121 Mill Lane",
+              "text": "DISCHARGE SUMMARY",
               "words": [
                 {
                   "boundingBox": {
@@ -1405,7 +1116,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "121"
+                  "text": "DISCHARGE"
                 },
                 {
                   "boundingBox": {
@@ -1415,17 +1126,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "Mill"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.21,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Lane"
+                  "text": "SUMMARY"
                 }
               ]
             }
@@ -1434,41 +1135,141 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.24,
+            "y": 0.26,
             "width": 0.8,
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "BB2 6PR",
+          "text": "Mr James Reed attended clinic on Monday for review of ongoing symptoms.",
           "lines": [
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.24,
+                "y": 0.26,
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "BB2 6PR",
+              "text": "Mr James Reed attended clinic on Monday for review of ongoing symptoms.",
               "words": [
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.24,
+                    "y": 0.26,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "BB2"
+                  "text": "Mr"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.24,
+                    "y": 0.26,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "6PR"
+                  "text": "James"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Reed"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "attended"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "clinic"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "on"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Monday"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "for"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "review"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "of"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "ongoing"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "symptoms."
                 }
               ]
             }
@@ -1482,7 +1283,7 @@
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "Further follow-up in 6 weeks.",
+          "text": "The clinical findings were unremarkable and no further intervention is required.",
           "lines": [
             {
               "boundingBox": {
@@ -1491,7 +1292,7 @@
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "Further follow-up in 6 weeks.",
+              "text": "The clinical findings were unremarkable and no further intervention is required.",
               "words": [
                 {
                   "boundingBox": {
@@ -1501,7 +1302,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "Further"
+                  "text": "The"
                 },
                 {
                   "boundingBox": {
@@ -1511,7 +1312,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "follow-up"
+                  "text": "clinical"
                 },
                 {
                   "boundingBox": {
@@ -1521,7 +1322,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "in"
+                  "text": "findings"
                 },
                 {
                   "boundingBox": {
@@ -1531,7 +1332,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "6"
+                  "text": "were"
                 },
                 {
                   "boundingBox": {
@@ -1541,7 +1342,67 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "weeks."
+                  "text": "unremarkable"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.29000000000000004,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "and"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.29000000000000004,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "no"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.29000000000000004,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "further"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.29000000000000004,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "intervention"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.29000000000000004,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "is"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.29000000000000004,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "required."
                 }
               ]
             }
@@ -1555,7 +1416,7 @@
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "With best wishes,",
+          "text": "The patient was discharged with follow-up in 6 weeks.",
           "lines": [
             {
               "boundingBox": {
@@ -1564,7 +1425,7 @@
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "With best wishes,",
+              "text": "The patient was discharged with follow-up in 6 weeks.",
               "words": [
                 {
                   "boundingBox": {
@@ -1574,7 +1435,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "With"
+                  "text": "The"
                 },
                 {
                   "boundingBox": {
@@ -1584,12 +1445,357 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "best"
+                  "text": "patient"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
                     "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "was"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "discharged"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "with"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "follow-up"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "in"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "6"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "weeks."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.3700000000000001,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Current address on file:",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.3700000000000001,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Current address on file:",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3700000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Current"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3700000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "address"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3700000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "on"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3700000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "file:"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.40000000000000013,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "121 Mill Lane",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.40000000000000013,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "121 Mill Lane",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.40000000000000013,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "121"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.40000000000000013,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Mill"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.40000000000000013,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Lane"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.43000000000000016,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "BB2 6PR",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.43000000000000016,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "BB2 6PR",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.43000000000000016,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "BB2"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.43000000000000016,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "6PR"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.4800000000000002,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Further follow-up in 6 weeks.",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.4800000000000002,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Further follow-up in 6 weeks.",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.4800000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Further"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.4800000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "follow-up"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.4800000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "in"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.4800000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "6"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.4800000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "weeks."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.5100000000000002,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "With best wishes,",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.5100000000000002,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "With best wishes,",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.5100000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "With"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.5100000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "best"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.5100000000000002,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -1603,7 +1809,7 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.3500000000000001,
+            "y": 0.5400000000000003,
             "width": 0.8,
             "height": 0.025
           },
@@ -1613,7 +1819,7 @@
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.3500000000000001,
+                "y": 0.5400000000000003,
                 "width": 0.8,
                 "height": 0.025
               },
@@ -1622,7 +1828,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.3500000000000001,
+                    "y": 0.5400000000000003,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -1638,7 +1844,7 @@
     {
       "pageNumber": 7,
       "confidence": 0.85,
-      "text": "Xena Taylor\n1 Unknown Street\nAA1 8HS\n\nDOB: 21/10/1999",
+      "text": "Xena Taylor\nAA1 8HS\n\nDOB: 21/10/1999",
       "textBlocks": [
         {
           "boundingBox": {
@@ -1691,7 +1897,7 @@
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "1 Unknown Street",
+          "text": "AA1 8HS",
           "lines": [
             {
               "boundingBox": {
@@ -1700,65 +1906,12 @@
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "1 Unknown Street",
-              "words": [
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.08,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "1"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.08,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Unknown"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.08,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Street"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "boundingBox": {
-            "x": 0.08,
-            "y": 0.11,
-            "width": 0.8,
-            "height": 0.025
-          },
-          "confidence": 0.85,
-          "text": "AA1 8HS",
-          "lines": [
-            {
-              "boundingBox": {
-                "x": 0.08,
-                "y": 0.11,
-                "width": 0.8,
-                "height": 0.025
-              },
               "text": "AA1 8HS",
               "words": [
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.11,
+                    "y": 0.08,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -1768,7 +1921,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.11,
+                    "y": 0.08,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -1782,7 +1935,7 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.16,
+            "y": 0.13,
             "width": 0.8,
             "height": 0.025
           },
@@ -1792,7 +1945,7 @@
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.16,
+                "y": 0.13,
                 "width": 0.8,
                 "height": 0.025
               },
@@ -1801,7 +1954,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.16,
+                    "y": 0.13,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -1811,7 +1964,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.16,
+                    "y": 0.13,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -1827,7 +1980,7 @@
     {
       "pageNumber": 8,
       "confidence": 0.85,
-      "text": "Private and Confidential\n\nThis letter concerns Mr James Reed who attended clinic on\nMonday for review of ongoing symptoms.\n\nThe patient resides at\n121 Mill Lane\nBB2 6PR\n\nFurther follow-up in 6 weeks.\nWith best wishes,\nConsultant",
+      "text": "CONFIDENTIAL\nREF: 2026/03/001\nDEPARTMENT OF GENERAL SURGERY\n\nOUTPATIENT CLINIC REPORT\n\nDISCHARGE SUMMARY\n\nMr James Reed attended clinic on Monday for review of ongoing symptoms.\nThe clinical findings were unremarkable and no further intervention is required.\nThe patient was discharged with follow-up in 6 weeks.\n\nCurrent address on file:\n121 Mill Lane\nBB2 6PR\n\nFurther follow-up in 6 weeks.\nWith best wishes,\nConsultant",
       "textBlocks": [
         {
           "boundingBox": {
@@ -1837,7 +1990,7 @@
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "Private and Confidential",
+          "text": "CONFIDENTIAL",
           "lines": [
             {
               "boundingBox": {
@@ -1846,7 +1999,7 @@
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "Private and Confidential",
+              "text": "CONFIDENTIAL",
               "words": [
                 {
                   "boundingBox": {
@@ -1856,27 +2009,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "Private"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.05,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "and"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.05,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Confidential"
+                  "text": "CONFIDENTIAL"
                 }
               ]
             }
@@ -1885,121 +2018,41 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.1,
+            "y": 0.08,
             "width": 0.8,
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "This letter concerns Mr James Reed who attended clinic on",
+          "text": "REF: 2026/03/001",
           "lines": [
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.1,
+                "y": 0.08,
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "This letter concerns Mr James Reed who attended clinic on",
+              "text": "REF: 2026/03/001",
               "words": [
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.1,
+                    "y": 0.08,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "This"
+                  "text": "REF:"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.1,
+                    "y": 0.08,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "letter"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "concerns"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Mr"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "James"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Reed"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "who"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "attended"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "clinic"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "on"
+                  "text": "2026/03/001"
                 }
               ]
             }
@@ -2008,81 +2061,61 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.13,
+            "y": 0.11,
             "width": 0.8,
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "Monday for review of ongoing symptoms.",
+          "text": "DEPARTMENT OF GENERAL SURGERY",
           "lines": [
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.13,
+                "y": 0.11,
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "Monday for review of ongoing symptoms.",
+              "text": "DEPARTMENT OF GENERAL SURGERY",
               "words": [
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.13,
+                    "y": 0.11,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "Monday"
+                  "text": "DEPARTMENT"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.13,
+                    "y": 0.11,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "for"
+                  "text": "OF"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.13,
+                    "y": 0.11,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "review"
+                  "text": "GENERAL"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.13,
+                    "y": 0.11,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "of"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.13,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "ongoing"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.13,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "symptoms."
+                  "text": "SURGERY"
                 }
               ]
             }
@@ -2091,61 +2124,51 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.18,
+            "y": 0.16,
             "width": 0.8,
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "The patient resides at",
+          "text": "OUTPATIENT CLINIC REPORT",
           "lines": [
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.18,
+                "y": 0.16,
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "The patient resides at",
+              "text": "OUTPATIENT CLINIC REPORT",
               "words": [
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.18,
+                    "y": 0.16,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "The"
+                  "text": "OUTPATIENT"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.18,
+                    "y": 0.16,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "patient"
+                  "text": "CLINIC"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.18,
+                    "y": 0.16,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "resides"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.18,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "at"
+                  "text": "REPORT"
                 }
               ]
             }
@@ -2159,7 +2182,7 @@
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "121 Mill Lane",
+          "text": "DISCHARGE SUMMARY",
           "lines": [
             {
               "boundingBox": {
@@ -2168,7 +2191,7 @@
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "121 Mill Lane",
+              "text": "DISCHARGE SUMMARY",
               "words": [
                 {
                   "boundingBox": {
@@ -2178,7 +2201,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "121"
+                  "text": "DISCHARGE"
                 },
                 {
                   "boundingBox": {
@@ -2188,17 +2211,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "Mill"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.21,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Lane"
+                  "text": "SUMMARY"
                 }
               ]
             }
@@ -2207,41 +2220,141 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.24,
+            "y": 0.26,
             "width": 0.8,
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "BB2 6PR",
+          "text": "Mr James Reed attended clinic on Monday for review of ongoing symptoms.",
           "lines": [
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.24,
+                "y": 0.26,
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "BB2 6PR",
+              "text": "Mr James Reed attended clinic on Monday for review of ongoing symptoms.",
               "words": [
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.24,
+                    "y": 0.26,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "BB2"
+                  "text": "Mr"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.24,
+                    "y": 0.26,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "6PR"
+                  "text": "James"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Reed"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "attended"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "clinic"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "on"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Monday"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "for"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "review"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "of"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "ongoing"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "symptoms."
                 }
               ]
             }
@@ -2255,7 +2368,7 @@
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "Further follow-up in 6 weeks.",
+          "text": "The clinical findings were unremarkable and no further intervention is required.",
           "lines": [
             {
               "boundingBox": {
@@ -2264,7 +2377,7 @@
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "Further follow-up in 6 weeks.",
+              "text": "The clinical findings were unremarkable and no further intervention is required.",
               "words": [
                 {
                   "boundingBox": {
@@ -2274,7 +2387,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "Further"
+                  "text": "The"
                 },
                 {
                   "boundingBox": {
@@ -2284,7 +2397,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "follow-up"
+                  "text": "clinical"
                 },
                 {
                   "boundingBox": {
@@ -2294,7 +2407,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "in"
+                  "text": "findings"
                 },
                 {
                   "boundingBox": {
@@ -2304,7 +2417,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "6"
+                  "text": "were"
                 },
                 {
                   "boundingBox": {
@@ -2314,7 +2427,67 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "weeks."
+                  "text": "unremarkable"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.29000000000000004,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "and"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.29000000000000004,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "no"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.29000000000000004,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "further"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.29000000000000004,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "intervention"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.29000000000000004,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "is"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.29000000000000004,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "required."
                 }
               ]
             }
@@ -2328,7 +2501,7 @@
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "With best wishes,",
+          "text": "The patient was discharged with follow-up in 6 weeks.",
           "lines": [
             {
               "boundingBox": {
@@ -2337,7 +2510,7 @@
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "With best wishes,",
+              "text": "The patient was discharged with follow-up in 6 weeks.",
               "words": [
                 {
                   "boundingBox": {
@@ -2347,7 +2520,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "With"
+                  "text": "The"
                 },
                 {
                   "boundingBox": {
@@ -2357,12 +2530,357 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "best"
+                  "text": "patient"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
                     "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "was"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "discharged"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "with"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "follow-up"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "in"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "6"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "weeks."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.3700000000000001,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Current address on file:",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.3700000000000001,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Current address on file:",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3700000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Current"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3700000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "address"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3700000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "on"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3700000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "file:"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.40000000000000013,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "121 Mill Lane",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.40000000000000013,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "121 Mill Lane",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.40000000000000013,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "121"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.40000000000000013,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Mill"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.40000000000000013,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Lane"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.43000000000000016,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "BB2 6PR",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.43000000000000016,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "BB2 6PR",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.43000000000000016,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "BB2"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.43000000000000016,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "6PR"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.4800000000000002,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Further follow-up in 6 weeks.",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.4800000000000002,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Further follow-up in 6 weeks.",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.4800000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Further"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.4800000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "follow-up"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.4800000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "in"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.4800000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "6"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.4800000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "weeks."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.5100000000000002,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "With best wishes,",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.5100000000000002,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "With best wishes,",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.5100000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "With"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.5100000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "best"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.5100000000000002,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -2376,7 +2894,7 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.3500000000000001,
+            "y": 0.5400000000000003,
             "width": 0.8,
             "height": 0.025
           },
@@ -2386,7 +2904,7 @@
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.3500000000000001,
+                "y": 0.5400000000000003,
                 "width": 0.8,
                 "height": 0.025
               },
@@ -2395,7 +2913,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.3500000000000001,
+                    "y": 0.5400000000000003,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -2411,7 +2929,7 @@
     {
       "pageNumber": 9,
       "confidence": 0.85,
-      "text": "Xena Taylor\n1 Unknown Street\nAA1 8HS\n\nDOB: 11/07/1993",
+      "text": "Xena Taylor\nAA1 8HS\n\nDOB: 11/07/1993",
       "textBlocks": [
         {
           "boundingBox": {
@@ -2464,7 +2982,7 @@
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "1 Unknown Street",
+          "text": "AA1 8HS",
           "lines": [
             {
               "boundingBox": {
@@ -2473,65 +2991,12 @@
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "1 Unknown Street",
-              "words": [
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.08,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "1"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.08,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Unknown"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.08,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Street"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "boundingBox": {
-            "x": 0.08,
-            "y": 0.11,
-            "width": 0.8,
-            "height": 0.025
-          },
-          "confidence": 0.85,
-          "text": "AA1 8HS",
-          "lines": [
-            {
-              "boundingBox": {
-                "x": 0.08,
-                "y": 0.11,
-                "width": 0.8,
-                "height": 0.025
-              },
               "text": "AA1 8HS",
               "words": [
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.11,
+                    "y": 0.08,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -2541,7 +3006,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.11,
+                    "y": 0.08,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -2555,7 +3020,7 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.16,
+            "y": 0.13,
             "width": 0.8,
             "height": 0.025
           },
@@ -2565,7 +3030,7 @@
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.16,
+                "y": 0.13,
                 "width": 0.8,
                 "height": 0.025
               },
@@ -2574,7 +3039,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.16,
+                    "y": 0.13,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -2584,7 +3049,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.16,
+                    "y": 0.13,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -2600,7 +3065,7 @@
     {
       "pageNumber": 10,
       "confidence": 0.85,
-      "text": "Private and Confidential\n\nThis letter concerns Mr James Reed who attended clinic on\nMonday for review of ongoing symptoms.\n\nThe patient resides at\n121 Mill Lane\nBB2 6PR\n\nFurther follow-up in 6 weeks.\nWith best wishes,\nConsultant",
+      "text": "CONFIDENTIAL\nREF: 2026/03/001\nDEPARTMENT OF GENERAL SURGERY\n\nOUTPATIENT CLINIC REPORT\n\nDISCHARGE SUMMARY\n\nMr James Reed attended clinic on Monday for review of ongoing symptoms.\nThe clinical findings were unremarkable and no further intervention is required.\nThe patient was discharged with follow-up in 6 weeks.\n\nCurrent address on file:\n121 Mill Lane\nBB2 6PR\n\nFurther follow-up in 6 weeks.\nWith best wishes,\nConsultant",
       "textBlocks": [
         {
           "boundingBox": {
@@ -2610,7 +3075,7 @@
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "Private and Confidential",
+          "text": "CONFIDENTIAL",
           "lines": [
             {
               "boundingBox": {
@@ -2619,7 +3084,7 @@
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "Private and Confidential",
+              "text": "CONFIDENTIAL",
               "words": [
                 {
                   "boundingBox": {
@@ -2629,27 +3094,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "Private"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.05,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "and"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.05,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Confidential"
+                  "text": "CONFIDENTIAL"
                 }
               ]
             }
@@ -2658,121 +3103,41 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.1,
+            "y": 0.08,
             "width": 0.8,
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "This letter concerns Mr James Reed who attended clinic on",
+          "text": "REF: 2026/03/001",
           "lines": [
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.1,
+                "y": 0.08,
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "This letter concerns Mr James Reed who attended clinic on",
+              "text": "REF: 2026/03/001",
               "words": [
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.1,
+                    "y": 0.08,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "This"
+                  "text": "REF:"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.1,
+                    "y": 0.08,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "letter"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "concerns"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Mr"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "James"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Reed"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "who"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "attended"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "clinic"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.1,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "on"
+                  "text": "2026/03/001"
                 }
               ]
             }
@@ -2781,81 +3146,61 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.13,
+            "y": 0.11,
             "width": 0.8,
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "Monday for review of ongoing symptoms.",
+          "text": "DEPARTMENT OF GENERAL SURGERY",
           "lines": [
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.13,
+                "y": 0.11,
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "Monday for review of ongoing symptoms.",
+              "text": "DEPARTMENT OF GENERAL SURGERY",
               "words": [
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.13,
+                    "y": 0.11,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "Monday"
+                  "text": "DEPARTMENT"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.13,
+                    "y": 0.11,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "for"
+                  "text": "OF"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.13,
+                    "y": 0.11,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "review"
+                  "text": "GENERAL"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.13,
+                    "y": 0.11,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "of"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.13,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "ongoing"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.13,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "symptoms."
+                  "text": "SURGERY"
                 }
               ]
             }
@@ -2864,61 +3209,51 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.18,
+            "y": 0.16,
             "width": 0.8,
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "The patient resides at",
+          "text": "OUTPATIENT CLINIC REPORT",
           "lines": [
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.18,
+                "y": 0.16,
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "The patient resides at",
+              "text": "OUTPATIENT CLINIC REPORT",
               "words": [
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.18,
+                    "y": 0.16,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "The"
+                  "text": "OUTPATIENT"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.18,
+                    "y": 0.16,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "patient"
+                  "text": "CLINIC"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.18,
+                    "y": 0.16,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "resides"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.18,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "at"
+                  "text": "REPORT"
                 }
               ]
             }
@@ -2932,7 +3267,7 @@
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "121 Mill Lane",
+          "text": "DISCHARGE SUMMARY",
           "lines": [
             {
               "boundingBox": {
@@ -2941,7 +3276,7 @@
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "121 Mill Lane",
+              "text": "DISCHARGE SUMMARY",
               "words": [
                 {
                   "boundingBox": {
@@ -2951,7 +3286,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "121"
+                  "text": "DISCHARGE"
                 },
                 {
                   "boundingBox": {
@@ -2961,17 +3296,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "Mill"
-                },
-                {
-                  "boundingBox": {
-                    "x": 0.08,
-                    "y": 0.21,
-                    "width": 0.15,
-                    "height": 0.025
-                  },
-                  "confidence": 0.85,
-                  "text": "Lane"
+                  "text": "SUMMARY"
                 }
               ]
             }
@@ -2980,41 +3305,141 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.24,
+            "y": 0.26,
             "width": 0.8,
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "BB2 6PR",
+          "text": "Mr James Reed attended clinic on Monday for review of ongoing symptoms.",
           "lines": [
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.24,
+                "y": 0.26,
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "BB2 6PR",
+              "text": "Mr James Reed attended clinic on Monday for review of ongoing symptoms.",
               "words": [
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.24,
+                    "y": 0.26,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "BB2"
+                  "text": "Mr"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.24,
+                    "y": 0.26,
                     "width": 0.15,
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "6PR"
+                  "text": "James"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Reed"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "attended"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "clinic"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "on"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Monday"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "for"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "review"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "of"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "ongoing"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.26,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "symptoms."
                 }
               ]
             }
@@ -3028,7 +3453,7 @@
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "Further follow-up in 6 weeks.",
+          "text": "The clinical findings were unremarkable and no further intervention is required.",
           "lines": [
             {
               "boundingBox": {
@@ -3037,7 +3462,7 @@
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "Further follow-up in 6 weeks.",
+              "text": "The clinical findings were unremarkable and no further intervention is required.",
               "words": [
                 {
                   "boundingBox": {
@@ -3047,7 +3472,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "Further"
+                  "text": "The"
                 },
                 {
                   "boundingBox": {
@@ -3057,7 +3482,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "follow-up"
+                  "text": "clinical"
                 },
                 {
                   "boundingBox": {
@@ -3067,7 +3492,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "in"
+                  "text": "findings"
                 },
                 {
                   "boundingBox": {
@@ -3077,7 +3502,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "6"
+                  "text": "were"
                 },
                 {
                   "boundingBox": {
@@ -3087,7 +3512,67 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "weeks."
+                  "text": "unremarkable"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.29000000000000004,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "and"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.29000000000000004,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "no"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.29000000000000004,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "further"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.29000000000000004,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "intervention"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.29000000000000004,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "is"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.29000000000000004,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "required."
                 }
               ]
             }
@@ -3101,7 +3586,7 @@
             "height": 0.025
           },
           "confidence": 0.85,
-          "text": "With best wishes,",
+          "text": "The patient was discharged with follow-up in 6 weeks.",
           "lines": [
             {
               "boundingBox": {
@@ -3110,7 +3595,7 @@
                 "width": 0.8,
                 "height": 0.025
               },
-              "text": "With best wishes,",
+              "text": "The patient was discharged with follow-up in 6 weeks.",
               "words": [
                 {
                   "boundingBox": {
@@ -3120,7 +3605,7 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "With"
+                  "text": "The"
                 },
                 {
                   "boundingBox": {
@@ -3130,12 +3615,357 @@
                     "height": 0.025
                   },
                   "confidence": 0.85,
-                  "text": "best"
+                  "text": "patient"
                 },
                 {
                   "boundingBox": {
                     "x": 0.08,
                     "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "was"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "discharged"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "with"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "follow-up"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "in"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "6"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.32000000000000006,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "weeks."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.3700000000000001,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Current address on file:",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.3700000000000001,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Current address on file:",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3700000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Current"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3700000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "address"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3700000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "on"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3700000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "file:"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.40000000000000013,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "121 Mill Lane",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.40000000000000013,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "121 Mill Lane",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.40000000000000013,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "121"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.40000000000000013,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Mill"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.40000000000000013,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Lane"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.43000000000000016,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "BB2 6PR",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.43000000000000016,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "BB2 6PR",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.43000000000000016,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "BB2"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.43000000000000016,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "6PR"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.4800000000000002,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Further follow-up in 6 weeks.",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.4800000000000002,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Further follow-up in 6 weeks.",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.4800000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Further"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.4800000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "follow-up"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.4800000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "in"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.4800000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "6"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.4800000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "weeks."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.5100000000000002,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "With best wishes,",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.5100000000000002,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "With best wishes,",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.5100000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "With"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.5100000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "best"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.5100000000000002,
                     "width": 0.15,
                     "height": 0.025
                   },
@@ -3149,7 +3979,7 @@
         {
           "boundingBox": {
             "x": 0.08,
-            "y": 0.3500000000000001,
+            "y": 0.5400000000000003,
             "width": 0.8,
             "height": 0.025
           },
@@ -3159,7 +3989,7 @@
             {
               "boundingBox": {
                 "x": 0.08,
-                "y": 0.3500000000000001,
+                "y": 0.5400000000000003,
                 "width": 0.8,
                 "height": 0.025
               },
@@ -3168,7 +3998,7 @@
                 {
                   "boundingBox": {
                     "x": 0.08,
-                    "y": 0.3500000000000001,
+                    "y": 0.5400000000000003,
                     "width": 0.15,
                     "height": 0.025
                   },
