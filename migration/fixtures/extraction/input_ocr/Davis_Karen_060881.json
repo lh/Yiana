@@ -1,0 +1,299 @@
+{
+  "documentId": "Davis_Karen_060881",
+  "confidence": 0.85,
+  "engineVersion": "1.0.0",
+  "id": "SYNTH-Davis_Karen_060881",
+  "metadata": {
+    "detectedLanguages": [
+      "en-US"
+    ],
+    "options": {
+      "recognitionLevel": "accurate",
+      "useLanguageCorrection": true,
+      "languages": [
+        "en-US"
+      ]
+    },
+    "pageCount": 1,
+    "processingTime": 1.2,
+    "warnings": []
+  },
+  "processedAt": "2026-03-16T00:00:00Z",
+  "pages": [
+    {
+      "pageNumber": 2,
+      "confidence": 0.85,
+      "text": "Alice Green\n53 Beech Avenue\n110 Pine Road\nChichester\nKK1 9CY\n\nDOB: 13/06/1946",
+      "textBlocks": [
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.05,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Alice Green",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.05,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Alice Green",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Alice"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Green"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.08,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "53 Beech Avenue",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.08,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "53 Beech Avenue",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.08,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "53"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.08,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Beech"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.08,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Avenue"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.11,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "110 Pine Road",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.11,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "110 Pine Road",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.11,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "110"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.11,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Pine"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.11,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Road"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.14,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Chichester",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.14,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Chichester",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.14,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Chichester"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.17,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "KK1 9CY",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.17,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "KK1 9CY",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.17,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "KK1"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.17,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "9CY"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.22,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "DOB: 13/06/1946",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.22,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "DOB: 13/06/1946",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.22,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "DOB:"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.22,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "13/06/1946"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

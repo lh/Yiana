@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "document_id": "Ellis_Tara_090490",
+  "extracted_at": "2026-03-15T22:43:25.233354",
+  "page_count": 2,
+  "pages": [
+    {
+      "page_number": 6,
+      "patient": {
+        "full_name": "Uri Brennan",
+        "date_of_birth": "25/02/1957",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "23 Victoria Road",
+        "line_2": "61 High Street",
+        "city": "Winchester",
+        "county": null,
+        "postcode": "GG7 1GD",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 11,
+      "patient": {
+        "full_name": "Rachel Taylor",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "60 Park Avenue",
+        "line_2": "90 The Green",
+        "city": "Brighton",
+        "county": null,
+        "postcode": "GG7 1GD",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "form",
+        "confidence": 0.8
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Frank Irving",
+      "surname": "Ellis",
+      "firstname": "Tara",
+      "date_of_birth": "16/03/1978",
+      "source": "filename",
+      "document_count": 1
+    },
+    "enriched_at": "2026-03-14T14:17:10.297776Z"
+  }
+}

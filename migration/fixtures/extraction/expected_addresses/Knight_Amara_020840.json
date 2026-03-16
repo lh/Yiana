@@ -1,0 +1,98 @@
+{
+  "document_id": "Knight_Amara_020840",
+  "extracted_at": "2026-03-16T12:00:30Z",
+  "overrides": [
+    {
+      "address_type": "gp",
+      "match_address_type": "gp",
+      "override_date": "2026-03-16T12:00:30Z",
+      "override_reason": "manual",
+      "page_number": 0
+    },
+    {
+      "address": {},
+      "address_type": "gp",
+      "gp": {
+        "address": "",
+        "name": "",
+        "postcode": "BB2 6XX",
+        "practice": "",
+        "ods_code": null,
+        "official_name": null
+      },
+      "is_prime": true,
+      "match_address_type": "gp",
+      "override_date": "2026-03-16T12:00:44Z",
+      "override_reason": "corrected",
+      "page_number": 0,
+      "patient": {
+        "phones": {},
+        "full_name": null,
+        "date_of_birth": null,
+        "mrn": null
+      }
+    },
+    {
+      "address_type": "patient",
+      "match_address_type": "patient",
+      "override_date": "2026-03-16T12:02:07Z",
+      "override_reason": "manual",
+      "page_number": 0
+    },
+    {
+      "address": {
+        "city": "",
+        "county": "",
+        "line_1": "83 Holly Lane",
+        "line_2": "",
+        "postcode": ""
+      },
+      "address_type": "patient",
+      "gp": {},
+      "is_prime": false,
+      "match_address_type": "patient",
+      "override_date": "2026-03-16T12:03:04Z",
+      "override_reason": "corrected",
+      "page_number": 0,
+      "patient": {
+        "date_of_birth": "11/08/1944",
+        "full_name": "David Turner",
+        "mrn": "84253623",
+        "phones": {
+          "home": "",
+          "mobile": "",
+          "work": ""
+        }
+      }
+    },
+    {
+      "address": {
+        "city": "",
+        "county": "Hampshire",
+        "line_1": "83 Holly Lane",
+        "line_2": "80 Willow Court",
+        "postcode": "MM3 2UA"
+      },
+      "address_type": "patient",
+      "gp": {},
+      "is_prime": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-16T12:04:36Z",
+      "override_reason": "corrected",
+      "page_number": 0,
+      "patient": {
+        "date_of_birth": "11/08/1944",
+        "full_name": "David Turner",
+        "mrn": "84253623",
+        "phones": {
+          "home": "01234800636",
+          "mobile": "07700646340",
+          "work": ""
+        }
+      }
+    }
+  ],
+  "page_count": 0,
+  "pages": [],
+  "schema_version": 1
+}

@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "document_id": "Stone_Clara_141140",
+  "extracted_at": "2026-03-15T22:43:28.919075",
+  "page_count": 2,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Yusuf Vance",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "111 Church Road",
+        "line_2": "52 Pine Road",
+        "city": "Horsham",
+        "county": null,
+        "postcode": "CC3 6JY",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Quinn Knight",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "98 Cedar Way",
+        "line_2": "13 Station Road",
+        "city": "Guildford",
+        "county": null,
+        "postcode": "CC3 6JY",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Gita Roberts",
+      "surname": "Stone",
+      "firstname": "Clara",
+      "date_of_birth": "11/04/1963",
+      "source": "filename",
+      "document_count": 1
+    },
+    "enriched_at": "2026-03-14T14:17:10.501399Z"
+  }
+}

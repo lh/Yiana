@@ -69,7 +69,7 @@ iCloud-synced JSON files. This works but creates:
 | YianaOCRService | Swift | ~2500 | Server-side OCR |
 | extraction_service.py | Python | ~960 | Address extraction watcher |
 | address_extractor.py | Python | ~620 | Regex-based extraction |
-| spire_form_extractor.py | Python | ~330 | Spire Healthcare form parser |
+| spire_form_extractor.py | Python | ~330 | Registration form parser |
 | llm_extractor.py | Python | ~260 | Optional Ollama fallback |
 | backend_db.py | Python | ~1420 | Entity deduplication DB |
 | NHS lookup (in extraction_service) | Python | ~200 | ODS postcode lookup |
@@ -85,7 +85,7 @@ iCloud-synced JSON files. This works but creates:
 │  Document Management (unchanged)                  │
 │  On-Device OCR (Vision, already exists)           │
 │  Extraction Engine (NEW — Swift)                  │
-│   ├─ Form detector (Spire + generic)             │
+│   ├─ Form detector (registration + generic)             │
 │   ├─ Address parser (NLTagger + NSDataDetector)  │
 │   ├─ NHS/ODS lookup (GRDB + bundled SQLite)      │
 │   └─ Entity resolver (name norm + dedup)         │
@@ -181,7 +181,7 @@ After consolidation, extracting domain-specific parts into configuration:
 | Entity types | Patient, GP, Specialist | Client, Account Manager, Supplier |
 | Key identifier | NHS Number, DOB | Client ID, Company Number |
 | Lookup database | NHS ODS (GP practices) | Company directory |
-| Extraction patterns | Spire forms, referral letters | Invoices, contracts |
+| Extraction patterns | Registration forms, referral letters | Invoices, contracts |
 | Letter templates | Clinical correspondence | Business correspondence |
 | Filename convention | Surname_Firstname_DDMMYY | Company_Contact_Reference |
 

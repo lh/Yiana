@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "document_id": "Ward_Will_050395",
+  "extracted_at": "2026-03-15T22:43:25.080187",
+  "page_count": 2,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Uma Turner",
+        "date_of_birth": "19/10/1966",
+        "phones": {
+          "home": "01234422507",
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "37 Birch Lane",
+        "line_2": "114 Station Road",
+        "city": "Canterbury",
+        "county": "East Sussex",
+        "postcode": "RR7 7JZ",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr B Cooper",
+        "practice": "OAKWOOD MEDICAL CENTRE",
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Leo Walker",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "94 Cedar Way",
+        "line_2": "97 Elm Close",
+        "city": "Chichester",
+        "county": null,
+        "postcode": "NN4 8VT",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Henry Mason",
+      "surname": "Ward",
+      "firstname": "Will",
+      "date_of_birth": "19/10/1966",
+      "source": "filename",
+      "document_count": 1
+    },
+    "practitioners": [
+      {
+        "name": "Dr B Cooper",
+        "type": "GP",
+        "practice": "OAKWOOD MEDICAL CENTRE",
+        "document_count": 2
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:10.485408Z"
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "document_id": "Clarke_Peter_210558",
+  "extracted_at": "2026-03-15T21:53:51Z",
+  "overrides": [
+    {
+      "address_type": "patient",
+      "match_address_type": "patient",
+      "override_date": "2026-03-15T21:53:51Z",
+      "override_reason": "manual",
+      "page_number": 0
+    },
+    {
+      "address": {
+        "city": "Oxford",
+        "line_1": "150 Cedar Way",
+        "postcode": "AA1 1XT",
+        "line_2": null,
+        "county": null
+      },
+      "address_type": "patient",
+      "gp": {},
+      "match_address_type": "patient",
+      "override_date": "2026-03-15T22:49:31Z",
+      "override_reason": "manual",
+      "page_number": 0,
+      "patient": {
+        "phones": {},
+        "full_name": null,
+        "date_of_birth": null,
+        "mrn": null
+      }
+    },
+    {
+      "address": {
+        "city": "Oxford",
+        "county": "",
+        "line_1": "150 Cedar Way",
+        "line_2": "",
+        "postcode": "AA1 1XT"
+      },
+      "address_type": "patient",
+      "gp": {},
+      "is_prime": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-15T22:50:53Z",
+      "override_reason": "corrected",
+      "page_number": 0,
+      "patient": {
+        "date_of_birth": "",
+        "full_name": "Olivia Palmer",
+        "mrn": "15715670",
+        "phones": {
+          "home": "",
+          "mobile": "07700567097",
+          "work": ""
+        }
+      }
+    }
+  ],
+  "page_count": 0,
+  "pages": [],
+  "schema_version": 1
+}

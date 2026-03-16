@@ -1,0 +1,294 @@
+{
+  "schema_version": 1,
+  "document_id": "Davis_Luke_110445",
+  "extracted_at": "2026-03-15T22:43:33.838197",
+  "page_count": 7,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Clara Cross",
+        "date_of_birth": "02/09/1968",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": "07700638054"
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "91 Oak Lane",
+        "line_2": "93 Church Road",
+        "city": "Canterbury",
+        "county": "East Sussex",
+        "postcode": "HH8 5KC",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr E Svensson",
+        "practice": "PARKVIEW MEDICAL PRACTICE",
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 4,
+      "patient": {
+        "full_name": "Quinn Keane",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "84 Pine Road",
+        "line_2": "99 Queens Drive",
+        "city": "Woking",
+        "county": null,
+        "postcode": "LL2 5KZ",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 5,
+      "patient": {
+        "full_name": "Zach Smith",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "21 Victoria Road",
+        "line_2": "102 Willow Court",
+        "city": "Woking",
+        "county": null,
+        "postcode": "HH8 5KC",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 7,
+      "patient": {
+        "full_name": "Paul Underwood",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "105 The Green",
+        "line_2": "78 Station Road",
+        "city": "Guildford",
+        "county": null,
+        "postcode": "HH8 5KC",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 8,
+      "patient": {
+        "full_name": "Opal Morgan",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "85 Kings Road",
+        "line_2": "128 Elm Close",
+        "city": "Leatherhead",
+        "county": null,
+        "postcode": "KK1 7LP",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "form",
+        "confidence": 0.8
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 11,
+      "patient": {
+        "full_name": "Uri Walker",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "34 Mill Lane",
+        "line_2": "5 Maple Drive",
+        "city": "Epsom",
+        "county": null,
+        "postcode": "MM3 5EG",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 14,
+      "patient": {
+        "full_name": "Mary Clarke",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "140 Manor Way",
+        "line_2": "137 Cedar Way",
+        "city": "Canterbury",
+        "county": null,
+        "postcode": "HH8 5KC",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Henry Frost",
+      "surname": "Davis",
+      "firstname": "Luke",
+      "date_of_birth": "02/09/1968",
+      "source": "filename",
+      "document_count": 1
+    },
+    "practitioners": [
+      {
+        "name": "Dr E Svensson",
+        "type": "GP",
+        "practice": "PARKVIEW MEDICAL PRACTICE",
+        "document_count": 14
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:10.590662Z"
+  }
+}

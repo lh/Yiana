@@ -39,7 +39,7 @@ have a definition of "correct" to test against.
 ### 0.1 Extraction Test Corpus
 
 - [ ] Select 50 representative documents spanning all extractor paths:
-  - 10 Spire Healthcare forms (spire_form_extractor)
+  - 10 structured registration forms (form-specific extractor)
   - 15 structured forms with field labels (form-based extractor)
   - 10 address-label format documents (label-based extractor)
   - 10 unstructured documents (fallback extractor)
@@ -106,7 +106,7 @@ Python continues to run on Devon in parallel.
 - [ ] Write tests FIRST for each extractor, using Phase 0 corpus:
 
   ```
-  test_spire_form_extraction()     — 10 cases
+  test_registration_form_extraction()     — 10 cases
   test_form_based_extraction()     — 15 cases
   test_label_based_extraction()    — 10 cases
   test_unstructured_extraction()   — 10 cases
@@ -114,7 +114,7 @@ Python continues to run on Devon in parallel.
   ```
 
 - [ ] Implement extractors to pass tests:
-  - `SpireFormExtractor` — pattern matching for Spire Healthcare forms
+  - `RegistrationFormExtractor` — pattern matching for structured registration forms
   - `NLPExtractor` — NLTagger (person names, places) + NSDataDetector
     (addresses, phone numbers, dates)
   - `FallbackExtractor` — postcode regex + surrounding context

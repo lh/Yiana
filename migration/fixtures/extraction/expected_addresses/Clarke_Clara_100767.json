@@ -1,0 +1,508 @@
+{
+  "schema_version": 1,
+  "document_id": "Clarke_Clara_100767",
+  "extracted_at": "2026-03-15T22:43:28.798918",
+  "page_count": 6,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Victor Ashworth",
+        "date_of_birth": "22/01/1956",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": "07700377985"
+        },
+        "mrn": "48654315"
+      },
+      "address": {
+        "line_1": null,
+        "line_2": null,
+        "city": "Chichester",
+        "county": null,
+        "postcode": "DD4 1BV",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr C Patel",
+        "practice": "THE PINES SURGERY",
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Alice Lewis",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "131 Maple Drive",
+        "line_2": "93 High Street",
+        "city": "Canterbury",
+        "county": null,
+        "postcode": "DD4 1BV",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 8,
+      "patient": {
+        "full_name": "Henry Mason",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "64 Ash Grove",
+        "line_2": "75 Cedar Way",
+        "city": "Redhill",
+        "county": null,
+        "postcode": "DD4 1BV",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 9,
+      "patient": {
+        "full_name": "Elena Chase",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "100 Pine Road",
+        "line_2": "128 Queens Drive",
+        "city": "Redhill",
+        "county": null,
+        "postcode": "DD4 1BV",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 10,
+      "patient": {
+        "full_name": "Elena Chase",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "100 Pine Road",
+        "line_2": "128 Queens Drive",
+        "city": "Redhill",
+        "county": null,
+        "postcode": "DD4 1BV",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 14,
+      "patient": {
+        "full_name": "Iona Turner",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "100 Holly Lane",
+        "line_2": "131 Elm Close",
+        "city": "Redhill",
+        "county": null,
+        "postcode": "DD4 1BV",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [
+    {
+      "address": {
+        "city": "Redhill",
+        "county": "",
+        "line_1": "131 Elm Close",
+        "line_2": "",
+        "postcode": "DD4 1BV"
+      },
+      "address_type": "patient",
+      "gp": {},
+      "is_prime": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-14T22:59:35Z",
+      "override_reason": "corrected",
+      "page_number": 8,
+      "patient": {
+        "date_of_birth": "22/01/1956",
+        "full_name": "Victor Ashworth",
+        "phones": {
+          "home": "",
+          "mobile": "07700377985",
+          "work": ""
+        },
+        "mrn": null
+      }
+    },
+    {
+      "address": {
+        "postcode": "FF6 7XD",
+        "line_1": null,
+        "line_2": null,
+        "city": null,
+        "county": null
+      },
+      "address_type": "gp",
+      "gp": {
+        "address": "2 Park Avenue",
+        "ods_code": "C96071",
+        "official_name": "HILLSIDE MEDICAL CENTRE",
+        "postcode": "FF6 7XD",
+        "practice": "HILLSIDE MEDICAL CENTRE",
+        "name": null
+      },
+      "match_address_type": "gp",
+      "override_date": "2026-03-14T23:00:07Z",
+      "override_reason": "manual",
+      "page_number": 0,
+      "patient": {
+        "phones": {},
+        "full_name": null,
+        "date_of_birth": null,
+        "mrn": null
+      }
+    },
+    {
+      "is_dismissed": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-14T23:00:30Z",
+      "override_reason": "dismissed",
+      "page_number": 2
+    },
+    {
+      "address": {
+        "city": "Redhill",
+        "county": "",
+        "line_1": "",
+        "line_2": "128 Queens Drive",
+        "postcode": "DD4 1BV"
+      },
+      "address_type": "patient",
+      "gp": {},
+      "is_prime": false,
+      "match_address_type": "patient",
+      "override_date": "2026-03-14T23:00:47Z",
+      "override_reason": "corrected",
+      "page_number": 9,
+      "patient": {
+        "date_of_birth": "22/01/1956",
+        "full_name": "Victor Ashworth",
+        "phones": {
+          "home": "",
+          "mobile": "",
+          "work": ""
+        },
+        "mrn": null
+      }
+    },
+    {
+      "address": {
+        "city": "Redhill",
+        "county": "",
+        "line_1": "131 Elm Close",
+        "line_2": "",
+        "postcode": "DD4 1BV"
+      },
+      "address_type": "patient",
+      "gp": {},
+      "is_prime": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-14T23:01:10Z",
+      "override_reason": "corrected",
+      "page_number": 8,
+      "patient": {
+        "date_of_birth": "22/01/1956",
+        "full_name": "",
+        "phones": {
+          "home": "",
+          "mobile": "07700377985",
+          "work": ""
+        },
+        "mrn": null
+      }
+    },
+    {
+      "is_dismissed": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-14T23:01:16Z",
+      "override_reason": "dismissed",
+      "page_number": 1
+    },
+    {
+      "is_dismissed": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-14T23:01:21Z",
+      "override_reason": "dismissed",
+      "page_number": 9
+    },
+    {
+      "is_dismissed": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-14T23:01:25Z",
+      "override_reason": "dismissed",
+      "page_number": 10
+    },
+    {
+      "is_dismissed": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-14T23:01:29Z",
+      "override_reason": "dismissed",
+      "page_number": 14
+    },
+    {
+      "address": {
+        "city": "Redhill",
+        "county": "",
+        "line_1": "131 Elm Close",
+        "line_2": "",
+        "postcode": "DD4 1BV"
+      },
+      "address_type": "patient",
+      "gp": {},
+      "is_prime": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-15T09:56:06Z",
+      "override_reason": "corrected",
+      "page_number": 8,
+      "patient": {
+        "date_of_birth": "22/01/1956",
+        "full_name": "",
+        "phones": {
+          "home": "",
+          "mobile": "07700377985",
+          "work": ""
+        },
+        "mrn": null
+      }
+    },
+    {
+      "address": {
+        "city": "Redhill",
+        "county": "",
+        "line_1": "131 Elm Close",
+        "line_2": "",
+        "postcode": "DD4 1BV"
+      },
+      "address_type": "patient",
+      "gp": {},
+      "is_prime": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-15T10:55:51Z",
+      "override_reason": "corrected",
+      "page_number": 8,
+      "patient": {
+        "date_of_birth": "22/01/1956",
+        "full_name": "",
+        "phones": {
+          "home": "",
+          "mobile": "07700377985",
+          "work": ""
+        },
+        "mrn": null
+      }
+    },
+    {
+      "address": {
+        "postcode": "FF6 7XD",
+        "line_1": null,
+        "line_2": null,
+        "city": null,
+        "county": null
+      },
+      "address_type": "gp",
+      "gp": {
+        "address": "2 Park Avenue",
+        "name": "",
+        "postcode": "FF6 7XD",
+        "practice": "HILLSIDE MEDICAL CENTRE",
+        "ods_code": "C96071",
+        "official_name": "HILLSIDE MEDICAL CENTRE"
+      },
+      "is_prime": true,
+      "match_address_type": "gp",
+      "override_date": "2026-03-15T10:56:07Z",
+      "override_reason": "corrected",
+      "page_number": 0,
+      "patient": {
+        "phones": {},
+        "full_name": null,
+        "date_of_birth": null,
+        "mrn": null
+      }
+    },
+    {
+      "address": {
+        "postcode": "FF6 7XD",
+        "line_1": null,
+        "line_2": null,
+        "city": null,
+        "county": null
+      },
+      "address_type": "gp",
+      "gp": {
+        "address": "2 Park Avenue",
+        "name": "Dr C Patel",
+        "postcode": "FF6 7XD",
+        "practice": "HILLSIDE MEDICAL CENTRE",
+        "ods_code": "C96071",
+        "official_name": "HILLSIDE MEDICAL CENTRE"
+      },
+      "is_prime": true,
+      "match_address_type": "gp",
+      "override_date": "2026-03-15T10:56:26Z",
+      "override_reason": "corrected",
+      "page_number": 0,
+      "patient": {
+        "phones": {},
+        "full_name": null,
+        "date_of_birth": null,
+        "mrn": null
+      }
+    }
+  ],
+  "enriched": {
+    "enriched_at": "2026-03-14T14:17:10.056156Z",
+    "patient": {
+      "date_of_birth": "22/01/1956",
+      "document_count": 2,
+      "firstname": "Clara",
+      "full_name": "Victor Ashworth",
+      "source": "filename",
+      "surname": "Clarke"
+    },
+    "practitioners": [
+      {
+        "document_count": 10,
+        "name": "Dr C Patel",
+        "practice": "MEADOW LANE SURGERY",
+        "type": "GP"
+      }
+    ]
+  }
+}

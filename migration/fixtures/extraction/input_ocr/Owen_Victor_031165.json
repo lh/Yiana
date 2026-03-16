@@ -1,0 +1,114 @@
+{
+  "documentId": "Owen_Victor_031165",
+  "confidence": 0.5,
+  "engineVersion": "1.0.0",
+  "id": "SYNTH-Owen_Victor_031165",
+  "metadata": {
+    "detectedLanguages": [
+      "en-US"
+    ],
+    "options": {
+      "recognitionLevel": "accurate",
+      "useLanguageCorrection": true,
+      "languages": [
+        "en-US"
+      ]
+    },
+    "pageCount": 1,
+    "processingTime": 0.5,
+    "warnings": []
+  },
+  "processedAt": "2026-03-16T00:00:00Z",
+  "pages": [
+    {
+      "pageNumber": 1,
+      "confidence": 0.5,
+      "text": "This page contains no extractable addresses.",
+      "textBlocks": [
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.05,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.5,
+          "text": "This page contains no extractable addresses.",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.05,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "This page contains no extractable addresses.",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.5,
+                  "text": "This"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.5,
+                  "text": "page"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.5,
+                  "text": "contains"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.5,
+                  "text": "no"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.5,
+                  "text": "extractable"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.5,
+                  "text": "addresses."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

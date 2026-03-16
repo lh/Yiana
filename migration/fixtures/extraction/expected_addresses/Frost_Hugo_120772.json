@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "document_id": "Frost_Hugo_120772",
+  "extracted_at": "2026-03-15T22:43:32.635483",
+  "page_count": 2,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Tara Young",
+        "date_of_birth": "08/07/1998",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": "07700146630"
+        },
+        "mrn": "18607162"
+      },
+      "address": {
+        "line_1": "51 Manor Way",
+        "line_2": "6 Mill Lane",
+        "city": "Sevenoaks",
+        "county": "Surrey",
+        "postcode": "JJ9 7LM",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr C Patel",
+        "practice": "GREENFIELD MEDICAL PRACTICE",
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "111 Pine Road",
+        "line_2": "51 Manor Way",
+        "city": "Sevenoaks",
+        "county": null,
+        "postcode": "JJ9 7LM",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Tara Young",
+      "surname": "Frost",
+      "firstname": "Hugo",
+      "date_of_birth": "08/07/1998",
+      "source": "filename",
+      "document_count": 1
+    },
+    "practitioners": [
+      {
+        "name": "Dr C Patel",
+        "type": "GP",
+        "practice": "GREENFIELD MEDICAL PRACTICE",
+        "document_count": 11
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:10.290176Z"
+  }
+}

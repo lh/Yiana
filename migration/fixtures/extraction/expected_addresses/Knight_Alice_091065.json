@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "document_id": "Knight_Alice_091065",
+  "extracted_at": "2026-03-15T22:43:29.652318",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Noah Drew",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": null,
+        "line_2": null,
+        "city": null,
+        "county": null,
+        "postcode": "EE5 4BP",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [
+    {
+      "address": {
+        "city": "Winchester",
+        "county": "",
+        "line_1": "81 Beech Avenue",
+        "line_2": "100 Maple Drive",
+        "postcode": "HH8 5FW"
+      },
+      "address_type": "patient",
+      "gp": {},
+      "is_prime": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-14T14:37:02Z",
+      "override_reason": "corrected",
+      "page_number": 1,
+      "patient": {
+        "date_of_birth": "06/12/1988",
+        "full_name": "Derek Grant",
+        "phones": {
+          "home": "",
+          "mobile": "",
+          "work": ""
+        },
+        "mrn": null
+      }
+    },
+    {
+      "address": {
+        "city": "Winchester",
+        "county": "Berkshire",
+        "line_1": "81 Beech Avenue",
+        "line_2": "100 Maple Drive",
+        "postcode": "HH8 5FW"
+      },
+      "address_type": "patient",
+      "gp": {},
+      "is_prime": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-14T14:37:23Z",
+      "override_reason": "corrected",
+      "page_number": 1,
+      "patient": {
+        "date_of_birth": "06/12/1988",
+        "full_name": "Derek Grant",
+        "phones": {
+          "home": "",
+          "mobile": "",
+          "work": ""
+        },
+        "mrn": null
+      }
+    },
+    {
+      "address_type": "gp",
+      "is_prime": true,
+      "match_address_type": "gp",
+      "override_date": "2026-03-14T16:32:08Z",
+      "override_reason": "manual",
+      "page_number": 0
+    },
+    {
+      "address": {},
+      "address_type": "gp",
+      "gp": {
+        "address": "114 Holly Lane",
+        "name": "Dr C Patel",
+        "postcode": "RR7 9XX",
+        "practice": "THE CEDARS SURGERY",
+        "ods_code": "M43030",
+        "official_name": "THE CEDARS SURGERY"
+      },
+      "is_prime": true,
+      "match_address_type": "gp",
+      "override_date": "2026-03-14T16:32:44Z",
+      "override_reason": "corrected",
+      "page_number": 0,
+      "patient": {
+        "phones": {},
+        "full_name": null,
+        "date_of_birth": null,
+        "mrn": null
+      }
+    },
+    {
+      "address": {
+        "city": "Winchester",
+        "county": "Berkshire",
+        "line_1": "81 Beech Avenue",
+        "line_2": "100 Maple Drive",
+        "postcode": "HH8 5FW"
+      },
+      "address_type": "patient",
+      "gp": {},
+      "is_prime": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-14T16:33:57Z",
+      "override_reason": "corrected",
+      "page_number": 1,
+      "patient": {
+        "date_of_birth": "06/12/1988",
+        "full_name": "Paul Morgan",
+        "phones": {
+          "home": "",
+          "mobile": "",
+          "work": ""
+        },
+        "mrn": null
+      }
+    }
+  ],
+  "enriched": {
+    "enriched_at": "2026-03-14T14:17:10.059012Z",
+    "patient": {
+      "date_of_birth": "06/12/1988",
+      "document_count": 1,
+      "firstname": "Alice",
+      "full_name": "Rosa Nelson",
+      "source": "filename",
+      "surname": "Knight"
+    }
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "document_id": "Jones_Victor_070896",
+  "extracted_at": "2026-03-15T22:43:32.361559",
+  "page_count": 4,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Tessa Parker",
+        "date_of_birth": "11/08/1955",
+        "phones": {
+          "home": "01234432494",
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "103 Park Avenue",
+        "line_2": "1 Maple Drive",
+        "city": "Guildford",
+        "county": "Berkshire",
+        "postcode": "LL2 1JU",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr J Kowalski",
+        "practice": "THE CEDARS SURGERY",
+        "address": "15 Kings Road",
+        "postcode": "HH8 3DD",
+        "ods_code": "H52150",
+        "official_name": "THE CEDARS SURGERY",
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Amara Vance",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "45 Beech Avenue",
+        "line_2": "82 Manor Way",
+        "city": "Woking",
+        "county": null,
+        "postcode": "DD4 7US",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 3,
+      "patient": {
+        "full_name": "Alice Reed",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "1 Maple Drive",
+        "line_2": "120 Victoria Road",
+        "city": "Tonbridge",
+        "county": null,
+        "postcode": "LL2 1JU",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 5,
+      "patient": {
+        "full_name": "David Keane",
+        "date_of_birth": "16/11/1989",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "93 Willow Court",
+        "line_2": "1 Maple Drive",
+        "city": "Guildford",
+        "county": null,
+        "postcode": "LL2 1JU",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Xena Young",
+      "surname": "Jones",
+      "firstname": "Victor",
+      "date_of_birth": "11/08/1955",
+      "source": "filename",
+      "document_count": 1
+    },
+    "practitioners": [
+      {
+        "name": "Dr J Kowalski",
+        "type": "GP",
+        "practice": "PARKVIEW MEDICAL PRACTICE",
+        "document_count": 10
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:10.476340Z"
+  }
+}

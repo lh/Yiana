@@ -1,0 +1,1035 @@
+{
+  "documentId": "Reed_Opal_170682",
+  "confidence": 0.85,
+  "engineVersion": "1.0.0",
+  "id": "SYNTH-Reed_Opal_170682",
+  "metadata": {
+    "detectedLanguages": [
+      "en-US"
+    ],
+    "options": {
+      "recognitionLevel": "accurate",
+      "useLanguageCorrection": true,
+      "languages": [
+        "en-US"
+      ]
+    },
+    "pageCount": 3,
+    "processingTime": 1.2,
+    "warnings": []
+  },
+  "processedAt": "2026-03-16T00:00:00Z",
+  "pages": [
+    {
+      "pageNumber": 1,
+      "confidence": 0.85,
+      "text": "Derek Mason\n1 Unknown Street\nCC3 5LH\n\nDOB: 16/05/2004",
+      "textBlocks": [
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.05,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Derek Mason",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.05,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Derek Mason",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Derek"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Mason"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.08,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "1 Unknown Street",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.08,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "1 Unknown Street",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.08,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "1"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.08,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Unknown"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.08,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Street"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.11,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "CC3 5LH",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.11,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "CC3 5LH",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.11,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "CC3"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.11,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "5LH"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.16,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "DOB: 16/05/2004",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.16,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "DOB: 16/05/2004",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.16,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "DOB:"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.16,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "16/05/2004"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pageNumber": 2,
+      "confidence": 0.85,
+      "text": "Clinical Correspondence\n\nPatient name: Tessa Young\nDate of birth: 16/05/2004\n\nAddress: 34 Oak Lane\n123 Ash Grove\nGuildford\nCC3 5LH\n\n\nDear Colleague,\n\nThank you for referring this patient.\nYours sincerely,\n\nConsultant Surgeon",
+      "textBlocks": [
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.05,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Clinical Correspondence",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.05,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Clinical Correspondence",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Clinical"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Correspondence"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.1,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Patient name: Tessa Young",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.1,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Patient name: Tessa Young",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.1,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Patient"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.1,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "name:"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.1,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Tessa"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.1,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Young"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.13,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Date of birth: 16/05/2004",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.13,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Date of birth: 16/05/2004",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.13,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Date"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.13,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "of"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.13,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "birth:"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.13,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "16/05/2004"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.18,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Address: 34 Oak Lane",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.18,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Address: 34 Oak Lane",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.18,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Address:"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.18,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "34"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.18,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Oak"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.18,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Lane"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.21,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "123 Ash Grove",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.21,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "123 Ash Grove",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.21,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "123"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.21,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Ash"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.21,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Grove"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.24,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Guildford",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.24,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Guildford",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.24,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Guildford"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.27,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "CC3 5LH",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.27,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "CC3 5LH",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.27,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "CC3"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.27,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "5LH"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.3400000000000001,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Dear Colleague,",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.3400000000000001,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Dear Colleague,",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3400000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Dear"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3400000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Colleague,"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.3900000000000001,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Thank you for referring this patient.",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.3900000000000001,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Thank you for referring this patient.",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3900000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Thank"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3900000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "you"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3900000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "for"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3900000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "referring"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3900000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "this"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3900000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "patient."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.42000000000000015,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Yours sincerely,",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.42000000000000015,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Yours sincerely,",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.42000000000000015,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Yours"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.42000000000000015,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "sincerely,"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.4700000000000002,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Consultant Surgeon",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.4700000000000002,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Consultant Surgeon",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.4700000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Consultant"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.4700000000000002,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Surgeon"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pageNumber": 3,
+      "confidence": 0.85,
+      "text": "Henry Lewis\n86 Mill Lane\n44 Victoria Road\nTunbridge Wells\nCC3 5LH",
+      "textBlocks": [
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.05,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Henry Lewis",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.05,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Henry Lewis",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Henry"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Lewis"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.08,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "86 Mill Lane",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.08,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "86 Mill Lane",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.08,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "86"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.08,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Mill"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.08,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Lane"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.11,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "44 Victoria Road",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.11,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "44 Victoria Road",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.11,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "44"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.11,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Victoria"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.11,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Road"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.14,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Tunbridge Wells",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.14,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Tunbridge Wells",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.14,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Tunbridge"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.14,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Wells"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.17,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "CC3 5LH",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.17,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "CC3 5LH",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.17,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "CC3"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.17,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "5LH"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

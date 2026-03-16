@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "document_id": "Baker_Wendy_070589",
+  "extracted_at": "2026-03-15T22:43:27.268474",
+  "page_count": 5,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Noah Palmer",
+        "date_of_birth": "03/06/1940",
+        "phones": {
+          "home": "01234168438",
+          "work": null,
+          "mobile": null
+        },
+        "mrn": "55199565"
+      },
+      "address": {
+        "line_1": "111 Manor Way",
+        "line_2": "25 Cedar Way",
+        "city": "Woking",
+        "county": "Buckinghamshire",
+        "postcode": "JJ9 9MT",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr C Patel",
+        "practice": "PARKVIEW MEDICAL PRACTICE",
+        "address": "22 Beech Avenue",
+        "postcode": "MM3 1KK",
+        "ods_code": "C13631",
+        "official_name": "PARKVIEW MEDICAL PRACTICE",
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Finn Vaughan",
+        "date_of_birth": "03/06/1940",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "81 Oak Lane",
+        "line_2": "60 Holly Lane",
+        "city": "Sevenoaks",
+        "county": null,
+        "postcode": "MM3 1KK",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "form",
+        "confidence": 0.8
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 7,
+      "patient": {
+        "full_name": "Victor Harris",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "27 Station Road",
+        "line_2": "117 Birch Lane",
+        "city": "Redhill",
+        "county": null,
+        "postcode": "JJ9 9MT",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 8,
+      "patient": {
+        "full_name": "Noah Palmer",
+        "date_of_birth": "03/06/1940",
+        "phones": {
+          "home": "01234144451",
+          "work": null,
+          "mobile": null
+        },
+        "mrn": "55199565"
+      },
+      "address": {
+        "line_1": "111 Manor Way",
+        "line_2": "25 Cedar Way",
+        "city": "Woking",
+        "county": "Buckinghamshire",
+        "postcode": "JJ9 9MT",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr C Patel",
+        "practice": "MEADOW LANE SURGERY",
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 9,
+      "patient": {
+        "full_name": "Paul Turner",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "39 Queens Drive",
+        "line_2": "44 Pine Road",
+        "city": "Maidstone",
+        "county": null,
+        "postcode": "JJ9 9MT",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Carol Davis",
+      "surname": "Baker",
+      "firstname": "Wendy",
+      "date_of_birth": "03/06/1940",
+      "source": "filename",
+      "document_count": 1
+    },
+    "practitioners": [
+      {
+        "name": "Dr C Patel",
+        "type": "GP",
+        "practice": "THE WILLOWS SURGERY",
+        "document_count": 30
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:10.184718Z"
+  }
+}

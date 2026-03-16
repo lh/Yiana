@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "document_id": "Vance_Will_110393",
+  "extracted_at": "2026-03-15T22:43:26.729935",
+  "page_count": 5,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Yusuf Roberts",
+        "date_of_birth": "26/08/2003",
+        "phones": {
+          "home": "01234227544",
+          "work": null,
+          "mobile": null
+        },
+        "mrn": "20044176"
+      },
+      "address": {
+        "line_1": "3 High Street",
+        "line_2": "62 Victoria Road",
+        "city": "Winchester",
+        "county": "Kent",
+        "postcode": "MM3 6MZ",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr K Nguyen",
+        "practice": "HILLSIDE MEDICAL CENTRE",
+        "address": "112 Holly Lane",
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Yusuf Roberts",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "3 High Street",
+        "line_2": "82 Ash Grove",
+        "city": "Sevenoaks",
+        "county": null,
+        "postcode": "MM3 6MZ",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 3,
+      "patient": {
+        "full_name": "Yusuf Roberts",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "3 High Street",
+        "line_2": "82 Ash Grove",
+        "city": "Sevenoaks",
+        "county": null,
+        "postcode": "MM3 6MZ",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 4,
+      "patient": {
+        "full_name": "",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "94 Pine Road",
+        "line_2": "105 Maple Drive",
+        "city": "Sevenoaks",
+        "county": null,
+        "postcode": "LL2 3KW",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 6,
+      "patient": {
+        "full_name": "Grace Quinn",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "117 Willow Court",
+        "line_2": "149 Elm Close",
+        "city": "Kent",
+        "county": null,
+        "postcode": "MM3 6MZ",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Yusuf Roberts",
+      "surname": "Vance",
+      "firstname": "Will",
+      "date_of_birth": "26/08/2003",
+      "source": "filename",
+      "document_count": 4
+    },
+    "practitioners": [
+      {
+        "name": "Dr K Nguyen",
+        "type": "GP",
+        "practice": "LAKESIDE MEDICAL PRACTICE",
+        "document_count": 6
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:10.458186Z"
+  }
+}

@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "document_id": "Davis_Mira_251256",
+  "extracted_at": "2026-03-15T22:43:24.932599",
+  "page_count": 5,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Iona Frost",
+        "date_of_birth": "18/08/2003",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": "07700236673"
+        },
+        "mrn": "66664985"
+      },
+      "address": {
+        "line_1": "69 Holly Lane",
+        "line_2": "124 Queens Drive",
+        "city": "Reigate",
+        "county": "Buckinghamshire",
+        "postcode": "BB2 6YW",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr M Santos",
+        "practice": "LAKESIDE MEDICAL PRACTICE",
+        "address": "20 High Street",
+        "postcode": "BB2 4GN",
+        "ods_code": "M37392",
+        "official_name": "LAKESIDE MEDICAL PRACTICE",
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Grace Baker",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "18 Station Road",
+        "line_2": "25 Cedar Way",
+        "city": "Epsom",
+        "county": null,
+        "postcode": "BB2 6YW",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "form",
+        "confidence": 0.8
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 4,
+      "patient": {
+        "full_name": "Luke Mason",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "63 Mill Lane",
+        "line_2": "69 Holly Lane",
+        "city": "Reading",
+        "county": null,
+        "postcode": "BB2 6YW",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 5,
+      "patient": {
+        "full_name": "",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "63 Mill Lane",
+        "line_2": "69 Holly Lane",
+        "city": "Reading",
+        "county": null,
+        "postcode": "BB2 6YW",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 6,
+      "patient": {
+        "full_name": "Derek Anderson",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "63 Mill Lane",
+        "line_2": "69 Holly Lane",
+        "city": "Reading",
+        "county": null,
+        "postcode": "BB2 6YW",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Iona Frost",
+      "surname": "Davis",
+      "firstname": "Mira",
+      "date_of_birth": "18/08/2003",
+      "source": "filename",
+      "document_count": 2
+    },
+    "practitioners": [
+      {
+        "name": "Dr M Santos",
+        "type": "GP",
+        "practice": "BROOKSIDE HEALTH CENTRE",
+        "document_count": 8
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:09.852605Z"
+  }
+}

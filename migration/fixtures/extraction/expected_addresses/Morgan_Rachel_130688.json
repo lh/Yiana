@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "document_id": "Morgan_Rachel_130688",
+  "extracted_at": "2026-03-15T22:43:30.285751",
+  "page_count": 3,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Henry Walker",
+        "date_of_birth": "14/07/1988",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": "07700384371"
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": null,
+        "line_2": null,
+        "city": null,
+        "county": null,
+        "postcode": "LL2 6LS",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr F Romero",
+        "practice": "THE PINES SURGERY",
+        "address": "86 Birch Lane",
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Mira Taylor",
+        "date_of_birth": "14/07/1988",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "70 Church Road",
+        "line_2": "121 Oak Lane",
+        "city": "Redhill",
+        "county": null,
+        "postcode": "LL2 6LS",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "form",
+        "confidence": 0.8
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 3,
+      "patient": {
+        "full_name": "Elena Mason",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "120 Queens Drive",
+        "line_2": "16 Elm Close",
+        "city": "Dorking",
+        "county": null,
+        "postcode": "LL2 6LS",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Henry Walker",
+      "surname": "Morgan",
+      "firstname": "Rachel",
+      "date_of_birth": "14/07/1988",
+      "source": "filename",
+      "document_count": 2
+    },
+    "practitioners": [
+      {
+        "name": "Dr F Romero",
+        "type": "GP",
+        "practice": "THE PINES SURGERY",
+        "document_count": 6
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:10.079446Z"
+  }
+}
