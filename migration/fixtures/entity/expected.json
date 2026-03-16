@@ -1,0 +1,464 @@
+{
+  "description": "Expected entity resolution outcomes from backend_db.py ingestion",
+  "total_files": 55,
+  "scenarios": [
+    {
+      "id": 1,
+      "name": "basic_exact_match",
+      "files": [
+        "Archer_Tom_150380.json",
+        "Archer_Tom_150380_letter.json"
+      ],
+      "expected_patients": 1,
+      "expected_patient_names": [
+        "tom archer"
+      ],
+      "expected_patient_doc_count": {
+        "tom archer": 2
+      },
+      "expected_practitioners": 1,
+      "expected_practitioner_names": [
+        "hall"
+      ],
+      "expected_links": 1,
+      "notes": "Same filename root = same patient entity"
+    },
+    {
+      "id": 2,
+      "name": "same_patient_different_address",
+      "files": [
+        "Barton_Emma_220595.json",
+        "Barton_Emma_220595_ref.json"
+      ],
+      "expected_patients": 1,
+      "expected_patient_names": [
+        "emma barton"
+      ],
+      "expected_patient_doc_count": {
+        "emma barton": 2
+      },
+      "expected_practitioners": 1,
+      "expected_links": 1,
+      "notes": "Address update on second ingestion"
+    },
+    {
+      "id": 3,
+      "name": "same_patient_different_gp",
+      "files": [
+        "Clarke_James_100172.json",
+        "Clarke_James_100172_2.json"
+      ],
+      "expected_patients": 1,
+      "expected_practitioners": 2,
+      "expected_practitioner_names": [
+        "ahmed",
+        "lopez"
+      ],
+      "expected_links": 2,
+      "notes": "Patient linked to both GPs"
+    },
+    {
+      "id": 4,
+      "name": "same_patient_three_docs",
+      "files": [
+        "Doyle_Sarah_030488.json",
+        "Doyle_Sarah_030488_scan.json",
+        "Doyle_Sarah_030488_ref.json"
+      ],
+      "expected_patients": 1,
+      "expected_patient_doc_count": {
+        "sarah doyle": 3
+      },
+      "expected_practitioners": 1,
+      "expected_practitioner_names": [
+        "osei"
+      ],
+      "expected_links": 1,
+      "notes": "document_count should be 3"
+    },
+    {
+      "id": 5,
+      "name": "same_patient_ocr_name_differs",
+      "files": [
+        "Evans_Mark_180267.json",
+        "Evans_Mark_180267_copy.json"
+      ],
+      "expected_patients": 1,
+      "expected_patient_names": [
+        "mark evans"
+      ],
+      "expected_practitioners": 1,
+      "expected_links": 1,
+      "notes": "OCR says 'M Evans' but filename governs identity"
+    },
+    {
+      "id": 6,
+      "name": "same_patient_multipage",
+      "files": [
+        "Ford_Lily_091199.json",
+        "Ford_Lily_091199_letter.json"
+      ],
+      "expected_patients": 1,
+      "expected_practitioners": 1,
+      "expected_links": 1,
+      "notes": "Multi-page doc, same patient on all pages"
+    },
+    {
+      "id": 7,
+      "name": "same_patient_with_specialist",
+      "files": [
+        "Grant_Noah_250855.json",
+        "Grant_Noah_250855_ref.json"
+      ],
+      "expected_patients": 1,
+      "expected_practitioners": 2,
+      "expected_practitioner_names": [
+        "wei",
+        "bennett"
+      ],
+      "expected_links": 2,
+      "notes": "GP + specialist = 2 practitioners, both linked to patient"
+    },
+    {
+      "id": 8,
+      "name": "same_patient_phone_update",
+      "files": [
+        "Hart_Zoe_120304.json",
+        "Hart_Zoe_120304_2.json"
+      ],
+      "expected_patients": 1,
+      "expected_practitioners": 1,
+      "expected_links": 1,
+      "notes": "Phone from first doc should persist"
+    },
+    {
+      "id": 9,
+      "name": "same_patient_different_methods",
+      "files": [
+        "Irwin_Ben_070746.json",
+        "Irwin_Ben_070746_scan.json"
+      ],
+      "expected_patients": 1,
+      "expected_practitioners": 1,
+      "expected_links": 1,
+      "notes": "Extraction method differs but entity resolution is the same"
+    },
+    {
+      "id": 10,
+      "name": "same_patient_one_empty",
+      "files": [
+        "Jones_Amy_010190.json",
+        "Jones_Amy_010190_empty.json"
+      ],
+      "expected_patients": 1,
+      "expected_patient_doc_count": {
+        "amy jones": 2
+      },
+      "expected_practitioners": 1,
+      "expected_links": 1,
+      "notes": "Empty doc still links filename patient to document"
+    },
+    {
+      "id": 11,
+      "name": "title_in_ocr_name",
+      "files": [
+        "Knox_Peter_200660.json",
+        "Knox_Peter_200660_ref.json"
+      ],
+      "expected_patients": 1,
+      "expected_patient_names": [
+        "peter knox"
+      ],
+      "expected_practitioners": 1,
+      "expected_links": 1,
+      "notes": "OCR 'Dr Peter Knox' vs 'Peter Knox', filename governs"
+    },
+    {
+      "id": 12,
+      "name": "case_difference_ocr",
+      "files": [
+        "Lane_Rosa_151075.json",
+        "Lane_Rosa_151075_2.json"
+      ],
+      "expected_patients": 1,
+      "expected_patient_names": [
+        "rosa lane"
+      ],
+      "expected_practitioners": 1,
+      "expected_links": 1,
+      "notes": "OCR 'ROSA LANE' vs 'rosa lane', filename governs"
+    },
+    {
+      "id": 13,
+      "name": "hyphenated_surname",
+      "files": [
+        "Melo-Cruz_Ana_080392.json",
+        "Melo-Cruz_Ana_080392_ref.json"
+      ],
+      "expected_patients": 1,
+      "expected_patient_names": [
+        "ana melo-cruz"
+      ],
+      "expected_practitioners": 1,
+      "expected_links": 1,
+      "notes": "Hyphen preserved in normalized name"
+    },
+    {
+      "id": 14,
+      "name": "apostrophe_surname",
+      "files": [
+        "O'Brien_Sean_290185.json",
+        "O'Brien_Sean_290185_2.json"
+      ],
+      "expected_patients": 1,
+      "expected_patient_names": [
+        "sean o'brien"
+      ],
+      "expected_practitioners": 1,
+      "expected_links": 1,
+      "notes": "Apostrophe preserved in normalized name"
+    },
+    {
+      "id": 15,
+      "name": "same_name_different_dob",
+      "files": [
+        "Nash_Kate_120590.json",
+        "Nash_Kate_040302.json"
+      ],
+      "expected_patients": 2,
+      "expected_patient_names": [
+        "kate nash",
+        "kate nash"
+      ],
+      "expected_practitioners": 1,
+      "expected_practitioner_names": [
+        "gupta"
+      ],
+      "expected_links": 2,
+      "notes": "Same name but different DOB = 2 separate patients"
+    },
+    {
+      "id": 16,
+      "name": "gp_address_formatting",
+      "files": [
+        "Palmer_Jo_100870.json",
+        "Quinn_Dan_050682.json"
+      ],
+      "expected_patients": 2,
+      "expected_practitioners": 1,
+      "expected_practitioner_names": [
+        "fisher"
+      ],
+      "expected_links": 2,
+      "notes": "Dr Fisher appears in both, different case in address"
+    },
+    {
+      "id": 17,
+      "name": "gp_title_variant",
+      "files": [
+        "Reed_Ava_230793.json",
+        "Stone_Leo_140561.json"
+      ],
+      "expected_patients": 2,
+      "expected_practitioners": 1,
+      "expected_practitioner_names": [
+        "martinez"
+      ],
+      "expected_links": 2,
+      "notes": "'Dr Martinez' vs 'Dr. Martinez' both strip to 'martinez'"
+    },
+    {
+      "id": 18,
+      "name": "gp_case_difference",
+      "files": [
+        "Trent_Mia_011188.json",
+        "Upton_Raj_160274.json"
+      ],
+      "expected_patients": 2,
+      "expected_practitioners": 1,
+      "expected_practitioner_names": [
+        "keane"
+      ],
+      "expected_links": 2,
+      "notes": "'Dr KEANE' vs 'Dr Keane' normalize to same"
+    },
+    {
+      "id": 19,
+      "name": "two_different_gps",
+      "files": [
+        "Voss_Kim_090401.json",
+        "Ward_Sam_281196.json"
+      ],
+      "expected_patients": 2,
+      "expected_practitioners": 2,
+      "expected_practitioner_names": [
+        "moss",
+        "lake"
+      ],
+      "expected_links": 2,
+      "notes": "Different GPs = different entities"
+    },
+    {
+      "id": 20,
+      "name": "gp_vs_specialist_same_name",
+      "files": [
+        "Yates_Eve_170883.json",
+        "Zane_Max_050777.json"
+      ],
+      "expected_patients": 2,
+      "expected_practitioners": 2,
+      "expected_practitioner_names": [
+        "finch",
+        "finch"
+      ],
+      "expected_links": 2,
+      "notes": "Dr Finch (GP) and Mr Finch (Consultant) are separate entities"
+    },
+    {
+      "id": 21,
+      "name": "same_ods_same_name",
+      "files": [
+        "Abel_Jan_010170.json",
+        "Bell_Sue_020280.json"
+      ],
+      "expected_patients": 2,
+      "expected_practitioners": 1,
+      "expected_practitioner_names": [
+        "bloom"
+      ],
+      "expected_links": 2,
+      "notes": "Deduplicates by name (ODS code not used for matching)"
+    },
+    {
+      "id": 22,
+      "name": "same_ods_different_name",
+      "files": [
+        "Cole_Tim_030390.json",
+        "Drew_Liz_040400.json"
+      ],
+      "expected_patients": 2,
+      "expected_practitioners": 2,
+      "expected_practitioner_names": [
+        "fry",
+        "ash"
+      ],
+      "expected_links": 2,
+      "notes": "Same ODS code but different names = 2 entities (ODS not used)"
+    },
+    {
+      "id": 23,
+      "name": "different_ods_same_name",
+      "files": [
+        "Egan_Roy_050565.json",
+        "Fenn_Joy_060675.json"
+      ],
+      "expected_patients": 2,
+      "expected_practitioners": 1,
+      "expected_practitioner_names": [
+        "clay"
+      ],
+      "expected_links": 2,
+      "notes": "Different ODS codes but same name = 1 entity (ODS not used)"
+    },
+    {
+      "id": 24,
+      "name": "ods_but_empty_gp_name",
+      "files": [
+        "Glen_Ada_070785.json"
+      ],
+      "expected_patients": 1,
+      "expected_practitioners": 0,
+      "expected_links": 0,
+      "notes": "No GP entity created when name is empty (ODS alone insufficient)"
+    },
+    {
+      "id": 25,
+      "name": "ods_with_official_name",
+      "files": [
+        "Hale_Bob_080895.json"
+      ],
+      "expected_patients": 1,
+      "expected_practitioners": 1,
+      "expected_practitioner_names": [
+        "thorn"
+      ],
+      "expected_links": 1,
+      "notes": "Official name stored but entity resolved by GP name"
+    },
+    {
+      "id": 26,
+      "name": "missing_dob_in_filename",
+      "files": [
+        "Irvine_Meg.json"
+      ],
+      "expected_patients": 0,
+      "expected_practitioners": 1,
+      "expected_links": 0,
+      "notes": "No patient entity created \u2014 filename has no DOB part"
+    },
+    {
+      "id": 27,
+      "name": "malformed_filename",
+      "files": [
+        "JohnSmith.json"
+      ],
+      "expected_patients": 0,
+      "expected_practitioners": 1,
+      "expected_links": 0,
+      "notes": "No underscore = unparseable filename, no patient entity"
+    },
+    {
+      "id": 28,
+      "name": "filename_with_suffix",
+      "files": [
+        "Kent_Lyn_120380_copy1.json",
+        "Kent_Lyn_120380_dna.json"
+      ],
+      "expected_patients": 1,
+      "expected_patient_names": [
+        "lyn kent"
+      ],
+      "expected_practitioners": 1,
+      "expected_links": 1,
+      "notes": "Suffix after DOB ignored, same patient resolved"
+    },
+    {
+      "id": 29,
+      "name": "empty_pages",
+      "files": [
+        "Lowe_Ned_010101.json"
+      ],
+      "expected_patients": 1,
+      "expected_patient_names": [
+        "ned lowe"
+      ],
+      "expected_practitioners": 0,
+      "expected_links": 0,
+      "notes": "Empty pages but valid filename still creates patient entity"
+    },
+    {
+      "id": 30,
+      "name": "ocr_noise_in_name",
+      "files": [
+        "Moss_Ali_150595.json"
+      ],
+      "expected_patients": 1,
+      "expected_patient_names": [
+        "ali moss"
+      ],
+      "expected_practitioners": 1,
+      "expected_links": 1,
+      "notes": "OCR says 'Ali M0ss' but filename governs patient identity"
+    }
+  ],
+  "totals": {
+    "expected_total_patients": 30,
+    "expected_total_practitioners": 24,
+    "expected_total_documents": 55,
+    "notes": [
+      "Patient count: 10 dedup pairs + 2 (scenario 15) + 2 each for scenarios 16-20 + 2 each for 21-23 + 1 each for 24-25 + 0 for 26-27 + 1 for 28 + 0 for 29 + 1 for 30",
+      "Practitioner count includes GPs and specialists",
+      "ODS code is NOT used for practitioner matching in current code"
+    ]
+  }
+}

@@ -59,19 +59,28 @@ a generator, a scrubber, and a validation runner.
 
 ### 0.2 Entity Resolution Test Corpus
 
-- [ ] Export a snapshot of `addresses_backend.db` schema + sample data
-- [ ] Select 30 test cases for entity resolution:
+- [x] Created 30 fully synthetic test scenarios (55 address files, no PHI):
   - 10 exact-match dedup (same patient across documents)
-  - 5 near-match (name variants: "Dr Smith" vs "Smith, J")
-  - 5 practitioner dedup (same GP, different address formatting)
-  - 5 ODS code matching
-  - 5 edge cases (missing DOB, malformed names, no filename pattern)
-- [ ] For each case, record:
-  - Input: set of `.addresses/*.json` files
-  - Expected: entity count, links, canonical names
-- [ ] Store in `tests/fixtures/entity_resolution/`
+  - 5 near-match (titles, case, hyphens, apostrophes, same-name-different-DOB)
+  - 5 practitioner dedup (address formatting, title variants, case, GP vs specialist)
+  - 5 ODS code scenarios (documents current non-use of ODS for matching)
+  - 5 edge cases (missing DOB, malformed filename, suffix after DOB, empty pages, OCR noise)
+- [x] For each scenario, recorded:
+  - Input: synthetic `.addresses/*.json` files
+  - Expected: patient count, practitioner count, link count, canonical names, doc counts
+- [x] Validation runner ingests into temp SQLite DB, queries entities, compares
+  against expected.json. 30/30 scenarios pass.
+- [x] Stored in `migration/fixtures/entity/`
 
-**Deliverable:** entity resolution test corpus with expected outcomes.
+**Deliverable:** `migration/fixtures/entity/` with 55 synthetic files, expected.json,
+generator, and validation runner (30/30 pass).
+
+**Learnings captured during test creation:**
+- `normalize_name()` strips "dr" but NOT "doctor" (not in title list)
+- `specialist_name` only creates entity when `address_type="specialist"`
+- Empty pages with valid filename DOB still creates patient entity
+- ODS code is in schema but completely unused for practitioner matching
+- Practitioners are resolved even when no patient exists (no filename match)
 
 ### 0.3 NHS Lookup Test Cases
 

@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "document_id": "Archer_Tom_150380_letter",
+  "extracted_at": "2026-03-16T12:00:00.000000",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Tom Archer",
+        "date_of_birth": "15/03/1980",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "10 Elm Road",
+        "line_2": null,
+        "city": "Millbrook",
+        "county": null,
+        "postcode": "ZZ1 1AA",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr Hall",
+        "practice": "Millbrook Surgery",
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": []
+}

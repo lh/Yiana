@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "document_id": "Barton_Emma_220595",
+  "extracted_at": "2026-03-16T12:00:00.000000",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Emma Barton",
+        "date_of_birth": "22/05/1995",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "5 Oak Lane",
+        "line_2": null,
+        "city": "Ashford",
+        "county": null,
+        "postcode": "ZZ2 2BB",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr Patel",
+        "practice": "Ashford Medical Centre",
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": []
+}

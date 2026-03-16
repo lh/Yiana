@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "document_id": "Egan_Roy_050565",
+  "extracted_at": "2026-03-16T12:00:00.000000",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Roy Egan",
+        "date_of_birth": "05/05/1965",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": null,
+        "line_2": null,
+        "city": null,
+        "county": null,
+        "postcode": "WW5 5EE",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr Clay",
+        "practice": "Iris Surgery",
+        "address": null,
+        "postcode": null,
+        "ods_code": "C11111",
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": []
+}
