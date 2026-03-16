@@ -160,6 +160,10 @@ struct DocumentListView: View {
             }
         }
         .refreshable { await refreshDocuments() }
+        #if os(iOS)
+        .searchable(text: $searchText, prompt: "Search documents")
+        .accessibilityHint("Search by document title or document contents")
+        #endif
         .onSubmit(of: .search) {
             handleSearchChange(searchText)
         }
