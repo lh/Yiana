@@ -872,13 +872,13 @@ struct DocumentListView: View {
 
     @ViewBuilder
     private func newDocumentAlertActions() -> some View {
-        TextField("Document Title", text: $newDocumentTitle)
-        Button("Cancel", role: .cancel) {
-            newDocumentTitle = ""
-        }
-        Button("Create") {
-            createDocument()
-        }
+        CreateDocumentAlertContent(
+            isPresented: $showingCreateAlert,
+            onCreate: { title in
+                newDocumentTitle = title
+                createDocument()
+            }
+        )
     }
 
     @ViewBuilder
@@ -2610,6 +2610,27 @@ struct DocumentRow: View {
         }
 
         return .available
+    }
+}
+
+/// Isolates the title TextField state from DocumentListView's body so typing
+/// doesn't trigger a full re-evaluation of the 2600-line parent view.
+private struct CreateDocumentAlertContent: View {
+    @Binding var isPresented: Bool
+    var onCreate: (String) -> Void
+
+    @State private var title = ""
+
+    var body: some View {
+        TextField("Document Title", text: $title)
+        Button("Cancel", role: .cancel) {
+            title = ""
+        }
+        Button("Create") {
+            let t = title
+            title = ""
+            onCreate(t)
+        }
     }
 }
 
