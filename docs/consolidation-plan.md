@@ -124,7 +124,7 @@ cases if the Swift port needs optician support.
 
 - [x] Documented Yiale's full feature set: 23 files, 2383 LOC, complete
   navigation flow, all view/viewmodel/service/model responsibilities
-- [ ] Screenshots removed (contained real patient data). Recapture with synthetic data.
+- [x] Screenshots captured and redacted (all PII removed)
 - [x] Data Yiale reads: `.addresses/*.json`, `.worklist.json`,
   `.letters/config/sender.json`, `.letters/rendered/{id}/*.pdf`
 - [x] Data Yiale writes: `.letters/drafts/{id}.json`, `.worklist.json`

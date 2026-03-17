@@ -194,10 +194,8 @@ No speculative features found. Everything in the codebase is wired up and exerci
 
 ## Screenshots
 
-Removed — original captures contained real patient data. To recapture:
-create a test draft with synthetic patient data in Yiale, then screenshot.
+Captured 2026-03-17, redacted to remove all PII. See `screenshots/` directory.
 
-Screens needed:
-- [ ] Sidebar with drafts list + patient search
-- [ ] Compose form with recipients
-- [ ] Rendered PDF viewer with print controls
+- [x] `yiale-01-compose-with-sidebar.png` — Sidebar with drafts (Ready status) + compose form
+- [x] `yiale-02-compose-form.png` — Full compose form: patient fields, title picker, address, recipients (Patient badge), letter body
+- [x] `yiale-03-rendered-pdf.png` — Rendered letter PDF with print controls (Print All, Dismiss Letter)
