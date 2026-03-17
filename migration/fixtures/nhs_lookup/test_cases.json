@@ -1,6 +1,7 @@
 {
   "description": "NHS ODS GP practice lookup test cases",
   "data_source": "NHS Digital ODS data (Open Government Licence)",
+  "generated_from": "nhs_lookup.db as of 2026-03-17. Regenerate with generate_nhs_lookup_fixtures.py if DB is refreshed.",
   "total_cases": 25,
   "cases": [
     {

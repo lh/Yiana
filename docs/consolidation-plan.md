@@ -57,6 +57,23 @@ have a definition of "correct" to test against.
 **Deliverable:** `migration/fixtures/extraction/` with 53 input/output pairs,
 a generator, a scrubber, and a validation runner.
 
+**Limitations (acknowledged):**
+- Synthetic OCR inputs are generated *from* the expected outputs, making
+  the test partially circular. It validates "does the Python extractor
+  produce X from text designed to produce X" — useful as a development
+  contract but not a full characterisation of real-world behaviour.
+  Phase 1.4 parallel validation against all 1441 real documents provides
+  the true coverage.
+- All 5 unstructured pages are known divergences — zero validated
+  unstructured test coverage in the synthetic corpus. The label extractor
+  is greedier and wins on synthetic text. Unstructured extraction must be
+  validated entirely via Phase 1.4 parallel run.
+- The extraction validator checks method, patient name, DOB, MRN,
+  postcode, GP name, and GP practice. It does NOT check address lines,
+  city, county, phones, specialist name, or confidence score. These are
+  better validated in Phase 1.4 against real data where the scrubber
+  doesn't introduce mismatches.
+
 ### 0.2 Entity Resolution Test Corpus
 
 - [x] Created 30 fully synthetic test scenarios (55 address files, no PHI):
@@ -97,6 +114,12 @@ generator, and validation runner (30/30 pass).
 
 **Deliverable:** NHS lookup test cases.
 
+**Note:** These fixtures are coupled to the current `nhs_lookup.db` snapshot.
+If the ODS database is refreshed (practices close, rename, open), regenerate
+fixtures with `python3 migration/generate_nhs_lookup_fixtures.py`. No optician
+lookup tests — `lookup_optician()` exists in code but is not exercised; add
+cases if the Swift port needs optician support.
+
 ### 0.4 Letter Composition Baseline (Yiale)
 
 - [x] Documented Yiale's full feature set: 23 files, 2383 LOC, complete
@@ -113,7 +136,7 @@ generator, and validation runner (30/30 pass).
 
 **Deliverable:** `migration/notes/yiale-feature-inventory.md` with full
 inventory, data contracts, JSON schemas, and porting priority list.
-Screenshots deferred to manual capture.
+Screenshots pending recapture with synthetic patient data.
 
 ---
 
