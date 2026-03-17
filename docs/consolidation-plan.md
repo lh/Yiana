@@ -84,10 +84,16 @@ generator, and validation runner (30/30 pass).
 
 ### 0.3 NHS Lookup Test Cases
 
-- [ ] Extract 20 postcode → practice lookups from current production data
-- [ ] Record: input postcode, expected practice name, ODS code, confidence
-- [ ] Include 5 fallback cases (no exact match, district-level lookup)
-- [ ] Store in `tests/fixtures/nhs_lookup/`
+- [x] 25 test cases from real NHS ODS data (Open Government Licence, no PHI):
+  - 15 exact-match single-practice postcodes (geographically spread across England)
+  - 3 multi-practice postcodes (2-3 practices at same postcode)
+  - 2 exact-match with name hint (verifies hint reorders results)
+  - 2 district fallback with hint (postcode not in DB, falls back to district)
+  - 2 district fallback without hint (verifies no results without hints)
+  - 1 invalid postcode (no district exists)
+- [x] Each case records: input postcode + hints, expected ODS codes, practice names
+- [x] Validation runner: 25/25 pass
+- [x] Stored in `migration/fixtures/nhs_lookup/`
 
 **Deliverable:** NHS lookup test cases.
 
