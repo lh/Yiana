@@ -99,14 +99,21 @@ generator, and validation runner (30/30 pass).
 
 ### 0.4 Letter Composition Baseline (Yiale)
 
-- [ ] Document Yiale's current feature set (views, flows, data dependencies)
-- [ ] Screenshot key screens for UX reference
-- [ ] List all data Yiale reads from iCloud (`.addresses/`, `.worklist.json`,
-  `.letters/`)
-- [ ] List all data Yiale writes to iCloud
-- [ ] Identify Yiale features that are actually used vs speculative
+- [x] Documented Yiale's full feature set: 23 files, 2383 LOC, complete
+  navigation flow, all view/viewmodel/service/model responsibilities
+- [ ] Screenshot key screens for UX reference (requires manual capture)
+- [x] Data Yiale reads: `.addresses/*.json`, `.worklist.json`,
+  `.letters/config/sender.json`, `.letters/rendered/{id}/*.pdf`
+- [x] Data Yiale writes: `.letters/drafts/{id}.json`, `.worklist.json`
+- [x] All features are used (no speculative code). Evidence: 2 drafts,
+  4 rendered outputs, active work list, sender config all present in iCloud.
+- [x] Porting estimate: ~900 LOC to port (compose flow + recipients + PDF
+  viewer), ~500 LOC eliminated (duplicated services), SharedWorkList
+  duplication resolved
 
-**Deliverable:** Yiale feature inventory with data contract documentation.
+**Deliverable:** `migration/notes/yiale-feature-inventory.md` with full
+inventory, data contracts, JSON schemas, and porting priority list.
+Screenshots deferred to manual capture.
 
 ---
 
