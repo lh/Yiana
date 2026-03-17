@@ -31,6 +31,17 @@ This was probably deferred during initial implementation. The Swift version shou
 
 ---
 
+## 5. PII leaks through every crack — defence in depth needed (2026-03-17)
+
+During Phase 0 we leaked PII three separate times despite actively trying not to:
+1. OCR text contained names, next-of-kin, email addresses the scrubber missed
+2. Overrides and enriched data had different structures than assumed
+3. Screenshots showed patient names, DOBs, addresses, GP details — and needed three rounds of redaction to catch everything (title bars, recipient sections, sender identity)
+
+The current system has no guardrails: real patient data flows freely through iCloud, git, screenshots, and terminal output. The Swift consolidation should consider whether any of these boundaries need hardening — e.g., never writing PII to debug logs, marking sensitive fields in the data model, or warning when committing files from the iCloud container.
+
+---
+
 ## 4. Empty pages with valid filename still creates patient entity (2026-03-16)
 
 `parse_patient_filename()` runs before the pages loop, so a document with zero pages but a parseable filename (e.g. `Lowe_Ned_010101.json`) still creates a patient entity and a patient_documents link. The patient gets `document_count` incremented even though the document contributed no extraction data.
