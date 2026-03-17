@@ -194,10 +194,8 @@ No speculative features found. Everything in the codebase is wired up and exerci
 
 ## Screenshots
 
-TODO: Capture key screens for UX reference:
-- [ ] Sidebar with clinic list + drafts
-- [ ] Patient search results
-- [ ] Compose form with recipients
-- [ ] Address confirmation sheet
-- [ ] Draft detail with rendered PDF
-- [ ] Clinic list import dialog
+Captured 2026-03-17. See `screenshots/` directory.
+
+- [x] `yiale-01-sidebar-patient-search.png` — Sidebar with drafts (Ready status) + patient search by MRN
+- [x] `yiale-02-compose-form.png` — Compose form: patient details, title picker, address, phone, recipients (GP + Patient auto-added), letter body
+- [x] `yiale-03-rendered-pdf.png` — Rendered letter PDF with recipient list (patient + hospital records), Print All / Dismiss buttons

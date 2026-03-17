@@ -101,7 +101,7 @@ generator, and validation runner (30/30 pass).
 
 - [x] Documented Yiale's full feature set: 23 files, 2383 LOC, complete
   navigation flow, all view/viewmodel/service/model responsibilities
-- [ ] Screenshot key screens for UX reference (requires manual capture)
+- [x] Screenshots captured: sidebar + search, compose form, rendered PDF viewer
 - [x] Data Yiale reads: `.addresses/*.json`, `.worklist.json`,
   `.letters/config/sender.json`, `.letters/rendered/{id}/*.pdf`
 - [x] Data Yiale writes: `.letters/drafts/{id}.json`, `.worklist.json`
