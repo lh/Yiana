@@ -147,23 +147,22 @@ Python continues to run on Devon in parallel.
 
 ### 1.1 Extraction Service Swift Package
 
-- [ ] Create `YianaExtraction` Swift package (local, like YianaDocumentArchive)
-- [ ] Define `ExtractionResult` protocol matching `.addresses/*.json` schema
-- [ ] Write tests FIRST for each extractor, using Phase 0 corpus:
+- [x] Create `YianaExtraction` Swift package (local, like YianaDocumentArchive)
+- [x] Define `ExtractionResult` protocol matching `.addresses/*.json` schema
+- [x] Write tests FIRST for each extractor, using Phase 0 corpus:
 
   ```
-  test_registration_form_extraction()     — 10 cases
+  test_registration_form_extraction()     — 12 cases
   test_form_based_extraction()     — 15 cases
-  test_label_based_extraction()    — 10 cases
-  test_unstructured_extraction()   — 10 cases
-  test_edge_cases()                — 5 cases
+  test_label_based_extraction()    — 21 cases
+  test_edge_cases()                — 4 cases
   ```
 
 - [ ] Implement extractors to pass tests:
-  - `RegistrationFormExtractor` — pattern matching for structured registration forms
-  - `NLPExtractor` — NLTagger (person names, places) + NSDataDetector
+  - [x] `RegistrationFormExtractor` — pattern matching for structured registration forms (12/12 pass)
+  - [ ] `NLPExtractor` — NLTagger (person names, places) + NSDataDetector
     (addresses, phone numbers, dates)
-  - `FallbackExtractor` — postcode regex + surrounding context
+  - [ ] `FallbackExtractor` — postcode regex + surrounding context
 - [ ] Write integration test: OCR JSON in → `.addresses/*.json`-compatible out
 - [ ] Confirm output format matches existing schema exactly (field names,
   nesting, types, date formats)

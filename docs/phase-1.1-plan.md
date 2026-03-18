@@ -23,7 +23,7 @@ Three work sessions, each producing a commit with more green tests:
 
 ---
 
-## Session 1: Package Scaffold + Models + Red Tests
+## Session 1: Package Scaffold + Models + Red Tests (Complete)
 
 ### 1a. Create the Swift package
 
@@ -169,7 +169,7 @@ Commit: "Add YianaExtraction package scaffold with red tests"
 
 ---
 
-## Session 2: RegistrationFormExtractor
+## Session 2: RegistrationFormExtractor (Complete)
 
 ### 2a. Understand what to port
 
@@ -218,10 +218,12 @@ the expected patient name, DOB, MRN, postcode, and GP name.
 
 ### 2d. Commit
 
-Commit: "Implement RegistrationFormExtractor — N/12 tests green"
-- Registration form tests pass
-- Other tests still red
-- `/check` passes
+Commit: `840c0e8` "Implement RegistrationFormExtractor (Session 2 of Phase 1.1)"
+- 12/12 registration form fixture tests pass
+- 6/6 field-specific tests pass (name, DOB, MRN, postcode, GP name, rejection)
+- 4/4 cascade tests pass
+- Two deliberate improvements over Python: full GP name capture, no "Medical" boundary truncation
+- `/check` passes (iOS + macOS)
 
 ---
 
