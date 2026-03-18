@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "document_id": "Ashworth_Mira_090581",
+  "extracted_at": "2026-03-15T22:43:24.347776",
+  "page_count": 3,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Xena Knight",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "121 High Street",
+        "line_2": "18 Ash Grove",
+        "city": "Epsom",
+        "county": null,
+        "postcode": "CC3 3AD",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 7,
+      "patient": {
+        "full_name": "Mary Morgan",
+        "date_of_birth": "11/09/1946",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": "07700683710"
+        },
+        "mrn": "12090231"
+      },
+      "address": {
+        "line_1": null,
+        "line_2": null,
+        "city": null,
+        "county": null,
+        "postcode": "EE5 1UH",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": "MEADOW LANE SURGERY",
+        "address": "18 Beech Avenue",
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 8,
+      "patient": {
+        "full_name": "",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "134 Mill Lane",
+        "line_2": "122 Church Road",
+        "city": "Epsom",
+        "county": null,
+        "postcode": "EE5 1UH",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Mary Morgan",
+      "surname": "Ashworth",
+      "firstname": "Mira",
+      "date_of_birth": "11/09/1946",
+      "source": "filename",
+      "document_count": 2
+    },
+    "enriched_at": "2026-03-14T14:17:10.136905Z"
+  }
+}

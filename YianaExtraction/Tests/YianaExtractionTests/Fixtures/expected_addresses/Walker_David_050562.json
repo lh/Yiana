@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "document_id": "Walker_David_050562",
+  "extracted_at": "2026-03-15T22:43:33.818498",
+  "page_count": 2,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "James Jones",
+        "date_of_birth": "21/02/2001",
+        "phones": {
+          "home": "01234763920",
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "84 Station Road",
+        "line_2": "42 Queens Drive",
+        "city": "Redhill",
+        "county": "West Sussex",
+        "postcode": "PP5 7ZB",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr J Kowalski",
+        "practice": "PARKVIEW MEDICAL PRACTICE",
+        "address": "59 Kings Road",
+        "postcode": "PP5 7ZB",
+        "ods_code": "M66909",
+        "official_name": "PARKVIEW MEDICAL PRACTICE",
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Simon Smith",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "149 Holly Lane",
+        "line_2": null,
+        "city": "Tonbridge",
+        "county": null,
+        "postcode": "PP5 7ZB",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Amara Holmes",
+      "surname": "Walker",
+      "firstname": "David",
+      "date_of_birth": "21/02/2001",
+      "source": "filename",
+      "document_count": 1
+    },
+    "practitioners": [
+      {
+        "name": "Dr J Kowalski",
+        "type": "GP",
+        "practice": "Tonbridge",
+        "document_count": 41
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:10.114086Z"
+  }
+}

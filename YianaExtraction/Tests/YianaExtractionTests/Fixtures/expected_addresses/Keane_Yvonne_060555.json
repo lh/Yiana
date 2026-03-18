@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "document_id": "Keane_Yvonne_060555",
+  "extracted_at": "2026-03-15T22:43:35.284692",
+  "page_count": 3,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Gita Chase",
+        "date_of_birth": "02/11/1977",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "94 Willow Court",
+        "line_2": "93 The Green",
+        "city": "Sevenoaks",
+        "county": null,
+        "postcode": "MM3 8CE",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "form",
+        "confidence": 0.8
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 3,
+      "patient": {
+        "full_name": "Rachel Quinn",
+        "date_of_birth": "02/11/1977",
+        "phones": {
+          "home": "01234886515",
+          "work": null,
+          "mobile": "07700286454"
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "63 Park Avenue",
+        "line_2": "148 Mill Lane",
+        "city": "Winchester",
+        "county": "Kent",
+        "postcode": "MM3 8CE",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr E Svensson",
+        "practice": "VALLEY MEDICAL CENTRE",
+        "address": "67 Oak Lane",
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 4,
+      "patient": {
+        "full_name": "Bob Davis",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "101 Beech Avenue",
+        "line_2": "63 Park Avenue",
+        "city": "Dorking",
+        "county": null,
+        "postcode": "MM3 8CE",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Gita Chase",
+      "surname": "Keane",
+      "firstname": "Yvonne",
+      "date_of_birth": "02/11/1977",
+      "source": "filename",
+      "document_count": 3
+    },
+    "practitioners": [
+      {
+        "name": "Dr E Svensson",
+        "type": "GP",
+        "practice": "VALLEY MEDICAL CENTRE",
+        "document_count": 2
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:10.086921Z"
+  }
+}

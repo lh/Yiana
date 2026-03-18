@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "document_id": "Walker_Zach_190991",
+  "extracted_at": "2026-03-15T22:43:33.861780",
+  "page_count": 2,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Iris Parker",
+        "date_of_birth": "13/07/1968",
+        "phones": {
+          "home": "01234282325",
+          "work": null,
+          "mobile": null
+        },
+        "mrn": "72374451"
+      },
+      "address": {
+        "line_1": "47 Station Road",
+        "line_2": "106 Manor Way",
+        "city": "Leatherhead",
+        "county": "Kent",
+        "postcode": "HH8 9GR",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr K Nguyen",
+        "practice": "THE CEDARS SURGERY",
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Uma Cooper",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "129 Mill Lane",
+        "line_2": "47 Station Road",
+        "city": "Leatherhead",
+        "county": null,
+        "postcode": "HH8 9GR",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Iris Parker",
+      "surname": "Walker",
+      "firstname": "Zach",
+      "date_of_birth": "13/07/1968",
+      "source": "filename",
+      "document_count": 2
+    },
+    "practitioners": [
+      {
+        "name": "Dr K Nguyen",
+        "type": "GP",
+        "practice": "THE CEDARS SURGERY",
+        "document_count": 6
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:10.475405Z"
+  }
+}

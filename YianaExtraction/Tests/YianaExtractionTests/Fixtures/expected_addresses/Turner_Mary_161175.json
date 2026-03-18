@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "document_id": "Turner_Mary_161175",
+  "extracted_at": "2026-03-15T22:43:26.229272",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Simon Lloyd",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "110 Park Avenue",
+        "line_2": null,
+        "city": "Crawley",
+        "county": null,
+        "postcode": "JJ9 1WE",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "David Roberts",
+      "surname": "Turner",
+      "firstname": "Mary",
+      "date_of_birth": "18/12/1983",
+      "source": "filename",
+      "document_count": 1
+    },
+    "enriched_at": "2026-03-14T14:17:10.156214Z"
+  }
+}

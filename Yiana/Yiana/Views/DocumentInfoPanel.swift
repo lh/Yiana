@@ -8,6 +8,7 @@
 
 #if os(macOS)
 import SwiftUI
+import YianaExtraction
 import PDFKit
 import UniformTypeIdentifiers
 import NaturalLanguage

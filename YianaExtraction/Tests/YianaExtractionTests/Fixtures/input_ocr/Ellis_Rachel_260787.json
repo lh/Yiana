@@ -1,0 +1,720 @@
+{
+  "documentId": "Ellis_Rachel_260787",
+  "confidence": 0.85,
+  "engineVersion": "1.0.0",
+  "id": "SYNTH-Ellis_Rachel_260787",
+  "metadata": {
+    "detectedLanguages": [
+      "en-US"
+    ],
+    "options": {
+      "recognitionLevel": "accurate",
+      "useLanguageCorrection": true,
+      "languages": [
+        "en-US"
+      ]
+    },
+    "pageCount": 2,
+    "processingTime": 1.2,
+    "warnings": []
+  },
+  "processedAt": "2026-03-16T00:00:00Z",
+  "pages": [
+    {
+      "pageNumber": 10,
+      "confidence": 0.85,
+      "text": "Clinical Correspondence\n\nPatient name: Elena Vance\n\nAddress: 29 High Street\nDorking\nJJ9 5YX\n\n\nDear Colleague,\n\nThank you for referring this patient.\nYours sincerely,\n\nConsultant Surgeon",
+      "textBlocks": [
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.05,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Clinical Correspondence",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.05,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Clinical Correspondence",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Clinical"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Correspondence"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.1,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Patient name: Elena Vance",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.1,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Patient name: Elena Vance",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.1,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Patient"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.1,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "name:"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.1,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Elena"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.1,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Vance"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.15,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Address: 29 High Street",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.15,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Address: 29 High Street",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.15,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Address:"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.15,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "29"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.15,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "High"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.15,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Street"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.18,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Dorking",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.18,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Dorking",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.18,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Dorking"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.21,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "JJ9 5YX",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.21,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "JJ9 5YX",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.21,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "JJ9"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.21,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "5YX"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.28,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Dear Colleague,",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.28,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Dear Colleague,",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.28,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Dear"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.28,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Colleague,"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.33000000000000007,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Thank you for referring this patient.",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.33000000000000007,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Thank you for referring this patient.",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.33000000000000007,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Thank"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.33000000000000007,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "you"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.33000000000000007,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "for"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.33000000000000007,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "referring"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.33000000000000007,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "this"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.33000000000000007,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "patient."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.3600000000000001,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Yours sincerely,",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.3600000000000001,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Yours sincerely,",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3600000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Yours"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.3600000000000001,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "sincerely,"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.41000000000000014,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Consultant Surgeon",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.41000000000000014,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Consultant Surgeon",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.41000000000000014,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Consultant"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.41000000000000014,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Surgeon"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "pageNumber": 11,
+      "confidence": 0.85,
+      "text": "Neel Parker\n16 Cedar Way\n41 Park Avenue\nReading\nAA1 9DE",
+      "textBlocks": [
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.05,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Neel Parker",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.05,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Neel Parker",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Neel"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Parker"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.08,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "16 Cedar Way",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.08,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "16 Cedar Way",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.08,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "16"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.08,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Cedar"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.08,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Way"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.11,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "41 Park Avenue",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.11,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "41 Park Avenue",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.11,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "41"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.11,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Park"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.11,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Avenue"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.14,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Reading",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.14,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Reading",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.14,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Reading"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.17,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "AA1 9DE",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.17,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "AA1 9DE",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.17,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "AA1"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.17,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "9DE"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

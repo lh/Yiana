@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "document_id": "Mason_Carol_091171",
+  "extracted_at": "2026-03-15T22:43:25.929746",
+  "page_count": 3,
+  "pages": [
+    {
+      "page_number": 4,
+      "patient": {
+        "full_name": "Alice Owen",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "47 Manor Way",
+        "line_2": "97 Willow Court",
+        "city": "Reading",
+        "county": null,
+        "postcode": "EE5 4AB",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "form",
+        "confidence": 0.8
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 5,
+      "patient": {
+        "full_name": "Mira Irving",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "96 Kings Road",
+        "line_2": "50 Church Road",
+        "city": "Oxford",
+        "county": null,
+        "postcode": "AA1 8FP",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 10,
+      "patient": {
+        "full_name": "Finn Clarke",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "144 Holly Lane",
+        "line_2": "123 Maple Drive",
+        "city": "Horsham",
+        "county": null,
+        "postcode": "EE5 4AB",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "form",
+        "confidence": 0.8
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Elena Zhao",
+      "surname": "Mason",
+      "firstname": "Carol",
+      "date_of_birth": "02/11/1974",
+      "source": "filename",
+      "document_count": 1
+    },
+    "enriched_at": "2026-03-14T14:17:10.303092Z"
+  }
+}

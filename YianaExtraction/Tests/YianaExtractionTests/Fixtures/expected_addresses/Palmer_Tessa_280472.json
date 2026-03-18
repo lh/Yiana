@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "document_id": "Palmer_Tessa_280472",
+  "extracted_at": "2026-03-15T22:43:32.128388",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 30,
+      "patient": {
+        "full_name": "James Jacobs",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "10 High Street",
+        "line_2": "34 Mill Lane",
+        "city": "Redhill",
+        "county": null,
+        "postcode": "QQ6 9EF",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Peter Owen",
+      "surname": "Palmer",
+      "firstname": "Tessa",
+      "date_of_birth": "06/11/1969",
+      "source": "filename",
+      "document_count": 1
+    },
+    "enriched_at": "2026-03-14T14:17:10.419321Z"
+  }
+}

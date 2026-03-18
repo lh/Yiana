@@ -1,0 +1,389 @@
+{
+  "schema_version": 1,
+  "document_id": "Cooper_Grace_130882",
+  "extracted_at": "2026-03-15T22:43:26.210769",
+  "page_count": 9,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Quinn Fisher",
+        "date_of_birth": "23/12/1964",
+        "phones": {
+          "home": "01234961136",
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "97 The Green",
+        "line_2": "46 Beech Avenue",
+        "city": "Reading",
+        "county": "Surrey",
+        "postcode": "CC3 1JB",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr M Santos",
+        "practice": "HILLSIDE MEDICAL CENTRE",
+        "address": "92 Elm Close",
+        "postcode": "MM3 9YL",
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": [
+          {
+            "ods_code": "K59521",
+            "name": "THE PINES SURGERY",
+            "address_line1": "65 Queens Drive",
+            "town": "Horsham",
+            "postcode": "MM3 9YL",
+            "address_line2": "",
+            "county": "SURREY"
+          },
+          {
+            "ods_code": "N58803",
+            "name": "LAKESIDE MEDICAL PRACTICE",
+            "address_line1": "46 Station Road",
+            "town": "Horsham",
+            "postcode": "MM3 9YL",
+            "address_line2": "65 Queens Drive",
+            "county": "SURREY"
+          }
+        ]
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Frank Nelson",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "6 Pine Road",
+        "line_2": "97 The Green",
+        "city": "Reading",
+        "county": null,
+        "postcode": "CC3 1JB",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 4,
+      "patient": {
+        "full_name": "Luke Morgan",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "118 Victoria Road",
+        "line_2": "66 Park Avenue",
+        "city": "Dorking",
+        "county": null,
+        "postcode": "EE5 7PE",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 5,
+      "patient": {
+        "full_name": "Xavier Norris",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "68 Holly Lane",
+        "line_2": "66 High Street",
+        "city": "Epsom",
+        "county": null,
+        "postcode": "HH8 6NW",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 6,
+      "patient": {
+        "full_name": "Kira Underwood",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "6 Pine Road",
+        "line_2": "97 The Green",
+        "city": "Reading",
+        "county": null,
+        "postcode": "CC3 1JB",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 16,
+      "patient": {
+        "full_name": "Kira Underwood",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "6 Pine Road",
+        "line_2": "25 Ash Grove",
+        "city": "Reading",
+        "county": null,
+        "postcode": "CC3 1JB",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 17,
+      "patient": {
+        "full_name": "Tara Dixon",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "6 Pine Road",
+        "line_2": "97 The Green",
+        "city": "Reading",
+        "county": null,
+        "postcode": "CC3 1JB",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 20,
+      "patient": {
+        "full_name": "Noah Quinn",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "6 Pine Road",
+        "line_2": "97 The Green",
+        "city": "Reading",
+        "county": null,
+        "postcode": "CC3 1JB",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 21,
+      "patient": {
+        "full_name": "Xena Palmer",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "6 Pine Road",
+        "line_2": "97 The Green",
+        "city": "Reading",
+        "county": null,
+        "postcode": "CC3 1JB",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Quinn Fisher",
+      "surname": "Cooper",
+      "firstname": "Grace",
+      "date_of_birth": "23/12/1964",
+      "source": "filename",
+      "document_count": 3
+    },
+    "practitioners": [
+      {
+        "name": "Dr M Santos",
+        "type": "GP",
+        "practice": "HILLSIDE MEDICAL CENTRE",
+        "document_count": 10
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:09.955640Z"
+  }
+}

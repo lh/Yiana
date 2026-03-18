@@ -1,0 +1,256 @@
+{
+  "documentId": "Underwood_Quinn_151275",
+  "confidence": 0.85,
+  "engineVersion": "1.0.0",
+  "id": "SYNTH-Underwood_Quinn_151275",
+  "metadata": {
+    "detectedLanguages": [
+      "en-US"
+    ],
+    "options": {
+      "recognitionLevel": "accurate",
+      "useLanguageCorrection": true,
+      "languages": [
+        "en-US"
+      ]
+    },
+    "pageCount": 1,
+    "processingTime": 1.2,
+    "warnings": []
+  },
+  "processedAt": "2026-03-16T00:00:00Z",
+  "pages": [
+    {
+      "pageNumber": 1,
+      "confidence": 0.85,
+      "text": "Uri Stone\n81 Park Avenue\n55 Beech Avenue\nChichester\nRR7 2CD",
+      "textBlocks": [
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.05,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Uri Stone",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.05,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Uri Stone",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Uri"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.05,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Stone"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.08,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "81 Park Avenue",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.08,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "81 Park Avenue",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.08,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "81"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.08,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Park"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.08,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Avenue"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.11,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "55 Beech Avenue",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.11,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "55 Beech Avenue",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.11,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "55"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.11,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Beech"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.11,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Avenue"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.14,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "Chichester",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.14,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "Chichester",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.14,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "Chichester"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "boundingBox": {
+            "x": 0.08,
+            "y": 0.17,
+            "width": 0.8,
+            "height": 0.025
+          },
+          "confidence": 0.85,
+          "text": "RR7 2CD",
+          "lines": [
+            {
+              "boundingBox": {
+                "x": 0.08,
+                "y": 0.17,
+                "width": 0.8,
+                "height": 0.025
+              },
+              "text": "RR7 2CD",
+              "words": [
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.17,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "RR7"
+                },
+                {
+                  "boundingBox": {
+                    "x": 0.08,
+                    "y": 0.17,
+                    "width": 0.15,
+                    "height": 0.025
+                  },
+                  "confidence": 0.85,
+                  "text": "2CD"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

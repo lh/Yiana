@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 import os
+import YianaExtraction
 
 /// Repository for accessing extracted address data from iCloud-synced JSON files
 @MainActor

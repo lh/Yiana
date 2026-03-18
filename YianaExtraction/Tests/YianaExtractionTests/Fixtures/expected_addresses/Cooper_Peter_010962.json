@@ -1,0 +1,265 @@
+{
+  "schema_version": 1,
+  "document_id": "Cooper_Peter_010962",
+  "extracted_at": "2026-03-15T22:43:31.984249",
+  "page_count": 3,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Karen Stone",
+        "date_of_birth": "02/11/1997",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": "07700988113"
+        },
+        "mrn": "53978606"
+      },
+      "address": {
+        "line_1": "13 Manor Way",
+        "line_2": "60 Kings Road",
+        "city": "Horsham",
+        "county": "Surrey",
+        "postcode": "MM3 3JE",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr G Tanaka",
+        "practice": "VALLEY MEDICAL CENTRE",
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Bob Owen",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "135 The Green",
+        "line_2": "13 Manor Way",
+        "city": "Horsham",
+        "county": null,
+        "postcode": "MM3 3JE",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 3,
+      "patient": {
+        "full_name": "Bob Owen",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "135 The Green",
+        "line_2": "13 Manor Way",
+        "city": "Horsham",
+        "county": null,
+        "postcode": "MM3 3JE",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [
+    {
+      "address": {
+        "city": "Horsham",
+        "county": "Surrey",
+        "line_1": "13 Manor Way",
+        "line_2": "60 Kings Road",
+        "postcode": "MM3 3JE"
+      },
+      "address_type": "patient",
+      "gp": {
+        "name": "Dr G Tanaka",
+        "practice": "VALLEY MEDICAL CENTRE",
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null
+      },
+      "is_prime": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-15T15:51:51Z",
+      "override_reason": "corrected",
+      "page_number": 1,
+      "patient": {
+        "date_of_birth": "02/11/1997",
+        "full_name": "Karen Stone",
+        "phones": {
+          "home": "",
+          "mobile": "07700589492",
+          "work": ""
+        },
+        "mrn": null
+      }
+    },
+    {
+      "address": {
+        "city": "Horsham",
+        "county": "Surrey",
+        "line_1": "13 Manor Way",
+        "line_2": "60 Kings Road",
+        "postcode": "MM3 3JE"
+      },
+      "address_type": "patient",
+      "gp": {
+        "name": "Dr G Tanaka",
+        "practice": "VALLEY MEDICAL CENTRE",
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null
+      },
+      "is_prime": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-15T15:52:09Z",
+      "override_reason": "corrected",
+      "page_number": 1,
+      "patient": {
+        "date_of_birth": "02/11/1997",
+        "full_name": "Henry Baker",
+        "phones": {
+          "home": "",
+          "mobile": "07700589492",
+          "work": ""
+        },
+        "mrn": null
+      }
+    },
+    {
+      "address": {
+        "city": "Horsham",
+        "line_1": "135 The Green",
+        "line_2": "13 Manor Way",
+        "postcode": "MM3 3JE",
+        "county": null
+      },
+      "address_type": "gp",
+      "gp": {
+        "address": "",
+        "name": "",
+        "postcode": "MM3 7WU",
+        "practice": "",
+        "nhs_candidates": [
+          {
+            "ods_code": "F12453",
+            "name": "THE WILLOWS SURGERY",
+            "address_line1": "18 Mill Lane",
+            "town": "Tunbridge Wells",
+            "postcode": "MM3 7WU",
+            "address_line2": "",
+            "county": "SURREY"
+          },
+          {
+            "ods_code": "L19392",
+            "name": "LAKESIDE MEDICAL PRACTICE",
+            "address_line1": "138 High Street",
+            "town": "Tunbridge Wells",
+            "postcode": "MM3 7WU",
+            "address_line2": "18 Mill Lane",
+            "county": "SURREY"
+          }
+        ],
+        "ods_code": null,
+        "official_name": null
+      },
+      "is_prime": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-15T15:52:39Z",
+      "override_reason": "corrected",
+      "page_number": 2,
+      "patient": {
+        "date_of_birth": "02/11/1997",
+        "full_name": "Karen Stone",
+        "phones": {},
+        "mrn": null
+      }
+    },
+    {
+      "is_dismissed": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-15T15:52:49Z",
+      "override_reason": "dismissed",
+      "page_number": 3
+    }
+  ],
+  "enriched": {
+    "enriched_at": "2026-03-14T14:17:10.525456Z",
+    "patient": {
+      "date_of_birth": "02/11/1997",
+      "document_count": 2,
+      "firstname": "Peter",
+      "full_name": "Karen Stone",
+      "source": "filename",
+      "surname": "Cooper"
+    },
+    "practitioners": [
+      {
+        "document_count": 2,
+        "name": "Dr G Tanaka",
+        "practice": "VALLEY MEDICAL CENTRE",
+        "type": "GP"
+      }
+    ]
+  }
+}

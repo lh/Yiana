@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "document_id": "Reed_Hugo_280491",
+  "extracted_at": "2026-03-15T22:43:33.289570",
+  "page_count": 2,
+  "pages": [
+    {
+      "page_number": 2,
+      "patient": {
+        "full_name": "Mira Vaughan",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "111 Kings Road",
+        "line_2": null,
+        "city": "Woking",
+        "county": null,
+        "postcode": "BB2 2TF",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    },
+    {
+      "page_number": 3,
+      "patient": {
+        "full_name": "Xavier Harris",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "26 Park Avenue",
+        "line_2": "93 Church Road",
+        "city": "Guildford",
+        "county": null,
+        "postcode": "EE5 5ZT",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Quinn Blake",
+      "surname": "Reed",
+      "firstname": "Hugo",
+      "date_of_birth": "27/10/1943",
+      "source": "filename",
+      "document_count": 1
+    },
+    "enriched_at": "2026-03-14T14:17:10.114648Z"
+  }
+}

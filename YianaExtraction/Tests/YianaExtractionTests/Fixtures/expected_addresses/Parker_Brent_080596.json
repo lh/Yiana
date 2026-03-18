@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "document_id": "Parker_Brent_080596",
+  "extracted_at": "2026-03-15T22:43:36.350120",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 3,
+      "patient": {
+        "full_name": "Elena Keane",
+        "date_of_birth": null,
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": null
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": "86 Ash Grove",
+        "line_2": "136 Elm Close",
+        "city": "Dorking",
+        "county": null,
+        "postcode": "NN4 2PC",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": null,
+        "practice": null,
+        "address": null,
+        "postcode": null,
+        "ods_code": null,
+        "official_name": null,
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "label",
+        "confidence": 0.7
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [
+    {
+      "address_type": "gp",
+      "match_address_type": "gp",
+      "override_date": "2026-03-14T22:46:28Z",
+      "override_reason": "manual",
+      "page_number": 0
+    },
+    {
+      "address": {},
+      "address_type": "gp",
+      "gp": {
+        "address": "145 Victoria Road",
+        "name": "",
+        "ods_code": "C41605",
+        "official_name": "PARKVIEW MEDICAL PRACTICE",
+        "postcode": "QQ6 6DF",
+        "practice": "PARKVIEW MEDICAL PRACTICE"
+      },
+      "is_prime": false,
+      "match_address_type": "gp",
+      "override_date": "2026-03-14T22:46:43Z",
+      "override_reason": "corrected",
+      "page_number": 0,
+      "patient": {
+        "phones": {},
+        "full_name": null,
+        "date_of_birth": null,
+        "mrn": null
+      }
+    },
+    {
+      "address": {
+        "city": "Chichester",
+        "county": "",
+        "line_1": "29 Cedar Way",
+        "line_2": "",
+        "postcode": "RR7 6FF"
+      },
+      "address_type": "patient",
+      "gp": {},
+      "is_prime": true,
+      "match_address_type": "patient",
+      "override_date": "2026-03-14T22:55:41Z",
+      "override_reason": "corrected",
+      "page_number": 3,
+      "patient": {
+        "date_of_birth": "18/02/2000",
+        "full_name": "Will Clarke",
+        "phones": {
+          "home": "01234754251",
+          "mobile": "",
+          "work": ""
+        },
+        "mrn": null
+      }
+    },
+    {
+      "address": {},
+      "address_type": "gp",
+      "gp": {
+        "address": "145 Victoria Road",
+        "name": "",
+        "postcode": "QQ6 6DF",
+        "practice": "PARKVIEW MEDICAL PRACTICE",
+        "ods_code": "C41605",
+        "official_name": "PARKVIEW MEDICAL PRACTICE"
+      },
+      "is_prime": true,
+      "match_address_type": "gp",
+      "override_date": "2026-03-14T22:56:01Z",
+      "override_reason": "corrected",
+      "page_number": 0,
+      "patient": {
+        "phones": {},
+        "full_name": null,
+        "date_of_birth": null,
+        "mrn": null
+      }
+    }
+  ],
+  "enriched": {
+    "enriched_at": "2026-03-14T14:17:10.048192Z",
+    "patient": {
+      "date_of_birth": "18/02/2000",
+      "document_count": 1,
+      "firstname": "Brent",
+      "full_name": "Will Clarke",
+      "source": "filename",
+      "surname": "Parker"
+    }
+  }
+}

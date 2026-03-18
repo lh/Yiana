@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import YianaExtraction
 
 struct AddressesView: View {
     let documentId: String

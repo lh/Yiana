@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "document_id": "Dixon_Carol_130591",
+  "extracted_at": "2026-03-15T22:43:29.498202",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Hugo Keane",
+        "date_of_birth": "04/06/1983",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": "07700465647"
+        },
+        "mrn": "39500259"
+      },
+      "address": {
+        "line_1": "88 Station Road",
+        "line_2": "41 Park Avenue",
+        "city": "Canterbury",
+        "county": "Buckinghamshire",
+        "postcode": "QQ6 3VN",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr L Fraser",
+        "practice": "THE WILLOWS SURGERY",
+        "address": "80 Kings Road",
+        "postcode": "QQ6 3VN",
+        "ods_code": "H77735",
+        "official_name": "THE WILLOWS SURGERY",
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Hugo Keane",
+      "surname": "Dixon",
+      "firstname": "Carol",
+      "date_of_birth": "04/06/1983",
+      "source": "filename",
+      "document_count": 2
+    },
+    "practitioners": [
+      {
+        "name": "Dr L Fraser",
+        "type": "GP",
+        "practice": "MEADOW LANE SURGERY",
+        "document_count": 4
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:09.910791Z"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "document_id": "Clarke_Sean_170991",
+  "extracted_at": "2026-03-16T11:34:36Z",
+  "overrides": [
+    {
+      "address_type": "gp",
+      "match_address_type": "gp",
+      "override_date": "2026-03-16T11:34:36Z",
+      "override_reason": "manual",
+      "page_number": 0
+    },
+    {
+      "address": {},
+      "address_type": "gp",
+      "gp": {
+        "address": "",
+        "name": "",
+        "postcode": "NN4 5FH",
+        "practice": "",
+        "ods_code": null,
+        "official_name": null
+      },
+      "is_prime": true,
+      "match_address_type": "gp",
+      "override_date": "2026-03-16T11:35:22Z",
+      "override_reason": "corrected",
+      "page_number": 0,
+      "patient": {
+        "phones": {},
+        "full_name": null,
+        "date_of_birth": null,
+        "mrn": null
+      }
+    }
+  ],
+  "page_count": 0,
+  "pages": [],
+  "schema_version": 1
+}

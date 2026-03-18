@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "document_id": "Taylor_Opal_111252",
+  "extracted_at": "2026-03-15T22:43:35.612046",
+  "page_count": 1,
+  "pages": [
+    {
+      "page_number": 1,
+      "patient": {
+        "full_name": "Quinn Stone",
+        "date_of_birth": "10/02/1947",
+        "phones": {
+          "home": null,
+          "work": null,
+          "mobile": "07700858606"
+        },
+        "mrn": null
+      },
+      "address": {
+        "line_1": null,
+        "line_2": null,
+        "city": null,
+        "county": null,
+        "postcode": "LL2 2MX",
+        "postcode_valid": null,
+        "postcode_district": null
+      },
+      "gp": {
+        "name": "Dr F Romero",
+        "practice": "VALLEY MEDICAL CENTRE",
+        "address": "144 Ash Grove",
+        "postcode": "DD4 6FB",
+        "ods_code": "K60483",
+        "official_name": "VALLEY MEDICAL CENTRE",
+        "nhs_candidates": null
+      },
+      "extraction": {
+        "method": "clearwater_form",
+        "confidence": 0.9
+      },
+      "address_type": "patient",
+      "is_prime": null,
+      "specialist_name": null
+    }
+  ],
+  "overrides": [],
+  "enriched": {
+    "patient": {
+      "full_name": "Quinn Stone",
+      "surname": "Taylor",
+      "firstname": "Opal",
+      "date_of_birth": "10/02/1947",
+      "source": "filename",
+      "document_count": 2
+    },
+    "practitioners": [
+      {
+        "name": "Dr F Romero",
+        "type": "GP",
+        "practice": "VALLEY MEDICAL CENTRE",
+        "document_count": 12
+      }
+    ],
+    "enriched_at": "2026-03-14T14:17:10.363250Z"
+  }
+}
