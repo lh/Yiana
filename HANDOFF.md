@@ -1,49 +1,73 @@
-# Session Handoff — 2026-03-15 (evening)
+# Session Handoff — 2026-03-17
 
 ## Branch
-`feature/worklist-integration` — 2 commits ahead of main.
+`consolidation/v1.1` — pushed, up to date with origin.
 
-## Completed
+## What Was Done This Session
 
-### MRN in address data (commit 570a447, merged to main)
-- `mrn: String?` added to `PatientInfo` in both Yiana and Yiale
-- `ExtractedAddress` struct and both init paths carry MRN through
-- `AddressRepository.saveOverride()` passes MRN to PatientInfo
-- AddressCard UI: MRN field in edit form (first field before Title) and read-only display
-- Yiale `ResolvedPatient` reads `patient?.mrn` instead of parsing DOB from filename
+### Consolidation Planning
+- Architecture doc: `docs/consolidation-architecture.md`
+- Master plan: `docs/consolidation-plan.md` (phased, with checkboxes)
+- Migration directory: `migration/` with fixtures, generators, validators, notes
+- Mac mini becomes "boss instance" running same Yiana binary, not separate daemons
 
-### Unified work list (commit 570a447, merged to main)
-- `SharedWorkList`/`SharedWorkListItem` model in both apps, shared via `.worklist.json`
-- `id: String` (MRN for clinic list items, UUID string for manual/document)
-- Yiana watches `.worklist.json` via NSMetadataQuery (replaces deleted YialeSyncService)
-- One-time migration from `.yiana-worklist.json` on first Yiana load
-- Yiale updated: WorkList/WorkListItem are typealiases to shared types
+### Phase 0: Baseline Tests (All Complete)
+- **0.1 Extraction** — 53 docs, synthetic OCR inputs, scrubbed address outputs. Validator: 53/53 pass, 13 known divergences documented. Limitations: partially circular, no unstructured coverage.
+- **0.2 Entity Resolution** — 30 scenarios, 55 synthetic files, 30/30 pass. Found 3 bugs in Python (logged to post-migration improvements).
+- **0.3 NHS Lookup** — 25 cases from real ODS data, 25/25 pass. Tied to current nhs_lookup.db snapshot.
+- **0.4 Yiale Inventory** — Full feature/data contract inventory with redacted screenshots.
+- **Review** — Critical review of all Phase 0 work. Fixed: PHI in screenshots (purged from git history), added limitation notes, NHS staleness warning.
 
-### MRN extraction from OCR (commit 7b4f03d, on feature branch)
-- `spire_form_extractor.py`: extracts MRN from `Patient_ XXXXXXXX` pattern (6-10 digits)
-- `extraction_service.py`: passes `mrn` through to patient dict in `.addresses/*.json`
-- Added `--reprocess-all` flag; ran on Devon — 548 documents now have MRNs
+### Phase 1.1 Session 1 (Complete)
+- Created `YianaExtraction` Swift package
+- Moved address schema types from app to package (Option C)
+- Stub extractors, cascade API, test helpers
+- 53 fixture pairs in package test bundle
+- 4 cascade tests pass, 48 extractor tests red
+- Both iOS and macOS build with package imported
 
-### OCR service crash-loop fix (commit 128a8d3, on feature branch, deployed to Devon)
-- **Root cause**: `DocumentMetadata.init(from:)` in OCR service tried `1...0` range when `pageCount == 0` and no `pageProcessingStates` existed — fatal SIGTRAP
-- App had `count > 0` guard but OCR service copy didn't
-- The crash-loop was preventing ALL OCR processing since whenever the 0-page document appeared
-- Fix applied, binary built and deployed to Devon — service now stable
+### Phase 1.1 Session 2 (Planned)
+- Detailed plan: `docs/phase-1.1-session2-plan.md`
 
-## Needs Verification
+## Current State
 
-### OCR reprocess button
-- Triggered "Reprocess OCR" on `Zivilik_Mark_020661` — Devon picked it up at 22:58 and produced results
-- Yiana showed "not processed" — likely iCloud sync delay
-- **Check in morning**: does the document show OCR results after sync?
+- **Branch:** `consolidation/v1.1`
+- **Builds:** iOS and macOS both succeed (`/check` passes)
+- **Package tests:** `cd YianaExtraction && swift test` — 4 pass, 48 red
+- **Clean working tree** (except `.serena/project.yml` and `nhs_lookup.db.bak`)
 
-## Next Steps
+## What's Next: Session 2
 
-1. **Re-extract button in info sidebar** — trigger address re-extraction without redoing OCR
-2. **Page-specific OCR reprocess** — currently reprocesses entire document
-3. **Merge feature branch to main** — once verified
-4. **OCR service model drift** — `YianaDocument.swift` in OCR service is missing `hasPendingTextPage`, `pdfHash` fields and uses `String?` for `ocrSource` instead of `OCRSource` enum. Not crashing but should be synced.
+**Implement RegistrationFormExtractor** following `docs/phase-1.1-session2-plan.md`:
+
+1. Edit only `YianaExtraction/Sources/YianaExtraction/Extractors/RegistrationFormExtractor.swift`
+2. Use `NSRegularExpression` (package targets macOS 12+, can't use Swift Regex)
+3. 10 steps: detection → MRN → name → DOB → postcode → phones → GP name → GP practice → validation → assembly
+4. Two deliberate deviations from Python:
+   - Capture full GP name after "Doctor/Dr" (Python only captures one word)
+   - Drop "Medical" from GP section boundary (Python truncates practice names)
+5. Target: 12 registration form tests + 6 field-specific tests green
+6. Run `swift test` after each step, `/check` at the end
+
+### After Session 2
+- Session 3: NLPExtractor + FallbackExtractor (NLTagger + NSDataDetector)
+- Phase 1.2: NHS lookup in Swift (GRDB)
+- Phase 1.3: Wire into Yiana app
+- Phase 1.4: Parallel validation against all 1441 real documents
+
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `docs/consolidation-plan.md` | Master plan with checkboxes |
+| `docs/phase-1.1-plan.md` | Phase 1.1 overview |
+| `docs/phase-1.1-session2-plan.md` | Session 2 implementation plan |
+| `migration/notes/post-migration-improvements.md` | 5 deferred fixes |
+| `migration/notes/yiale-feature-inventory.md` | Yiale feature inventory |
+| `YianaExtraction/` | New Swift package (source of truth for address schema types) |
+| `AddressExtractor/spire_form_extractor.py` | Python code being ported |
 
 ## Known Issues
-- OCR service reprocesses test files every scan cycle (Latex rusTeX, "2 is a very short name", McTestface) — noisy but harmless
-- Extraction service `on_modified` handler skips files already in `processed_files` set — need separate trigger mechanism for re-extract
+- PII leaks easily — 3 incidents during Phase 0 (all caught and fixed)
+- Synthetic test corpus is partially circular (Phase 1.4 parallel run provides real coverage)
+- `feature/worklist-integration` branch from prior session still exists (2 commits, may need merging to main)
