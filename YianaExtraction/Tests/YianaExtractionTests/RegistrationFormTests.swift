@@ -17,7 +17,7 @@ struct RegistrationFormTests {
     }
 
     @Test func rejectsNonFormText() throws {
-        let input = try loadOCRFixture("Anderson_Noah_090976", page: 1)
+        let input = try loadOCRFixture("Anderson_Noah_090976", page: 5)
         let result = extractor.extract(from: input)
         #expect(result == nil, "Should reject non-registration-form text")
     }
