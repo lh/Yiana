@@ -103,6 +103,107 @@ struct CascadeTests {
         #expect(decoded.pages[0].gp?.name == "Dr Jones")
     }
 
+    // MARK: - Integration: Full Document Extraction
+
+    @Test(arguments: [
+        ("Jones_Clara_080749", 5, ["form", "clearwater_form", "label", "label", "label"]),
+        ("Chase_Iris_080886", 3, ["label", "label", "label"]),
+        ("Underwood_Quinn_151275", 1, ["label"]),
+    ])
+    func fullDocumentExtraction(
+        documentId: String,
+        expectedPageCount: Int,
+        expectedMethods: [String]
+    ) throws {
+        let pages = try loadAllOCRPages(documentId)
+        let result = cascade.extractDocument(documentId: documentId, pages: pages)
+        let expected = try loadExpectedAddresses(documentId)
+
+        #expect(result.documentId == documentId)
+        #expect(result.schemaVersion == 1)
+
+        // Verify we find at least the expected pages that have non-empty names
+        let expectedPagesWithNames = expected.pages.filter {
+            $0.patient?.fullName != nil && !($0.patient!.fullName!.isEmpty)
+        }
+        for expectedPage in expectedPagesWithNames {
+            let resultPage = result.pages.first { $0.pageNumber == expectedPage.pageNumber }
+            #expect(resultPage != nil, "Missing page \(expectedPage.pageNumber) for \(documentId)")
+            if let resultPage {
+                #expect(
+                    resultPage.extraction?.method == expectedPage.extraction?.method,
+                    "Page \(expectedPage.pageNumber): expected \(expectedPage.extraction?.method ?? "nil"), got \(resultPage.extraction?.method ?? "nil")"
+                )
+            }
+        }
+    }
+
+    @Test func outputJSONHasSnakeCaseKeys() throws {
+        let pages = try loadAllOCRPages("Chase_Iris_080886")
+        let result = cascade.extractDocument(documentId: "Chase_Iris_080886", pages: pages)
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        let data = try encoder.encode(result)
+        let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+
+        // Top-level keys
+        #expect(json["schema_version"] != nil)
+        #expect(json["document_id"] != nil)
+        #expect(json["extracted_at"] != nil)
+        #expect(json["page_count"] != nil)
+        #expect(json["pages"] != nil)
+        #expect(json["overrides"] != nil)
+
+        // No camelCase keys at top level
+        #expect(json["schemaVersion"] == nil)
+        #expect(json["documentId"] == nil)
+        #expect(json["extractedAt"] == nil)
+        #expect(json["pageCount"] == nil)
+
+        let pagesArray = json["pages"] as! [[String: Any]]
+        #expect(!pagesArray.isEmpty)
+        let page = pagesArray[0]
+
+        // Page keys
+        #expect(page["page_number"] != nil)
+        #expect(page["patient"] != nil)
+        #expect(page["address"] != nil)
+        #expect(page["extraction"] != nil)
+        #expect(page["address_type"] != nil)
+        #expect(page["pageNumber"] == nil)
+        #expect(page["addressType"] == nil)
+
+        // Nested keys
+        let patient = page["patient"] as! [String: Any]
+        #expect(patient["full_name"] != nil)
+        #expect(patient["fullName"] == nil)
+
+        let address = page["address"] as! [String: Any]
+        #expect(address["postcode"] != nil)
+    }
+
+    @Test func extractionOutputRoundTrips() throws {
+        let pages = try loadAllOCRPages("Underwood_Quinn_151275")
+        let original = cascade.extractDocument(documentId: "Underwood_Quinn_151275", pages: pages)
+
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(DocumentAddressFile.self, from: data)
+
+        #expect(decoded.documentId == original.documentId)
+        #expect(decoded.schemaVersion == original.schemaVersion)
+        #expect(decoded.pageCount == original.pageCount)
+        #expect(decoded.pages.count == original.pages.count)
+
+        for (orig, dec) in zip(original.pages, decoded.pages) {
+            #expect(dec.pageNumber == orig.pageNumber)
+            #expect(dec.patient?.fullName == orig.patient?.fullName)
+            #expect(dec.address?.postcode == orig.address?.postcode)
+            #expect(dec.extraction?.method == orig.extraction?.method)
+            #expect(dec.extraction?.confidence == orig.extraction?.confidence)
+        }
+    }
+
     // MARK: - Unstructured (known divergence)
 
     // KNOWN_DIVERGENCE: Synthetic unstructured text triggers label extractor

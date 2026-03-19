@@ -73,6 +73,33 @@ func loadExpectedPageByMethod(_ documentId: String, method: String) throws -> Ad
     return page
 }
 
+/// Load all OCR pages from a fixture as ExtractionInput array.
+func loadAllOCRPages(_ documentId: String) throws -> [ExtractionInput] {
+    guard let url = Bundle.module.url(
+        forResource: documentId,
+        withExtension: "json",
+        subdirectory: "Fixtures/input_ocr"
+    ) else {
+        throw FixtureError.fileNotFound("input_ocr/\(documentId).json")
+    }
+
+    let data = try Data(contentsOf: url)
+    let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+    let pages = json["pages"] as! [[String: Any]]
+
+    return pages.map { ocrPage in
+        let pageNumber = ocrPage["pageNumber"] as? Int ?? 1
+        let text = ocrPage["text"] as? String ?? ""
+        let confidence = ocrPage["confidence"] as? Double ?? 0.85
+        return ExtractionInput(
+            documentId: documentId,
+            pageNumber: pageNumber,
+            text: text,
+            confidence: confidence
+        )
+    }
+}
+
 enum FixtureError: Error {
     case fileNotFound(String)
     case pageNotFound(String, Int)

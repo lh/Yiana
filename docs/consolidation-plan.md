@@ -165,8 +165,8 @@ Python continues to run on Devon in parallel.
   - [x] `FallbackExtractor` — title pattern + postcode anchor for unstructured text
   - [x] `ExtractionHelpers` — shared regex, postcode, name cleaning, date extraction
 - [x] 59/59 tests pass (23 registration + 15 form + 21 label + cascade/field tests)
-- [ ] Write integration test: OCR JSON in → `.addresses/*.json`-compatible out
-- [ ] Confirm output format matches existing schema exactly (field names,
+- [x] Write integration test: OCR JSON in → `.addresses/*.json`-compatible out
+- [x] Confirm output format matches existing schema exactly (field names,
   nesting, types, date formats)
 
 **Test gate:** all 50 corpus cases produce output matching Python's output
