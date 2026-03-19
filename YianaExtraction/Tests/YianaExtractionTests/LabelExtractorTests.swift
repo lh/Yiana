@@ -30,8 +30,8 @@ struct LabelExtractorTests {
     ])
     func labelExtractionProducesResult(documentId: String) throws {
         let cascade = ExtractionCascade()
-        let input = try loadOCRFixture(documentId, page: 1)
-        let expected = try loadExpectedPage(documentId, page: 1)
+        let input = try loadFirstOCRFixtureByMethod(documentId, method: "label")
+        let expected = try loadExpectedPageByMethod(documentId, method: "label")
         let result = cascade.extract(from: input)
         #expect(result != nil, "Label extraction should succeed for \(documentId)")
         #expect(result?.extraction?.method == "label")

@@ -55,7 +55,26 @@ func loadExpectedPage(_ documentId: String, page pageNumber: Int) throws -> Addr
     return page
 }
 
+/// Load the first OCR page from a fixture that matches a given extraction method.
+func loadFirstOCRFixtureByMethod(_ documentId: String, method: String) throws -> ExtractionInput {
+    let expected = try loadExpectedAddresses(documentId)
+    guard let page = expected.pages.first(where: { $0.extraction?.method == method }) else {
+        throw FixtureError.methodNotFound(documentId, method)
+    }
+    return try loadOCRFixture(documentId, page: page.pageNumber)
+}
+
+/// Load the first expected page matching a given extraction method.
+func loadExpectedPageByMethod(_ documentId: String, method: String) throws -> AddressPageEntry {
+    let expected = try loadExpectedAddresses(documentId)
+    guard let page = expected.pages.first(where: { $0.extraction?.method == method }) else {
+        throw FixtureError.methodNotFound(documentId, method)
+    }
+    return page
+}
+
 enum FixtureError: Error {
     case fileNotFound(String)
     case pageNotFound(String, Int)
+    case methodNotFound(String, String)
 }

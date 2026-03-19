@@ -24,8 +24,8 @@ struct FormExtractorTests {
     ])
     func formExtractionProducesResult(documentId: String) throws {
         let cascade = ExtractionCascade()
-        let input = try loadOCRFixture(documentId, page: 1)
-        let expected = try loadExpectedPage(documentId, page: 1)
+        let input = try loadFirstOCRFixtureByMethod(documentId, method: "form")
+        let expected = try loadExpectedPageByMethod(documentId, method: "form")
         let result = cascade.extract(from: input)
         #expect(result != nil, "Form extraction should succeed for \(documentId)")
         #expect(result?.extraction?.method == "form")

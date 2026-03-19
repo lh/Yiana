@@ -227,106 +227,79 @@ Commit: `840c0e8` "Implement RegistrationFormExtractor (Session 2 of Phase 1.1)"
 
 ---
 
-## Session 3: NLPExtractor + FallbackExtractor
+## Session 3: FormExtractor + LabelExtractor + FallbackExtractor (Complete)
 
-### 3a. NLPExtractor — replaces Python's form + label extractors
+### Approach change
 
-This is where Swift should outperform Python. Instead of fragile regex
-for names and addresses, use Apple's NLP frameworks:
+The original plan called for NLTagger + NSDataDetector ("NLPExtractor").
+In practice, the fixture data is clean synthetic text where regex is
+reliable and deterministic. The tests explicitly assert `method == "form"`
+and `method == "label"`, requiring separate extractors — matching the
+Python architecture. NLP can be layered on later if needed for real-world
+data (Phase 1.4 will reveal this).
 
-**NLTagger** (NaturalLanguage framework):
-- `.nameType` — identifies person names, place names, organisation names
-- Tag scheme `.nameTypeOrOrganization` for splitting
-- Works on free text without needing field labels
+### 3a. Shared helpers
 
-**NSDataDetector** (Foundation):
-- `.address` — UK postal addresses with structured components
-- `.phoneNumber` — phone numbers in various formats
-- `.date` — dates (DOB candidates)
+Extracted into `Utilities/ExtractionHelpers.swift`:
+- `firstMatch(_:in:options:)` — NSRegularExpression wrapper
+- `allMatches(_:in:options:)` — all regex matches
+- `firstPostcode(in:)` — UK postcode regex
+- `cleanName(_:)` — remove non-alpha (keep spaces/hyphens/apostrophes),
+  normalize whitespace, title case
+- `extractDate(from:)` — DD/MM/YYYY and DD.MM.YYYY patterns
 
-**Extraction strategy:**
-```
-1. Run NLTagger on full page text
-   → collect person names, place names
-2. Run NSDataDetector for addresses, phones, dates
-3. Run UK postcode regex (NSDataDetector may miss some formats)
-4. Correlate: person name near postcode = patient
-5. Look for GP indicators: "Dr", "Doctor", "Surgery", "Practice"
-   near a person name = practitioner
-6. Confidence: 0.8 for form-like text (has field labels),
-   0.7 for label-like text (address block format)
-```
+Refactored `RegistrationFormExtractor` to use `ExtractionHelpers.*`
+instead of its private copies. 23 existing tests still pass.
 
-The Python code has two separate extractors (form-based and label-based)
-that differ mainly in how they find the name:
-- Form: looks for "Name:" or "Patient name:" labels
-- Label: assumes first line of a block is the name
+### 3b. FormExtractor — form-field label extraction
 
-The NLP approach unifies both — NLTagger identifies names regardless of
-whether they follow a label or start a block.
+Port of Python's form-based extractor. Logic:
+1. Detect form labels: "Patient name:", "Address:", "Date of birth:"
+2. Extract name after colon (same line) or from next non-empty line
+3. Extract DOB from date patterns near DOB label
+4. Extract address lines after "Address:" label up to postcode
+5. Require both fullName AND postcode. Method="form", confidence=0.8.
 
-**Form detection heuristic:**
-If text contains field labels ("Name:", "Address:", "Date of birth:"),
-set method to "form" with confidence 0.8. Otherwise "label" with 0.7.
-This preserves method attribution for comparison with Python output.
+### 3c. LabelExtractor — address-block extraction
 
-### 3b. FallbackExtractor — replaces Python's unstructured extractor
+Port of Python's label-based extractor. Logic:
+1. Split text into non-empty trimmed lines
+2. Slide a 6-line window from each start index
+3. Find first line containing a UK postcode
+4. First line of window = name (via cleanName), postcode line terminates
+5. Optionally find DOB nearby
+6. Method="label", confidence=0.7
 
-For text with a postcode but no clear name/address structure:
+### 3d. FallbackExtractor — unstructured text
 
-```
-1. Find UK postcode (regex)
-2. Look for "Mr/Mrs/Ms/Dr" + name pattern nearby
-3. Find any date that looks like a DOB
-4. Extract address lines around the postcode
-5. Confidence: 0.5
-6. Method: "unstructured"
-```
+Port of Python's `extract_unstructured`. Logic:
+1. Find UK postcode as anchor. If none, return nil
+2. Find title pattern: Mr/Mrs/Ms/Dr/Prof + name — strip title prefix
+3. Find any date
+4. Require fullName. Method="unstructured", confidence=0.5
 
-This is essentially the Python `extract_unstructured()` logic ported
-to Swift. It's the fallback — only fires if NLPExtractor returns nil.
+### 3e. Test fixes
 
-### 3c. ExtractionCascade wiring
+Added `loadFirstOCRFixtureByMethod` and `loadExpectedPageByMethod` to
+`TestHelpers.swift`. Many fixtures don't have their target method on
+page 1 (e.g. Dixon_Peter has form on p8, label on p15). Tests now load
+the first page matching the expected method.
+
+### 3f. Cascade wiring
 
 ```swift
-public struct ExtractionCascade {
-    let extractors: [Extractor] = [
-        RegistrationFormExtractor(),
-        NLPExtractor(),            // handles both form + label
-        FallbackExtractor(),       // unstructured
-    ]
-
-    public func extract(from input: ExtractionInput) -> AddressPageEntry? {
-        for extractor in extractors {
-            if let result = extractor.extract(from: input) {
-                return result
-            }
-        }
-        return nil
-    }
-}
+self.extractors = extractors ?? [
+    RegistrationFormExtractor(),  // 0.9 confidence
+    FormExtractor(),              // 0.8 confidence
+    LabelExtractor(),             // 0.7 confidence
+    FallbackExtractor(),          // 0.5 confidence
+]
 ```
 
-### 3d. Get remaining tests green
+### 3g. Results
 
-Work through:
-- 15 form-based fixture documents
-- 21 label fixture documents
-- 1 unstructured document (5 pages, all known divergences from Phase 0)
-- 4 empty/edge case documents
-
-**Expected outcome:** Most form + label tests should pass. The 13 known
-divergences from Phase 0 may or may not reproduce — the Swift extractors
-use different technology (NLTagger vs Python regex) so they may succeed
-where Python's synthetic-text limitations caused failures, or fail
-differently. Document any new divergences.
-
-### 3e. Commit
-
-Commit: "Implement NLPExtractor and FallbackExtractor — N/53 tests green"
-- All non-divergent tests pass
-- Known divergences documented in test annotations
-- `/check` passes
+59 tests pass: 23 registration form + 15 form + 21 label.
+Both iOS and macOS build clean.
 
 ---
 

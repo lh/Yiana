@@ -158,11 +158,13 @@ Python continues to run on Devon in parallel.
   test_edge_cases()                — 4 cases
   ```
 
-- [ ] Implement extractors to pass tests:
+- [x] Implement extractors to pass tests:
   - [x] `RegistrationFormExtractor` — pattern matching for structured registration forms (12/12 pass)
-  - [ ] `NLPExtractor` — NLTagger (person names, places) + NSDataDetector
-    (addresses, phone numbers, dates)
-  - [ ] `FallbackExtractor` — postcode regex + surrounding context
+  - [x] `FormExtractor` — form-field label extraction (15/15 pass)
+  - [x] `LabelExtractor` — address-block extraction (21/21 pass)
+  - [x] `FallbackExtractor` — title pattern + postcode anchor for unstructured text
+  - [x] `ExtractionHelpers` — shared regex, postcode, name cleaning, date extraction
+- [x] 59/59 tests pass (23 registration + 15 form + 21 label + cascade/field tests)
 - [ ] Write integration test: OCR JSON in → `.addresses/*.json`-compatible out
 - [ ] Confirm output format matches existing schema exactly (field names,
   nesting, types, date formats)
@@ -412,3 +414,4 @@ of Python/Bash/duplicate Swift. Single language, single app, single deploy.
 | 2026-03-16 | Test-first, parallel-run migration | Behavioural equivalence must be proven before retirement |
 | 2026-03-16 | Domain configurability deferred to Phase 5 | Consolidation first; abstraction after stability |
 | 2026-03-16 | iCloud file formats frozen during migration | Avoids coordinated changes across components |
+| 2026-03-19 | Regex extractors instead of NLTagger for Phase 1.1 | Fixtures are clean synthetic text; tests assert specific method values; NLP can layer on later if Phase 1.4 reveals need |

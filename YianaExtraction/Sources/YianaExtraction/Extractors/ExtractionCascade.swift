@@ -16,8 +16,9 @@ public struct ExtractionCascade: Sendable {
     public init(extractors: [any Extractor]? = nil) {
         self.extractors = extractors ?? [
             RegistrationFormExtractor(),
-            // NLPExtractor(),         // TODO: Session 3
-            // FallbackExtractor(),    // TODO: Session 3
+            FormExtractor(),
+            LabelExtractor(),
+            FallbackExtractor(),
         ]
     }
 
