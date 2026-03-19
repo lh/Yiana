@@ -1,40 +1,50 @@
 # Session Handoff — 2026-03-19
 
 ## Branch
-`consolidation/v1.1` — pushed, up to date with origin.
+`consolidation/v1.1` — not yet pushed.
 
 ## What Was Done This Session
 
-### Phase 1.1 Completion: Integration Tests
-- Added `loadAllOCRPages` helper to `TestHelpers.swift` — loads all pages from an OCR fixture as `[ExtractionInput]`
-- Added 3 integration tests to `CascadeTests.swift`:
-  1. `fullDocumentExtraction` — parameterized over 3 fixtures (Jones_Clara 5-page mixed methods, Chase_Iris 3-page all-label, Underwood_Quinn 1-page label). Verifies documentId, schemaVersion, and method matching for pages with non-empty names
-  2. `outputJSONHasSnakeCaseKeys` — runs real extraction, encodes to JSON, verifies all keys are snake_case (no camelCase leakage)
-  3. `extractionOutputRoundTrips` — encodes real extraction output, decodes back, verifies all fields match
-- Ticked remaining Phase 1.1 checkboxes in `docs/consolidation-plan.md`
+### Phase 1.2: NHS/ODS Lookup in Swift
+- Added GRDB dependency (v7.7+) to `YianaExtraction/Package.swift`
+- Created `GPPractice` GRDB record type (internal to package)
+- Implemented `NHSLookupService` — full port of Python's `NHSLookup.lookup_gp()`:
+  - Exact postcode matching (normalised UK format)
+  - District-level fallback with hint-based scoring
+  - Auto-select on single strong match (score <= 7, gap > 2)
+  - Name hint reordering for exact matches
+  - Stop word filtering for both name and address hints
+- Bundled `nhs_lookup.db` and `test_cases.json` in test fixtures
+- 25 parameterised test cases covering:
+  - 15 exact match single practice
+  - 3 exact match multiple practices
+  - 2 exact match with hint reordering
+  - 2 district fallback with hint
+  - 2 district fallback without hint (returns empty)
+  - 1 invalid postcode
+- Added integration test: extraction output feeds into NHS lookup
+- Ticked Phase 1.2 checkboxes in `docs/consolidation-plan.md`
 
-### Phase 1.1 is complete
-- **62 test cases pass** (59 existing + 3 new integration tests)
-- All extractors implemented: RegistrationForm, Form, Label, Fallback
-- Output schema confirmed compatible with Python and app decoder
+### Phase 1.2 is complete
+- **88 test cases pass** (62 existing + 25 NHS lookup + 1 integration)
+- Both iOS and macOS build clean
+- No new dependencies beyond GRDB (already approved and used in main app)
 
 ## Current State
 
 - **Branch:** `consolidation/v1.1`
 - **Builds:** iOS and macOS both succeed
-- **Package tests:** `cd YianaExtraction && swift test` — 62 test cases pass, 0 fail
-- **Clean working tree** (except `.serena/project.yml` and `nhs_lookup.db.bak`)
+- **Package tests:** `cd YianaExtraction && swift test` — 88 test cases pass, 0 fail
+- **Uncommitted changes:** new files + Package.swift edit (ready to commit)
 
 ## What's Next
 
-### Phase 1.2: NHS/ODS Lookup in Swift
-1. Write tests using Phase 0.3 corpus (25 cases)
-2. Bundle `nhs_lookup.db` as app resource
-3. Implement `NHSLookupService` using GRDB (exact postcode, district fallback, hint scoring)
-4. Confirm results match Python
+### Phase 1.3: Wire Into Yiana
+1. Bundle `nhs_lookup.db` as app resource (not just test fixture)
+2. Wire `ExtractionCascade` + `NHSLookupService` into the app
+3. Replace Python extraction pipeline calls with Swift-native extraction
 
-### After Phase 1.2
-- Phase 1.3: Wire extraction + lookup into Yiana app
+### After Phase 1.3
 - Phase 1.4: Parallel validation against all 1441 real documents
 - Phase 1.5: Retire Python extraction on Devon
 
@@ -42,13 +52,15 @@
 
 | File | Purpose |
 |------|---------|
-| `docs/consolidation-plan.md` | Master plan with checkboxes |
-| `docs/phase-1.1-plan.md` | Phase 1.1 overview (all sessions complete) |
-| `YianaExtraction/Sources/YianaExtraction/Extractors/` | All 4 extractors + cascade |
-| `YianaExtraction/Sources/YianaExtraction/Utilities/ExtractionHelpers.swift` | Shared regex helpers |
-| `YianaExtraction/Tests/YianaExtractionTests/CascadeTests.swift` | Integration tests |
+| `YianaExtraction/Package.swift` | Added GRDB dependency |
+| `YianaExtraction/Sources/.../Models/GPPractice.swift` | GRDB record (internal) |
+| `YianaExtraction/Sources/.../Services/NHSLookupService.swift` | NHS postcode lookup |
+| `YianaExtraction/Tests/.../NHSLookupTests.swift` | 25 test cases |
+| `YianaExtraction/Tests/.../Fixtures/nhs_lookup/` | DB + test case fixtures |
+| `docs/consolidation-plan.md` | Phase 1.2 checkboxes ticked |
 
 ## Known Issues
 - Synthetic test corpus is partially circular (Phase 1.4 parallel run provides real coverage)
 - `feature/worklist-integration` branch from prior session still exists (2 commits, may need merging to main)
 - FallbackExtractor has no dedicated test assertions — Fisher_Victor is a known divergence
+- Optician lookup not ported (no test cases, not exercised in production)

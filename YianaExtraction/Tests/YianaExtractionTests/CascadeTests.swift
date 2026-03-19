@@ -204,6 +204,46 @@ struct CascadeTests {
         }
     }
 
+    // MARK: - Integration: Extraction → NHS Lookup
+
+    @Test func extractionOutputFeedsIntoNHSLookup() throws {
+        // Run extraction on a fixture that contains GP postcode data
+        let pages = try loadAllOCRPages("Jones_Clara_080749")
+        let result = cascade.extractDocument(documentId: "Jones_Clara_080749", pages: pages)
+
+        // Find a page with a postcode in the address
+        guard let pageWithPostcode = result.pages.first(where: { $0.address?.postcode != nil }),
+              let postcode = pageWithPostcode.address?.postcode else {
+            Issue.record("No page with postcode found in Jones_Clara_080749")
+            return
+        }
+
+        // Feed that postcode into NHSLookupService
+        guard let dbURL = Bundle.module.url(
+            forResource: "nhs_lookup",
+            withExtension: "db",
+            subdirectory: "Fixtures/nhs_lookup"
+        ) else {
+            Issue.record("nhs_lookup.db fixture not found")
+            return
+        }
+
+        let lookupService = try NHSLookupService(databasePath: dbURL.path)
+        let gpName = pageWithPostcode.gp?.name
+        let candidates = try lookupService.lookupGP(
+            postcode: postcode,
+            nameHint: gpName
+        )
+
+        // The postcode may or may not be in the NHS DB (synthetic fixtures),
+        // but the call must not throw and must return valid NHSCandidate objects
+        for candidate in candidates {
+            #expect(candidate.source == "gp")
+            #expect(candidate.odsCode != nil)
+            #expect(candidate.postcode != nil)
+        }
+    }
+
     // MARK: - Unstructured (known divergence)
 
     // KNOWN_DIVERGENCE: Synthetic unstructured text triggers label extractor

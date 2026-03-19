@@ -1,0 +1,631 @@
+{
+  "description": "NHS ODS GP practice lookup test cases",
+  "data_source": "NHS Digital ODS data (Open Government Licence)",
+  "generated_from": "nhs_lookup.db as of 2026-03-17. Regenerate with generate_nhs_lookup_fixtures.py if DB is refreshed.",
+  "total_cases": 25,
+  "cases": [
+    {
+      "id": 1,
+      "type": "exact_match",
+      "description": "Hertfordshire \u2014 single practice",
+      "input": {
+        "postcode": "AL3 8LJ",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 1,
+        "matches": [
+          {
+            "ods_code": "E82001002",
+            "name": "MARKYATE SURGERY",
+            "address_line1": "1 HICKS ROAD",
+            "address_line2": "",
+            "town": "ST. ALBANS",
+            "county": "",
+            "postcode": "AL3 8LJ"
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "type": "exact_match",
+      "description": "Dorset \u2014 single practice",
+      "input": {
+        "postcode": "BH17 8UE",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 1,
+        "matches": [
+          {
+            "ods_code": "J81013",
+            "name": "CANFORD HEATH GROUP PRACT",
+            "address_line1": "9 MITCHELL ROAD",
+            "address_line2": "CANFORD HEATH",
+            "town": "POOLE",
+            "county": "DORSET",
+            "postcode": "BH17 8UE"
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "type": "exact_match",
+      "description": "Essex \u2014 single practice",
+      "input": {
+        "postcode": "CO10 2TD",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 1,
+        "matches": [
+          {
+            "ods_code": "D83060003",
+            "name": "MEADOW LANE SURGERY",
+            "address_line1": "LITTLE ROSEWORTHY",
+            "address_line2": "",
+            "town": "SUDBURY",
+            "county": "",
+            "postcode": "CO10 2TD"
+          }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "type": "exact_match",
+      "description": "West Midlands \u2014 single practice",
+      "input": {
+        "postcode": "DY14 8TY",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 1,
+        "matches": [
+          {
+            "ods_code": "M82024001",
+            "name": "STOTTESDON",
+            "address_line1": "THE SURGERY",
+            "address_line2": "",
+            "town": "KIDDERMINSTER",
+            "county": "",
+            "postcode": "DY14 8TY"
+          }
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "type": "exact_match",
+      "description": "Devon \u2014 single practice",
+      "input": {
+        "postcode": "EX16 9NB",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 1,
+        "matches": [
+          {
+            "ods_code": "L83085003",
+            "name": "BAMPTON SURGERY",
+            "address_line1": "BARNHAY",
+            "address_line2": "",
+            "town": "TIVERTON",
+            "county": "",
+            "postcode": "EX16 9NB"
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "type": "exact_match",
+      "description": "Lancashire \u2014 single practice",
+      "input": {
+        "postcode": "FY6 7NJ",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 1,
+        "matches": [
+          {
+            "ods_code": "P81079002",
+            "name": "CARLETON PRACTICE",
+            "address_line1": "9 CASTLE GARDENS CRESCENT",
+            "address_line2": "",
+            "town": "POULTON-LE-FYLDE",
+            "county": "",
+            "postcode": "FY6 7NJ"
+          }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "type": "exact_match",
+      "description": "Buckinghamshire \u2014 single practice",
+      "input": {
+        "postcode": "HP22 5LB",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 1,
+        "matches": [
+          {
+            "ods_code": "K82073001",
+            "name": "ASTON CLINTON SURGERY",
+            "address_line1": "136 LONDON ROAD",
+            "address_line2": "",
+            "town": "AYLESBURY",
+            "county": "",
+            "postcode": "HP22 5LB"
+          }
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "type": "exact_match",
+      "description": "Leeds \u2014 single practice",
+      "input": {
+        "postcode": "LS28 6PE",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 1,
+        "matches": [
+          {
+            "ods_code": "B86050002",
+            "name": "WATSON KJ",
+            "address_line1": "GLENLEA SURGERY",
+            "address_line2": "",
+            "town": "LEEDS",
+            "county": "",
+            "postcode": "LS28 6PE"
+          }
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "type": "exact_match",
+      "description": "Manchester \u2014 single practice",
+      "input": {
+        "postcode": "M30 0TU",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 1,
+        "matches": [
+          {
+            "ods_code": "Y00445001",
+            "name": "SALFORD PRIMARY CARE TOGETHER - ECCLES GATEWAY",
+            "address_line1": "1ST FLOOR, ECCLES GATEWAY",
+            "address_line2": "",
+            "town": "MANCHESTER",
+            "county": "",
+            "postcode": "M30 0TU"
+          }
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "type": "exact_match",
+      "description": "Norfolk \u2014 single practice",
+      "input": {
+        "postcode": "NR25 7PQ",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 1,
+        "matches": [
+          {
+            "ods_code": "D82001001",
+            "name": "BLAKENEY SURGERY",
+            "address_line1": "QUEENS CLOSE",
+            "address_line2": "",
+            "town": "HOLT",
+            "county": "",
+            "postcode": "NR25 7PQ"
+          }
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "type": "exact_match",
+      "description": "Oxfordshire \u2014 single practice",
+      "input": {
+        "postcode": "OX26 3EU",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 1,
+        "matches": [
+          {
+            "ods_code": "K84613002",
+            "name": "VICTORIA HOUSE SURGERY",
+            "address_line1": "119 BUCKINGHAM ROAD",
+            "address_line2": "",
+            "town": "BICESTER",
+            "county": "",
+            "postcode": "OX26 3EU"
+          }
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "type": "exact_match",
+      "description": "Cambridgeshire \u2014 single practice",
+      "input": {
+        "postcode": "PE19 2HD",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 1,
+        "matches": [
+          {
+            "ods_code": "D81057001",
+            "name": "DUMBELTON MEDICAL CENTRE",
+            "address_line1": "BARFORD ROAD",
+            "address_line2": "",
+            "town": "ST.NEOTS",
+            "county": "",
+            "postcode": "PE19 2HD"
+          }
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "type": "exact_match",
+      "description": "Surrey \u2014 single practice",
+      "input": {
+        "postcode": "RH8 0BQ",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 1,
+        "matches": [
+          {
+            "ods_code": "H81056",
+            "name": "OXTED HEALTH CENTRE",
+            "address_line1": "DOCTORS SURGERY",
+            "address_line2": "10 GRESHAM ROAD",
+            "town": "OXTED",
+            "county": "SURREY",
+            "postcode": "RH8 0BQ"
+          }
+        ]
+      }
+    },
+    {
+      "id": 14,
+      "type": "exact_match",
+      "description": "London SE \u2014 single practice",
+      "input": {
+        "postcode": "SE10 0QN",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 1,
+        "matches": [
+          {
+            "ods_code": "Y03755",
+            "name": "GREENWICH PENINSULA",
+            "address_line1": "GREENWICH PENINSULA PRACTICE",
+            "address_line2": "SCHOOLBANK ROAD",
+            "town": "LONDON",
+            "county": "GREATER LONDON",
+            "postcode": "SE10 0QN"
+          }
+        ]
+      }
+    },
+    {
+      "id": 15,
+      "type": "exact_match",
+      "description": "London W \u2014 single practice",
+      "input": {
+        "postcode": "UB3 2AP",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 1,
+        "matches": [
+          {
+            "ods_code": "E85121001",
+            "name": "SINGH G",
+            "address_line1": "238 BOTWELL LANE",
+            "address_line2": "",
+            "town": "HAYES",
+            "county": "",
+            "postcode": "UB3 2AP"
+          }
+        ]
+      }
+    },
+    {
+      "id": 16,
+      "type": "exact_match_multiple",
+      "description": "Birmingham \u2014 2 practices at same postcode",
+      "input": {
+        "postcode": "B19 1HS",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 2,
+        "matches": [
+          {
+            "ods_code": "Q2M4E",
+            "name": "FINCH ROAD PRIMARY CARE CENTRE",
+            "address_line1": "2 FINCH ROAD",
+            "address_line2": "",
+            "town": "BIRMINGHAM",
+            "county": "",
+            "postcode": "B19 1HS"
+          },
+          {
+            "ods_code": "M85024002",
+            "name": "THE LIMES MEDICAL CENTRE",
+            "address_line1": "FINCH ROAD",
+            "address_line2": "",
+            "town": "BIRMINGHAM",
+            "county": "",
+            "postcode": "B19 1HS"
+          }
+        ]
+      }
+    },
+    {
+      "id": 17,
+      "type": "exact_match_multiple",
+      "description": "Tunbridge Wells \u2014 2 practices",
+      "input": {
+        "postcode": "TN1 2DX",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 2,
+        "matches": [
+          {
+            "ods_code": "G82041",
+            "name": "GROSVENOR & ST JAMES MEDICAL CENTRE",
+            "address_line1": "GROSVENOR MEDICAL CENTRE",
+            "address_line2": "23 UPPER GROSVENOR ROAD",
+            "town": "TUNBRIDGE WELLS",
+            "county": "KENT",
+            "postcode": "TN1 2DX"
+          },
+          {
+            "ods_code": "Y02971",
+            "name": "RHEUMATOLOGY T&T WELLS",
+            "address_line1": "GROSVENOR MEDICAL CENTRE",
+            "address_line2": "23 UPPER GROSVENOR ROAD",
+            "town": "TUNBRIDGE WELLS",
+            "county": "KENT",
+            "postcode": "TN1 2DX"
+          }
+        ]
+      }
+    },
+    {
+      "id": 18,
+      "type": "exact_match_multiple",
+      "description": "Bracknell \u2014 3 practices",
+      "input": {
+        "postcode": "RG12 1LH",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 3,
+        "matches": [
+          {
+            "ods_code": "K81657",
+            "name": "EVERGREEN PRACTICE",
+            "address_line1": "SKIMPED HILL LANE",
+            "address_line2": null,
+            "town": "BRACKNELL",
+            "county": "BERKSHIRE",
+            "postcode": "RG12 1LH"
+          },
+          {
+            "ods_code": "Y04228",
+            "name": "BHFT (BRACKNELL)",
+            "address_line1": "COMMUNITY NURSING SERVICE",
+            "address_line2": "SKIMPED HILL LANE",
+            "town": "BRACKNELL",
+            "county": "BERKSHIRE",
+            "postcode": "RG12 1LH"
+          },
+          {
+            "ods_code": "K81610001",
+            "name": "FOREST HEALTH GROUP - SKIMPED HILL",
+            "address_line1": "SKIMPED HILL HEALTH CENTRE",
+            "address_line2": "",
+            "town": "BRACKNELL",
+            "county": "",
+            "postcode": "RG12 1LH"
+          }
+        ]
+      }
+    },
+    {
+      "id": 19,
+      "type": "exact_match_with_hint",
+      "description": "Name hint should reorder results \u2014 Birmingham",
+      "input": {
+        "postcode": "B19 1HS",
+        "name_hint": "THE LIMES MEDICAL CENTRE",
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 2,
+        "first_match_name": "THE LIMES MEDICAL CENTRE",
+        "matches": [
+          {
+            "ods_code": "Q2M4E",
+            "name": "FINCH ROAD PRIMARY CARE CENTRE",
+            "address_line1": "2 FINCH ROAD",
+            "address_line2": "",
+            "town": "BIRMINGHAM",
+            "county": "",
+            "postcode": "B19 1HS"
+          },
+          {
+            "ods_code": "M85024002",
+            "name": "THE LIMES MEDICAL CENTRE",
+            "address_line1": "FINCH ROAD",
+            "address_line2": "",
+            "town": "BIRMINGHAM",
+            "county": "",
+            "postcode": "B19 1HS"
+          }
+        ]
+      }
+    },
+    {
+      "id": 20,
+      "type": "exact_match_with_hint",
+      "description": "Name hint reorders \u2014 Bracknell (3 practices)",
+      "input": {
+        "postcode": "RG12 1LH",
+        "name_hint": "EVERGREEN PRACTICE",
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 3,
+        "first_match_name": "EVERGREEN PRACTICE",
+        "matches": [
+          {
+            "ods_code": "K81657",
+            "name": "EVERGREEN PRACTICE",
+            "address_line1": "SKIMPED HILL LANE",
+            "address_line2": null,
+            "town": "BRACKNELL",
+            "county": "BERKSHIRE",
+            "postcode": "RG12 1LH"
+          },
+          {
+            "ods_code": "Y04228",
+            "name": "BHFT (BRACKNELL)",
+            "address_line1": "COMMUNITY NURSING SERVICE",
+            "address_line2": "SKIMPED HILL LANE",
+            "town": "BRACKNELL",
+            "county": "BERKSHIRE",
+            "postcode": "RG12 1LH"
+          },
+          {
+            "ods_code": "K81610001",
+            "name": "FOREST HEALTH GROUP - SKIMPED HILL",
+            "address_line1": "SKIMPED HILL HEALTH CENTRE",
+            "address_line2": "",
+            "town": "BRACKNELL",
+            "county": "",
+            "postcode": "RG12 1LH"
+          }
+        ]
+      }
+    },
+    {
+      "id": 21,
+      "type": "district_fallback_with_hint",
+      "description": "Kent \u2014 no exact match, 3 in district, hint matches one",
+      "input": {
+        "postcode": "CT18 7ZZ",
+        "name_hint": "CHURCH",
+        "address_hint": null
+      },
+      "expected": {
+        "district": "CT18",
+        "district_practice_count": 3,
+        "should_return_results": true,
+        "notes": "Hint 'CHURCH' should help select from 3 candidates"
+      }
+    },
+    {
+      "id": 22,
+      "type": "district_fallback_with_hint",
+      "description": "Hampshire \u2014 no exact match, 2 in district, hint matches one",
+      "input": {
+        "postcode": "SP6 9ZZ",
+        "name_hint": "THE SURGERY",
+        "address_hint": null
+      },
+      "expected": {
+        "district": "SP6",
+        "district_practice_count": 2,
+        "should_return_results": true,
+        "notes": "Hint 'THE SURGERY' should help select from 2 candidates"
+      }
+    },
+    {
+      "id": 23,
+      "type": "district_fallback_no_hint",
+      "description": "Bristol \u2014 no exact match, 3 in district, no hint",
+      "input": {
+        "postcode": "BS3 9ZZ",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "district": "BS3",
+        "district_practice_count": 3,
+        "should_return_results": false,
+        "notes": "No hint = no fallback (lookup_gp requires hints for district fallback)"
+      }
+    },
+    {
+      "id": 24,
+      "type": "district_fallback_no_hint",
+      "description": "Leeds \u2014 no exact match, 2 in district, no hint",
+      "input": {
+        "postcode": "LS12 9ZZ",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "district": "LS12",
+        "district_practice_count": 2,
+        "should_return_results": false,
+        "notes": "No hint = no fallback (lookup_gp requires hints for district fallback)"
+      }
+    },
+    {
+      "id": 25,
+      "type": "no_match",
+      "description": "Invalid postcode \u2014 no district exists in DB",
+      "input": {
+        "postcode": "ZZ99 9ZZ",
+        "name_hint": null,
+        "address_hint": null
+      },
+      "expected": {
+        "match_count": 0,
+        "matches": []
+      }
+    }
+  ]
+}

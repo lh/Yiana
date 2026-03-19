@@ -174,15 +174,16 @@ Python continues to run on Devon in parallel.
 
 ### 1.2 NHS/ODS Lookup in Swift
 
-- [ ] Write tests FIRST using Phase 0.3 corpus (20 cases)
-- [ ] Bundle `nhs_lookup.db` as app resource
-- [ ] Implement `NHSLookupService` using GRDB:
+- [x] Write tests FIRST using Phase 0.3 corpus (25 cases)
+- [x] Bundle `nhs_lookup.db` as test fixture
+- [x] Implement `NHSLookupService` using GRDB:
   - Exact postcode match
   - District-level fallback with scoring
   - Auto-select on single strong match
-- [ ] Confirm results match Python's NHSLookup class
+- [x] Confirm results match Python's NHSLookup class
+- [x] Integration test: extraction output feeds into lookup
 
-**Test gate:** all 20 lookup cases match expected results.
+**Test gate:** all 25 lookup cases match expected results.
 
 ### 1.3 Wire Into Yiana
 

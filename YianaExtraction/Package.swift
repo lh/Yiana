@@ -10,9 +10,15 @@ let package = Package(
     products: [
         .library(name: "YianaExtraction", targets: ["YianaExtraction"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.7.0"),
+    ],
     targets: [
         .target(
-            name: "YianaExtraction"
+            name: "YianaExtraction",
+            dependencies: [
+                .product(name: "GRDB", package: "GRDB.swift"),
+            ]
         ),
         .testTarget(
             name: "YianaExtractionTests",
