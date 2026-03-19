@@ -358,10 +358,10 @@ Each extractor is stateless and can be tested independently.
 
 ## Definition of Done
 
-- [ ] `YianaExtraction` Swift package compiles on iOS and macOS
-- [ ] All non-divergent fixture tests pass
-- [ ] `ExtractionCascade.extractDocument()` produces valid `DocumentAddressFile` JSON
-- [ ] Output JSON matches `.addresses/*.json` schema exactly
-- [ ] `/check` passes (both iOS and macOS targets build)
-- [ ] No new dependencies added (Apple frameworks only)
-- [ ] Known divergences documented in test code
+- [x] `YianaExtraction` Swift package compiles on iOS and macOS
+- [x] All non-divergent fixture tests pass
+- [x] `ExtractionCascade.extractDocument()` produces valid `DocumentAddressFile` JSON
+- [x] Output JSON matches `.addresses/*.json` schema exactly
+- [x] `/check` passes (both iOS and macOS targets build)
+- [x] No new dependencies added (Apple frameworks only)
+- [x] Known divergences documented in test code
