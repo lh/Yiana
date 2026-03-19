@@ -293,6 +293,13 @@ struct ImportPDFView: View {
             guard !ocrResult.fullText.isEmpty else { return }
 
             var metadata = try JSONDecoder().decode(DocumentMetadata.self, from: payload.metadata)
+
+            // Run extraction in background (fire-and-forget, don't block import)
+            let docTitle = metadata.title
+            Task.detached {
+                await DocumentExtractionService.shared.extractAndSave(
+                    documentId: docTitle, ocrResult: ocrResult)
+            }
             metadata.fullText = ocrResult.fullText
             metadata.ocrCompleted = true
             metadata.ocrProcessedAt = Date()

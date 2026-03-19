@@ -981,6 +981,12 @@ struct DocumentEditView: View {
                     let ocrResult = await OnDeviceOCRService.shared.recognizeText(in: pdfData)
                     if !ocrResult.fullText.isEmpty {
                         viewModel.applyOCRResult(ocrResult)
+                        if let docTitle = document?.metadata.title, !docTitle.isEmpty {
+                            Task.detached {
+                                await DocumentExtractionService.shared.extractAndSave(
+                                    documentId: docTitle, ocrResult: ocrResult)
+                            }
+                        }
                         _ = await viewModel.save()
                         await viewModel.indexDocument()
                     }

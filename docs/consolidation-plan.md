@@ -187,11 +187,14 @@ Python continues to run on Devon in parallel.
 
 ### 1.3 Wire Into Yiana
 
-- [ ] Add post-OCR hook in document pipeline: after `OnDeviceOCRService`
-  completes, run extraction
-- [ ] Write extracted data to `.addresses/` in existing JSON format
-- [ ] Preserve existing override/enriched data (read-merge-write)
-- [ ] Atomic writes (temp + rename, matching existing pattern)
+- [x] Add post-OCR hook in document pipeline: after `OnDeviceOCRService`
+  completes, run extraction (all 4 trigger points: iOS VM, macOS VM, ContentView import, DocumentEditView scan)
+- [x] Write extracted data to `.addresses/` in existing JSON format
+- [x] Preserve existing override/enriched data (read-merge-write)
+- [x] Atomic writes (temp + rename, matching existing pattern)
+- [x] `OnDeviceOCRResult` extended with per-page text and confidence
+- [x] `nhs_lookup.db` bundled in app (both iOS and macOS targets)
+- [x] NHS lookup enriches GP entries with ODS candidates
 - [ ] Test: scan a document → OCR completes → addresses appear in AddressesView
   without Mac mini involvement
 

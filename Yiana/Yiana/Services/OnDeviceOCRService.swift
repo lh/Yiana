@@ -4,11 +4,19 @@ import Vision
 
 /// Result of on-device OCR processing
 struct OnDeviceOCRResult {
+    /// Per-page OCR output
+    struct PageResult {
+        let pageNumber: Int   // 1-based
+        let text: String
+        let confidence: Double
+    }
+
     let fullText: String
     let confidence: Double
     let pageCount: Int
+    let pages: [PageResult]
 
-    static let empty = OnDeviceOCRResult(fullText: "", confidence: 0, pageCount: 0)
+    static let empty = OnDeviceOCRResult(fullText: "", confidence: 0, pageCount: 0, pages: [])
 }
 
 /// On-device OCR using Vision framework's VNRecognizeTextRequest.
@@ -33,11 +41,17 @@ final class OnDeviceOCRService {
         guard pageCount > 0 else { return .empty }
 
         var pageTexts: [String] = []
+        var pageResults: [OnDeviceOCRResult.PageResult] = []
         var totalConfidence: Double = 0
 
         for i in 0..<pageCount {
             guard let page = document.page(at: i) else { continue }
             let (text, confidence) = await processPage(page)
+            pageResults.append(OnDeviceOCRResult.PageResult(
+                pageNumber: i + 1,  // 1-based
+                text: text,
+                confidence: confidence
+            ))
             if !text.isEmpty {
                 pageTexts.append(text)
             }
@@ -50,7 +64,8 @@ final class OnDeviceOCRService {
         return OnDeviceOCRResult(
             fullText: fullText,
             confidence: avgConfidence,
-            pageCount: pageCount
+            pageCount: pageCount,
+            pages: pageResults
         )
     }
 

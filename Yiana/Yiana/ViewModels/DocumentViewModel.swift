@@ -70,6 +70,11 @@ class DocumentViewModel: ObservableObject {
                 let result = await OnDeviceOCRService.shared.recognizeText(in: pdfData)
                 if !result.fullText.isEmpty {
                     self.applyOCRResult(result)
+                    let docTitle = self.document.metadata.title
+                    Task.detached {
+                        await DocumentExtractionService.shared.extractAndSave(
+                            documentId: docTitle, ocrResult: result)
+                    }
                     _ = await self.save()
                     await self.indexDocument()
                 }
@@ -807,6 +812,13 @@ final class DocumentViewModel: ObservableObject {
                 let result = await OnDeviceOCRService.shared.recognizeText(in: pdfData)
                 guard let self, !result.fullText.isEmpty else { return }
                 self.applyOCRResult(result)
+                let docTitle = self.document?.metadata.title ?? ""
+                if !docTitle.isEmpty {
+                    Task.detached {
+                        await DocumentExtractionService.shared.extractAndSave(
+                            documentId: docTitle, ocrResult: result)
+                    }
+                }
                 _ = await self.save()
                 await self.indexDocument()
             }
