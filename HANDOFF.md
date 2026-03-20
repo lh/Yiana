@@ -1,4 +1,4 @@
-# Session Handoff — 2026-03-19
+# Session Handoff — 2026-03-20
 
 ## Branch
 `consolidation/v1.1` — pushed, up to date with origin.
@@ -16,23 +16,39 @@
 - All 4 OCR trigger points wired
 - Document ID uses `metadata.title` (filename stem) matching Python convention
 
+### Manual Testing (2026-03-20)
+Real document scanned: `Groves_Simon_250870` (Test directory, real data — do not commit).
+
+- [x] **Scan new document on iOS** — `Extracted 1 pages` logged, patient name/DOB/phone/postcode appeared in AddressesView
+- [x] **NHS candidates** — RH1 2NP lookup returned HOLMHURST MEDICAL CENTRE (H81048) + THE HOUSE PARTNERSHIP (H81030)
+- [x] **macOS sees data** — extraction result synced via iCloud, AddressesView shows same data
+- [x] **JSON format** — snake_case keys, correct structure, matches Python schema
+- [x] **Devon parallel** — Python extraction did not re-process; iCloud-synced file coexists without conflict
+- [~] **Override survival** — override added on macOS was lost when iOS re-extracted before sync completed. Code logic is correct (read-merge-write), but iCloud eventual consistency means cross-device edits can race. See "Open Design Question" below.
+
+### Extraction Quality Issues (logged in Serena memory ideas_and_problems #9-11)
+- Address lines not extracted (postcode only, no street)
+- Duplicate phone numbers when source has duplicates
+- GP data missed on first single-page scan, found on second 2-page scan
+
+## Open Design Question: iCloud Override Race Condition
+
+When user edits an override on device A and device B re-extracts before sync completes, the override is lost. The read-merge-write logic is correct — the problem is that device B's local copy of the .addresses/ file doesn't yet contain device A's override.
+
+Options to consider:
+1. **Timestamp-based merge** — compare `overrideDate` timestamps and keep the most recent, even across conflicting writes
+2. **Separate override file** — write overrides to `{documentId}.overrides.json` so extraction never touches user edits
+3. **Last-write-wins with notification** — detect when extraction overwrites a newer file and surface a warning
+4. **Accept the limitation** — document that overrides should be made on the same device that scans, or wait for sync before re-scanning
+
+This needs a decision before Phase 1.5 (retiring Python). During parallel operation it's low-risk since both Swift and Python write the same format.
+
 ## Current State
 
 - **Branch:** `consolidation/v1.1`
 - **Builds:** iOS and macOS both succeed
 - **Package tests:** 88/88 pass
 - **Clean working tree** (except `.serena/project.yml` and `nhs_lookup.db.bak`)
-
-## Manual Testing Required
-
-Before Phase 1.4, these need hands-on verification:
-
-- [ ] **Scan a new document on iOS** — after OCR completes, open AddressesView and confirm extracted addresses appear (patient name, address, GP info)
-- [ ] **Verify NHS candidates appear** — for a document with a GP postcode that exists in the NHS DB, check that `nhs_candidates` entries show in the GP section of AddressesView
-- [ ] **Re-scan an existing document that has user overrides** — confirm overrides survive re-extraction (override data should not be lost)
-- [ ] **Import a .yianazip on macOS** — open the document, check AddressesView shows extracted data
-- [ ] **Check .addresses/ file on disk** — after extraction, verify the JSON file exists in iCloud `.addresses/` with correct snake_case keys, matching the Python output format
-- [ ] **Verify Python extraction still works in parallel** — Devon should still process documents independently; both Swift and Python output should coexist without conflict (they write the same filename, so whichever runs last wins — this is expected during parallel operation)
 
 ## What's Next
 
