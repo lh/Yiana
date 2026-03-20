@@ -203,12 +203,11 @@ iOS and macOS (`/check`).
 
 ### 1.4 Parallel Validation
 
-- [ ] Run Swift extraction on all documents that Python has already processed
-- [ ] Compare outputs field-by-field
-- [ ] Log discrepancies with document ID and field name
-- [ ] Review discrepancies: is Swift wrong, or is Swift better?
-- [ ] Fix genuine regressions; document genuine improvements (but do not
-  act on improvements yet)
+- [x] Run Swift extraction on all 1,440 documents Python has already processed
+- [x] Compare outputs field-by-field (4,500+ pages, zero errors)
+- [x] Log discrepancies (anonymised — no PII in repo)
+- [x] Review discrepancies: fixed GP postcode gap, added city extraction, improved DOB parsing
+- [x] Fix genuine regressions: GP postcode (eliminated), city (90.8% -> 22.4% gap), DOB formats
 
 **Test gate:** Swift matches or exceeds Python on >= 95% of fields across all
 documents. Remaining 5% reviewed and accepted.
