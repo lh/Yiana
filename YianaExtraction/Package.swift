@@ -9,6 +9,7 @@ let package = Package(
     ],
     products: [
         .library(name: "YianaExtraction", targets: ["YianaExtraction"]),
+        .executable(name: "yiana-extract", targets: ["YianaExtractCLI"]),
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.7.0"),
@@ -19,6 +20,11 @@ let package = Package(
             dependencies: [
                 .product(name: "GRDB", package: "GRDB.swift"),
             ]
+        ),
+        .executableTarget(
+            name: "YianaExtractCLI",
+            dependencies: ["YianaExtraction"],
+            path: "Sources/YianaExtractCLI"
         ),
         .testTarget(
             name: "YianaExtractionTests",

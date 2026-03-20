@@ -7,6 +7,14 @@ Quick-capture list for things that come to mind mid-task.
 
 ## Problems
 
+12. **iCloud override race condition — implement before Phase 1.5** — When user edits an override on device A and device B re-extracts before sync completes, the override is lost. Fix: separate override file (`{documentId}.overrides.json`) so extraction never touches user edits. `AddressRepository` merges at read time. Must be done before retiring Python extraction (Phase 1.5). See HANDOFF.md "Open Design Question" for full analysis. Discovered 2026-03-20.
+
+9. **Extraction misses address lines** — Real-world test (Groves_Simon_250870, single-page scan) extracted postcode RH1 4DD, patient name, DOB, and phone, but no street address lines. Likely the extractors (label/form) aren't picking up address lines from this document layout. Needs investigation in the extraction cascade. Discovered 2026-03-20.
+
+10. **Duplicate phone numbers** — When the same phone number appears multiple times in the source document, it gets extracted multiple times. Need deduplication in phone extraction. Discovered 2026-03-20.
+
+11. **GP data not extracted from some documents** — Groves_Simon_250870 has GP info but none was picked up by any extractor. May be a layout the extractors don't recognise. Discovered 2026-03-20.
+
 8. **Special characters in folder names (`?`, `#`, `%`) corrupt file operations** — Folder `Junk?` causes documents to silently move to parent folder during save/archive operations. The `?` is likely interpreted as a URL query separator at some point in the URL→path→URL chain (e.g. `URL(fileURLWithPath:)` round-trip). Documents "vanish" from the folder and reappear in parent. Need to either sanitize folder names on creation or ensure all file operations use `.path` instead of URL string comparisons. Discovered 2026-02-28.
 
 ## Ideas

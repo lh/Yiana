@@ -78,13 +78,26 @@ public struct LabelExtractor: Extractor {
                 }
             }
 
+            // Extract city from the line before the postcode
+            var city: String?
+            if pcIdx >= 2 {
+                // Lines between name (0) and postcode (pcIdx): address block
+                let cityCandidate = window[pcIdx - 1]
+                // Only use it if it doesn't look like a street address (no house number prefix)
+                if !cityCandidate.isEmpty,
+                   cityCandidate.first?.isNumber != true,
+                   ExtractionHelpers.firstPostcode(in: cityCandidate) == nil {
+                    city = cityCandidate
+                }
+            }
+
             return AddressPageEntry(
                 pageNumber: input.pageNumber,
                 patient: PatientInfo(
                     fullName: fullName,
                     dateOfBirth: dob
                 ),
-                address: AddressInfo(postcode: postcode),
+                address: AddressInfo(city: city, postcode: postcode),
                 extraction: ExtractionInfo(method: "label", confidence: 0.7),
                 addressType: "patient"
             )

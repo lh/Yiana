@@ -73,13 +73,11 @@ public struct FormExtractor: Extractor {
 
         // Step 4: Address block — lines after "Address:" label up to postcode
         var postcode: String?
+        var addressLines: [String] = []
         if hasAddressLabel {
             for (i, line) in lines.enumerated() {
                 let lower = line.lowercased()
                 guard lower.contains("address") && line.contains(":") else { continue }
-
-                // Collect address lines (up to 6 lines after label)
-                var addressLines: [String] = []
 
                 // Check if there's content after the colon on the same line
                 if let colonRange = line.range(of: ":") {
@@ -114,6 +112,19 @@ public struct FormExtractor: Extractor {
             postcode = ExtractionHelpers.firstPostcode(in: text)
         }
 
+        // Extract city: line before postcode in address block
+        var city: String?
+        if !addressLines.isEmpty, let pc = postcode {
+            if let pcLineIdx = addressLines.firstIndex(where: {
+                ExtractionHelpers.firstPostcode(in: $0) == pc
+            }), pcLineIdx >= 1 {
+                let candidate = addressLines[pcLineIdx - 1]
+                if !candidate.isEmpty, candidate.first?.isNumber != true {
+                    city = candidate
+                }
+            }
+        }
+
         // Step 5: Validation — require both name and postcode
         guard fullName != nil, !fullName!.isEmpty, postcode != nil else { return nil }
 
@@ -123,7 +134,7 @@ public struct FormExtractor: Extractor {
                 fullName: fullName,
                 dateOfBirth: dob
             ),
-            address: AddressInfo(postcode: postcode),
+            address: AddressInfo(city: city, postcode: postcode),
             extraction: ExtractionInfo(method: "form", confidence: 0.8),
             addressType: "patient"
         )

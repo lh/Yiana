@@ -82,12 +82,19 @@ enum ExtractionHelpers {
 
     // MARK: - Date Extraction
 
-    /// Tries common date patterns: DD/MM/YYYY, DD.MM.YYYY, DD Month YYYY.
+    /// Tries common date patterns: DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY,
+    /// DD/MM/YY, DD Month YYYY.
     /// Returns the date as DD/MM/YYYY if found, nil otherwise.
     static func extractDate(from text: String) -> String? {
-        // DD/MM/YYYY or DD.MM.YYYY
-        if let m = firstMatch(#"(\d{1,2})[./](\d{1,2})[./](\d{4})"#, in: text) {
+        // DD/MM/YYYY, DD.MM.YYYY, or DD-MM-YYYY (4-digit year)
+        if let m = firstMatch(#"(\d{1,2})[./-](\d{1,2})[./-](\d{4})"#, in: text) {
             return "\(m[1])/\(m[2])/\(m[3])"
+        }
+        // DD/MM/YY, DD.MM.YY, or DD-MM-YY (2-digit year)
+        if let m = firstMatch(#"(\d{1,2})[./-](\d{1,2})[./-](\d{2})\b"#, in: text) {
+            let yy = Int(m[3]) ?? 0
+            let yyyy = yy >= 30 ? "19\(m[3])" : "20\(m[3])"
+            return "\(m[1])/\(m[2])/\(yyyy)"
         }
         // DD Month YYYY
         if let m = firstMatch(

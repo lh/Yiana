@@ -72,6 +72,18 @@ public struct RegistrationFormExtractor: Extractor {
         // Step 5: Postcode — UK format on uppercased text, take first valid match
         let postcode = ExtractionHelpers.firstPostcode(in: text)
 
+        // Step 5b: City/Town — look for "Town" label followed by value
+        var city: String?
+        if let m = ExtractionHelpers.firstMatch(
+            #"Town\s*\n\s*([^\n]+)"#, in: text, options: [.caseInsensitive]
+        ) {
+            let townText = m[1].trimmingCharacters(in: .whitespaces)
+            let skip = ["county", "postcode", "address", "town"]
+            if !townText.isEmpty, !skip.contains(townText.lowercased()) {
+                city = townText
+            }
+        }
+
         // Step 6: Phones — only patient phones (before "Next of kin" / "Emergency contact")
         var phoneMobile: String?
         var phoneHome: String?
@@ -106,9 +118,13 @@ public struct RegistrationFormExtractor: Extractor {
             gpName = "Dr \(raw)"
         }
 
-        // Step 8: GP practice — text between "Doctor..." line and "Account"/"Reason"
-        // Deliberately does NOT use "Medical" as a boundary (fixes known Python bug)
+        // Step 8: GP practice, address, and postcode
+        // Parse the GP section between "Doctor..." line and "Account"/"Reason".
+        // First non-skip line after Doctor is practice name; subsequent lines are
+        // address, with any standalone postcode extracted separately.
         var gpPractice: String?
+        var gpAddress: String?
+        var gpPostcode: String?
         if let m = ExtractionHelpers.firstMatch(
             #"GP\s*\n.*?Address.*?\n(.*?)(?:Account|Reason)"#,
             in: text, options: [.caseInsensitive, .dotMatchesLineSeparators]
@@ -118,8 +134,9 @@ public struct RegistrationFormExtractor: Extractor {
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty }
 
-            // Find practice name: first non-empty line after the "Doctor..." line
             var afterDoctor = false
+            var practiceLines: [String] = []
+
             for line in lines {
                 let lower = line.lowercased()
                 if lower.hasPrefix("doctor") || lower.hasPrefix("dr ") || lower.hasPrefix("dostor") {
@@ -129,8 +146,30 @@ public struct RegistrationFormExtractor: Extractor {
                 if afterDoctor {
                     let skip = ["specialist", "date", "symptoms", "consulted", "reason", "age", "tel"]
                     if !skip.contains(where: { lower.contains($0) }) {
-                        gpPractice = line
-                        break
+                        practiceLines.append(line)
+                        if practiceLines.count >= 4 { break }
+                    }
+                }
+            }
+
+            if !practiceLines.isEmpty {
+                gpPractice = practiceLines[0]
+
+                if practiceLines.count > 1 {
+                    var addressParts: [String] = []
+                    for line in practiceLines.dropFirst() {
+                        if let pc = ExtractionHelpers.firstPostcode(in: line),
+                           line.uppercased().trimmingCharacters(in: .whitespaces)
+                               .replacingOccurrences(of: " ", with: "")
+                               .count <= pc.replacingOccurrences(of: " ", with: "").count + 2 {
+                            // Line is essentially just a postcode
+                            gpPostcode = pc
+                        } else {
+                            addressParts.append(line)
+                        }
+                    }
+                    if !addressParts.isEmpty {
+                        gpAddress = addressParts.joined(separator: ", ")
                     }
                 }
             }
@@ -152,8 +191,8 @@ public struct RegistrationFormExtractor: Extractor {
                 phones: phones,
                 mrn: mrn
             ),
-            address: AddressInfo(postcode: postcode),
-            gp: GPInfo(name: gpName, practice: gpPractice),
+            address: AddressInfo(city: city, postcode: postcode),
+            gp: GPInfo(name: gpName, practice: gpPractice, address: gpAddress, postcode: gpPostcode),
             extraction: ExtractionInfo(method: "clearwater_form", confidence: 0.9),
             addressType: "patient"
         )
