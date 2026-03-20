@@ -38,7 +38,7 @@ processed, and compare outputs field-by-field.
 This is the same format our test fixtures use — `ExtractionInput` maps directly
 from `pages[].pageNumber`, `pages[].text`, `pages[].confidence`.
 
-**Python extraction methods → Swift equivalents:**
+**Python extraction methods -> Swift equivalents:**
 
 | Python method | Count | Swift extractor | Swift method name |
 |---------------|-------|-----------------|-------------------|
@@ -70,243 +70,133 @@ via a small CLI wrapper around `ExtractionCascade` + `NHSLookupService`.
 2. **Python comparison script** — iterates the 1,440-document corpus, runs the
    CLI tool, compares output field-by-field, writes a summary report.
 
-## Session 1: Swift CLI Tool
+**Deployment note:** Devon has Swift 5.10 but the package requires Swift 6.2.
+The CLI binary is built locally in release mode and scp'd to Devon. Same
+architecture (arm64-apple-darwin), compatible macOS versions.
 
-### 1a. Add executable target to YianaExtraction
+## What Happened
 
-**File:** `YianaExtraction/Package.swift`
+### CLI Tool
 
-Add a new executable product and target:
+Built `yiana-extract` as an executable target in `YianaExtraction/Package.swift`.
+Reads OCR JSON from stdin, runs `ExtractionCascade` + `NHSLookupService`,
+writes `DocumentAddressFile` to stdout. `--db-path` argument points to
+`nhs_lookup.db` on Devon.
 
-```swift
-products: [
-    .library(name: "YianaExtraction", targets: ["YianaExtraction"]),
-    .executable(name: "yiana-extract", targets: ["YianaExtractCLI"]),
-],
+Smoke-tested locally with test fixtures, then deployed to Devon and verified
+with real OCR data.
+
+### Comparison Script
+
+`migration/compare_extraction.py` iterates the corpus, spawns the CLI per
+document, compares field-by-field. Per-document differences use anonymised
+doc indices (no PII in output). Summary report is aggregate statistics only.
+
+### Run 1: Baseline (no fixes)
+
+1,440 documents, 4,500+ pages, zero errors.
+
+| Field | Match | Swift-better | Python-better | Different |
+|-------|-------|-------------|---------------|-----------|
+| postcode | 97.6% | 0.1% | 0.4% | 1.9% |
+| patient.name | 74.8% | 9.8% | 0.4% | 15.0% |
+| city | 0% | 0% | 90.8% | 0% |
+| gp.postcode | 0% | 0% | 8.5% | 0% |
+| DOB | 22.2% | 11.1% | 7.6% | 1.3% |
+| NHS candidates | 0.3% | 31.1% | 0% | 1.5% |
+
+**Key findings:**
+- Postcodes rock solid at 97.6% match
+- Swift finds 441 patient names Python missed
+- NHS lookup is a net-new capability (31.1% of pages enriched)
+- Three systematic gaps: city (not extracted), GP postcode (not extracted),
+  DOB hyphen/2-digit-year formats (not parsed)
+
+### Fix 1: GP Postcode and Address (RegistrationFormExtractor)
+
+**Problem:** Python's `spire_form` extractor parses up to 4 lines after the
+Doctor line in the GP section — first line is practice name, subsequent lines
+are address, and any standalone postcode line becomes `gp_postcode`. Swift only
+took the first line (practice name) and stopped.
+
+**Fix:** Extended the GP section parsing in `RegistrationFormExtractor` to
+collect practice name + address lines + postcode, matching Python's approach.
+
+**Result:** GP postcode went from 382 python_better to **0 python_better,
+382 match, 76 swift_better**.
+
+### Fix 2: DOB Hyphen and 2-Digit Year (ExtractionHelpers)
+
+**Problem:** `extractDate` only handled `/` and `.` separators with 4-digit
+years. Real documents use `15-06-1954` (hyphens) and `14/3/23` (2-digit years).
+
+**Fix:** Added `-` to the separator character class. Added a second pattern for
+2-digit years with a pivot at 30 (>=30 -> 19xx, <30 -> 20xx).
+
+**Result:** DOB python_better dropped from 345 to 333 (12 recovered), and
+swift_better rose from 503 to 542 (+39). Remaining 333 cases are unusual
+formats — diminishing returns.
+
+### Fix 3: City/Town Extraction (All Three Extractors)
+
+**Problem:** No Swift extractor extracted city. Python had it via two approaches:
+line-before-postcode in address blocks, and a "Town" label pattern in spire forms.
+
+**Fix:**
+- `LabelExtractor`: line before postcode in the sliding window is the city
+  (if it doesn't start with a number and isn't a postcode itself)
+- `RegistrationFormExtractor`: look for "Town\n..." label pattern
+- `FormExtractor`: line before postcode in the address block
+
+**Result:** City went from 0% match / 90.8% python_better to **62.6% match /
+22.4% python_better / 0.8% swift_better**.
+
+### Run 3: Final Results (all fixes)
+
+| Field | Match | Swift-better | Python-better | Different |
+|-------|-------|-------------|---------------|-----------|
+| postcode | 97.6% | 0.1% | 0.4% | 1.9% |
+| patient.name | 74.8% | 9.8% | 0.4% | 15.0% |
+| **city** | **62.6%** | **0.8%** | **22.4%** | **5.8%** |
+| **gp.postcode** | **8.5%** | **1.7%** | **0%** | **0%** |
+| DOB | 22.2% | 12.0% | 7.4% | 1.6% |
+| NHS candidates | 1.5% | 31.0% | 0% | 0.3% |
+| MRN | 12.4% | 0% | 0% | 0% |
+| phones | 10.4% | 0% | 0.1% | 9.9% |
+
+**Document-level:** 35.2% match, 35.7% swift_better, 10.1% python_better,
+19.0% different.
+
+**Method confusion matrix:**
+```
+label -> label: 3088 (exact match)
+clearwater_form -> clearwater_form: 962 (exact match)
+label -> form: 340 (Swift uses FormExtractor where Python used label)
+form -> label: 53
+form -> form: 48
+unstructured -> label: 5
+label -> unstructured: 4
 ```
 
-```swift
-.executableTarget(
-    name: "YianaExtractCLI",
-    dependencies: ["YianaExtraction"],
-    path: "Sources/YianaExtractCLI"
-),
-```
+### Remaining Gaps (not fixed — diminishing returns)
 
-### 1b. Implement the CLI tool
+- **city 22.4% python_better** — Python uses hardcoded county boundaries
+  (`West Sussex`, `Surrey`, etc.) to delimit address blocks. More aggressive
+  but fragile. Our line-before-postcode heuristic is simpler and more
+  generalisable.
+- **patient.name 15% different** — case and formatting disagreements, not
+  missing data. Python often uppercases, Swift title-cases.
+- **DOB 7.4% python_better** — unusual date formats we don't handle yet.
+- **phones 9.9% different** — phone number normalisation differences, not
+  missing data.
+- **postcode 1.9% different** — 86 pages where both have a postcode but they
+  disagree. Worth investigating but small.
 
-**File:** `YianaExtraction/Sources/YianaExtractCLI/main.swift`
+### Future: Learning from Overrides
 
-Simple pipeline:
-1. Read OCR JSON from stdin (same format as `.ocr_results/` files)
-2. Parse into `[ExtractionInput]`
-3. Run `ExtractionCascade.extractDocument()`
-4. Run `NHSLookupService.lookupGP()` for each page with a GP postcode
-5. Encode `DocumentAddressFile` as JSON to stdout
-
-```
-Usage: cat ocr_result.json | yiana-extract --db-path /path/to/nhs_lookup.db
-       yiana-extract --db-path /path/to/nhs_lookup.db < ocr_result.json
-```
-
-The `--db-path` argument points to `nhs_lookup.db` on Devon (same DB the Python
-service uses). No need to bundle it — it's already on disk.
-
-Error handling: if extraction produces no pages, output a valid but empty
-`DocumentAddressFile` (matching Python's behavior for empty documents).
-
-### 1c. Build on Devon
-
-```bash
-ssh devon@Devon-6
-cd /path/to/Yiana/YianaExtraction
-swift build -c release
-# Binary at .build/release/yiana-extract
-```
-
-### 1d. Smoke test
-
-```bash
-cat .ocr_results/PP/Clinical/SomeDocument.json | \
-  .build/release/yiana-extract --db-path /path/to/nhs_lookup.db | \
-  python3 -m json.tool
-```
-
-Verify output looks reasonable.
-
-### 1e. Commit
-
-Commit: "Add yiana-extract CLI for parallel validation (Phase 1.4)"
-
----
-
-## Session 2: Comparison Script
-
-### 2a. Build the comparison script
-
-**File:** `migration/compare_extraction.py`
-
-```
-Usage: python3 compare_extraction.py \
-  --ocr-dir .ocr_results/PP/Clinical/ \
-  --addr-dir .addresses/ \
-  --swift-bin .build/release/yiana-extract \
-  --db-path /path/to/nhs_lookup.db \
-  --report-dir migration/validation_report/
-```
-
-**Per-document comparison:**
-
-For each document that has both OCR and addresses files:
-
-1. Run `yiana-extract` on the OCR file → Swift output
-2. Load existing Python `.addresses/` file → Python output
-3. Compare page-by-page, field-by-field:
-
-**Fields to compare (per page):**
-
-| Field | Comparison | Notes |
-|-------|-----------|-------|
-| `patient.full_name` | Exact (case-insensitive, whitespace-normalised) | Core field |
-| `patient.date_of_birth` | Exact | Core field |
-| `patient.phones.*` | Set equality | Order doesn't matter |
-| `patient.mrn` | Exact | May be absent |
-| `address.postcode` | Exact (normalised) | Core field |
-| `address.line1` | Fuzzy (lowercase contains) | Known gap in Swift |
-| `address.city` | Fuzzy | Known gap in Swift |
-| `gp.name` | Fuzzy (case-insensitive) | |
-| `gp.practice` | Fuzzy | |
-| `gp.postcode` | Exact (normalised) | |
-| `extraction.method` | Map Python→Swift names, then compare | `spire_form` → `clearwater_form` |
-| `nhs_candidates` | Compare ODS codes (set equality) | |
-
-**Outcome categories per page:**
-
-- **match** — all core fields agree
-- **swift_better** — Swift has data Python missed (e.g. found a name Python didn't)
-- **python_better** — Python has data Swift missed
-- **different** — both have data but it disagrees
-- **both_empty** — neither extracted anything
-
-**Page count mismatch handling:**
-
-Python and Swift may extract different numbers of pages (Swift might extract a
-page Python skipped, or vice versa). Match pages by `page_number`, not by array
-index. Pages present in one but not the other count as `swift_better` or
-`python_better`.
-
-### 2b. Comparison approach for method names
-
-Python's `spire_form` maps to Swift's `clearwater_form`. Create a normalisation
-map:
-
-```python
-METHOD_MAP = {
-    "spire_form": "clearwater_form",
-    "clearwater_form": "clearwater_form",
-    "form": "form",
-    "label": "label",
-    "unstructured": "unstructured",
-}
-```
-
-Method disagreement is informational, not a failure — the cascade order differs
-slightly between Python and Swift. What matters is whether the extracted data
-is correct, not which extractor found it.
-
-### 2c. Skip overrides and enriched data
-
-The comparison should only look at `pages` — ignore `overrides` (user edits)
-and `enriched` (backend DB). These are not produced by extraction.
-
-### 2d. Report output
-
-**Summary report** (`migration/validation_report/summary.txt`):
-
-```
-Total documents: 1440
-  match: 850 (59%)
-  swift_better: 200 (14%)
-  python_better: 150 (10%)
-  different: 180 (13%)
-  both_empty: 60 (4%)
-
-Field-level breakdown:
-  patient.full_name: 1200 agree, 120 swift_better, 80 python_better, 40 different
-  patient.date_of_birth: ...
-  address.postcode: ...
-  ...
-```
-
-**Per-document details** (`migration/validation_report/differences.jsonl`):
-
-One JSON object per line for every document where Swift != Python:
-
-```json
-{"document_id": "...", "page": 1, "field": "patient.full_name", "python": "JOHN SMITH", "swift": "John Smith", "category": "match"}
-```
-
-This allows post-hoc filtering and investigation.
-
-**Top discrepancies** (`migration/validation_report/top_issues.txt`):
-
-Group by discrepancy pattern (e.g. "Swift extracts name, Python doesn't"
-or "Python form extractor finds postcode, Swift label extractor doesn't")
-and rank by frequency. This tells us where to focus extractor improvements.
-
-### 2e. Run on Devon
-
-```bash
-ssh devon@Devon-6
-cd /path/to/Yiana
-python3 migration/compare_extraction.py \
-  --ocr-dir ".ocr_results/PP/Clinical/" \
-  --addr-dir ".addresses/" \
-  --swift-bin "YianaExtraction/.build/release/yiana-extract" \
-  --db-path "AddressExtractor/nhs_lookup.db" \
-  --report-dir "migration/validation_report/"
-```
-
-Estimated time: ~1,440 documents, each running a Swift process. If the CLI
-takes ~100ms per document, total is ~2.5 minutes.
-
-### 2f. Commit
-
-Commit: "Add extraction comparison script and validation report (Phase 1.4)"
-
----
-
-## Session 3: Review and Fix
-
-### 3a. Triage the report
-
-Review the summary and top issues. Categorise:
-
-1. **Expected differences** — method name mapping (`spire_form` → `clearwater_form`),
-   case differences, whitespace normalisation
-2. **Swift wins** — Swift found data Python missed. Document these as improvements.
-3. **Python wins** — Swift missed data Python found. These need investigation:
-   - Is it an extractor gap? (e.g. a pattern Python handles but Swift doesn't)
-   - Is it a cascade ordering issue?
-   - Is it a regex difference?
-4. **True disagreements** — both have data but it differs. These need case-by-case review.
-
-### 3b. Fix critical gaps
-
-If there are systematic patterns where Swift misses data Python finds (e.g.
-"Swift never extracts address line1"), fix the extractor and re-run.
-
-If the gaps are edge cases affecting <5% of documents, log them and move on.
-
-### 3c. Update docs
-
-- Tick Phase 1.4 checkboxes in `docs/consolidation-plan.md`
-- Write summary of validation results
-- Update `HANDOFF.md`
-
-### 3d. Commit
-
-Commit: "Complete Phase 1.4: validation results and extractor fixes"
+Manual address corrections (21 documents have overrides) represent ground truth
+that could train the extractors. Plan logged in memory
+`project_extraction_learning` — backend pipeline work, not app UI change.
 
 ---
 
@@ -315,10 +205,12 @@ Commit: "Complete Phase 1.4: validation results and extractor fixes"
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | CLI tool vs in-process | CLI | Runs on Devon without Xcode; easy to pipe OCR JSON in |
+| Build locally, deploy binary | Yes | Devon has Swift 5.10, package needs 6.2 |
 | Python harness vs Swift | Python | Field-by-field comparison, aggregation, reporting easier |
 | Run on Devon vs local | Devon | OCR data is there (2,828 files); no need to download |
 | Compare pages not overrides | Yes | Overrides are user edits, not extraction output |
 | Fuzzy vs exact comparison | Field-dependent | Names and addresses need normalisation; postcodes and ODS codes are exact |
+| Anonymised differences file | Yes | No PII in repo; doc indices not document names |
 
 ## Files Created / Modified
 
@@ -326,25 +218,30 @@ Commit: "Complete Phase 1.4: validation results and extractor fixes"
 |------|--------|
 | `YianaExtraction/Package.swift` | Add executable target |
 | `YianaExtraction/Sources/YianaExtractCLI/main.swift` | New — CLI extraction tool |
+| `YianaExtraction/Sources/.../ExtractionHelpers.swift` | DOB: hyphen separator + 2-digit year |
+| `YianaExtraction/Sources/.../RegistrationFormExtractor.swift` | GP postcode/address + city |
+| `YianaExtraction/Sources/.../LabelExtractor.swift` | City extraction |
+| `YianaExtraction/Sources/.../FormExtractor.swift` | City extraction |
 | `migration/compare_extraction.py` | New — comparison script |
-| `migration/validation_report/` | New — output directory |
 | `docs/consolidation-plan.md` | Tick 1.4 checkboxes |
 | `HANDOFF.md` | Update |
 
 ## Definition of Done
 
-- [ ] `yiana-extract` CLI builds and runs on Devon
-- [ ] Comparison script processes all 1,440 documents without crashing
-- [ ] Summary report generated with per-field breakdown
-- [ ] Differences file generated for post-hoc investigation
-- [ ] Top issues identified and triaged
-- [ ] Critical extractor gaps fixed (if any)
-- [ ] `/check` passes (both iOS and macOS) after any extractor changes
-- [ ] 88+ package tests still pass
+- [x] `yiana-extract` CLI builds and runs on Devon
+- [x] Comparison script processes all 1,440 documents without crashing
+- [x] Summary report generated with per-field breakdown
+- [x] Differences file generated for post-hoc investigation
+- [x] Top issues identified and triaged
+- [x] Critical extractor gaps fixed: GP postcode, city, DOB formats
+- [x] `/check` passes (both iOS and macOS) after extractor changes
+- [x] 88/88 package tests still pass
 
 ## Verification
 
-1. `swift build -c release` on Devon — CLI compiles
-2. `python3 migration/compare_extraction.py` — runs to completion
-3. Review `migration/validation_report/summary.txt`
-4. If extractor changes made: `cd YianaExtraction && swift test` + `/check`
+1. `swift build -c release` locally — CLI compiles
+2. `scp` binary to Devon — runs with real OCR data
+3. `python3 migration/compare_extraction.py` — 1,440/1,440 documents, zero errors
+4. Three comparison runs tracking improvement across fixes
+5. `cd YianaExtraction && swift test` — 88/88 pass
+6. `/check` — both iOS and macOS build clean
