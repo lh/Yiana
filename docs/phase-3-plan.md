@@ -173,14 +173,13 @@ This is the key improvement over Yiale. Instead of loading every `.addresses/*.j
 
 ### 3.9 Retire Yiale
 
-- [ ] Confirm all Yiale features work in Yiana (acceptance criteria from 3.1)
-- [ ] Remove Yiale from App Store Connect (if published)
-- [ ] Archive `Yiale/` directory (git preserves history)
-- [ ] Remove Yiale.xcodeproj from workspace (if in shared workspace)
-- [ ] Update CLAUDE.md to remove Yiale references
-- [ ] Update LETTER-MODULE-SPEC.md to reflect compose module is now in Yiana
+- [x] Confirm compose features work in Yiana — full flow verified in Step 3.8
+- [ ] Remove Yiale from App Store Connect (if published) — N/A, never published
+- [x] Archive `Yiale/` directory (git preserves history)
+- [x] CLAUDE.md — no Yiale references found
+- [x] Update LETTER-MODULE-SPEC.md — rewritten to describe compose module in Yiana
 
-**Test gate:** Yiale directory archived. iOS and macOS build. All compose features verified.
+**Test gate:** PASSED — Yiale directory removed. iOS and macOS build. Compose flow verified.
 
 ---
 

@@ -1,30 +1,28 @@
-# Yiale — Letter Composition Module for Yiana
+# Letter Composition Module
 
-> **Date:** 3 March 2026
-> **Status:** Draft v4
-> **Scope:** Letter composition, rendering, and delivery for Yiana ecosystem
+> **Date:** 3 March 2026 (updated 21 March 2026)
+> **Status:** Implemented (Phase 3 consolidation)
+> **Scope:** Letter composition, rendering, and delivery within Yiana
 
 ---
 
 ## 1. Overview
 
-Yiale is a standalone SwiftUI app for composing clinical correspondence. It runs on macOS, iOS, and iPadOS. It is a companion to Yiana, not part of it.
+Letter composition is a module within Yiana, accessible via the "Compose" tab in the document info panel. The user views a patient's scanned notes and composes a letter in the same window.
 
-Yiale and Yiana share the same iCloud container. Both apps list the same iCloud container identifier in their entitlements; Apple permits this for apps from the same developer team. No App Group is needed for the iCloud layer.
-
-Yiale is a separate app because it serves a separate task. In practice, the user reads patient notes in Yiana while composing a letter in Yiale, side by side. On macOS this means two windows; on iPad it means Split View with two apps.
+> **History:** This was originally a separate app called Yiale. During the Phase 3 consolidation (March 2026), compose was absorbed into Yiana as a tab. The separate app was retired. File formats, render service, and inject watcher are unchanged.
 
 The system has three parts:
 
-- **Yiale** — SwiftUI app for composing letters on any device
+- **Compose module** — a tab in Yiana's document info panel (macOS); body-text-only editing with rules-based recipients
 - **Render Service** — Mac Mini watcher that converts drafts to PDF via LaTeX and HTML
-- **Yiana Inject Watcher** — a small addition to Yiana that auto-appends rendered PDFs to patient documents using Yiana's existing append logic
+- **Inject Watcher** — background watcher in Yiana that auto-appends rendered PDFs to patient documents using existing append logic
 
 **Letter structure principle.** In UK clinical correspondence, the letter is addressed to the patient. The GP, optician, specialist, and hospital records each receive an identical copy. Copies differ only in postal address (for the envelope window) and font size (patient copy is 14pt with wider line spacing; all others are 11pt). Each copy includes a "Re:" line (patient name, DOB, MRN) between the address block and the salutation. Each copy lists all other recipients on its cc line.
 
 **Correcting a rendered letter.** Once a letter is rendered and appended to a patient's Yiana document, it cannot be retracted. Removing pages from a Yiana document is a destructive operation. If a rendered letter contains an error, compose a new corrected letter. The old letter remains in the patient record. This is standard clinical practice; a corrected letter is a new letter, not an edit to an old one.
 
-Yiana is otherwise unchanged. Other Yiana users are unaffected.
+The compose module is lightweight (~300 lines). Recipients are rules-based (patient = To, GP = CC). The user writes body text only; topping, tailing, salutation, and cc lines are handled by the render service.
 
 ---
 
@@ -34,10 +32,10 @@ All paths are relative to the shared iCloud container root.
 
 ```
 SharedContainer/
-├── .addresses/          ← existing; read by Yiale
+├── .addresses/          ← existing; read by compose module
 │   └── {document_id}.json
 ├── .ocr_results/        ← existing; untouched
-├── .letters/            ← NEW; owned by Yiale + render service
+├── .letters/            ← owned by compose module + render service
 │   ├── drafts/
 │   │   └── {letter_id}.json
 │   ├── rendered/
@@ -58,13 +56,12 @@ SharedContainer/
 
 ### Notes
 
-- `.letters/` is invisible to Yiana except for the `inject/` subdirectory.
-- `drafts/` is written by Yiale on any device. Read by the Mac Mini render service.
-- `rendered/` is written by the Mac Mini. Read by Yiale for preview, share sheet, and dismissal.
+- `drafts/` is written by Yiana's compose module on any device. Read by the Mac Mini render service.
+- `rendered/` is written by the Mac Mini. Read by Yiana's compose tab for status and PDF preview.
 - `inject/` is the handoff point between the render service and Yiana. The render service places the hospital records PDF here, named `{yiana_target}_{letter_id}.pdf`. Yiana's inject watcher picks it up, appends it to the target document, and deletes the file. If the target document is not found, the file is moved to `unmatched/`.
 - `unmatched/` holds PDFs where no matching Yiana document was found. The user appends these manually via Yiana's share sheet.
 - `config/sender.json` holds the consultant's own details. Edited once; synced everywhere.
-- Printable PDFs live in `.letters/rendered/` in iCloud. This is the canonical output location. Any further copying (e.g. to a shared Dropbox folder) is a personal deployment choice, not part of Yiale's design. See Appendix A.
+- Printable PDFs live in `.letters/rendered/` in iCloud. This is the canonical output location. Any further copying (e.g. to a shared Dropbox folder) is a personal deployment choice. See Appendix A.
 
 ---
 
@@ -128,25 +125,23 @@ Each letter draft is a single JSON file in `.letters/drafts/`.
 
 | Field | Description |
 |-------|-------------|
-| `letter_id` | UUID generated by Yiale at creation. |
-| `status` | `draft` → `render_requested` → `rendered` → user dismisses → deleted. |
-| `yiana_target` | Confirmed Yiana document filename to append the letter to. Pre-populated from the address data's `document_id` field; shown to user during address confirmation; editable. This is the only link between the letter and the Yiana document. |
+| `letter_id` | UUID generated at creation. |
+| `status` | `draft` → `render_requested` → `rendered`. |
+| `yiana_target` | Yiana document filename (stem) to append the letter to. Auto-set from the document being viewed. This is the only link between the letter and the Yiana document. |
 | `recipients[]` | All postal destinations including patient and hospital records. The cc line on each printed copy is derived from this list: all recipients except the current one. Font size is not stored; the render service applies the rule: `role == "patient"` → 14pt, all others → 11pt. Hospital records has an empty address array; the render service omits the postal address block for this copy. |
-| `body` | Plain text. Paragraphs separated by blank lines. Bullet lists supported (`- item`). No other formatting. |
-| `render_request` | Set to a timestamp by Yiale when the user confirms addresses and taps "Send to print". The Mac Mini watches for this. |
+| `body` | Plain text or markdown. Paragraphs separated by blank lines. Bullet lists supported (`- item`). No other formatting. |
+| `render_request` | Set to a timestamp when user taps "Send to Print". The Mac Mini watches for this. |
 
 ### Status transitions
 
 ```
-draft → render_requested     (user confirms addresses and taps "Send to print")
+draft → render_requested     (user taps "Send to Print" in compose tab)
 render_requested → rendered  (Mac Mini completes PDFs + HTML)
-rendered → [user dismisses]  (user sees "rendered" badge, reviews, taps to dismiss)
-[dismissed] → draft JSON deleted
 ```
 
-The draft JSON is retained after rendering so the drafts list can show a "rendered" status badge. The user dismisses the entry once they are satisfied the PDFs are correct. This is the acknowledgment step. After dismissal, the JSON is deleted. The PDFs in `.letters/rendered/` and in Yiana are the canonical records.
+The draft JSON is retained after rendering so the compose tab can show "Ready" status and offer PDF viewing. The PDFs in `.letters/rendered/` and the appended Yiana pages are the canonical records.
 
-There is no path from `rendered` back to `draft`. If the user spots an error in preview, they compose a new letter. The rendered PDFs and the appended Yiana pages are not retracted. See §1 (Correcting a rendered letter).
+There is no path from `rendered` back to `draft`. If the user spots an error, they compose a new letter. See §1 (Correcting a rendered letter).
 
 ---
 
@@ -176,47 +171,29 @@ These are placeholder values. Replace with real details.
 
 ---
 
-## 5. Yiale (SwiftUI App)
+## 5. Compose Module (in Yiana)
 
-### 5.1 Platforms and container sharing
+### 5.1 Location
 
-macOS, iOS, iPadOS. Single SwiftUI codebase. Minimal UI.
+The compose UI is a tab in Yiana's document info panel (the right sidebar on macOS, alongside Addresses/Metadata/OCR/Debug). The user views the scanned document on the left and composes the letter on the right.
 
-Yiale and Yiana share the same iCloud container by listing the same iCloud container identifier in their entitlements. Apple permits this for apps from the same developer team. No App Group is required for the iCloud layer.
+Currently macOS only. iOS compose is deferred.
 
-### 5.2 Screens
+### 5.2 Compose tab
 
-**Patient Search.** A single search field. Searches `.addresses/` files by patient name, DOB, or MRN. Results show patient name, DOB, and linked GP. Tap to select.
+The compose tab shows:
 
-**Compose.** Shows:
+- **Recipient summary** (read-only): "To: [patient name]", "CC: [GP name]" — auto-filled from the document's prime addresses
+- **Body text area**: markdown or plain text. The user writes the clinical content only — no greeting, salutation, or sign-off (the render service handles topping and tailing)
+- **Status badge**: draft / sending / ready
+- **Action buttons**: Save Draft, Send to Print
+- **Rendered PDF actions** (when status is "ready"): View PDF, Print
 
-- Patient name, address, DOB, MRN (read from addresses; not editable here; edit in Yiana)
-- GP name and address (auto-populated from database link)
-- Additional copy recipients (add via search or manual entry; e.g. optician, specialist)
-- Body text field (large, plain text, paste-friendly)
-- "Send to print" button
+Recipients are rules-based: prime patient = To, prime GP = CC, hospital_records = implicit. A future iteration will add To/CC/None toggles to AddressesView cards for manual override.
 
-The letter is always addressed to the patient. Recipients receive identical copies posted to their own addresses. The patient and hospital records entries are added to `recipients[]` automatically by Yiale.
+### 5.3 Body text input
 
-**Address confirmation.** Triggered by "Send to print". A modal or sheet showing:
-
-- Patient name and address (postal destination for patient copy)
-- Each copy recipient's name and postal address
-- Yiana target document: `Smith_Jane_120345` (pre-populated; editable)
-
-The user must explicitly confirm before the draft moves to `render_requested`. This is the last gate before the Mac Mini picks it up.
-
-**Drafts list.** All letters in `.letters/drafts/`, sorted by modification date. Status badge shows draft / rendering / rendered. Once rendered, the user can preview the PDF, share the HTML via share sheet, or dismiss the entry (which deletes the draft JSON).
-
-**Preview.** Once rendered, shows the PDF inline (on Mac) or allows sharing the HTML version (on iOS/iPad for email via share sheet).
-
-### 5.3 Ad-hoc recipients
-
-The user can add a recipient not in the database by tapping "Add recipient" and filling in name, role, and address manually. These are stored in the draft JSON with `"source": "ad_hoc"`. They are not written back to the address database directly. However, when the letter is appended to the patient's Yiana document and OCR processes it, the addresses are extracted and enter the database naturally.
-
-### 5.4 Body text input
-
-The body field accepts plain text. The user can paste from Apple Notes, a text file, or type directly.
+The body field accepts plain text or markdown. The user can paste from Apple Notes, a text file, or type directly.
 
 Supported formatting:
 
@@ -224,6 +201,16 @@ Supported formatting:
 - Bullet lists (`- item`)
 
 That is all. Clinical letters are prose paragraphs with an occasional bullet list for diagnoses or management plans. The render service converts `- ` prefixed lines to LaTeX `\begin{itemize}` environments; everything else is paragraphs. No markdown library required.
+
+### 5.4 Draft lifecycle
+
+When the user opens the compose tab, the view model checks for an existing draft matching this document (by `yianaTarget`). If found, it loads the body text and status. If not, an empty text area is shown.
+
+The patient and hospital_records recipients are added automatically. There is no address confirmation step — the prime addresses from the document's extraction are used directly.
+
+### 5.5 Ad-hoc recipients (future)
+
+Not yet implemented. When recipient tick boxes are added to AddressesView, the user will be able to add ad-hoc recipients (optician, specialist) with `"source": "ad_hoc"`. These will be stored in the draft JSON. When the letter is appended to the patient's Yiana document and OCR processes it, the addresses are extracted and enter the entity database naturally.
 
 ---
 
@@ -235,7 +222,7 @@ A Python script (or launchd job) that watches `.letters/drafts/` for JSON files 
 
 Poll interval: 30 seconds. FSEvents can be used for faster pickup later; polling is fine as a starting point.
 
-**Latency note.** The full round trip is: Yiale writes draft JSON → iCloud syncs to Mac Mini → render service picks it up → writes PDFs → iCloud syncs back. That is two iCloud sync hops. On a local network, expect 30 seconds to 2 minutes. On different networks, up to 3 minutes. This is acceptable; the user composes letters during or after clinic and the secretary prints later. Yiale shows "Sent for rendering" immediately and updates to "Rendered" when the PDFs appear in `.letters/rendered/`.
+**Latency note.** The full round trip is: Yiale writes draft JSON → iCloud syncs to Mac Mini → render service picks it up → writes PDFs → iCloud syncs back. That is two iCloud sync hops. On a local network, expect 30 seconds to 2 minutes. On different networks, up to 3 minutes. This is acceptable; the user composes letters during or after clinic and the secretary prints later. The compose tab shows "Sending..." immediately and updates to "Ready" when the PDFs appear in `.letters/rendered/`.
 
 ### 6.2 Rendering pipeline
 
@@ -307,7 +294,7 @@ This is the same code path used by Yiana's share sheet "append to document" acti
 
 **File coordination.** The watcher must use `NSFileCoordinator` for reads from `inject/` and for the `.yianazip` read-modify-write cycle. iCloud sync can deliver partially-written files; coordinated access ensures the watcher only reads complete files. Yiana's existing document handling already uses coordinated access, so this is consistent with the codebase.
 
-**Scope of change to Yiana.** This is a small addition: a directory watcher that triggers an existing code path. Yiana gains no letter-specific UI, no knowledge of what the PDFs contain, and no dependency on Yiale. It simply appends pages to a named document when asked. This is generic enough that it could serve other use cases (e.g. appending scanned addenda from another source).
+**Scope.** The inject watcher is a small addition: a directory watcher that triggers an existing code path. It has no knowledge of what the PDFs contain. It simply appends pages to a named document when asked. This is generic enough that it could serve other use cases (e.g. appending scanned addenda from another source).
 
 **OCR and address extraction.** Setting `ocrCompleted = false` during the append causes Devon's OCR service to reprocess the document on its next scan cycle. It extracts addresses from the letter text automatically. A letter to a new specialist teaches the system that specialist's name, practice, and address. No special handling is needed.
 
@@ -315,19 +302,18 @@ This is the same code path used by Yiana's share sheet "append to document" acti
 
 ## 7. Integration with Existing Systems
 
-| Existing component | Relationship to Yiale |
+| Component | Relationship to compose module |
 |---|---|
-| `.addresses/*.json` | Read by Yiale for patient/recipient lookup. No writes. |
-| `addresses_backend.db` | Not directly used. Yiale reads the JSON files. |
-| `extraction_service.py` | Unchanged. Also extracts addresses from appended letters. |
-| `letter_template_simple.tex` | Reused and extended for the render service. |
-| `letter_generator.py` | Superseded. The render service replaces this. |
-| `letter_cli.py` | Superseded. Yiale replaces this workflow. |
-| `letter_system_db.py` | Superseded. Letter status is tracked in the draft JSON. |
-| `clinic_notes_parser.py` | Not used. Body text is supplied directly. |
-| `gp_matcher.py` / `gp_fuzzy_search.py` | Not needed for letter composition. Retained for the extraction pipeline. |
-| OCR pipeline | Unchanged. Benefits from letter injection. |
-| Yiana app | Small addition: inject watcher (§6.5). No letter-specific UI. Shares iCloud container with Yiale. |
+| `.addresses/*.json` | Read by compose module for patient/recipient auto-fill. No writes. |
+| Entity database (GRDB) | Patient/practitioner search (Step 3.4). Used for "Seen in N documents" annotations. |
+| `extraction_service.py` | Retired (Phase 1.5). Swift extraction in-app replaces it. |
+| `letter_template_simple.tex` | Used by the render service. Unchanged. |
+| `render_service.py` | Watches `.letters/drafts/` for `render_requested` status. Produces PDFs + HTML. |
+| `letter_generator.py` | Superseded by render service. |
+| `letter_cli.py` | Superseded by compose module. |
+| `letter_system_db.py` | Superseded. Letter status tracked in draft JSON. |
+| OCR pipeline | Unchanged. Benefits from letter injection (appended letters get OCR'd). |
+| InjectWatcher | In Yiana. Watches `.letters/inject/` for hospital records PDFs, appends to documents. |
 
 ---
 
@@ -339,7 +325,7 @@ This is the same code path used by Yiana's share sheet "append to document" acti
 | Q2 | Letter numbering? | No. MRN on the letter and PDF filename are sufficient. |
 | Q3 | Patient copy font size? | 14pt body text with ~1.4× line spacing. Derived from role, not stored in JSON. |
 | Q4 | Secretary workflow? | Personal deployment; see Appendix A. |
-| Q5 | Email workflow? | Share sheet from Yiale. HTML version. |
+| Q5 | Email workflow? | Share sheet. HTML version rendered alongside PDFs. |
 | Q6 | Draft deletion? | User dismisses from drafts list after reviewing rendered PDFs. Draft JSON deleted on dismissal. |
 | Q7 | Address confirmation? | Yes. Confirmation step shows all addresses and the Yiana target document. |
 | Q8 | OCR on appended letters? | Desirable. Extracts addresses from the letter; teaches the system new addresses automatically. |
@@ -347,7 +333,7 @@ This is the same code path used by Yiana's share sheet "append to document" acti
 | Q10 | Print queue location? | `.letters/rendered/` in iCloud. Further copying is a personal deployment choice. |
 | Q11 | Hospital records copy? | 11pt, no postal address block. Filed, not posted. |
 | Q12 | What goes into Yiana? | One copy (hospital records version) appended to the patient's document. |
-| Q13 | Separate app or tab? | Separate app (Yiale). Side-by-side workflow. Shared iCloud container. |
+| Q13 | Separate app or tab? | Tab in Yiana's info panel (Phase 3 consolidation, March 2026). Originally a separate app (Yiale); retired after compose was absorbed into Yiana. |
 | Q14 | Re: line? | Yes. Patient name, DOB, MRN. Already in existing LaTeX template. |
 | Q15 | Body text formatting? | Paragraphs and bullet lists only. No markdown library. |
 | Q16 | New patient with no Yiana document? | PDF moved to `.letters/unmatched/`. Manual append via Yiana share sheet. |
@@ -363,38 +349,32 @@ This is the same code path used by Yiana's share sheet "append to document" acti
 
 ---
 
-## 9. What This Replaces
+## 9. What This Replaced
 
-The following components become redundant once Yiale is operational:
+The following components were superseded by the compose module and render service:
 
-- `letter_cli.py`
-- `letter_system_db.py`
-- `clinic_notes_parser.py` (unless still used elsewhere)
-- `letter_generator.py` (logic moves into the render service)
+- `letter_cli.py` — replaced by compose tab
+- `letter_system_db.py` — replaced by draft JSON status tracking
+- `letter_generator.py` — replaced by render service
+- `Yiale/` app — replaced by compose module in Yiana (Phase 3 consolidation)
 
-These can be archived rather than deleted.
+## 10. Implementation History
 
----
+Completed in this order:
 
-## 10. Build Order
-
-A suggested sequence. Each step is independently useful.
-
-1. **Sender config + draft JSON schema.** Define the data format. Write sample files by hand. Validate the schema covers real letters from your practice.
-2. **Render service + HTML.** Mac Mini watcher + LaTeX rendering + HTML rendering. Test with hand-written draft JSON files. Confirm PDF quality, envelope positioning, Re: line, hospital records variant (no address block), 14pt patient copy legibility, and HTML email version. HTML is trivial; do it in the same step.
-3. **Yiana inject watcher.** Small addition to Yiana: a background directory watcher on `.letters/inject/` that calls `ImportService.append(to:importedPDFData:)`. The watcher renames to `.processing` (atomic; prevents double-append across devices), parses `{yiana_target}` from the filename, locates the matching `.yianazip`, and triggers the existing append path. Roughly 50–80 lines of new code. Test with the render service from step 2: hand-written JSON → render → inject → auto-append → OCR reprocesses → addresses extracted. This gives a complete loop before any Yiale UI exists.
-4. **Yiale — Mac.** SwiftUI app: patient search, compose, address confirmation step, drafts list with dismiss, preview, share sheet. Mac first because it is the primary platform.
-5. **Yiale — iOS/iPadOS.** Adapt the SwiftUI views for smaller screens. Compose and draft management work; rendering still happens on the Mac Mini.
-6. **Cleanup.** Archive superseded components. Confirm end-to-end flow.
+1. **Sender config + draft JSON schema** — data format defined, sample files validated
+2. **Render service + HTML** — Mac Mini watcher, LaTeX + HTML rendering
+3. **Yiana inject watcher** — background watcher appends hospital records PDFs to documents
+4. **Compose module in Yiana** — Phase 3 consolidation absorbed Yiale into Yiana as a tab in the document info panel. ~300 lines of new code replaced ~2400 lines in Yiale.
 
 ---
 
 ## Appendix A: Personal Deployment — Dropbox Print Queue
 
-This appendix describes a deployment-specific configuration. It is not part of Yiale's core design.
+This appendix describes a deployment-specific configuration. It is not part of the compose module's core design.
 
 **Context.** The secretary prints letters from a shared Dropbox folder ("Print me"). Printed letters are moved to a "Printed" subfolder.
 
 **Implementation.** A simple watcher script on the Mac Mini monitors `.letters/rendered/` for new PDFs and copies them to the shared Dropbox folder. This script is independent of the render service.
 
-Other users of Yiale would access rendered PDFs directly from `.letters/rendered/` in iCloud, or set up their own forwarding.
+Other users would access rendered PDFs directly from `.letters/rendered/` in iCloud, or set up their own forwarding.

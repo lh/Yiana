@@ -344,11 +344,11 @@ Redesigned instead of porting Yiale views:
 - [x] Fixed: added implicit hospital_records recipient, wired iCloud URL caching
 - Known: document requires close/reopen after inject (logged, not a regression)
 
-### 3.9 Retire Yiale
+### 3.9 Retire Yiale -- DONE (2026-03-21)
 
-- [ ] Confirm all features work in Yiana
-- [ ] Archive Yiale directory
-- [ ] Update CLAUDE.md and LETTER-MODULE-SPEC.md
+- [x] Compose features verified in Yiana (Step 3.8)
+- [x] Yiale/ directory removed (git preserves history)
+- [x] LETTER-MODULE-SPEC.md rewritten — describes compose module in Yiana, not separate app
 
 **Test gate:** every Yiale feature works in Yiana. Build passes both platforms.
 Full compose-to-render-to-inject flow verified.
