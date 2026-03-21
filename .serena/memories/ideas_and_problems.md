@@ -46,6 +46,10 @@ Quick-capture list for things that come to mind mid-task.
 
 **Scope:** extraction_service.py, address_extractor.py, spire_form_extractor.py, backend_db.py, letter_generator.py, letter_system_db_simple.py
 
+17. **Document doesn't auto-reload after InjectWatcher appends PDF** — InjectWatcher appends the hospital records PDF to the .yianazip on disk, but the in-memory NoteDocument doesn't detect the external file change. User must close and reopen the document to see the appended page. Fix: either watch for file modifications (NSFilePresenter / NSDocument revert), or have InjectWatcher post a notification that the document view observes and triggers a reload. Discovered 2026-03-21.
+
+16. **HTML render template: leading comma when department is empty** — `sender.json` has `"department": ""`. The HTML footer template joins role/department/hospital without filtering empties, producing `, Spire Gatwick Park Hospital`. PDF render (LaTeX) handles it correctly. Low priority — cosmetic, HTML-only. Logged 2026-03-21.
+
 15. **Recipient tick boxes in AddressesView** — Each address card gets To/CC/None toggles so the user can override rules-based recipient defaults. Enables per-letter flexible recipient selection without a separate editor view. Deferred from Phase 3.5 — build after compose module is proven. Logged 2026-03-21.
 
 14. **DOB stored as DD/MM/YYYY — should be ISO 8601** — `parsePatientFilename` outputs `DD/MM/YYYY` but page extraction uses ISO `YYYY-MM-DD`. Inconsistent internal format. ISO sorts correctly, enables range/prefix queries, and is unambiguous. Fix: change `parsePatientFilename` to output `YYYY-MM-DD`, rebuild entity DB. Post-migration improvement — don't change during consolidation. Logged 2026-03-21.

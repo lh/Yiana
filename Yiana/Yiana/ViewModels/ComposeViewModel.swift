@@ -67,6 +67,14 @@ class ComposeViewModel {
                     .compactMap { $0 }.filter { !$0.isEmpty }
             ))
         }
+
+        // Implicit hospital_records recipient — render service uses this
+        // to produce the PDF that InjectWatcher appends to the document
+        recipients.append(LetterRecipient(
+            role: "hospital_records",
+            source: "implicit",
+            name: "Hospital Records"
+        ))
     }
 
     /// Load an existing draft for this document, if one exists.

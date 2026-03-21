@@ -338,9 +338,11 @@ Redesigned instead of porting Yiale views:
 - [x] Rules-based recipients (patient=To, GP=CC), body-text-only editing
 - Deferred: PatientSearchView, RecipientEditor, DraftsListView, DraftDetailView, iOS compose
 
-### 3.8 Integration testing
+### 3.8 Integration testing -- DONE (2026-03-21)
 
-- [ ] Full compose-to-render-to-inject flow on both platforms
+- [x] Full compose-to-render-to-inject flow verified on macOS
+- [x] Fixed: added implicit hospital_records recipient, wired iCloud URL caching
+- Known: document requires close/reopen after inject (logged, not a regression)
 
 ### 3.9 Retire Yiale
 
