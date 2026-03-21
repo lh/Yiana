@@ -259,18 +259,17 @@ Python junk). Full results in `docs/phase-1.4-plan.md`.
 **Test gate:** 30/30 corpus scenarios pass. 82 total tests (30 corpus + 8
 edge cases + schema/normalisation). Statistics method implemented.
 
-### 2.2 Wire Into Yiana
+### 2.2 Wire Into Yiana — INGESTION DONE (2026-03-21)
 
-- [ ] After extraction completes, call `EntityDatabase.ingestAddressFile()`
-- [ ] Entity DB stored locally (not in iCloud — same as search index)
-- [ ] Boss instance: full entity DB across all documents
-- [ ] Regular instances: entity DB for documents the user has viewed
-  (lazy ingestion)
+- [x] After extraction completes, call `EntityDatabase.ingestAddressFile()`
+- [x] Entity DB stored locally (not in iCloud — same as search index)
+- [x] Boss instance: `ingestAll()` method ready (auto-trigger deferred to Phase 4)
+- [x] Regular instances: lazy ingestion when viewing addresses
 - [ ] AddressesView: show enriched data from entity DB (canonical names,
-  cross-document links)
+  cross-document links) — deferred to follow-up
 
-**Test gate:** build passes both platforms. Entity DB populates correctly
-from extraction output.
+**Test gate:** build passes both platforms (iOS + macOS). 82 package tests pass.
+Entity DB populates on extraction and lazy-loads on address view.
 
 ### 2.3 Parallel Validation
 

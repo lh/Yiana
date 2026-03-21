@@ -28,28 +28,28 @@ struct DocumentRecord: Codable, FetchableRecord, PersistableRecord, Sendable {
     }
 }
 
-struct PatientRecord: Codable, FetchableRecord, PersistableRecord, Sendable {
-    static let databaseTableName = "patients"
+public struct PatientRecord: Codable, FetchableRecord, PersistableRecord, Sendable {
+    public static let databaseTableName = "patients"
 
-    var id: Int64?
-    var fullName: String
-    var fullNameNormalized: String
-    var dateOfBirth: String?
+    public var id: Int64?
+    public var fullName: String
+    public var fullNameNormalized: String
+    public var dateOfBirth: String?
 
-    var addressLine1: String?
-    var addressLine2: String?
-    var city: String?
-    var county: String?
-    var postcode: String?
-    var postcodeDistrict: String?
+    public var addressLine1: String?
+    public var addressLine2: String?
+    public var city: String?
+    public var county: String?
+    public var postcode: String?
+    public var postcodeDistrict: String?
 
-    var phoneHome: String?
-    var phoneWork: String?
-    var phoneMobile: String?
+    public var phoneHome: String?
+    public var phoneWork: String?
+    public var phoneMobile: String?
 
-    var documentCount: Int
-    var firstSeenAt: String
-    var lastSeenAt: String
+    public var documentCount: Int
+    public var firstSeenAt: String
+    public var lastSeenAt: String
 
     enum CodingKeys: String, CodingKey {
         case id, fullName = "full_name", fullNameNormalized = "full_name_normalized"
@@ -61,27 +61,27 @@ struct PatientRecord: Codable, FetchableRecord, PersistableRecord, Sendable {
         case firstSeenAt = "first_seen_at", lastSeenAt = "last_seen_at"
     }
 
-    mutating func didInsert(_ inserted: InsertionSuccess) {
+    public mutating func didInsert(_ inserted: InsertionSuccess) {
         id = inserted.rowID
     }
 }
 
-struct PractitionerRecord: Codable, FetchableRecord, PersistableRecord, Sendable {
-    static let databaseTableName = "practitioners"
+public struct PractitionerRecord: Codable, FetchableRecord, PersistableRecord, Sendable {
+    public static let databaseTableName = "practitioners"
 
-    var id: Int64?
-    var type: String
-    var fullName: String?
-    var fullNameNormalized: String?
-    var practiceName: String?
-    var odsCode: String?
-    var officialName: String?
-    var address: String?
-    var postcode: String?
+    public var id: Int64?
+    public var type: String
+    public var fullName: String?
+    public var fullNameNormalized: String?
+    public var practiceName: String?
+    public var odsCode: String?
+    public var officialName: String?
+    public var address: String?
+    public var postcode: String?
 
-    var documentCount: Int
-    var firstSeenAt: String
-    var lastSeenAt: String
+    public var documentCount: Int
+    public var firstSeenAt: String
+    public var lastSeenAt: String
 
     enum CodingKeys: String, CodingKey {
         case id, type, fullName = "full_name", fullNameNormalized = "full_name_normalized"
@@ -91,7 +91,7 @@ struct PractitionerRecord: Codable, FetchableRecord, PersistableRecord, Sendable
         case firstSeenAt = "first_seen_at", lastSeenAt = "last_seen_at"
     }
 
-    mutating func didInsert(_ inserted: InsertionSuccess) {
+    public mutating func didInsert(_ inserted: InsertionSuccess) {
         id = inserted.rowID
     }
 }
@@ -263,13 +263,50 @@ public final class EntityDatabase: Sendable {
     // MARK: - Query
 
     /// All patient records.
-    func allPatients() throws -> [PatientRecord] {
+    public func allPatients() throws -> [PatientRecord] {
         try dbQueue.read { db in try PatientRecord.fetchAll(db) }
     }
 
     /// All practitioner records.
-    func allPractitioners() throws -> [PractitionerRecord] {
+    public func allPractitioners() throws -> [PractitionerRecord] {
         try dbQueue.read { db in try PractitionerRecord.fetchAll(db) }
+    }
+
+    /// Patient linked to a document (via patient_documents join).
+    public func patientForDocument(_ documentId: String) throws -> PatientRecord? {
+        try dbQueue.read { db in
+            let patientDoc = try PatientDocumentRecord
+                .filter(Column("document_id") == documentId)
+                .fetchOne(db)
+            guard let patientDoc else { return nil }
+            return try PatientRecord.fetchOne(db, key: patientDoc.patientId)
+        }
+    }
+
+    /// Practitioners linked to a document's patient (via patient_practitioners join).
+    public func practitionersForDocument(
+        _ documentId: String
+    ) throws -> [(practitioner: PractitionerRecord, relationshipType: String)] {
+        try dbQueue.read { db in
+            let patientIds = try PatientDocumentRecord
+                .filter(Column("document_id") == documentId)
+                .fetchAll(db)
+                .map(\.patientId)
+
+            guard !patientIds.isEmpty else { return [] }
+
+            let links = try PatientPractitionerRecord
+                .filter(patientIds.contains(Column("patient_id")))
+                .fetchAll(db)
+
+            return try links.compactMap { link in
+                guard let practitioner = try PractitionerRecord
+                    .fetchOne(db, key: link.practitionerId)
+                else { return nil }
+                return (practitioner: practitioner,
+                        relationshipType: link.relationshipType ?? "unknown")
+            }
+        }
     }
 
     // MARK: - Entity Resolution

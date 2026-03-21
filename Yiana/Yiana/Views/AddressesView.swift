@@ -143,6 +143,12 @@ struct AddressesView: View {
         do {
             addresses = try await repository.addresses(forDocument: documentId)
             isLoading = false
+
+            // Lazy-ingest into entity database for pre-deployment documents
+            let capturedDocId = documentId
+            Task.detached {
+                EntityDatabaseService.shared.ingestDocument(capturedDocId)
+            }
         } catch {
             errorMessage = "Failed to load addresses: \(error.localizedDescription)"
             isLoading = false

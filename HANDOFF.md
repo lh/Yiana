@@ -76,12 +76,13 @@ After monitoring: remove LaunchAgent plist, archive Python extraction code.
 
 ## What's Next
 
-### Phase 2.2: Wire Into Yiana
-- After extraction completes, call `EntityDatabase.ingestAddressFile()`
-- Entity DB stored locally (not in iCloud — same as search index)
-- Boss instance: full entity DB across all documents
-- Regular instances: lazy ingestion for viewed documents
-- AddressesView: show enriched data from entity DB (canonical names, cross-document links)
+### Phase 2.2: Wire Into Yiana — INGESTION COMPLETE
+- EntityDatabaseService singleton in `Yiana/Services/EntityDatabaseService.swift`
+- DB stored in `Caches/EntityDatabase/entities.db` (not iCloud)
+- Ingestion hooked after extraction in `DocumentExtractionService.extractAndSave()`
+- Lazy ingestion in `AddressesView.loadAddresses()` for pre-deployment documents
+- `ingestAll()` method ready for boss instance (not auto-triggered — Phase 4)
+- **Remaining:** UI enrichment (document counts, canonical names) — follow-up task
 
 ### Phase 2.3: Parallel Validation
 - Run full ingestion on all `.addresses/*.json` files
@@ -97,7 +98,8 @@ After monitoring: remove LaunchAgent plist, archive Python extraction code.
 
 | File | Purpose |
 |------|---------|
-| `YianaExtraction/Services/EntityDatabase.swift` | Entity resolution, ingestion, GRDB schema |
+| `YianaExtraction/Services/EntityDatabase.swift` | Entity resolution, ingestion, GRDB schema (public records + queries) |
+| `Yiana/Services/EntityDatabaseService.swift` | App-layer singleton — ingestDocument, ingestAll, queries |
 | `YianaExtraction/Utilities/PostcodeLookup.swift` | 254-sector town lookup table |
 | `YianaExtraction/Utilities/ExtractionHelpers.swift` | Filename parser, city helpers, townForPostcode |
 | `YianaExtraction/Extractors/ExtractionCascade.swift` | Filename overlay logic |

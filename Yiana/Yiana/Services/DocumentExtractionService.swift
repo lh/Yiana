@@ -77,6 +77,9 @@ final class DocumentExtractionService {
             // 5. Atomic write (pages + enriched only — never touches overrides)
             try atomicWrite(file: extracted, to: dirURL)
 
+            // 6. Ingest into entity database (idempotent, fire-and-forget)
+            EntityDatabaseService.shared.ingestDocument(documentId)
+
             let pageCount = extracted.pages.count
             logger.info("Extracted \(pageCount) pages for \(documentId)")
         } catch {
