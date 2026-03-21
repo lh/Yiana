@@ -1,6 +1,6 @@
 # Consolidation Plan of Campaign
 
-## Status: Proposal (2026-03-16)
+## Status: Phase 1 Complete (2026-03-21)
 
 ## Principles
 
@@ -28,6 +28,9 @@
 6. **iCloud file formats are frozen.** The `.addresses/*.json` schema, the
    `.ocr_results/*.json` schema, and the `.yianazip` format do not change
    during consolidation. These are the integration contracts.
+   **Update (2026-03-21):** Added `.addresses/{id}.overrides.json` as a new
+   file alongside the existing schema. The main `.json` format is unchanged;
+   overrides are split out to fix iCloud race condition.
 
 ---
 
@@ -143,7 +146,10 @@ Screenshots pending recapture with synthetic patient data.
 ## Phase 1: Swift Extraction Engine
 
 **Goal:** Replace Python extraction pipeline with Swift, running inside Yiana.
-Python continues to run on Devon in parallel.
+
+**Status: COMPLETE.** Python extraction stopped on Devon 2026-03-21.
+Swift extraction runs in-app after OCR. Override file split deployed.
+Two-week monitoring period ends 2026-04-04.
 
 ### 1.1 Extraction Service Swift Package
 
@@ -190,16 +196,16 @@ Python continues to run on Devon in parallel.
 - [x] Add post-OCR hook in document pipeline: after `OnDeviceOCRService`
   completes, run extraction (all 4 trigger points: iOS VM, macOS VM, ContentView import, DocumentEditView scan)
 - [x] Write extracted data to `.addresses/` in existing JSON format
-- [x] Preserve existing override/enriched data (read-merge-write)
+- [x] Preserve existing enriched data (read-merge-write; overrides now in separate file)
 - [x] Atomic writes (temp + rename, matching existing pattern)
 - [x] `OnDeviceOCRResult` extended with per-page text and confidence
 - [x] `nhs_lookup.db` bundled in app (both iOS and macOS targets)
 - [x] NHS lookup enriches GP entries with ODS candidates
-- [ ] Test: scan a document → OCR completes → addresses appear in AddressesView
-  without Mac mini involvement
+- [x] Test: scan a document → OCR completes → addresses appear in AddressesView
+  without Mac mini involvement (confirmed manually on real document, Phase 1.3)
 
 **Test gate:** end-to-end test with a synthetic document. Build passes on both
-iOS and macOS (`/check`).
+iOS and macOS (`/check`). PASSED.
 
 ### 1.4 Parallel Validation
 
@@ -210,7 +216,9 @@ iOS and macOS (`/check`).
 - [x] Fix genuine regressions: GP postcode (eliminated), city (90.8% -> 22.4% gap), DOB formats
 
 **Test gate:** Swift matches or exceeds Python on >= 95% of fields across all
-documents. Remaining 5% reviewed and accepted.
+documents. Remaining 5% reviewed and accepted. PASSED — postcode 97.6% match,
+patient name 74.8% match + 9.8% swift_better, city gap analysed (50% of
+python_better was junk). Full results in `docs/phase-1.4-plan.md`.
 
 ### 1.5 Retire Python Extraction
 

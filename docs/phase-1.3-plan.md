@@ -1,5 +1,10 @@
 # Phase 1.3: Wire Extraction + Lookup Into Yiana
 
+> **Status: COMPLETE.** Implemented and verified. The override race condition
+> noted in this plan was fixed in Phase 1.5 by splitting overrides into
+> separate `.overrides.json` files. The document ID format question was
+> resolved: the app uses filename stems (matching Python convention).
+
 ## Context
 
 Phase 1.2 is complete — `ExtractionCascade` and `NHSLookupService` exist in the
