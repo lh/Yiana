@@ -66,6 +66,9 @@ struct ComposeTab: View {
         .task {
             guard !hasLoaded else { return }
             hasLoaded = true
+            // Cache iCloud URL on main thread — returns nil from Task.detached
+            LetterRepository.shared.cacheContainerURL()
+            SenderConfigService.shared.cacheContainerURL()
             let docId = documentId
             let addresses = await Task.detached { [repository] in
                 (try? await repository.addresses(forDocument: docId)) ?? []
