@@ -91,6 +91,9 @@ public struct LabelExtractor: Extractor {
             if city == nil {
                 city = ExtractionHelpers.cityFromPostcodeLine(window[pcIdx])
             }
+            if city == nil {
+                city = ExtractionHelpers.townForPostcode(postcode)
+            }
 
             return AddressPageEntry(
                 pageNumber: input.pageNumber,

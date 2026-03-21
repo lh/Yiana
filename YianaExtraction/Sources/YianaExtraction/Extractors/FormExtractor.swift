@@ -139,6 +139,9 @@ public struct FormExtractor: Extractor {
                     city = candidate
                 }
             }
+            if city == nil, let pc = postcode {
+                city = ExtractionHelpers.townForPostcode(pc)
+            }
         }
 
         // Step 5: Validation — require both name and postcode

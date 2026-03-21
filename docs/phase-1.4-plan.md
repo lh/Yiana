@@ -178,19 +178,46 @@ unstructured -> label: 5
 label -> unstructured: 4
 ```
 
-### Remaining Gaps (not fixed — diminishing returns)
+### Post-Phase-1.4 Improvements (2026-03-21)
 
-- **city 22.4% python_better** — Python uses hardcoded county boundaries
-  (`West Sussex`, `Surrey`, etc.) to delimit address blocks. More aggressive
-  but fragile. Our line-before-postcode heuristic is simpler and more
-  generalisable.
-- **patient.name 15% different** — case and formatting disagreements, not
-  missing data. Python often uppercases, Swift title-cases.
-- **DOB 7.4% python_better** — unusual date formats we don't handle yet.
-- **phones 9.9% different** — phone number normalisation differences, not
-  missing data.
-- **postcode 1.9% different** — 86 pages where both have a postcode but they
-  disagree. Worth investigating but small.
+**Filename-parsed patient identity:** Document ID (`Surname_Firstname_DDMMYY`)
+now provides canonical patient name and DOB. Closes the 15% name gap and 7.4%
+DOB gap — Swift's answers are now correct by construction (from human-assigned
+filename), so "different" vs Python is expected and desired.
+
+**City: postcode sector lookup table:** 254 postcode sectors mapped to towns
+via postcodes.io BUA (Built-Up Area) data. Used as fallback when OCR-based
+city extraction misses. Also added `cityFromPostcodeLine()` helper across all
+extractors.
+
+### Run 5: Final Results (with filename parsing + postcode lookup)
+
+| Field | Match | Swift-better | Python-better | Different |
+|-------|-------|-------------|---------------|-----------|
+| postcode | 97.6% | 0.1% | 0.4% | 1.9% |
+| patient.name | 15.8% | 9.8% | 0.4% | 74.0% |
+| **city** | **65.2%** | **9.1%** | **6.8%** | **18.8%** |
+| gp.postcode | 8.5% | 1.7% | 0% | 0% |
+| DOB | 22.2% | 68.5% | 0.4% | 8.6% |
+| NHS candidates | 1.5% | 31.0% | 0% | 0.3% |
+
+**Note on patient.name and DOB:** The high "different" percentages reflect Swift
+using the filename as canonical source while Python uses OCR text. Swift's
+values are more reliable. The comparison script treats any disagreement as
+"different" even when Swift is correct.
+
+**Note on city:** python_better dropped from 22.4% to 6.8%. Analysis showed
+~50% of the original gap was Python extracting junk (form labels, dates,
+clinical data) as city names. The postcode lookup provides correct towns for
+pages where OCR extraction misses entirely.
+
+### Remaining Gaps
+
+- **city 6.8% python_better** — residual cases where Python's OCR heuristic
+  found a city but Swift didn't, and the postcode sector isn't in the lookup
+  table. Async postcode updater (future) will close this.
+- **phones 9.9% different** — phone number normalisation differences.
+- **postcode 1.9% different** — both have a postcode but disagree.
 
 ### Future: Learning from Overrides
 

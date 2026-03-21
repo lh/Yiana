@@ -6,27 +6,47 @@
 ## What Was Done This Session
 
 ### Filename-based patient identity (4b2da72)
-- `ExtractionHelpers.parsePatientFilename()` parses `Surname_Firstname_DDMMYY` from document ID
-- Handles hyphenated names, apostrophes, trailing text, double underscores
+- `ExtractionHelpers.parsePatientFilename()` parses `Surname_Firstname_DDMMYY`
 - `ExtractionCascade.extractDocument()` overlays filename name + DOB as canonical
 - 20 new tests in `FilenameParserTests.swift`
 
 ### City extraction improvements (4b2da72)
-- `cityFromPostcodeLine()` helper — strips postcode from line, uses remainder
+- `cityFromPostcodeLine()` helper across all extractors
 - FormExtractor: 3rd-address-line fallback
 - FallbackExtractor: now extracts city
-- python_better dropped from 22.4% to 19.5%; analysis showed ~50% of remaining gap is Python extracting junk
 
-### Phase 1.5: Override file split + Python retirement
-- **Override race condition fixed:** overrides now live in `{documentId}.overrides.json`, never touched by extraction
-- **Migration:** on first launch, existing overrides (21 files, 132 entries) are migrated to separate files
-- **DocumentExtractionService** no longer preserves overrides — writes pages + enriched only
-- **Python extraction service stopped on Devon** — `launchctl unload` performed, service no longer running or registered
-- Plist and Python code preserved for rollback if needed
+### Phase 1.5: Override file split + Python retirement (6183d4a)
+- Overrides split into `{documentId}.overrides.json` — fixes iCloud race condition
+- One-time migration for 21 existing override files (132 entries)
+- DocumentExtractionService writes pages + enriched only
+- Python extraction service stopped on Devon (2026-03-21)
 
-### SSH / Devon connectivity
+### CLI document ID fix (4e26cde)
+- CLI now accepts `--document-id` flag for filename-based extraction
+- Comparison script passes filename stem, matching in-app behaviour
+
+### Postcode sector -> town lookup
+- 254 postcode sectors mapped to towns via postcodes.io BUA data
+- `PostcodeLookup.swift` — static dictionary in YianaExtraction package
+- `ExtractionHelpers.townForPostcode()` used as fallback in all 4 extractors
+- City python_better dropped from 22.4% to **6.8%**, swift_better up to **9.1%**
+
+### SSH / Devon
 - SSH key loaded into macOS Keychain
-- Devon renamed; SSH config updated to `Devon.local`
+- Devon hostname updated to `Devon.local` in SSH config
+
+### Validation Results (final, all improvements)
+| Field | Match | Swift-better | Python-better |
+|-------|-------|-------------|---------------|
+| postcode | 97.6% | 0.1% | 0.4% |
+| patient.name | 15.8% | 9.8% | 0.4% |
+| city | 65.2% | 9.1% | 6.8% |
+| gp.postcode | 8.5% | 1.7% | 0% |
+| DOB | 22.2% | 68.5% | 0.4% |
+| NHS candidates | 1.5% | 31.0% | 0% |
+
+Note: patient.name and DOB "different" are expected — Swift uses filename
+as canonical, which is more reliable than Python's OCR-extracted values.
 
 ## Current State
 
@@ -38,19 +58,19 @@
 
 ## Monitoring Period (2 weeks from 2026-03-21)
 
-Python extraction is stopped. Monitor that:
-- Addresses still appear correctly for newly OCR'd documents (Swift in-app extraction handles this)
-- Existing overrides still display correctly (migration should have handled this)
+Python extraction is stopped. Monitor through 2026-04-04 that:
+- Addresses still appear correctly for newly OCR'd documents
+- Existing overrides still display correctly
 - No data loss on documents with overrides
 
-After 2 weeks (by 2026-04-04): remove LaunchAgent plist, archive Python extraction code.
+After monitoring: remove LaunchAgent plist, archive Python extraction code.
 
 ## What's Next
 
-### Postcode -> Town Lookup (idea #13, parked)
-- Static outward code -> town dictionary (~2,900 entries, ~100KB)
-- Replaces OCR-based city heuristics entirely
-- Logged in Serena memory `ideas_and_problems`
+### Postcode lookup async updater (future)
+- When a sector isn't in the static table, query postcodes.io live and cache
+- Grows the table organically over time
+- Logged in Serena memory `ideas_and_problems` (idea #13)
 
 ### Phase 2: Entity Database
 - Replace `backend_db.py` with GRDB-based entity resolution in Yiana
@@ -61,16 +81,16 @@ After 2 weeks (by 2026-04-04): remove LaunchAgent plist, archive Python extracti
 
 | File | Purpose |
 |------|---------|
-| `Yiana/Services/AddressRepository.swift` | Split read/write — main file + .overrides.json |
-| `Yiana/Services/DocumentExtractionService.swift` | Extraction writes pages + enriched only |
-| `YianaExtraction/Models/AddressSchema.swift` | `OverridesFile` struct for separate overrides |
-| `YianaExtraction/Utilities/ExtractionHelpers.swift` | Filename parser + city helpers |
+| `YianaExtraction/Utilities/PostcodeLookup.swift` | 254-sector town lookup table |
+| `YianaExtraction/Utilities/ExtractionHelpers.swift` | Filename parser, city helpers, townForPostcode |
 | `YianaExtraction/Extractors/ExtractionCascade.swift` | Filename overlay logic |
-| `docs/consolidation-plan.md` | Phase 1.5 checkboxes ticked, decisions logged |
+| `Yiana/Services/AddressRepository.swift` | Split read/write for overrides |
+| `Yiana/Services/DocumentExtractionService.swift` | Extraction writes pages + enriched only |
+| `YianaExtraction/Models/AddressSchema.swift` | OverridesFile struct |
+| `docs/consolidation-plan.md` | Phase 1 complete, all decisions logged |
 
 ## Known Issues
-- 19.5% city python_better — ~200 real cases; postcode lookup (idea #13) would fix
-- Patient name / DOB gaps likely closed by filename parsing (not yet re-validated on Devon)
+- 6.8% city python_better — residual gap; async postcode updater will close
+- Python extraction plist still on Devon — remove after monitoring period
 - `feature/worklist-integration` branch from prior session still exists
 - Devon hostname changed: SSH config uses `Devon.local`
-- Python extraction plist still on Devon — remove after monitoring period

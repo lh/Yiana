@@ -19,7 +19,7 @@ Quick-capture list for things that come to mind mid-task.
 
 ## Ideas
 
-13. **Postcode outward code → town lookup table for city extraction** — Instead of parsing city from OCR text (fragile, 50% junk in Python's results), use the already-extracted postcode to look up the town. ~2,900 UK outward codes → ~100KB static dictionary, ships in the Swift package with zero network dependency. Piggybacks on our 97.6% postcode accuracy. postcodes.io has a bulk outcodes API to build the table. Postcode sector level (~12,000 entries, ~500KB) gives more precision. Would replace all OCR-based city heuristics and eliminate junk entirely. Logged 2026-03-21.
+13. **Postcode outward code → town lookup table for city extraction** — Instead of parsing city from OCR text (fragile, 50% junk in Python's results), use the already-extracted postcode to look up the town. ~2,900 UK outward codes → ~100KB static dictionary, ships in the Swift package with zero network dependency. Piggybacks on our 97.6% postcode accuracy. postcodes.io has a bulk outcodes API to build the table. Postcode sector level (~12,000 entries, ~500KB) gives more precision. Would replace all OCR-based city heuristics and eliminate junk entirely. Logged 2026-03-21. Future: build an async updater into the app itself — when a postcode sector isn't in the static table, query postcodes.io live and cache the result. Grows the table organically over time.
 
 
 3. **Expandable Typst dashboard** — The Devon dashboard (`scripts/dashboard.typ` + `dashboard-collector.py`, served via typst-live LaunchAgent on port 5599) can be extended with any server-side metric: extraction stats, backend DB counts, iCloud sync state, log growth trends, etc. Just add to collector + template.

@@ -35,6 +35,9 @@ public struct FallbackExtractor: Extractor {
                 break
             }
         }
+        if city == nil {
+            city = ExtractionHelpers.townForPostcode(postcode)
+        }
 
         return AddressPageEntry(
             pageNumber: input.pageNumber,

@@ -83,6 +83,9 @@ public struct RegistrationFormExtractor: Extractor {
                 city = townText
             }
         }
+        if city == nil, let pc = postcode {
+            city = ExtractionHelpers.townForPostcode(pc)
+        }
 
         // Step 6: Phones — only patient phones (before "Next of kin" / "Emergency contact")
         var phoneMobile: String?

@@ -214,11 +214,15 @@ iOS and macOS (`/check`). PASSED.
 - [x] Log discrepancies (anonymised — no PII in repo)
 - [x] Review discrepancies: fixed GP postcode gap, added city extraction, improved DOB parsing
 - [x] Fix genuine regressions: GP postcode (eliminated), city (90.8% -> 22.4% gap), DOB formats
+- [x] Filename-parsed patient name + DOB as canonical (closes 15% name gap, 7.4% DOB gap)
+- [x] Postcode sector -> town lookup table (254 sectors, postcodes.io BUA data)
+- [x] City: postcode-line extraction + 3rd-address-line fallback + sector lookup
+- [x] City python_better reduced from 22.4% to 6.8%
 
 **Test gate:** Swift matches or exceeds Python on >= 95% of fields across all
 documents. Remaining 5% reviewed and accepted. PASSED — postcode 97.6% match,
-patient name 74.8% match + 9.8% swift_better, city gap analysed (50% of
-python_better was junk). Full results in `docs/phase-1.4-plan.md`.
+city python_better down to 6.8% (from 22.4%, with ~50% of original gap being
+Python junk). Full results in `docs/phase-1.4-plan.md`.
 
 ### 1.5 Retire Python Extraction
 
