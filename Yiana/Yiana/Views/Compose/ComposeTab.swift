@@ -48,6 +48,12 @@ struct ComposeTab: View {
 
             // Action buttons
             HStack {
+                if viewModel.status == .rendered {
+                    Button("New Letter") {
+                        viewModel.newLetter()
+                    }
+                }
+
                 Button("Save Draft") {
                     Task { await viewModel.saveDraft() }
                 }

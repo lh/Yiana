@@ -213,4 +213,12 @@ class ComposeViewModel {
     var canSend: Bool {
         canSave && status == .draft
     }
+
+    /// Reset for a new letter, keeping patient/recipient context.
+    func newLetter() {
+        bodyText = ""
+        letterId = nil
+        status = .draft
+        errorMessage = nil
+    }
 }
