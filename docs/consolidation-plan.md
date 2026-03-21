@@ -1,6 +1,6 @@
 # Consolidation Plan of Campaign
 
-## Status: Phase 1 Complete (2026-03-21)
+## Status: Phase 3 In Progress (2026-03-21)
 
 ## Principles
 
@@ -306,22 +306,24 @@ which Python never created (only tracked GPs).
 
 **Goal:** Absorb Yiale's features into Yiana as a "Compose" module.
 
+**Status: IN PROGRESS** (started 2026-03-21)
+
 **Detailed plan:** [`docs/phase-3-plan.md`](phase-3-plan.md) — full inventory,
 step-by-step checklists, design decisions, estimated effort.
 
-### 3.1 Preparation and deduplication
+### 3.1 Preparation and deduplication -- DONE (2026-03-21)
 
-- [ ] Delete Yiale duplicates (SharedWorkList, WorkListRepository, ClinicListParser, WorkListViewModel)
-- [ ] Document any differences found
+- [x] Delete Yiale duplicates (SharedWorkList, WorkListRepository, ClinicListParser, WorkListViewModel)
+- [x] Document differences: Yiale has `replaceClinicList()` (replace-all); Yiana only has merge. Address at Step 3.5
 
-### 3.2 Port models
+### 3.2 Port models -- DONE (2026-03-21)
 
-- [ ] LetterDraft.swift, SenderConfig.swift to Yiana/Models/
+- [x] LetterDraft.swift, SenderConfig.swift to Yiana/Models/
 
-### 3.3 Port services
+### 3.3 Port services -- DONE (2026-03-21)
 
-- [ ] LetterRepository.swift, SenderConfigService.swift to Yiana/Services/
-- [ ] Adapt iCloud URL sourcing to Yiana's pattern
+- [x] LetterRepository.swift, SenderConfigService.swift to Yiana/Services/
+- [x] Adapted iCloud URL sourcing to Yiana's per-service caching pattern (no ICloudContainer singleton)
 
 ### 3.4 Port patient search (entity DB migration)
 

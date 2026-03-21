@@ -46,6 +46,12 @@ Quick-capture list for things that come to mind mid-task.
 
 **Scope:** extraction_service.py, address_extractor.py, spire_form_extractor.py, backend_db.py, letter_generator.py, letter_system_db_simple.py
 
+## Phase 3.1 Deduplication Notes (2026-03-21)
+
+**Completed:** Deleted 4 Yiale duplicates (SharedWorkList, ClinicListParser, WorkListRepository, WorkListViewModel). All had Yiana equivalents that were equal or superset.
+
+**Difference to carry forward:** Yiale's `WorkListViewModel` has `replaceClinicList()` (replace-all semantics, used in ContentView). Yiana only has `importClinicList()` (merge semantics). When porting compose views (Step 3.5), decide whether replace-all is needed or if merge is sufficient. The Yiale UX offered both "Import" (merge) and "Replace" buttons.
+
 ## Work List — reverted and redesigning (2026-03-08)
 
 All work list code reverted from Yiana (commit cd5340a). Eight attempts to fix click navigation inside `List(selection:)` failed. The feature will be reimplemented from scratch with the work list OUTSIDE the sidebar List. Full spec and architectural constraint documented in `HANDOFF.md`. Diagnostic history in `docs/work-list-navigation-failures.md`.

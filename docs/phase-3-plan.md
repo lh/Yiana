@@ -82,34 +82,31 @@ The compose module becomes a tab or navigation destination within Yiana, not a s
 
 ### 3.1 Preparation and deduplication
 
-- [ ] Delete `Yiale/Yiale/Models/SharedWorkList.swift` (duplicate of Yiana's)
-- [ ] Verify Yiana's `ClinicListParser.swift` matches Yiale's (delete Yiale's if identical)
-- [ ] Verify Yiana's `WorkListRepository.swift` is a superset of Yiale's (delete Yiale's)
-- [ ] Verify Yiana's `WorkListViewModel.swift` is a superset of Yiale's (delete Yiale's)
-- [ ] Document any differences found — they may indicate features Yiana is missing
+- [x] Delete `Yiale/Yiale/Models/SharedWorkList.swift` (duplicate of Yiana's) — identical
+- [x] Verify Yiana's `ClinicListParser.swift` matches Yiale's (delete Yiale's if identical) — functionally identical
+- [x] Verify Yiana's `WorkListRepository.swift` is a superset of Yiale's (delete Yiale's) — superset (singleton, cached URLs, legacy migration, mergeAndSave)
+- [x] Verify Yiana's `WorkListViewModel.swift` is a superset of Yiale's (delete Yiale's) — superset (325 vs 66 lines)
+- [x] Document any differences found — Yiale has `replaceClinicList()` (replace-all semantics); Yiana only has merge. Logged to Serena memory; decide at Step 3.5
 
-**Test gate:** No functional code deleted that doesn't have a Yiana equivalent.
+**Test gate:** PASSED — both iOS and macOS build. All deleted code has Yiana equivalents.
 
 ### 3.2 Port models
 
-- [ ] Copy `LetterDraft.swift` to `Yiana/Yiana/Models/`
-- [ ] Copy `SenderConfig.swift` to `Yiana/Yiana/Models/`
-- [ ] Do NOT port `AddressData.swift` — the `ResolvedPatient` pattern will be replaced by entity DB queries
-- [ ] Build both platforms
+- [x] Copy `LetterDraft.swift` to `Yiana/Yiana/Models/` — includes LetterStatus, LetterPatient, LetterRecipient, LetterDraft
+- [x] Copy `SenderConfig.swift` to `Yiana/Yiana/Models/` — includes Secretary, SenderConfig
+- [x] Do NOT port `AddressData.swift` — the `ResolvedPatient` pattern will be replaced by entity DB queries
+- [x] Build both platforms
 
-**Test gate:** iOS and macOS build. No new functionality yet.
+**Test gate:** PASSED — iOS and macOS build. No new functionality yet.
 
 ### 3.3 Port services
 
-- [ ] Copy `LetterRepository.swift` to `Yiana/Yiana/Services/`
-  - Replace `ICloudContainer.shared.draftsDirectoryURL` with local iCloud URL caching (same pattern as DocumentExtractionService)
-  - Replace `ICloudContainer.shared.renderedDirectoryURL` similarly
-- [ ] Copy `SenderConfigService.swift` to `Yiana/Yiana/Services/`
-  - Same iCloud URL adaptation
-- [ ] Add `lettersDirectoryURL`, `draftsDirectoryURL`, `renderedDirectoryURL`, `configDirectoryURL` to the iCloud URL caching in the relevant services
-- [ ] Build both platforms
+- [x] Copy `LetterRepository.swift` to `Yiana/Yiana/Services/` — singleton with cached iCloud URL, replaced ICloudContainer.shared with per-service caching
+- [x] Copy `SenderConfigService.swift` to `Yiana/Yiana/Services/` — same pattern, returns nil instead of throwing when iCloud unavailable
+- [x] Both services compute draftsURL, renderedURL, configURL from cached container URL
+- [x] Build both platforms
 
-**Test gate:** iOS and macOS build. Services compile but are not yet called.
+**Test gate:** PASSED — iOS and macOS build. Services compile but are not yet called.
 
 ### 3.4 Port patient search (entity DB migration)
 
