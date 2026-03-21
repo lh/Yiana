@@ -191,17 +191,32 @@ This is the key improvement over Yiale. Instead of loading every `.addresses/*.j
 
 ---
 
-## Key Design Decisions to Make
+## Design Decisions (Resolved 2026-03-21)
 
-These need resolution before or during implementation:
+1. **Navigation pattern** — The compose view must NOT obscure the underlying
+   Yiana document. The user reads scanned notes while composing, often pasting
+   text from the notes into the letter. On macOS: a panel, inspector, or
+   non-modal presentation that sits alongside the document. On iPad: split view
+   or slide-over. This will need iteration — don't commit to the first design.
 
-1. **Navigation pattern** — How does the user get to compose? Tab bar item? Toolbar button? Document context menu ("Write letter about this patient")?
+2. **Document context integration** — YES. Compose is initiated from the
+   document's address data. Patient, GP, and specialists are auto-filled from
+   the document context. The user writes body text only — topping and tailing
+   (addresses, salutation, cc lines, "Re:" line) happens behind the scenes.
+   Recipient details are shown at a confirmation step, not during editing.
 
-2. **Patient selection from document context** — Should viewing a document's addresses offer a "Compose letter" action that pre-fills the patient? This would be a natural integration point.
+3. **iOS DraftDetailView** — Simple as possible. Share sheet or basic PDFView
+   for rendered PDFs. No NSPrintOperation equivalent needed on iOS.
 
-3. **iOS DraftDetailView** — Yiale's DraftDetailView uses NSPrintOperation (macOS only). iOS needs an alternative: QuickLook preview, share sheet, or a simple PDFView.
+4. **Work list vs drafts** — These are separate concepts. Work list = notes
+   to see today (drives the clinical session). Drafts = letters being composed
+   (tracks letter status). Both need to exist as separate views. A work list
+   entry can have a "compose letter" action, but the lists are distinct.
 
-4. **Work list unification** — Yiana's WorkListView and Yiale's DraftsListView both show the work list. In the merged app, the work list should appear in one place with both "view document" and "compose letter" actions available.
+5. **Rendering** — LaTeX on Devon, unchanged. The user values the typography
+   (microkerning etc). The compose module writes draft JSON with body text.
+   Rendering is Devon's job. The app shows the rendered PDF when it comes back.
+   Body text could be written in markup and piped to whatever renderer.
 
 ---
 
