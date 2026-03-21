@@ -1,0 +1,5 @@
+module CYianaTypstBridge {
+    header "yiana_typst_bridge.h"
+    link "yiana_typst_bridge"
+    export *
+}

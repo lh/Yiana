@@ -376,6 +376,9 @@ Replace the Python render service with in-app Typst rendering.
 - [x] Tests pass (3/3: simple template, data template with JSON, error handling)
 - [x] Cross-compiled for 4 Apple targets (macOS ARM/Intel, iOS device/simulator, ~39MB each)
 - [x] XCFramework built (not committed — rebuild via `build-xcframework.sh`)
+- [x] Swift package `YianaRenderer` wrapping Typst bridge — LetterRenderer API, TypstBridge FFI, letter.typ template
+- [x] 5 tests pass (renders all recipients, valid PDFs, correct filenames, correct roles, distinct copies)
+- [x] 30ms to render 3 PDFs (patient + GP + hospital records)
 - [ ] Write Typst letter template (prototype at `docs/typst-prototype/letter.typ`)
   - Hospital/GP copy: 11pt, name+MRN header on pages 2+
   - Patient copy: 14pt, wider line spacing, page numbers only on pages 2+
