@@ -1,5 +1,9 @@
 import Foundation
 
+enum LetterRepositoryError: Error {
+    case noiCloudContainer
+}
+
 class LetterRepository {
     static let shared = LetterRepository()
 
@@ -27,6 +31,19 @@ class LetterRepository {
     private var renderedURL: URL? {
         documentsURL?.appendingPathComponent(".letters")
             .appendingPathComponent("rendered")
+    }
+
+    var injectDirectory: URL? {
+        documentsURL?.appendingPathComponent(".letters")
+            .appendingPathComponent("inject")
+    }
+
+    /// Returns the rendered output directory for a letter.
+    func renderedDirectory(letterId: String) throws -> URL {
+        guard let renderedURL else {
+            throw LetterRepositoryError.noiCloudContainer
+        }
+        return renderedURL.appendingPathComponent(letterId)
     }
 
     /// List all drafts from `.letters/drafts/`.

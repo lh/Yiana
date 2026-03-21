@@ -12,6 +12,8 @@
 		9AF0ABD42EA0F2C6003E7A4C /* YianaDocumentArchive in Frameworks */ = {isa = PBXBuildFile; productRef = 9AF0ABD12EA0F2C6003E7A4C /* YianaDocumentArchive */; };
 		AA00000100000001AAAAAA01 /* YianaExtraction in Frameworks */ = {isa = PBXBuildFile; productRef = AA00000100000002AAAAAA01 /* YianaExtraction */; };
 		AA00000100000003AAAAAA01 /* YianaExtraction in Frameworks */ = {isa = PBXBuildFile; productRef = AA00000100000004AAAAAA01 /* YianaExtraction */; };
+		BB00000100000001BBBBBB01 /* YianaRenderer in Frameworks */ = {isa = PBXBuildFile; productRef = BB00000100000002BBBBBB01 /* YianaRenderer */; };
+		BB00000100000003BBBBBB01 /* YianaRenderer in Frameworks */ = {isa = PBXBuildFile; productRef = BB00000100000004BBBBBB01 /* YianaRenderer */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -76,6 +78,7 @@
 				9ACDC8FB2E8D9ED300B0B27A /* GRDB in Frameworks */,
 				9AF0ABD32EA0F2C6003E7A4C /* YianaDocumentArchive in Frameworks */,
 				AA00000100000001AAAAAA01 /* YianaExtraction in Frameworks */,
+				BB00000100000001BBBBBB01 /* YianaRenderer in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -85,6 +88,7 @@
 			files = (
 				9AF0ABD42EA0F2C6003E7A4C /* YianaDocumentArchive in Frameworks */,
 				AA00000100000003AAAAAA01 /* YianaExtraction in Frameworks */,
+				BB00000100000003BBBBBB01 /* YianaRenderer in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -141,6 +145,7 @@
 				9ACDC8FA2E8D9ED300B0B27A /* GRDB */,
 				9AF0ABCF2EA0F2C6003E7A4C /* YianaDocumentArchive */,
 				AA00000100000002AAAAAA01 /* YianaExtraction */,
+				BB00000100000002BBBBBB01 /* YianaRenderer */,
 			);
 			productName = Yiana;
 			productReference = 9A02D04E2E26C133005DA5E5 /* Yiana.app */;
@@ -166,6 +171,7 @@
 			packageProductDependencies = (
 				9AF0ABD12EA0F2C6003E7A4C /* YianaDocumentArchive */,
 				AA00000100000004AAAAAA01 /* YianaExtraction */,
+				BB00000100000004BBBBBB01 /* YianaRenderer */,
 			);
 			productName = YianaTests;
 			productReference = 9A02D0622E26C134005DA5E5 /* YianaTests.xctest */;
@@ -230,6 +236,7 @@
 				9ACDC8F92E8D9ED300B0B27A /* XCRemoteSwiftPackageReference "GRDB" */,
 				9AF0ABCE2EA0F2C6003E7A4C /* XCLocalSwiftPackageReference "../YianaDocumentArchive" */,
 				AA00000100000005AAAAAA01 /* XCLocalSwiftPackageReference "../YianaExtraction" */,
+				BB00000100000005BBBBBB01 /* XCLocalSwiftPackageReference "../YianaRenderer" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9A02D04F2E26C133005DA5E5 /* Products */;
@@ -663,6 +670,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../YianaExtraction;
 		};
+		BB00000100000005BBBBBB01 /* XCLocalSwiftPackageReference "../YianaRenderer" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../YianaRenderer;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -701,6 +712,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA00000100000005AAAAAA01 /* XCLocalSwiftPackageReference "../YianaExtraction" */;
 			productName = YianaExtraction;
+		};
+		BB00000100000002BBBBBB01 /* YianaRenderer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BB00000100000005BBBBBB01 /* XCLocalSwiftPackageReference "../YianaRenderer" */;
+			productName = YianaRenderer;
+		};
+		BB00000100000004BBBBBB01 /* YianaRenderer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BB00000100000005BBBBBB01 /* XCLocalSwiftPackageReference "../YianaRenderer" */;
+			productName = YianaRenderer;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

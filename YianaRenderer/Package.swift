@@ -9,13 +9,9 @@ let package = Package(
         .library(name: "YianaRenderer", targets: ["YianaRenderer"]),
     ],
     targets: [
-        .target(
+        .binaryTarget(
             name: "CYianaTypstBridge",
-            linkerSettings: [
-                .unsafeFlags([
-                    "-L", "rust/yiana-typst-bridge/target/aarch64-apple-darwin/release",
-                ]),
-            ]
+            path: "rust/yiana-typst-bridge/YianaTypstBridge.xcframework"
         ),
         .target(
             name: "YianaRenderer",

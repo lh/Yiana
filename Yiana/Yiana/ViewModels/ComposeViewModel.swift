@@ -156,10 +156,27 @@ class ComposeViewModel {
         }
     }
 
-    /// Save and request rendering.
+    /// Save and render locally via Typst.
     func sendToPrint() async {
         await saveDraft()
         guard let id = letterId, errorMessage == nil else { return }
+
+        let sender: SenderConfig
+        do {
+            let loaded = try await Task.detached {
+                try SenderConfigService.shared.load()
+            }.value
+            guard let s = loaded else {
+                errorMessage = "Sender config not found"
+                return
+            }
+            sender = s
+        } catch {
+            errorMessage = "Failed to load sender config: \(error.localizedDescription)"
+            return
+        }
+
+        status = .renderRequested
 
         do {
             let draft = try await Task.detached { [repository] in
@@ -167,17 +184,19 @@ class ComposeViewModel {
                 return drafts.first { $0.letterId == id }
             }.value
 
-            guard var draftToRender = draft else {
+            guard let draftToRender = draft else {
                 errorMessage = "Draft not found after save"
                 return
             }
 
-            try await Task.detached { [repository] in
-                try repository.requestRender(&draftToRender)
-            }.value
-            status = .renderRequested
+            try await LetterRenderService.shared.renderAndDeliver(
+                draft: draftToRender,
+                sender: sender
+            )
+            status = .rendered
         } catch {
-            errorMessage = "Send failed: \(error.localizedDescription)"
+            errorMessage = "Render failed: \(error.localizedDescription)"
+            status = .draft
         }
     }
 

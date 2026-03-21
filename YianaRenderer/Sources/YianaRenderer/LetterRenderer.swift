@@ -26,6 +26,28 @@ public struct SenderInfo: Codable, Sendable {
         public var name: String
         public var phone: String
         public var email: String
+
+        public init(name: String, phone: String, email: String) {
+            self.name = name
+            self.phone = phone
+            self.email = email
+        }
+    }
+
+    public init(
+        name: String, credentials: String, role: String,
+        department: String, hospital: String, address: [String],
+        phone: String, email: String, secretary: SecretaryInfo? = nil
+    ) {
+        self.name = name
+        self.credentials = credentials
+        self.role = role
+        self.department = department
+        self.hospital = hospital
+        self.address = address
+        self.phone = phone
+        self.email = email
+        self.secretary = secretary
     }
 }
 
@@ -36,6 +58,14 @@ public struct PatientInfo: Codable, Sendable {
     public var mrn: String
     public var address: [String]
     public var phones: [String]
+
+    public init(name: String, dob: String, mrn: String, address: [String], phones: [String]) {
+        self.name = name
+        self.dob = dob
+        self.mrn = mrn
+        self.address = address
+        self.phones = phones
+    }
 }
 
 /// Recipient information for letter rendering.
@@ -45,6 +75,14 @@ public struct RecipientInfo: Codable, Sendable {
     public var name: String
     public var practice: String?
     public var address: [String]
+
+    public init(role: String, source: String, name: String, practice: String? = nil, address: [String]) {
+        self.role = role
+        self.source = source
+        self.name = name
+        self.practice = practice
+        self.address = address
+    }
 }
 
 /// All data needed to render a letter.

@@ -112,7 +112,7 @@ struct ComposeTab: View {
     private var statusBadge: some View {
         let (text, color): (String, Color) = switch viewModel.status {
         case .draft: ("Draft", .secondary)
-        case .renderRequested: ("Sending...", .orange)
+        case .renderRequested: ("Rendering...", .orange)
         case .rendered: ("Ready", .green)
         }
         HStack(spacing: 4) {
