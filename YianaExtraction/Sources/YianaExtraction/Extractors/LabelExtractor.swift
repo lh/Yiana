@@ -78,17 +78,18 @@ public struct LabelExtractor: Extractor {
                 }
             }
 
-            // Extract city from the line before the postcode
+            // Extract city: prefer line before postcode, fall back to text on postcode line
             var city: String?
             if pcIdx >= 2 {
-                // Lines between name (0) and postcode (pcIdx): address block
                 let cityCandidate = window[pcIdx - 1]
-                // Only use it if it doesn't look like a street address (no house number prefix)
                 if !cityCandidate.isEmpty,
                    cityCandidate.first?.isNumber != true,
                    ExtractionHelpers.firstPostcode(in: cityCandidate) == nil {
                     city = cityCandidate
                 }
+            }
+            if city == nil {
+                city = ExtractionHelpers.cityFromPostcodeLine(window[pcIdx])
             }
 
             return AddressPageEntry(

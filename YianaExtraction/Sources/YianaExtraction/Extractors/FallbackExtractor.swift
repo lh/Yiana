@@ -26,13 +26,23 @@ public struct FallbackExtractor: Extractor {
         // Step 3: Find any date
         let dob = ExtractionHelpers.extractDate(from: text)
 
+        // Step 4: City — find the postcode line and strip the postcode
+        var city: String?
+        let lines = text.components(separatedBy: "\n")
+        for line in lines {
+            if line.uppercased().contains(postcode) {
+                city = ExtractionHelpers.cityFromPostcodeLine(line)
+                break
+            }
+        }
+
         return AddressPageEntry(
             pageNumber: input.pageNumber,
             patient: PatientInfo(
                 fullName: name,
                 dateOfBirth: dob
             ),
-            address: AddressInfo(postcode: postcode),
+            address: AddressInfo(city: city, postcode: postcode),
             extraction: ExtractionInfo(method: "unstructured", confidence: 0.5),
             addressType: "patient"
         )

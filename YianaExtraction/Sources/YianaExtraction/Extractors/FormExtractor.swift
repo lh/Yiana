@@ -112,14 +112,30 @@ public struct FormExtractor: Extractor {
             postcode = ExtractionHelpers.firstPostcode(in: text)
         }
 
-        // Extract city: line before postcode in address block
+        // Extract city: line before postcode, then postcode-line text, then 3rd address line
         var city: String?
         if !addressLines.isEmpty, let pc = postcode {
             if let pcLineIdx = addressLines.firstIndex(where: {
                 ExtractionHelpers.firstPostcode(in: $0) == pc
-            }), pcLineIdx >= 1 {
-                let candidate = addressLines[pcLineIdx - 1]
-                if !candidate.isEmpty, candidate.first?.isNumber != true {
+            }) {
+                // Line before postcode
+                if pcLineIdx >= 1 {
+                    let candidate = addressLines[pcLineIdx - 1]
+                    if !candidate.isEmpty, candidate.first?.isNumber != true {
+                        city = candidate
+                    }
+                }
+                // Text on same line as postcode (e.g. "London SW1A 1AA")
+                if city == nil {
+                    city = ExtractionHelpers.cityFromPostcodeLine(addressLines[pcLineIdx])
+                }
+            }
+            // Third address line as fallback (line1=street, line2=area, line3=city)
+            if city == nil, addressLines.count >= 3 {
+                let candidate = addressLines[2]
+                if !candidate.isEmpty,
+                   candidate.first?.isNumber != true,
+                   ExtractionHelpers.firstPostcode(in: candidate) == nil {
                     city = candidate
                 }
             }

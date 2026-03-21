@@ -59,6 +59,28 @@ enum ExtractionHelpers {
         return nil
     }
 
+    /// Extract city/town text from a line that contains a postcode.
+    /// Strips the postcode and returns the remainder, or nil if nothing meaningful remains.
+    /// Example: "London SW1A 1AA" -> "London", "RH1 1AA" -> nil.
+    static func cityFromPostcodeLine(_ line: String) -> String? {
+        guard let pc = firstPostcode(in: line) else { return nil }
+        // Remove the postcode (case-insensitive) and clean up
+        let remainder = line.replacingOccurrences(
+            of: pc, with: "",
+            options: [.caseInsensitive]
+        )
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .trimmingCharacters(in: CharacterSet(charactersIn: ",.-"))
+        .trimmingCharacters(in: .whitespaces)
+
+        guard !remainder.isEmpty,
+              remainder.first?.isNumber != true,
+              remainder.count >= 3 else {
+            return nil
+        }
+        return remainder
+    }
+
     // MARK: - Name Cleaning
 
     /// Remove non-alpha characters (keep spaces, hyphens, apostrophes), normalize whitespace, title case.
@@ -109,5 +131,81 @@ enum ExtractionHelpers {
             }
         }
         return nil
+    }
+
+    // MARK: - Filename Parsing
+
+    /// Result of parsing a patient-level filename (Surname_Firstname_DDMMYY).
+    struct FilenamePatient {
+        let surname: String
+        let firstname: String
+        let fullName: String
+        let dateOfBirth: String  // DD/MM/YYYY
+    }
+
+    /// Parse patient name and DOB from a document ID following the
+    /// `Surname_Firstname_DDMMYY` convention.
+    ///
+    /// Handles hyphenated names, apostrophes (straight and curly),
+    /// trailing text after DOB, and minor spacing/double-underscore issues.
+    /// Returns nil if the filename doesn't match the convention.
+    static func parsePatientFilename(_ documentId: String) -> FilenamePatient? {
+        // Normalize curly apostrophes to straight
+        let normalized = documentId
+            .replacingOccurrences(of: "\u{2018}", with: "'")
+            .replacingOccurrences(of: "\u{2019}", with: "'")
+
+        // Split on underscores, strip whitespace, drop empties
+        let parts = normalized
+            .split(separator: "_", omittingEmptySubsequences: true)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+
+        guard parts.count >= 3 else { return nil }
+
+        let surname = parts[0]
+        let firstname = parts[1]
+        let dobPart = parts[2]
+
+        // Both must start with a letter
+        guard let sFirst = surname.first, sFirst.isLetter,
+              let fFirst = firstname.first, fFirst.isLetter else {
+            return nil
+        }
+
+        // Validate name characters: letters, hyphens, apostrophes
+        let namePattern = #"^[A-Za-z][A-Za-z\-']*$"#
+        guard firstMatch(namePattern, in: surname) != nil,
+              firstMatch(namePattern, in: firstname) != nil else {
+            return nil
+        }
+
+        // Extract exactly 6 leading digits for DOB
+        guard let dobMatch = firstMatch(#"^(\d{6})"#, in: dobPart) else {
+            return nil
+        }
+
+        let dobRaw = dobMatch[1]
+        guard let day = Int(dobRaw.prefix(2)),
+              let month = Int(dobRaw.dropFirst(2).prefix(2)),
+              let yy = Int(dobRaw.dropFirst(4).prefix(2)),
+              (1...31).contains(day),
+              (1...12).contains(month) else {
+            return nil
+        }
+
+        let year = yy >= 26 ? 1900 + yy : 2000 + yy
+        let dob = String(format: "%02d/%02d/%d", day, month, year)
+
+        // Capitalize first letter, preserve the rest (handles O'Brien, hyphenated names)
+        let capSurname = surname.prefix(1).uppercased() + surname.dropFirst()
+        let capFirstname = firstname.prefix(1).uppercased() + firstname.dropFirst()
+
+        return FilenamePatient(
+            surname: capSurname,
+            firstname: capFirstname,
+            fullName: "\(capFirstname) \(capSurname)",
+            dateOfBirth: dob
+        )
     }
 }
