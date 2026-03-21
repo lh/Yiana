@@ -372,6 +372,10 @@ iCloud handles sync. No coordinator needed.
 
 Replace the Python render service with in-app Typst rendering.
 
+- [x] Build Rust crate `yiana-typst-bridge` — wraps Typst compiler as C-compatible static library
+- [x] Tests pass (3/3: simple template, data template with JSON, error handling)
+- [x] Cross-compiled for 4 Apple targets (macOS ARM/Intel, iOS device/simulator, ~39MB each)
+- [x] XCFramework built (not committed — rebuild via `build-xcframework.sh`)
 - [ ] Write Typst letter template (prototype at `docs/typst-prototype/letter.typ`)
   - Hospital/GP copy: 11pt, name+MRN header on pages 2+
   - Patient copy: 14pt, wider line spacing, page numbers only on pages 2+
