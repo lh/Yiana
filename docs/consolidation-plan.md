@@ -330,20 +330,13 @@ step-by-step checklists, design decisions, estimated effort.
 - [x] Added searchPatients() and searchPractitioners() to EntityDatabase and EntityDatabaseService
 - [x] 12 new tests (94 total pass). LIKE on normalized name/DOB/practice, ordered by doc count
 
-### 3.5 Port compose views
+### 3.5-3.7 Compose module (simplified) -- DONE (2026-03-21)
 
-- [ ] Create Views/Compose/ directory
-- [ ] Port all 9 view files, adapting navigation and platform guards
-
-### 3.6 Port view models
-
-- [ ] ComposeViewModel (rewire to entity DB)
-- [ ] DraftsViewModel (same polling, ported LetterRepository)
-
-### 3.7 Wire into Yiana navigation
-
-- [ ] Add compose entry point (toolbar button / tab)
-- [ ] End-to-end compose flow works
+Redesigned instead of porting Yiale views:
+- [x] `ComposeTab.swift` — compose tab in DocumentInfoPanel (macOS)
+- [x] `ComposeViewModel.swift` — auto-fill from prime addresses, save/send via LetterRepository
+- [x] Rules-based recipients (patient=To, GP=CC), body-text-only editing
+- Deferred: PatientSearchView, RecipientEditor, DraftsListView, DraftDetailView, iOS compose
 
 ### 3.8 Integration testing
 

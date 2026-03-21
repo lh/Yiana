@@ -57,6 +57,7 @@ struct DocumentInfoPanel: View {
                 Text("Metadata").tag("metadata")
                 Text("Text").tag("ocr")
                 Text("Debug").tag("debug")
+                Text("Compose").tag("compose")
             }
             .pickerStyle(.segmented)
             .padding()
@@ -79,6 +80,9 @@ struct DocumentInfoPanel: View {
                             selectedTab = "addresses"
                         }
                         .padding()
+                    case "compose":
+                        ComposeTab(documentId: document.metadata.title)
+                            .padding()
                     case "debug":
                         DebugView(document: document)
                             .padding()

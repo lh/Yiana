@@ -121,44 +121,42 @@ This is the key improvement over Yiale. Instead of loading every `.addresses/*.j
 
 ### 3.5 Port compose views
 
-- [ ] Create `Yiana/Yiana/Views/Compose/` directory
-- [ ] Port `ComposeView.swift` — adapt to Yiana's navigation (presented as sheet or navigation destination)
-- [ ] Port `PatientSearchView.swift` — rewire from `AddressSearchService` to `EntityDatabaseService.searchPatients()`
-- [ ] Port `RecipientEditor.swift` (should need minimal changes)
-- [ ] Port `AddressConfirmationSheet.swift` (minimal changes)
-- [ ] Port `DraftRow.swift` + status badge (minimal changes)
-- [ ] Port `DraftsListView.swift` — integrate with Yiana's navigation; work list section uses Yiana's existing WorkListViewModel
-- [ ] Port `DraftDetailView.swift` — wrap macOS-specific code in `#if os(macOS)`; provide iOS fallback (share sheet or QuickLook preview)
-- [ ] Port `ClinicListImportSheet.swift` (minimal changes — Yiana already has ClinicListParser)
-- [ ] Build both platforms
+**Redesigned:** Instead of porting 9 Yiale views, built a simplified compose module:
+- Recipients are rules-based (patient=To, GP=CC), no manual editor
+- Body is a text blob (markdown/plain text), no greeting/salutation
+- Compose is a tab in DocumentInfoPanel, replacing the addresses view when active
+- Drafts list deferred
 
-**Test gate:** iOS and macOS build. All compose views compile.
+- [x] Create `Yiana/Yiana/Views/Compose/` directory
+- [x] Create `ComposeTab.swift` — text area + status + save/send/print buttons (macOS, ~125 lines)
+- [x] Create `ComposeViewModel.swift` — load/save/send via LetterRepository, auto-fill from prime addresses (~175 lines)
+- [x] Add "Compose" tab to `DocumentInfoPanel.swift`
+- [x] Build both platforms
+- [ ] PatientSearchView — NOT ported (patient from document context)
+- [ ] RecipientEditor — NOT ported (rules-based)
+- [ ] AddressConfirmationSheet — NOT ported (auto-filled)
+- [ ] DraftsListView, DraftRow — deferred
+- [ ] DraftDetailView — PDF viewing inline in compose tab
+
+**Test gate:** PASSED — iOS and macOS build. Compose tab appears in info panel.
 
 ### 3.6 Port view models
 
-- [ ] Port `ComposeViewModel.swift` to `Yiana/Yiana/ViewModels/`
-  - Replace `AddressSearchService` usage with `EntityDatabaseService`
-  - Replace `ResolvedPatient` with `PatientRecord` + `PractitionerRecord`
-  - Adapt `selectPatient()` to work with entity DB records
-  - Keep `saveDraft()` and `requestRender()` using `LetterRepository` (same file format)
-- [ ] Port `DraftsViewModel.swift` to `Yiana/Yiana/ViewModels/`
-  - Same polling pattern (5-sec timer for render status)
-  - Use ported `LetterRepository`
-- [ ] Build both platforms
+**Redesigned:** Simplified ComposeViewModel built from scratch instead of porting Yiale's.
+- [x] `ComposeViewModel.swift` (~175 lines) — auto-fills from prime addresses, saves/sends via LetterRepository
+- [ ] `DraftsViewModel.swift` — deferred (no drafts list yet)
+- [x] Build both platforms
 
-**Test gate:** iOS and macOS build. View models compile and are wired to views.
+**Test gate:** PASSED — iOS and macOS build.
 
 ### 3.7 Wire into Yiana navigation
 
-- [ ] Add "Compose" entry point to Yiana's main navigation
-  - macOS: sidebar item or toolbar button
-  - iOS: tab bar item or toolbar button
-- [ ] Decide navigation pattern: tab vs sheet vs navigation destination
-  - Recommendation: toolbar button that opens DraftsListView as a sheet (macOS) or pushes it (iOS)
-- [ ] Verify the compose flow end-to-end: search patient -> compose -> save draft -> request render
-- [ ] Build both platforms
+**Redesigned:** Compose is a tab in DocumentInfoPanel, not a separate navigation destination.
+- [x] Compose tab added to DocumentInfoPanel (macOS)
+- [ ] iOS compose access — deferred (info panel is macOS-only currently)
+- [x] Build both platforms
 
-**Test gate:** iOS and macOS build. User can navigate to compose from Yiana's main UI.
+**Test gate:** PASSED — iOS and macOS build. Compose tab in info panel.
 
 ### 3.8 Integration testing
 
