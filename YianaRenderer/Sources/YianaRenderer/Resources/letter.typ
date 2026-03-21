@@ -11,11 +11,7 @@
 
 // -- Derived values --
 #let has-postal-address = recipient.role != "hospital_records" and recipient.address.len() > 0
-#let signer-name = sender.name
-  .replace("MBBS", "").replace("BSc", "").replace("FRCOphth", "")
-  .replace("FRCS", "").replace("MD", "").replace("PhD", "")
-  .split(",").first()
-  .trim()
+#let signer-name = sender.name.replace("MBBS", "").replace("BSc", "").replace("FRCOphth", "").replace("FRCS", "").replace("MD", "").replace("PhD", "").split(",").first().trim()
 
 // Date formatting
 #let today = datetime.today()
@@ -101,11 +97,7 @@
 #body-text
 
 // -- Sign-off --
-#v(0.5em)
-With best wishes
-
-Yours sincerely
-
+#v(2em)
 #signer-name
 
 // -- CC lines --

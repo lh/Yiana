@@ -95,17 +95,32 @@ struct ComposeTab: View {
             let pdfs = viewModel.getRenderedPDFs()
             if !pdfs.isEmpty {
                 Divider()
-                HStack {
-                    Button("View PDF") {
-                        guard let url = pdfs.first else { return }
-                        NSWorkspace.shared.open(url)
+                ForEach(pdfs, id: \.lastPathComponent) { url in
+                    HStack {
+                        Button(pdfLabel(url)) {
+                            NSWorkspace.shared.open(url)
+                        }
+                        .buttonStyle(.link)
                     }
-                    Button("Print") {
-                        printRenderedPDFs(pdfs)
-                    }
+                }
+                Button("Print All") {
+                    printRenderedPDFs(pdfs)
                 }
             }
         }
+    }
+
+    private func pdfLabel(_ url: URL) -> String {
+        let name = url.deletingPathExtension().lastPathComponent
+        if name.hasSuffix("_patient_copy") { return "Patient copy" }
+        if name.hasSuffix("_hospital_records") { return "Hospital records" }
+        if name.contains("_to_") {
+            let parts = name.components(separatedBy: "_to_")
+            if let recipient = parts.last {
+                return "To: " + recipient.replacingOccurrences(of: "_", with: " ")
+            }
+        }
+        return name
     }
 
     @ViewBuilder
