@@ -271,14 +271,27 @@ edge cases + schema/normalisation). Statistics method implemented.
 Entity DB populates on extraction and lazy-loads on address view.
 AddressCard shows document counts from entity DB.
 
-### 2.3 Parallel Validation
+### 2.3 Parallel Validation -- DONE (2026-03-21)
 
-- [ ] Run full ingestion on all `.addresses/*.json` files
-- [ ] Compare entity counts and links against `addresses_backend.db`
-- [ ] Review discrepancies
+- [x] Run full ingestion on all `.addresses/*.json` files
+- [x] Compare entity counts and links against `addresses_backend.db`
+- [x] Review discrepancies
 
-**Test gate:** entity counts within 5% of Python backend. Discrepancies
-reviewed and explained.
+**Results (2026-03-21):**
+
+| Metric | Python | Swift | Diff | Notes |
+|--------|--------|-------|------|-------|
+| Documents | 1404 | 1442 | +2.7% | +38 new docs since Python stopped |
+| Extractions | 4009 | 4519 | +12.7% | Swift cascade finds more pages |
+| Patients | 1410 | 1432 | +1.6% | New docs + deduplication |
+| Practitioners | 389 | 391 | +0.5% | +2 Consultants (specialist type) |
+| Links | 895 | 913 | +2.0% | More docs = more links |
+
+All core entity counts within 5%. Extraction count higher because Swift
+extraction is more thorough. Practitioner difference is +2 Consultants
+which Python never created (only tracked GPs).
+
+**Test gate: PASSED.**
 
 ### 2.4 Retire Python Backend DB
 

@@ -85,10 +85,12 @@ After monitoring: remove LaunchAgent plist, archive Python extraction code.
 - AddressCard shows "Seen in N documents" for patient and GP names (N > 1, view mode only)
 - Queries EntityDatabaseService at load time, matches practitioners by name
 
-### Phase 2.3: Parallel Validation
-- Run full ingestion on all `.addresses/*.json` files
-- Compare entity counts and links against `addresses_backend.db`
-- Review discrepancies
+### Phase 2.3: Parallel Validation -- DONE (2026-03-21)
+- 1442/1442 files ingested, zero failures
+- All entity counts within 5% of Python backend (patients +1.6%, practitioners +0.5%, links +2.0%)
+- Extraction count +12.7% — Swift cascade is more thorough, not a discrepancy
+- +2 Consultant practitioners (Python only tracked GPs)
+- CLI `--ingest-all` mode added to yiana-extract for validation
 
 ### Postcode lookup async updater (future)
 - When a sector isn't in the static table, query postcodes.io live and cache
