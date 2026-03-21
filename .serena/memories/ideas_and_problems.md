@@ -15,6 +15,11 @@ Quick-capture list for things that come to mind mid-task.
 
 11. **GP data not extracted from some documents** — Groves_Simon_250870 has GP info but none was picked up by any extractor. May be a layout the extractors don't recognise. Discovered 2026-03-20.
 
+21. **Address card UI issues (2026-03-21):**
+    a. Town/city not inferred from postcode despite plan #13 existing — postcode-to-town lookup not yet implemented.
+    b. Cannot add a new GP card — UI flow for adding GP addresses missing or broken.
+    c. Changing patient card to GP type picks up some GP data initially, but saving reverts to prior patient data — likely the save path writes back the original extracted data rather than the edited fields. Needs investigation in AddressesView/AddressRepository save flow.
+
 8. **Special characters in folder names (`?`, `#`, `%`) corrupt file operations** — Folder `Junk?` causes documents to silently move to parent folder during save/archive operations. The `?` is likely interpreted as a URL query separator at some point in the URL→path→URL chain (e.g. `URL(fileURLWithPath:)` round-trip). Documents "vanish" from the folder and reappear in parent. Need to either sanitize folder names on creation or ensure all file operations use `.path` instead of URL string comparisons. Discovered 2026-02-28.
 
 ## Ideas
@@ -52,7 +57,10 @@ Quick-capture list for things that come to mind mid-task.
 
 18. **Typst replaces LaTeX for letter rendering** — Rust crate `yiana-typst-bridge` and Swift package `YianaRenderer` built and tested. Compiles Typst templates to PDF via FFI (no subprocess). XCFramework for macOS + iOS. 30ms to render 3 PDFs. Next: wire into Yiana app (Milestone 3) then retire Devon render service (Milestone 4). Logged 2026-03-21.
 
-19. **Letter formatting finessing needed** — The compose-to-render flow works end-to-end but the rendered letters need formatting polish. This is render service / LaTeX template work on Devon, not Yiana app code. Includes: envelope window positioning, font sizes, spacing, cc line formatting, Re: line placement, patient copy legibility, and any other typographic details. Important for the final product. Logged 2026-03-21.
+19. **Letter formatting finessing needed** — Logged 2026-03-21, updated 2026-03-21.
+    a. **Envelope window alignment** — Recipient address block needs precise positioning to show through a standard window envelope. User will measure dimensions from work stationery. Priority for postal letters.
+    b. **Footer contact block** — Previous LaTeX version had a nice block at the bottom with sender contact details, secretary info, etc. Bring this back in the Typst template.
+    c. **Custom/user-editable templates** — When the app is generalised beyond medical/personal use, users will need to write or adapt their own Typst templates. Design TBD — could be template selection, in-app editor, or user-supplied .typ files. Long-term product consideration.
 
 16. **HTML render template: leading comma when department is empty** — `sender.json` has `"department": ""`. The HTML footer template joins role/department/hospital without filtering empties, producing `, Spire Gatwick Park Hospital`. PDF render (LaTeX) handles it correctly. Low priority — cosmetic, HTML-only. Logged 2026-03-21.
 
