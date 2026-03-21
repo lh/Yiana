@@ -309,6 +309,46 @@ public final class EntityDatabase: Sendable {
         }
     }
 
+    // MARK: - Search
+
+    /// Search patients by name substring (case-insensitive) or DOB fragment.
+    /// Results ordered by document count (most-seen first).
+    public func searchPatients(query: String, limit: Int = 20) throws -> [PatientRecord] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !trimmed.isEmpty else { return [] }
+
+        let pattern = "%\(trimmed)%"
+        return try dbQueue.read { db in
+            try PatientRecord
+                .filter(
+                    Column("full_name_normalized").like(pattern) ||
+                    Column("date_of_birth").like(pattern)
+                )
+                .order(Column("document_count").desc)
+                .limit(limit)
+                .fetchAll(db)
+        }
+    }
+
+    /// Search practitioners by name or practice name substring (case-insensitive).
+    /// Results ordered by document count (most-seen first).
+    public func searchPractitioners(query: String, limit: Int = 20) throws -> [PractitionerRecord] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !trimmed.isEmpty else { return [] }
+
+        let pattern = "%\(trimmed)%"
+        return try dbQueue.read { db in
+            try PractitionerRecord
+                .filter(
+                    Column("full_name_normalized").like(pattern) ||
+                    Column("practice_name").like(pattern)
+                )
+                .order(Column("document_count").desc)
+                .limit(limit)
+                .fetchAll(db)
+        }
+    }
+
     // MARK: - Entity Resolution
 
     func resolvePatient(_ db: Database, name: String, dob: String?) throws -> Int64? {

@@ -112,15 +112,12 @@ The compose module becomes a tab or navigation destination within Yiana, not a s
 
 This is the key improvement over Yiale. Instead of loading every `.addresses/*.json` file and doing in-memory search, we query the entity database.
 
-- [ ] Add patient search methods to `EntityDatabaseService`:
-  - `searchPatients(query: String) -> [PatientRecord]` — substring match on name, DOB, or normalized name
-  - `patientWithAddress(_ patientId: Int64) -> PatientRecord?` — full record with address fields
-- [ ] Add corresponding public methods to `EntityDatabase`:
-  - `searchPatients(query:limit:)` — GRDB query with LIKE on `full_name` and `full_name_normalized`
-- [ ] Write tests for search (empty query, partial name, DOB match, case insensitive)
-- [ ] Build both platforms and run package tests
+- [x] Add search methods to `EntityDatabase`: `searchPatients(query:limit:)` and `searchPractitioners(query:limit:)` — LIKE on normalized name, DOB, or practice name; ordered by document_count DESC
+- [x] Add wrapper methods to `EntityDatabaseService`
+- [x] Write 12 tests: empty query, whitespace, partial name, case-insensitive, DOB match (DD/MM/YYYY format), no match, ordered by doc count, limit, practitioner by name, practitioner by practice
+- [x] Build both platforms and run package tests (94/94 pass)
 
-**Test gate:** Patient search returns correct results. Existing 82+ tests still pass.
+**Test gate:** PASSED — patient/practitioner search returns correct results. All 94 tests pass. Both platforms build.
 
 ### 3.5 Port compose views
 

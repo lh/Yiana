@@ -107,4 +107,16 @@ final class EntityDatabaseService {
         guard let db = database else { return [] }
         return (try? db.practitionersForDocument(documentId).map(\.practitioner)) ?? []
     }
+
+    /// Search patients by name or DOB substring.
+    func searchPatients(query: String, limit: Int = 20) -> [PatientRecord] {
+        guard let db = database else { return [] }
+        return (try? db.searchPatients(query: query, limit: limit)) ?? []
+    }
+
+    /// Search practitioners by name or practice name substring.
+    func searchPractitioners(query: String, limit: Int = 20) -> [PractitionerRecord] {
+        guard let db = database else { return [] }
+        return (try? db.searchPractitioners(query: query, limit: limit)) ?? []
+    }
 }

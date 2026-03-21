@@ -46,6 +46,8 @@ Quick-capture list for things that come to mind mid-task.
 
 **Scope:** extraction_service.py, address_extractor.py, spire_form_extractor.py, backend_db.py, letter_generator.py, letter_system_db_simple.py
 
+14. **DOB stored as DD/MM/YYYY — should be ISO 8601** — `parsePatientFilename` outputs `DD/MM/YYYY` but page extraction uses ISO `YYYY-MM-DD`. Inconsistent internal format. ISO sorts correctly, enables range/prefix queries, and is unambiguous. Fix: change `parsePatientFilename` to output `YYYY-MM-DD`, rebuild entity DB. Post-migration improvement — don't change during consolidation. Logged 2026-03-21.
+
 ## Phase 3.1 Deduplication Notes (2026-03-21)
 
 **Completed:** Deleted 4 Yiale duplicates (SharedWorkList, ClinicListParser, WorkListRepository, WorkListViewModel). All had Yiana equivalents that were equal or superset.

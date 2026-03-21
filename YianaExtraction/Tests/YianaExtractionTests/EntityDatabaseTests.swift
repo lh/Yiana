@@ -347,3 +347,181 @@ struct IngestionEdgeCaseTests {
         #expect(stats.linkCount == 2)
     }
 }
+
+// MARK: - Patient Search Tests
+
+struct PatientSearchTests {
+
+    private func makeDB() throws -> EntityDatabase {
+        let db = try EntityDatabase()
+        // Insert synthetic patients directly via ingestion
+        let json = """
+        {
+            "document_id": "Smith_John_010190",
+            "schema_version": 2,
+            "extracted_at": "2026-01-01T00:00:00Z",
+            "page_count": 1,
+            "pages": [{
+                "page_number": 1,
+                "address_type": "patient",
+                "patient": { "full_name": "John Smith", "date_of_birth": "1990-01-01" },
+                "address": { "postcode": "SW1A 1AA" },
+                "gp": { "name": "Dr Alice Green", "practice": "Riverside Surgery" }
+            }],
+            "overrides": []
+        }
+        """
+        let json2 = """
+        {
+            "document_id": "Jones_Mary_150285",
+            "schema_version": 2,
+            "extracted_at": "2026-01-01T00:00:00Z",
+            "page_count": 1,
+            "pages": [{
+                "page_number": 1,
+                "address_type": "patient",
+                "patient": { "full_name": "Mary Jones", "date_of_birth": "1985-02-15" },
+                "address": { "postcode": "EC1A 1BB" },
+                "gp": { "name": "Dr Bob White", "practice": "Hilltop Medical Centre" }
+            }],
+            "overrides": []
+        }
+        """
+        // Ingest Smith twice to give higher document count
+        let json3 = """
+        {
+            "document_id": "Smith_John_010190_letter",
+            "schema_version": 2,
+            "extracted_at": "2026-01-01T00:00:00Z",
+            "page_count": 1,
+            "pages": [{
+                "page_number": 1,
+                "address_type": "patient",
+                "patient": { "full_name": "John Smith", "date_of_birth": "1990-01-01" },
+                "address": {}
+            }],
+            "overrides": []
+        }
+        """
+        for jsonStr in [json, json2, json3] {
+            let data = jsonStr.data(using: .utf8)!
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString + ".json")
+            try data.write(to: tempURL)
+            try db.ingestAddressFile(at: tempURL)
+            try FileManager.default.removeItem(at: tempURL)
+        }
+        return db
+    }
+
+    @Test func emptyQueryReturnsEmpty() throws {
+        let db = try makeDB()
+        let results = try db.searchPatients(query: "")
+        #expect(results.isEmpty)
+    }
+
+    @Test func whitespaceOnlyReturnsEmpty() throws {
+        let db = try makeDB()
+        let results = try db.searchPatients(query: "   ")
+        #expect(results.isEmpty)
+    }
+
+    @Test func partialNameMatch() throws {
+        let db = try makeDB()
+        let results = try db.searchPatients(query: "smith")
+        #expect(results.count == 1)
+        #expect(results[0].fullNameNormalized == "john smith")
+    }
+
+    @Test func caseInsensitiveMatch() throws {
+        let db = try makeDB()
+        let results = try db.searchPatients(query: "JONES")
+        #expect(results.count == 1)
+        #expect(results[0].fullNameNormalized == "mary jones")
+    }
+
+    @Test func dobMatch() throws {
+        let db = try makeDB()
+        // DOB stored as DD/MM/YYYY from filename parsing
+        let results = try db.searchPatients(query: "01/01/1990")
+        #expect(results.count == 1)
+        #expect(results[0].fullNameNormalized == "john smith")
+    }
+
+    @Test func noMatchReturnsEmpty() throws {
+        let db = try makeDB()
+        let results = try db.searchPatients(query: "zzzznotaname")
+        #expect(results.isEmpty)
+    }
+
+    @Test func orderedByDocumentCount() throws {
+        let db = try makeDB()
+        // "john smith" has 2 docs, "mary jones" has 1
+        let results = try db.searchPatients(query: "o") // matches both (john, jones)
+        #expect(results.count == 2)
+        #expect(results[0].fullNameNormalized == "john smith") // higher doc count
+    }
+
+    @Test func limitResults() throws {
+        let db = try makeDB()
+        let results = try db.searchPatients(query: "o", limit: 1)
+        #expect(results.count == 1)
+    }
+}
+
+// MARK: - Practitioner Search Tests
+
+struct PractitionerSearchTests {
+
+    private func makeDB() throws -> EntityDatabase {
+        let db = try EntityDatabase()
+        let json = """
+        {
+            "document_id": "Test_Doc_010190",
+            "schema_version": 2,
+            "extracted_at": "2026-01-01T00:00:00Z",
+            "page_count": 1,
+            "pages": [{
+                "page_number": 1,
+                "address_type": "patient",
+                "patient": { "full_name": "Test Patient" },
+                "gp": { "name": "Dr Sarah Palmer", "practice": "Oak Tree Surgery" }
+            }],
+            "overrides": []
+        }
+        """
+        let data = json.data(using: .utf8)!
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString + ".json")
+        try data.write(to: tempURL)
+        try db.ingestAddressFile(at: tempURL)
+        try FileManager.default.removeItem(at: tempURL)
+        return db
+    }
+
+    @Test func emptyQueryReturnsEmpty() throws {
+        let db = try makeDB()
+        let results = try db.searchPractitioners(query: "")
+        #expect(results.isEmpty)
+    }
+
+    @Test func searchByName() throws {
+        let db = try makeDB()
+        let results = try db.searchPractitioners(query: "palmer")
+        #expect(results.count == 1)
+        #expect(results[0].fullNameNormalized == "sarah palmer")
+    }
+
+    @Test func searchByPracticeName() throws {
+        let db = try makeDB()
+        let results = try db.searchPractitioners(query: "oak tree")
+        #expect(results.count == 1)
+        #expect(results[0].practiceName == "Oak Tree Surgery")
+    }
+
+    @Test func noMatchReturnsEmpty() throws {
+        let db = try makeDB()
+        let results = try db.searchPractitioners(query: "zznotapractice")
+        #expect(results.isEmpty)
+    }
+}

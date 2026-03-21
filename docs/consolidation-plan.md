@@ -325,10 +325,10 @@ step-by-step checklists, design decisions, estimated effort.
 - [x] LetterRepository.swift, SenderConfigService.swift to Yiana/Services/
 - [x] Adapted iCloud URL sourcing to Yiana's per-service caching pattern (no ICloudContainer singleton)
 
-### 3.4 Port patient search (entity DB migration)
+### 3.4 Port patient search (entity DB migration) -- DONE (2026-03-21)
 
-- [ ] Add searchPatients() to EntityDatabase and EntityDatabaseService
-- [ ] Tests for search (empty, partial name, DOB, case insensitive)
+- [x] Added searchPatients() and searchPractitioners() to EntityDatabase and EntityDatabaseService
+- [x] 12 new tests (94 total pass). LIKE on normalized name/DOB/practice, ordered by doc count
 
 ### 3.5 Port compose views
 
