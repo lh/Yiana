@@ -118,10 +118,7 @@ final class AddressRepository: ObservableObject {
     }
 
     init() {
-        if let dirURL = Self.addressesDirectoryURL {
-            logger.info("Addresses directory: \(dirURL.path)")
-            Self.migrateOverridesToSeparateFiles(dirURL: dirURL)
-        } else {
+        if Self.addressesDirectoryURL == nil {
             logger.error("Failed to locate iCloud container")
         }
     }
