@@ -1,6 +1,6 @@
 # Consolidation Plan of Campaign
 
-## Status: Phase 3 In Progress (2026-03-21)
+## Status: Phase 3 Complete, Phase 4 Replanned (2026-03-21)
 
 ## Principles
 
@@ -263,7 +263,7 @@ edge cases + schema/normalisation). Statistics method implemented.
 
 - [x] After extraction completes, call `EntityDatabase.ingestAddressFile()`
 - [x] Entity DB stored locally (not in iCloud — same as search index)
-- [x] Boss instance: `ingestAll()` method ready (auto-trigger deferred to Phase 4)
+- [x] `ingestAll()` method ready (can be triggered manually or on app launch)
 - [x] Regular instances: lazy ingestion when viewing addresses
 - [x] AddressesView: "Seen in N documents" annotations for patient and GP names (N > 1, view mode only)
 
@@ -306,7 +306,7 @@ which Python never created (only tracked GPs).
 
 **Goal:** Absorb Yiale's features into Yiana as a "Compose" module.
 
-**Status: IN PROGRESS** (started 2026-03-21)
+**Status: COMPLETE** (2026-03-21)
 
 **Detailed plan:** [`docs/phase-3-plan.md`](phase-3-plan.md) — full inventory,
 step-by-step checklists, design decisions, estimated effort.
@@ -355,46 +355,64 @@ Full compose-to-render-to-inject flow verified.
 
 ---
 
-## Phase 4: Boss Instance Configuration
+## Phase 4: Self-Sufficient App (Typst Rendering)
 
-**Goal:** Make the Mac mini's Yiana instance the always-on "boss."
+**Goal:** Every Mac runs a fully self-sufficient Yiana — no server, no
+Python, no LaTeX. Install the app, it just works.
 
-### 4.1 Boss Mode
+**Why the original "boss instance" plan was dropped:** With OCR, extraction,
+entity DB, and compose all running in-app, the only remaining server
+dependency is letter rendering (Python + LaTeX on Devon). Replacing that
+with Typst (bundled in the app) eliminates the last server dependency.
+There is no need for a central "boss" — each device is self-sufficient.
+The entity DB is a local derived cache rebuilt from iCloud JSON files.
+iCloud handles sync. No coordinator needed.
 
-- [ ] Add app configuration for boss behaviour:
-  - `autoProcessOnLaunch`: process all unprocessed documents at startup
-  - `backgroundExtraction`: watch for new documents and extract continuously
-  - `entityDatabaseRebuild`: full re-ingestion on schedule or demand
-- [ ] Implement as macOS-only Settings pane (or plist/defaults configuration)
-- [ ] macOS login item support (launch at login, stay running)
+### 4.1 Typst Rendering in App
 
-### 4.2 Integration Hooks
+Replace the Python render service with in-app Typst rendering.
 
-- [ ] Define integration point for always-on tasks:
-  - File copy to external folder (Dropbox, shared folder)
-  - Email notification (via system mail or SMTP)
-  - Webhook calls
-- [ ] Configuration-driven: integrations defined in a JSON/plist config file
-- [ ] Each integration is a simple Swift protocol:
-  ```swift
-  protocol Integration {
-      func shouldTrigger(for document: DocumentMetadata) -> Bool
-      func execute(for document: DocumentMetadata, addressData: ExtractedAddress) async throws
-  }
-  ```
-- [ ] Write tests for each integration type
+- [ ] Write Typst letter template (prototype at `docs/typst-prototype/letter.typ`)
+  - Hospital/GP copy: 11pt, name+MRN header on pages 2+
+  - Patient copy: 14pt, wider line spacing, page numbers only on pages 2+
+  - Postal address block for windowed envelopes (positioned for C5 window)
+  - CC lines, Re: line, sender header (bold italic)
+- [ ] Integrate Typst into the app:
+  - Option A: Bundle `typst` CLI binary (~30MB), call as subprocess (macOS only)
+  - Option B: Compile `typst` Rust crate as static library, call from Swift via C bridge (both platforms)
+  - Option B is preferred — enables iOS rendering and avoids subprocess management
+- [ ] Build `LetterRenderer` service in Swift:
+  - Takes `LetterDraft` + `SenderConfig` → produces PDFs (one per recipient) + HTML
+  - Replaces `LetterRepository.requestRender()` status-based flow with direct rendering
+  - Writes rendered PDFs to `.letters/rendered/{letter_id}/`
+  - Places hospital records copy in `.letters/inject/` for InjectWatcher
+- [ ] Update `ComposeViewModel`:
+  - "Send to Print" renders locally instead of setting `render_requested` status
+  - Show rendered PDFs immediately (no waiting for Devon)
+  - Status flow: draft → rendering (local) → rendered
+- [ ] Build both platforms
+- [ ] Test: compose → render → inject → appended to document (no Devon involved)
 
-**Test gate:** boss instance processes documents, runs integrations, survives
-relaunch. Build passes both platforms (integrations are macOS-only but code
-compiles on iOS with `#if os(macOS)` guards).
+**Test gate:** Full compose-to-render-to-inject flow works without any
+server. Build passes both platforms.
 
-### 4.3 Retire Server Scripts
+### 4.2 Retire Devon Services
 
+Once Typst rendering works in-app:
+
+- [ ] Stop Python render service LaunchAgent on Devon
+- [ ] Stop OCR service LaunchDaemon on Devon (already redundant since Phase 1)
 - [ ] Remove watchdog cron job
 - [ ] Remove dashboard LaunchAgent
-- [ ] Remove YianaOCRService LaunchDaemon
-- [ ] Archive scripts/ directory
-- [ ] Update SERVER-SETUP.md or replace with boss-instance setup doc
+- [ ] Archive server scripts and Python code
+- [ ] Devon becomes just an iCloud sync node (or is retired entirely)
+
+### 4.3 Nice-to-Haves (not blockers)
+
+- [ ] macOS login item (Yiana stays open for background processing)
+- [ ] Integration hooks (Dropbox copy, email) — personal deployment via
+  Shortcuts or shell scripts, not built into the app
+- [ ] Batch re-render existing drafts with new template
 
 ---
 
@@ -402,52 +420,58 @@ compiles on iOS with `#if os(macOS)` guards).
 
 **Deferred until after Phases 0-4 are complete and stable.**
 
+- [ ] Recipient rules engine — configurable per profession/context
+- [ ] Recipient tick boxes in AddressesView (To/CC/None per card)
+- [ ] Drafts list sidebar mode (cross-document "what's pending" view)
 - [ ] Extract domain-specific patterns into configuration bundles
-- [ ] Define `Domain` enum (`.medical`, `.business`, etc.)
 - [ ] Make entity labels, extraction patterns, lookup databases, and letter
   templates domain-driven
+- [ ] iOS compose access (info panel is macOS-only currently)
 - [ ] Test with a second domain (business contacts) to validate abstraction
 
 ---
 
 ## Migration Safety Rules
 
+These governed Phases 0-3. Migration is now complete (Python replaced,
+Yiale retired). Retained for reference.
+
 1. **No format changes during migration.** `.addresses/*.json`,
    `.ocr_results/*.json`, and `.yianazip` schemas are frozen.
+   _Still applies:_ iCloud file formats remain the integration contract.
 
-2. **No improvements during migration.** If Swift extraction finds something
-   Python missed, log it. Do not change extraction logic to capture it. That
-   is post-migration work.
+2. **No improvements during migration.** Log it, don't change it.
+   _Migration complete:_ improvements are now welcome.
 
-3. **No refactoring during migration.** Existing Yiana code that works stays
-   as-is. Refactoring is a separate task after migration is verified.
+3. **No refactoring during migration.** Existing code stays as-is.
+   _Migration complete:_ refactoring is now welcome.
 
-4. **Parallel run before retirement.** Every Python component runs alongside
-   its Swift replacement for at least 2 weeks before being stopped.
+4. **Parallel run before retirement.** 2-week parallel run for each component.
+   _Applied to:_ extraction (Phase 1.4-1.5), entity DB (Phase 2.3-2.4).
+   _Not applied to:_ compose (redesigned, not migrated).
 
-5. **Rollback plan.** Python services can be restarted at any time during
-   migration. The Swift extraction writes to the same `.addresses/` files
-   in the same format — restarting Python will simply overwrite with its
-   own results.
+5. **Rollback plan.** Python services can be restarted.
+   _Still available:_ plists preserved on Devon until 2026-04-04.
 
-6. **One phase at a time.** Do not start Phase N+1 until Phase N's test gates
-   are all green.
+6. **One phase at a time.** Sequential, each independently testable.
+   _Applied throughout._
 
 ---
 
 ## Estimated Scope
 
-| Phase | New Swift LOC | Tests | Replaces |
-|-------|--------------|-------|----------|
-| 0 (Baseline) | 0 | ~200 (corpus + scripts) | — |
-| 1 (Extraction) | ~800 | ~300 | ~2170 Python + monitoring |
-| 2 (Entity DB) | ~600 | ~200 | ~1420 Python |
-| 3 (Yiale absorption) | ~400 (port) | ~100 | ~2400 Swift (separate app) |
-| 4 (Boss instance) | ~300 | ~100 | ~500 Bash/Python scripts |
-| **Total** | **~2100** | **~900** | **~6490 Python/Bash + 2400 Yiale** |
+| Phase | New Swift LOC | Tests | Replaces | Status |
+|-------|--------------|-------|----------|--------|
+| 0 (Baseline) | 0 | ~200 (corpus + scripts) | — | DONE |
+| 1 (Extraction) | ~800 | ~300 | ~2170 Python + monitoring | DONE |
+| 2 (Entity DB) | ~600 | ~200 | ~1420 Python | DONE |
+| 3 (Compose) | ~300 (new) | 12 | ~2400 Swift (Yiale retired) | DONE |
+| 4 (Typst rendering) | ~400 | ~50 | Python render service + LaTeX | PLANNED |
+| **Total** | **~2100** | **~760** | **~6000 Python/Bash + 2400 Yiale** | |
 
-Net effect: ~3000 lines of new Swift (including tests) replaces ~8900 lines
+Net effect: ~2800 lines of new Swift (including tests) replaces ~8400 lines
 of Python/Bash/duplicate Swift. Single language, single app, single deploy.
+No server infrastructure required for end users.
 
 ---
 
@@ -467,3 +491,10 @@ of Python/Bash/duplicate Swift. Single language, single app, single deploy.
 | 2026-03-21 | Entity DB is a local derived cache, not synced via iCloud | SQLite doesn't sync reliably via iCloud (WAL files, partial writes). JSON files in iCloud are the source of truth. Entity DB is a materialised view — rebuildable from JSON at any time. Boss instance builds for all docs; regular devices read enriched JSON or rebuild lazily |
 | 2026-03-21 | Entity DB in YianaExtraction package, not separate | GRDB already a dependency; keeps extraction + entity resolution together. EntityDatabase alongside NHSLookupService |
 | 2026-03-21 | Corrections/name_aliases tables: schema only, no logic | Ready for future extraction learning without adding complexity now |
+| 2026-03-21 | Compose as info panel tab, not separate views | Addresses panel is redundant once compose starts; compose replaces it. ~300 LOC instead of porting ~1100 LOC from Yiale |
+| 2026-03-21 | Rules-based recipients, no manual editor | Patient=To, GP=CC, hospital_records=implicit. Recipient tick boxes in AddressesView deferred to Phase 5 |
+| 2026-03-21 | Body text only, no greeting/salutation in compose | Render service handles topping/tailing. Compose is just the clinical content |
+| 2026-03-21 | Drafts list deferred | Draft status shown inline in compose tab. Cross-document drafts view deferred to Phase 5 |
+| 2026-03-21 | Drop "boss instance" concept | With OCR, extraction, entity DB, and compose all in-app, no central coordinator needed. Each device is self-sufficient. Entity DB is a local derived cache rebuilt from iCloud JSON |
+| 2026-03-21 | Typst replaces LaTeX for letter rendering | Apache 2.0 license, ~30MB binary (or static lib for iOS). Produces identical typography via New Computer Modern. Eliminates Python + LaTeX server dependency. Prototype validated at `docs/typst-prototype/letter.typ` |
+| 2026-03-21 | Target: fully self-contained app, no server needed | Install the iOS/macOS app and it does everything. Key enabler for distribution to other consultants. Devon becomes optional (just another iCloud sync node) |

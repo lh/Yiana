@@ -48,6 +48,10 @@ Quick-capture list for things that come to mind mid-task.
 
 17. **Document doesn't auto-reload after InjectWatcher appends PDF** — InjectWatcher appends the hospital records PDF to the .yianazip on disk, but the in-memory NoteDocument doesn't detect the external file change. User must close and reopen the document to see the appended page. Fix: either watch for file modifications (NSFilePresenter / NSDocument revert), or have InjectWatcher post a notification that the document view observes and triggers a reload. Discovered 2026-03-21.
 
+18. **Typst replaces LaTeX for letter rendering** — Typst prototype at `docs/typst-prototype/letter.typ` reproduces the LaTeX output with New Computer Modern font, justified text, hyphenation, bold italic headers, patient copy (14pt), hospital/GP copy (11pt with name+MRN header on pages 2+). Single ~30MB binary, no installation. Key enabler for "just install the app" distribution. Next: integrate Typst rendering into the app (replace Python render service on Devon). Logged 2026-03-21.
+
+19. **Letter formatting finessing needed** — The compose-to-render flow works end-to-end but the rendered letters need formatting polish. This is render service / LaTeX template work on Devon, not Yiana app code. Includes: envelope window positioning, font sizes, spacing, cc line formatting, Re: line placement, patient copy legibility, and any other typographic details. Important for the final product. Logged 2026-03-21.
+
 16. **HTML render template: leading comma when department is empty** — `sender.json` has `"department": ""`. The HTML footer template joins role/department/hospital without filtering empties, producing `, Spire Gatwick Park Hospital`. PDF render (LaTeX) handles it correctly. Low priority — cosmetic, HTML-only. Logged 2026-03-21.
 
 15. **Recipient tick boxes in AddressesView** — Each address card gets To/CC/None toggles so the user can override rules-based recipient defaults. Enables per-letter flexible recipient selection without a separate editor view. Deferred from Phase 3.5 — build after compose module is proven. Logged 2026-03-21.
