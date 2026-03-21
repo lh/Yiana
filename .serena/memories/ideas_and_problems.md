@@ -24,6 +24,8 @@ Quick-capture list for things that come to mind mid-task.
 
 3. **Expandable Typst dashboard** — The Devon dashboard (`scripts/dashboard.typ` + `dashboard-collector.py`, served via typst-live LaunchAgent on port 5599) can be extended with any server-side metric: extraction stats, backend DB counts, iCloud sync state, log growth trends, etc. Just add to collector + template.
 
+20. **iPhone camera as scanner for Mac app** — Use Continuity Camera / camera capture to scan documents directly from iPhone into the macOS Yiana app. Apple provides this natively via `NSToolbarItem` continuity camera support or the `VNDocumentCameraViewController` on iOS feeding back to macOS via Handoff/iCloud. Could eliminate the need to scan on the iPhone app separately and then wait for iCloud sync. Investigate whether Continuity Camera supports multi-page document scanning or just single photos. Logged 2026-03-21.
+
 1. **Connected scanner support on macOS** -- Interesting but out of scope. Bulk scanning from a connected scanner is more of a DevonTHINK use case. We are not trying to compete with or be as complex as that. Would also need external LLM integration to be truly useful (auto-classify, auto-title, auto-folder scanned pages). Park indefinitely unless the product direction changes. Logged 2026-02-25.
 
 ## Swift Extraction Service on Devon (logged 2026-03-14)
