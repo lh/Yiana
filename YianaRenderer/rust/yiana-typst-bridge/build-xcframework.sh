@@ -28,11 +28,18 @@ echo "Generating C header..."
 mkdir -p include
 cbindgen --config cbindgen.toml --crate yiana-typst-bridge --output include/yiana_typst_bridge.h
 
+echo "Creating universal macOS binary (ARM64 + x86_64)..."
+mkdir -p target/macos-universal/release
+lipo -create \
+  target/aarch64-apple-darwin/release/libyiana_typst_bridge.a \
+  target/x86_64-apple-darwin/release/libyiana_typst_bridge.a \
+  -output target/macos-universal/release/libyiana_typst_bridge.a
+
 echo "Creating XCFramework..."
 rm -rf YianaTypstBridge.xcframework
 
 xcodebuild -create-xcframework \
-  -library target/aarch64-apple-darwin/release/libyiana_typst_bridge.a -headers include/ \
+  -library target/macos-universal/release/libyiana_typst_bridge.a -headers include/ \
   -library target/aarch64-apple-ios/release/libyiana_typst_bridge.a -headers include/ \
   -library target/aarch64-apple-ios-sim/release/libyiana_typst_bridge.a -headers include/ \
   -output YianaTypstBridge.xcframework
