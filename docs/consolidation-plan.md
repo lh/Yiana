@@ -214,7 +214,10 @@ documents. Remaining 5% reviewed and accepted.
 
 ### 1.5 Retire Python Extraction
 
-- [ ] Stop `com.vitygas.yiana-extraction` LaunchAgent on Devon
+- [x] Split overrides into separate `.overrides.json` files (iCloud race fix)
+- [x] One-time migration of 21 existing override files (132 entries)
+- [x] Extraction service no longer preserves overrides (writes pages + enriched only)
+- [x] Stop `com.vitygas.yiana-extraction` LaunchAgent on Devon (2026-03-21)
 - [ ] Monitor for 2 weeks: are addresses still appearing correctly?
 - [ ] Remove LaunchAgent plist
 - [ ] Archive Python extraction code (don't delete from git history)
@@ -418,3 +421,6 @@ of Python/Bash/duplicate Swift. Single language, single app, single deploy.
 | 2026-03-16 | Domain configurability deferred to Phase 5 | Consolidation first; abstraction after stability |
 | 2026-03-16 | iCloud file formats frozen during migration | Avoids coordinated changes across components |
 | 2026-03-19 | Regex extractors instead of NLTagger for Phase 1.1 | Fixtures are clean synthetic text; tests assert specific method values; NLP can layer on later if Phase 1.4 reveals need |
+| 2026-03-21 | Separate overrides file to fix iCloud race condition | Extraction and user edits must never write the same file — iCloud eventual consistency means read-merge-write loses data |
+| 2026-03-21 | Filename-parsed patient name/DOB as canonical | Filename set by human at scan time is more reliable than OCR; closes 15% name gap and 7.4% DOB gap |
+| 2026-03-21 | Python extraction stopped on Devon | Swift extraction validated at scale (1440 docs); override split deployed; Python service unloaded but plist preserved for rollback |

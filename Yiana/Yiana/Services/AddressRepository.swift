@@ -62,13 +62,16 @@ final class AddressRepository: ObservableObject {
 
         do {
             let data = try Data(contentsOf: fileURL)
-            let file = try JSONDecoder().decode(DocumentAddressFile.self, from: data)
+            var file = try JSONDecoder().decode(DocumentAddressFile.self, from: data)
 
             // No pages = no addresses
             if file.pages.isEmpty { return .noAddresses }
 
-            // Check for dismissed overrides — if all pages are dismissed, treat as no addresses
-            // (future: override with dismissed flag)
+            // Merge overrides from separate file
+            let separateOverrides = readOverridesFileStatic(forDocument: documentId)
+            if !separateOverrides.isEmpty {
+                file.overrides = separateOverrides
+            }
 
             // Resolve effective isPrime for each page by checking overrides
             var hasPatientPrime = false
@@ -117,8 +120,49 @@ final class AddressRepository: ObservableObject {
     init() {
         if let dirURL = Self.addressesDirectoryURL {
             logger.info("Addresses directory: \(dirURL.path)")
+            Self.migrateOverridesToSeparateFiles(dirURL: dirURL)
         } else {
             logger.error("Failed to locate iCloud container")
+        }
+    }
+
+    /// One-time migration: extract overrides from main .json files into separate .overrides.json files.
+    /// Idempotent — skips files that already have a .overrides.json or have no overrides.
+    private static func migrateOverridesToSeparateFiles(dirURL: URL) {
+        let logger = Logger(subsystem: "com.vitygas.Yiana", category: "AddressRepository")
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: dirURL, includingPropertiesForKeys: nil, options: [])
+            .filter({ $0.pathExtension == "json" && !$0.lastPathComponent.contains(".overrides.") })
+        else { return }
+
+        var migrated = 0
+        for fileURL in files {
+            let stem = fileURL.deletingPathExtension().lastPathComponent
+            let overridesURL = dirURL.appendingPathComponent("\(stem).overrides.json")
+
+            // Skip if overrides file already exists
+            if FileManager.default.fileExists(atPath: overridesURL.path) { continue }
+
+            guard let data = try? Data(contentsOf: fileURL),
+                  let file = try? JSONDecoder().decode(DocumentAddressFile.self, from: data),
+                  !file.overrides.isEmpty else { continue }
+
+            // Write overrides to separate file
+            let overridesFile = OverridesFile(documentId: file.documentId, overrides: file.overrides)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            guard let overridesData = try? encoder.encode(overridesFile) else { continue }
+
+            do {
+                try overridesData.write(to: overridesURL, options: .atomic)
+                migrated += 1
+            } catch {
+                logger.error("Failed to migrate overrides for \(stem): \(error)")
+            }
+        }
+
+        if migrated > 0 {
+            logger.info("Migrated overrides from \(migrated) files to separate .overrides.json files")
         }
     }
 
@@ -200,8 +244,6 @@ final class AddressRepository: ObservableObject {
     /// Save user correction as an override
     func saveOverride(documentId: String, pageNumber: Int, matchAddressType: String,
                       updatedAddress: ExtractedAddress, reason: String) async throws {
-        let file = try readOrCreateFile(forDocument: documentId)
-
         let override = AddressOverrideEntry(
             pageNumber: pageNumber,
             matchAddressType: matchAddressType,
@@ -237,9 +279,9 @@ final class AddressRepository: ObservableObject {
             overrideDate: ISO8601DateFormatter().string(from: Date())
         )
 
-        var updated = file
-        updated.overrides.append(override)
-        try atomicWrite(file: updated)
+        var overrides = try readOverridesFile(forDocument: documentId)
+        overrides.append(override)
+        try atomicWriteOverrides(documentId: documentId, overrides: overrides)
 
         logger.info("Saved override for \(documentId) page \(pageNumber) type \(matchAddressType)")
     }
@@ -299,23 +341,23 @@ final class AddressRepository: ObservableObject {
             file.overrides.append(override)
         }
 
-        try atomicWrite(file: file)
+        try atomicWriteOverrides(documentId: documentId, overrides: file.overrides)
         logger.info("Toggled prime for \(documentId) page \(pageNumber) type \(addressType) to \(makePrime)")
     }
 
     /// Update the address type for an address
     func updateAddressType(documentId: String, pageNumber: Int, currentAddressType: String,
                            newType: String, specialistName: String?) async throws {
-        var file = try readOrCreateFile(forDocument: documentId)
+        var overrides = try readOverridesFile(forDocument: documentId)
 
-        let existingIdx = file.overrides.lastIndex {
+        let existingIdx = overrides.lastIndex {
             $0.pageNumber == pageNumber && $0.matchAddressType == currentAddressType
         }
 
         if let idx = existingIdx {
-            file.overrides[idx].addressType = newType
-            file.overrides[idx].specialistName = specialistName
-            file.overrides[idx].overrideDate = ISO8601DateFormatter().string(from: Date())
+            overrides[idx].addressType = newType
+            overrides[idx].specialistName = specialistName
+            overrides[idx].overrideDate = ISO8601DateFormatter().string(from: Date())
         } else {
             let override = AddressOverrideEntry(
                 pageNumber: pageNumber,
@@ -325,16 +367,16 @@ final class AddressRepository: ObservableObject {
                 overrideReason: "type_changed",
                 overrideDate: ISO8601DateFormatter().string(from: Date())
             )
-            file.overrides.append(override)
+            overrides.append(override)
         }
 
-        try atomicWrite(file: file)
+        try atomicWriteOverrides(documentId: documentId, overrides: overrides)
         logger.info("Updated address type for \(documentId) page \(pageNumber) to \(newType)")
     }
 
     /// Add a manual address (not from extraction) on virtual page 0
     func addManualAddress(documentId: String, addressType: String) async throws {
-        var file = try readOrCreateFile(forDocument: documentId)
+        var overrides = try readOverridesFile(forDocument: documentId)
 
         let override = AddressOverrideEntry(
             pageNumber: 0,
@@ -343,15 +385,15 @@ final class AddressRepository: ObservableObject {
             overrideReason: "manual",
             overrideDate: ISO8601DateFormatter().string(from: Date())
         )
-        file.overrides.append(override)
+        overrides.append(override)
 
-        try atomicWrite(file: file)
+        try atomicWriteOverrides(documentId: documentId, overrides: overrides)
         logger.info("Added manual \(addressType) address for \(documentId)")
     }
 
     /// Dismiss an extracted address (hide from UI without deleting)
     func dismissAddress(documentId: String, pageNumber: Int, addressType: String) async throws {
-        var file = try readOrCreateFile(forDocument: documentId)
+        var overrides = try readOverridesFile(forDocument: documentId)
 
         let override = AddressOverrideEntry(
             pageNumber: pageNumber,
@@ -360,17 +402,17 @@ final class AddressRepository: ObservableObject {
             overrideDate: ISO8601DateFormatter().string(from: Date()),
             isDismissed: true
         )
-        file.overrides.append(override)
+        overrides.append(override)
 
-        try atomicWrite(file: file)
+        try atomicWriteOverrides(documentId: documentId, overrides: overrides)
         logger.info("Dismissed \(addressType) on page \(pageNumber) for \(documentId)")
     }
 
     /// Delete all page-0 overrides for a given address type
     func deleteManualAddress(documentId: String, addressType: String) async throws {
-        var file = try readOrCreateFile(forDocument: documentId)
-        file.overrides.removeAll { $0.pageNumber == 0 && $0.matchAddressType == addressType }
-        try atomicWrite(file: file)
+        var overrides = try readOverridesFile(forDocument: documentId)
+        overrides.removeAll { $0.pageNumber == 0 && $0.matchAddressType == addressType }
+        try atomicWriteOverrides(documentId: documentId, overrides: overrides)
         logger.info("Deleted manual \(addressType) address for \(documentId)")
     }
 
@@ -382,7 +424,29 @@ final class AddressRepository: ObservableObject {
         return try JSONDecoder().decode(DocumentAddressFile.self, from: data)
     }
 
-    /// Read existing file or create an empty one for the document
+    /// Read the separate overrides file, or return empty array
+    private func readOverridesFile(forDocument documentId: String) throws -> [AddressOverrideEntry] {
+        guard let dirURL = Self.addressesDirectoryURL else { return [] }
+        let url = dirURL.appendingPathComponent("\(documentId).overrides.json")
+        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+        let data = try Data(contentsOf: url)
+        let file = try JSONDecoder().decode(OverridesFile.self, from: data)
+        return file.overrides
+    }
+
+    /// Read the separate overrides file, or return empty array (static, for addressStatus)
+    private static func readOverridesFileStatic(forDocument documentId: String) -> [AddressOverrideEntry] {
+        guard let dirURL = addressesDirectoryURL else { return [] }
+        let url = dirURL.appendingPathComponent("\(documentId).overrides.json")
+        guard FileManager.default.fileExists(atPath: url.path),
+              let data = try? Data(contentsOf: url),
+              let file = try? JSONDecoder().decode(OverridesFile.self, from: data) else {
+            return []
+        }
+        return file.overrides
+    }
+
+    /// Read existing main file + overrides, merged into a DocumentAddressFile
     private func readOrCreateFile(forDocument documentId: String) throws -> DocumentAddressFile {
         guard let dirURL = Self.addressesDirectoryURL else {
             throw NSError(domain: "AddressRepository", code: 1,
@@ -390,19 +454,27 @@ final class AddressRepository: ObservableObject {
         }
 
         let fileURL = dirURL.appendingPathComponent("\(documentId).json")
+        var file: DocumentAddressFile
         if FileManager.default.fileExists(atPath: fileURL.path) {
-            return try readAddressFile(at: fileURL)
+            file = try readAddressFile(at: fileURL)
+        } else {
+            file = DocumentAddressFile(
+                schemaVersion: 1,
+                documentId: documentId,
+                extractedAt: ISO8601DateFormatter().string(from: Date()),
+                pageCount: 0,
+                pages: [],
+                overrides: []
+            )
         }
 
-        // Create empty file
-        return DocumentAddressFile(
-            schemaVersion: 1,
-            documentId: documentId,
-            extractedAt: ISO8601DateFormatter().string(from: Date()),
-            pageCount: 0,
-            pages: [],
-            overrides: []
-        )
+        // Merge overrides from separate file
+        let separateOverrides = try readOverridesFile(forDocument: documentId)
+        if !separateOverrides.isEmpty {
+            file.overrides = separateOverrides
+        }
+
+        return file
     }
 
     /// Resolve pages + overrides into flat ExtractedAddress array
@@ -454,25 +526,24 @@ final class AddressRepository: ObservableObject {
         return (pageAddresses + manualAddresses).filter { $0.isDismissed != true }
     }
 
-    /// Atomic write: encode to temp file, then replace
-    private func atomicWrite(file: DocumentAddressFile) throws {
+    /// Atomic write of overrides to the separate `.overrides.json` file.
+    private func atomicWriteOverrides(documentId: String, overrides: [AddressOverrideEntry]) throws {
         guard let dirURL = Self.addressesDirectoryURL else {
             throw NSError(domain: "AddressRepository", code: 1,
                           userInfo: [NSLocalizedDescriptionKey: "iCloud container not available"])
         }
 
-        // Ensure directory exists
         try FileManager.default.createDirectory(at: dirURL, withIntermediateDirectories: true)
 
-        let finalURL = dirURL.appendingPathComponent("\(file.documentId).json")
-        let tmpURL = dirURL.appendingPathComponent("\(file.documentId).json.tmp")
+        let overridesFile = OverridesFile(documentId: documentId, overrides: overrides)
+        let finalURL = dirURL.appendingPathComponent("\(documentId).overrides.json")
+        let tmpURL = dirURL.appendingPathComponent("\(documentId).overrides.json.tmp")
 
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let data = try encoder.encode(file)
+        let data = try encoder.encode(overridesFile)
         try data.write(to: tmpURL, options: .atomic)
 
-        // Use FileManager replaceItemAt for atomic replacement
         if FileManager.default.fileExists(atPath: finalURL.path) {
             _ = try FileManager.default.replaceItemAt(finalURL, withItemAt: tmpURL)
         } else {

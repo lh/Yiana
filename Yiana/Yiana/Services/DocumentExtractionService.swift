@@ -66,16 +66,15 @@ final class DocumentExtractionService {
             // 3. NHS lookup enrichment
             enrichWithNHSLookup(&extracted)
 
-            // 4. Read-merge-write to preserve overrides and enriched data
+            // 4. Preserve enriched data from existing file (overrides live in separate file)
             let fileURL = dirURL.appendingPathComponent("\(documentId).json")
             if FileManager.default.fileExists(atPath: fileURL.path) {
                 let existingData = try Data(contentsOf: fileURL)
                 let existingFile = try JSONDecoder().decode(DocumentAddressFile.self, from: existingData)
-                extracted.overrides = existingFile.overrides
                 extracted.enriched = existingFile.enriched
             }
 
-            // 5. Atomic write
+            // 5. Atomic write (pages + enriched only — never touches overrides)
             try atomicWrite(file: extracted, to: dirURL)
 
             let pageCount = extracted.pages.count

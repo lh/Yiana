@@ -369,3 +369,25 @@ public struct EnrichedData: Codable, Sendable {
         case practitioners
     }
 }
+
+// MARK: - Separate Overrides File
+
+/// Schema for the standalone overrides file (`{documentId}.overrides.json`).
+/// Overrides are owned by the app and never touched by extraction services.
+public struct OverridesFile: Codable, Sendable {
+    public var schemaVersion: Int
+    public var documentId: String
+    public var overrides: [AddressOverrideEntry]
+
+    public init(schemaVersion: Int = 1, documentId: String, overrides: [AddressOverrideEntry] = []) {
+        self.schemaVersion = schemaVersion
+        self.documentId = documentId
+        self.overrides = overrides
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case schemaVersion = "schema_version"
+        case documentId = "document_id"
+        case overrides
+    }
+}
