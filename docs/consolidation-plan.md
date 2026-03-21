@@ -436,3 +436,6 @@ of Python/Bash/duplicate Swift. Single language, single app, single deploy.
 | 2026-03-21 | Separate overrides file to fix iCloud race condition | Extraction and user edits must never write the same file — iCloud eventual consistency means read-merge-write loses data |
 | 2026-03-21 | Filename-parsed patient name/DOB as canonical | Filename set by human at scan time is more reliable than OCR; closes 15% name gap and 7.4% DOB gap |
 | 2026-03-21 | Python extraction stopped on Devon | Swift extraction validated at scale (1440 docs); override split deployed; Python service unloaded but plist preserved for rollback |
+| 2026-03-21 | Entity DB is a local derived cache, not synced via iCloud | SQLite doesn't sync reliably via iCloud (WAL files, partial writes). JSON files in iCloud are the source of truth. Entity DB is a materialised view — rebuildable from JSON at any time. Boss instance builds for all docs; regular devices read enriched JSON or rebuild lazily |
+| 2026-03-21 | Entity DB in YianaExtraction package, not separate | GRDB already a dependency; keeps extraction + entity resolution together. EntityDatabase alongside NHSLookupService |
+| 2026-03-21 | Corrections/name_aliases tables: schema only, no logic | Ready for future extraction learning without adding complexity now |
