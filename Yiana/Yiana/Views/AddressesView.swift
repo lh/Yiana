@@ -15,6 +15,8 @@ struct AddressesView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var refreshTrigger = false
+    @State private var entityPatientDocCount: Int?
+    @State private var entityPractitioners: [PractitionerRecord] = []
 
     // Sort addresses by type (Patient, GP, Optician, Specialist), then by specialist name if applicable
     private var sortedAddresses: [ExtractedAddress] {
@@ -73,6 +75,8 @@ struct AddressesView: View {
                             AddressCard(
                                 address: address,
                                 documentId: documentId,
+                                patientDocumentCount: entityPatientDocCount,
+                                practitionerDocumentCount: practitionerCount(for: address),
                                 onSave: {
                                     refreshTrigger.toggle()
                                 }
@@ -89,6 +93,8 @@ struct AddressesView: View {
                             AddressCard(
                                 address: address,
                                 documentId: documentId,
+                                patientDocumentCount: entityPatientDocCount,
+                                practitionerDocumentCount: practitionerCount(for: address),
                                 onSave: {
                                     refreshTrigger.toggle()
                                 }
@@ -136,6 +142,15 @@ struct AddressesView: View {
         }
     }
 
+    private func practitionerCount(for address: ExtractedAddress) -> Int? {
+        guard let gpName = address.gpName, !gpName.isEmpty else { return nil }
+        let gpLower = gpName.lowercased()
+        return entityPractitioners.first {
+            $0.fullName?.lowercased() == gpLower
+            || $0.fullNameNormalized?.lowercased() == gpLower
+        }?.documentCount
+    }
+
     private func loadAddresses() async {
         isLoading = true
         errorMessage = nil
@@ -149,6 +164,11 @@ struct AddressesView: View {
             Task.detached {
                 EntityDatabaseService.shared.ingestDocument(capturedDocId)
             }
+
+            // Query entity DB for cross-document context
+            let patient = EntityDatabaseService.shared.patientForDocument(capturedDocId)
+            entityPatientDocCount = patient?.documentCount
+            entityPractitioners = EntityDatabaseService.shared.practitionersForDocument(capturedDocId)
         } catch {
             errorMessage = "Failed to load addresses: \(error.localizedDescription)"
             isLoading = false
@@ -160,6 +180,8 @@ struct AddressesView: View {
 struct AddressCard: View {
     let address: ExtractedAddress
     let documentId: String
+    var patientDocumentCount: Int?
+    var practitionerDocumentCount: Int?
     let onSave: () -> Void
 
     @State private var isEditingPatient = false
@@ -195,9 +217,13 @@ struct AddressCard: View {
     @State private var subtypeName: String
     @State private var showingSubtypeNameInput = false
 
-    init(address: ExtractedAddress, documentId: String, onSave: @escaping () -> Void) {
+    init(address: ExtractedAddress, documentId: String,
+         patientDocumentCount: Int? = nil, practitionerDocumentCount: Int? = nil,
+         onSave: @escaping () -> Void) {
         self.address = address
         self.documentId = documentId
+        self.patientDocumentCount = patientDocumentCount
+        self.practitionerDocumentCount = practitionerDocumentCount
         self.onSave = onSave
         _fullName = State(initialValue: address.fullName ?? "")
         _title = State(initialValue: address.title ?? "")
@@ -378,6 +404,7 @@ struct AddressCard: View {
                     } else {
                         if !gpName.isEmpty {
                             AddressInfoRow(label: "GP Name", value: gpName, icon: "stethoscope")
+                            documentCountLabel(practitionerDocumentCount)
                         }
                         if !gpPractice.isEmpty {
                             AddressInfoRow(label: "Practice", value: gpPractice, icon: "building.2")
@@ -412,6 +439,7 @@ struct AddressCard: View {
                     } else {
                         if !fullName.isEmpty {
                             AddressInfoRow(label: "Name", value: fullName, icon: "person")
+                            documentCountLabel(patientDocumentCount)
                         }
                         if !mrn.isEmpty {
                             AddressInfoRow(label: "MRN", value: mrn, icon: "number")
@@ -471,6 +499,16 @@ struct AddressCard: View {
         .padding()
         .background(Color.secondary.opacity(0.1))
         .cornerRadius(12)
+    }
+
+    @ViewBuilder
+    private func documentCountLabel(_ count: Int?) -> some View {
+        if let count, count > 1 {
+            Text("Seen in \(count) documents")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.leading, 28)
+        }
     }
 
     private func resetFields() {

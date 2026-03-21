@@ -82,7 +82,8 @@ After monitoring: remove LaunchAgent plist, archive Python extraction code.
 - Ingestion hooked after extraction in `DocumentExtractionService.extractAndSave()`
 - Lazy ingestion in `AddressesView.loadAddresses()` for pre-deployment documents
 - `ingestAll()` method ready for boss instance (not auto-triggered — Phase 4)
-- **Remaining:** UI enrichment (document counts, canonical names) — follow-up task
+- AddressCard shows "Seen in N documents" for patient and GP names (N > 1, view mode only)
+- Queries EntityDatabaseService at load time, matches practitioners by name
 
 ### Phase 2.3: Parallel Validation
 - Run full ingestion on all `.addresses/*.json` files

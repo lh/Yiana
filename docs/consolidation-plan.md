@@ -265,11 +265,11 @@ edge cases + schema/normalisation). Statistics method implemented.
 - [x] Entity DB stored locally (not in iCloud — same as search index)
 - [x] Boss instance: `ingestAll()` method ready (auto-trigger deferred to Phase 4)
 - [x] Regular instances: lazy ingestion when viewing addresses
-- [ ] AddressesView: show enriched data from entity DB (canonical names,
-  cross-document links) — deferred to follow-up
+- [x] AddressesView: "Seen in N documents" annotations for patient and GP names (N > 1, view mode only)
 
 **Test gate:** build passes both platforms (iOS + macOS). 82 package tests pass.
 Entity DB populates on extraction and lazy-loads on address view.
+AddressCard shows document counts from entity DB.
 
 ### 2.3 Parallel Validation
 
