@@ -306,36 +306,55 @@ which Python never created (only tracked GPs).
 
 **Goal:** Absorb Yiale's features into Yiana as a "Compose" module.
 
-### 3.1 Feature Inventory and Tests
+**Detailed plan:** [`docs/phase-3-plan.md`](phase-3-plan.md) — full inventory,
+step-by-step checklists, design decisions, estimated effort.
 
-- [ ] From Phase 0.4 inventory, list every Yiale feature to port
-- [ ] Write UI-level acceptance criteria for each:
-  - Patient search and selection
-  - Recipient management (add/remove/reorder)
-  - Letter body composition
-  - Draft save/load/delete
-  - PDF rendering and preview
-  - Work list integration
-- [ ] Delete `SharedWorkList.swift` duplication — single implementation in Yiana
+### 3.1 Preparation and deduplication
 
-### 3.2 Compose Module in Yiana
+- [ ] Delete Yiale duplicates (SharedWorkList, WorkListRepository, ClinicListParser, WorkListViewModel)
+- [ ] Document any differences found
 
-- [ ] Create `Views/Compose/` directory in Yiana
-- [ ] Port views from Yiale, adapting to Yiana's navigation structure
-- [ ] Patient search reads from entity DB directly (no file-based lookup)
-- [ ] Draft storage: `.letters/drafts/` in iCloud (same location, same format)
-- [ ] PDF rendering: same approach as Yiale (or simplified if Yiale's was
-  over-engineered)
+### 3.2 Port models
 
-**Test gate:** every acceptance criterion from 3.1 passes. Build passes
-both platforms.
+- [ ] LetterDraft.swift, SenderConfig.swift to Yiana/Models/
 
-### 3.3 Retire Yiale
+### 3.3 Port services
 
-- [ ] Confirm all Yiale features work in Yiana
-- [ ] Remove Yiale from App Store Connect (if published)
+- [ ] LetterRepository.swift, SenderConfigService.swift to Yiana/Services/
+- [ ] Adapt iCloud URL sourcing to Yiana's pattern
+
+### 3.4 Port patient search (entity DB migration)
+
+- [ ] Add searchPatients() to EntityDatabase and EntityDatabaseService
+- [ ] Tests for search (empty, partial name, DOB, case insensitive)
+
+### 3.5 Port compose views
+
+- [ ] Create Views/Compose/ directory
+- [ ] Port all 9 view files, adapting navigation and platform guards
+
+### 3.6 Port view models
+
+- [ ] ComposeViewModel (rewire to entity DB)
+- [ ] DraftsViewModel (same polling, ported LetterRepository)
+
+### 3.7 Wire into Yiana navigation
+
+- [ ] Add compose entry point (toolbar button / tab)
+- [ ] End-to-end compose flow works
+
+### 3.8 Integration testing
+
+- [ ] Full compose-to-render-to-inject flow on both platforms
+
+### 3.9 Retire Yiale
+
+- [ ] Confirm all features work in Yiana
 - [ ] Archive Yiale directory
-- [ ] Remove Yiale.xcodeproj from workspace
+- [ ] Update CLAUDE.md and LETTER-MODULE-SPEC.md
+
+**Test gate:** every Yiale feature works in Yiana. Build passes both platforms.
+Full compose-to-render-to-inject flow verified.
 
 ---
 
