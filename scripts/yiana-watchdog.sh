@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Unified Yiana Server Watchdog
-# Monitors both OCR and Extraction services via heartbeat files.
-# Sends Pushover alerts with per-service dedup (1-hour cooldown).
+# Yiana Server Watchdog
+# Monitors OCR service via heartbeat file.
+# Sends Pushover alerts with dedup (1-hour cooldown).
 #
 # Usage: ./yiana-watchdog.sh [--max-age-seconds 600]
 #
@@ -21,10 +21,7 @@ PUSHOVER_USER="${PUSHOVER_USER:-}"
 PUSHOVER_TOKEN="${PUSHOVER_TOKEN:-}"
 MIN_ALERT_INTERVAL=3600  # 1 hour between duplicate alerts
 
-# Alert tracker shared across services
 ALERT_TRACKER="$HOME/Library/Application Support/YianaOCR/health/last_alert.json"
-
-OVERALL_OK=true
 
 now_epoch() { date +%s; }
 file_epoch() { test -f "$1" && stat -f %m "$1" || echo 0; }
@@ -37,7 +34,6 @@ send_alert() {
 
   echo "$(ts) [ALERT] $msg" >&2
 
-  # Dedup: check if we recently sent this exact alert
   local last_alert_time=0
   if [[ -f "$ALERT_TRACKER" ]]; then
     last_alert_time=$(grep -o "\"$alert_key\":[0-9]*" "$ALERT_TRACKER" 2>/dev/null | cut -d: -f2 || echo 0)
@@ -61,14 +57,11 @@ send_alert() {
       --form-string "priority=$priority" \
       https://api.pushover.net/1/messages.json >/dev/null 2>&1
 
-    # Update tracker
     mkdir -p "$(dirname "$ALERT_TRACKER")"
     if [[ -f "$ALERT_TRACKER" ]]; then
       sed -i.bak "s/\"$alert_key\":[0-9]*/\"$alert_key\":$now/" "$ALERT_TRACKER" 2>/dev/null \
         || echo "{\"$alert_key\":$now}" > "$ALERT_TRACKER"
-      # If key wasn't in file yet, append it
       if ! grep -q "\"$alert_key\"" "$ALERT_TRACKER" 2>/dev/null; then
-        # Replace trailing } with new key
         sed -i.bak "s/}$/,\"$alert_key\":$now}/" "$ALERT_TRACKER"
       fi
     else
@@ -79,64 +72,41 @@ send_alert() {
   fi
 }
 
-# Check a single service's heartbeat
-# Args: service_name health_dir
-check_service() {
-  local name="$1"
-  local health_dir="$2"
-  local heartbeat="$health_dir/heartbeat.json"
-  local last_error="$health_dir/last_error.json"
-
-  local now
-  now=$(now_epoch)
-  local hb_epoch
-  hb_epoch=$(file_epoch "$heartbeat")
-
-  if [[ $hb_epoch -eq 0 ]]; then
-    send_alert "$name: No heartbeat found. Service may not be running." 1 "${name}_no_heartbeat"
-    echo "$(ts) [$name] DOWN - no heartbeat" >&2
-    OVERALL_OK=false
-    return
-  fi
-
-  local age=$(( now - hb_epoch ))
-  if (( age > MAX_AGE )); then
-    send_alert "$name: Heartbeat stale (${age}s). Service has stalled or crashed." 1 "${name}_stale"
-    echo "$(ts) [$name] DOWN - heartbeat stale (${age}s)" >&2
-    OVERALL_OK=false
-    return
-  fi
-
-  # Surface recent errors (within last hour)
-  if [[ -f "$last_error" ]]; then
-    local err_epoch
-    err_epoch=$(file_epoch "$last_error")
-    local err_age=$(( now - err_epoch ))
-
-    if (( err_age < 3600 )); then
-      local err_msg
-      err_msg=$(sed -n 's/.*"error"\s*:\s*"\(.*\)".*/\1/p' "$last_error" | head -n1)
-      if [[ -n "$err_msg" ]]; then
-        local err_hash
-        err_hash=$(echo "$err_msg" | md5 | cut -c1-8)
-        send_alert "$name error: $err_msg" 0 "${name}_error_$err_hash"
-      fi
-    fi
-  fi
-
-  echo "$(ts) [$name] OK - heartbeat age ${age}s"
-}
-
-# --- Check both services ---
+# --- Check OCR service heartbeat ---
 
 OCR_HEALTH="$HOME/Library/Application Support/YianaOCR/health"
-EXTRACTION_HEALTH="$HOME/Library/Application Support/YianaExtraction/health"
+HEARTBEAT="$OCR_HEALTH/heartbeat.json"
+LAST_ERROR="$OCR_HEALTH/last_error.json"
 
-check_service "OCR" "$OCR_HEALTH"
-check_service "Extraction" "$EXTRACTION_HEALTH"
+now=$(now_epoch)
+hb_epoch=$(file_epoch "$HEARTBEAT")
 
-if $OVERALL_OK; then
-  exit 0
-else
+if [[ $hb_epoch -eq 0 ]]; then
+  send_alert "OCR: No heartbeat found. Service may not be running." 1 "ocr_no_heartbeat"
+  echo "$(ts) [OCR] DOWN - no heartbeat" >&2
   exit 1
 fi
+
+age=$(( now - hb_epoch ))
+if (( age > MAX_AGE )); then
+  send_alert "OCR: Heartbeat stale (${age}s). Service has stalled or crashed." 1 "ocr_stale"
+  echo "$(ts) [OCR] DOWN - heartbeat stale (${age}s)" >&2
+  exit 1
+fi
+
+# Surface recent errors (within last hour)
+if [[ -f "$LAST_ERROR" ]]; then
+  err_epoch=$(file_epoch "$LAST_ERROR")
+  err_age=$(( now - err_epoch ))
+
+  if (( err_age < 3600 )); then
+    err_msg=$(sed -n 's/.*"error"\s*:\s*"\(.*\)".*/\1/p' "$LAST_ERROR" | head -n1)
+    if [[ -n "$err_msg" ]]; then
+      err_hash=$(echo "$err_msg" | md5 | cut -c1-8)
+      send_alert "OCR error: $err_msg" 0 "ocr_error_$err_hash"
+    fi
+  fi
+fi
+
+echo "$(ts) [OCR] OK - heartbeat age ${age}s"
+exit 0
