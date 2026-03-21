@@ -92,6 +92,12 @@ After monitoring: remove LaunchAgent plist, archive Python extraction code.
 - +2 Consultant practitioners (Python only tracked GPs)
 - CLI `--ingest-all` mode added to yiana-extract for validation
 
+### Phase 2.4: Retire Python Backend DB -- DONE (2026-03-21)
+- `backend_db.py --ingest` was manual, never automated — nothing to stop
+- `extraction_service.py --nhs-enrich` cron removed (ran every 2min, now redundant)
+- `addresses_backend.db` archived to `~/Data/archive/addresses_backend.db.2026-03-21` (2.0MB)
+- Python code stays in repo (git history); LaunchAgent plists still on Devon (stopped)
+
 ### Postcode lookup async updater (future)
 - When a sector isn't in the static table, query postcodes.io live and cache
 - Grows the table organically over time

@@ -293,10 +293,11 @@ which Python never created (only tracked GPs).
 
 **Test gate: PASSED.**
 
-### 2.4 Retire Python Backend DB
+### 2.4 Retire Python Backend DB -- DONE (2026-03-21)
 
-- [ ] Stop running `backend_db.py --ingest` on Devon
-- [ ] Archive `addresses_backend.db` as reference
+- [x] Stop running `backend_db.py --ingest` on Devon (was manual, never automated)
+- [x] Remove `extraction_service.py --nhs-enrich` cron (ran every 2min, now redundant)
+- [x] Archive `addresses_backend.db` to `~/Data/archive/addresses_backend.db.2026-03-21`
 - [ ] Archive Python backend code
 
 ---
