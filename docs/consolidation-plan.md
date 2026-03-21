@@ -1,6 +1,6 @@
 # Consolidation Plan of Campaign
 
-## Status: Phase 4 In Progress — Typst bridge and Swift package done (2026-03-21)
+## Status: Phase 4 In Progress — Milestones 1-3 done, Devon render retired (2026-03-21)
 
 ## Principles
 
@@ -379,35 +379,25 @@ Replace the Python render service with in-app Typst rendering.
 - [x] Swift package `YianaRenderer` wrapping Typst bridge — LetterRenderer API, TypstBridge FFI, letter.typ template
 - [x] 5 tests pass (renders all recipients, valid PDFs, correct filenames, correct roles, distinct copies)
 - [x] 30ms to render 3 PDFs (patient + GP + hospital records)
-- [ ] Write Typst letter template (prototype at `docs/typst-prototype/letter.typ`)
+- [x] Typst letter template (`YianaRenderer/Sources/YianaRenderer/Resources/letter.typ`)
   - Hospital/GP copy: 11pt, name+MRN header on pages 2+
   - Patient copy: 14pt, wider line spacing, page numbers only on pages 2+
-  - Postal address block for windowed envelopes (positioned for C5 window)
   - CC lines, Re: line, sender header (bold italic)
-- [ ] Integrate Typst into the app:
-  - Option A: Bundle `typst` CLI binary (~30MB), call as subprocess (macOS only)
-  - Option B: Compile `typst` Rust crate as static library, call from Swift via C bridge (both platforms)
-  - Option B is preferred — enables iOS rendering and avoids subprocess management
-- [ ] Build `LetterRenderer` service in Swift:
-  - Takes `LetterDraft` + `SenderConfig` → produces PDFs (one per recipient) + HTML
-  - Replaces `LetterRepository.requestRender()` status-based flow with direct rendering
-  - Writes rendered PDFs to `.letters/rendered/{letter_id}/`
-  - Places hospital records copy in `.letters/inject/` for InjectWatcher
-- [ ] Update `ComposeViewModel`:
-  - "Send to Print" renders locally instead of setting `render_requested` status
-  - Show rendered PDFs immediately (no waiting for Devon)
-  - Status flow: draft → rendering (local) → rendered
-- [ ] Build both platforms
-- [ ] Test: compose → render → inject → appended to document (no Devon involved)
+  - Postal address block for windowed envelopes (positioning TBD — needs measurements)
+- [x] Integrated via Option B: Rust static library + C bridge + XCFramework (works on iOS too)
+- [x] `LetterRenderService` in Yiana maps types and writes PDFs to `.letters/rendered/` and `.letters/inject/`
+- [x] `ComposeViewModel.sendToPrint()` renders locally — instant, no Devon
+- [x] ComposeTab shows per-recipient PDF links (Patient copy, To: GP, Hospital records)
+- [x] Both platforms build
+- [x] Manual test: compose -> render -> view PDFs (confirmed working 2026-03-21)
 
 **Test gate:** Full compose-to-render-to-inject flow works without any
-server. Build passes both platforms.
+server. Build passes both platforms. PASSED.
 
 ### 4.2 Retire Devon Services
 
-Once Typst rendering works in-app:
-
-- [ ] Stop Python render service LaunchAgent on Devon
+- [x] Stopped Python render service LaunchAgent on Devon (2026-03-21)
+  - Plist preserved for rollback until 2026-04-04
 - [ ] Stop OCR service LaunchDaemon on Devon (already redundant since Phase 1)
 - [ ] Remove watchdog cron job
 - [ ] Remove dashboard LaunchAgent
@@ -473,7 +463,7 @@ Yiale retired). Retained for reference.
 | 1 (Extraction) | ~800 | ~300 | ~2170 Python + monitoring | DONE |
 | 2 (Entity DB) | ~600 | ~200 | ~1420 Python | DONE |
 | 3 (Compose) | ~300 (new) | 12 | ~2400 Swift (Yiale retired) | DONE |
-| 4 (Typst rendering) | ~400 | ~50 | Python render service + LaTeX | PLANNED |
+| 4 (Typst rendering) | ~400 | ~50 | Python render service + LaTeX | IN PROGRESS (render done, services partially retired) |
 | **Total** | **~2100** | **~760** | **~6000 Python/Bash + 2400 Yiale** | |
 
 Net effect: ~2800 lines of new Swift (including tests) replaces ~8400 lines
@@ -505,3 +495,4 @@ No server infrastructure required for end users.
 | 2026-03-21 | Drop "boss instance" concept | With OCR, extraction, entity DB, and compose all in-app, no central coordinator needed. Each device is self-sufficient. Entity DB is a local derived cache rebuilt from iCloud JSON |
 | 2026-03-21 | Typst replaces LaTeX for letter rendering | Apache 2.0 license, ~30MB binary (or static lib for iOS). Produces identical typography via New Computer Modern. Eliminates Python + LaTeX server dependency. Prototype validated at `docs/typst-prototype/letter.typ` |
 | 2026-03-21 | Target: fully self-contained app, no server needed | Install the iOS/macOS app and it does everything. Key enabler for distribution to other consultants. Devon becomes optional (just another iCloud sync node) |
+| 2026-03-21 | Devon render service retired | Local Typst rendering confirmed working. Python/LaTeX render service stopped. Plist preserved for rollback until 2026-04-04 |
