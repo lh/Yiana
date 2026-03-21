@@ -5,90 +5,93 @@
 
 ## What Was Done This Session
 
-### Phase 2.2: Wire EntityDatabase Into Yiana — COMPLETE
-- `EntityDatabaseService` singleton in `Yiana/Services/EntityDatabaseService.swift`
-- DB stored in `Caches/EntityDatabase/entities.db` (not iCloud)
-- Ingestion hooked after extraction in `DocumentExtractionService.extractAndSave()`
-- Lazy ingestion in `AddressesView.loadAddresses()` for pre-deployment documents
-- `ingestAll()` method ready for boss instance (Phase 4)
-- AddressCard shows "Seen in N documents" for patient and GP names (N > 1, view mode only)
+### Phase 3.1: Deduplication — COMPLETE
+- Deleted 4 Yiale duplicates: SharedWorkList, ClinicListParser, WorkListRepository, WorkListViewModel
+- All had Yiana equivalents (equal or superset)
+- Noted: Yiale has `replaceClinicList()` (replace-all semantics); Yiana only has merge. Logged for future.
 
-### Phase 2.3: Parallel Validation — COMPLETE
-- CLI `--ingest-all` mode added to yiana-extract
-- 1442/1442 files ingested on Devon, zero failures
-- All entity counts within 5% of Python backend (patients +1.6%, practitioners +0.5%, links +2.0%)
-- Extraction count +12.7% — Swift cascade more thorough, not a discrepancy
-- +2 Consultant practitioners (Python only tracked GPs)
+### Phase 3.2: Port Models — COMPLETE
+- `LetterDraft.swift` (LetterStatus, LetterPatient, LetterRecipient, LetterDraft) to `Yiana/Models/`
+- `SenderConfig.swift` (Secretary, SenderConfig) to `Yiana/Models/`
+- Pure data types, no changes needed
 
-### Phase 2.4: Retire Python Backend DB — COMPLETE
-- `extraction_service.py --nhs-enrich` cron removed from Devon (ran every 2min)
-- `addresses_backend.db` archived to `~/Data/archive/addresses_backend.db.2026-03-21`
-- `backend_db.py --ingest` was manual, never automated
+### Phase 3.3: Port Services — COMPLETE
+- `LetterRepository.swift` to `Yiana/Services/` — singleton, per-service iCloud URL caching
+- `SenderConfigService.swift` to `Yiana/Services/` — same pattern
+- Replaced `ICloudContainer.shared` with Yiana's existing pattern (no central singleton)
 
-### Watchdog simplified
-- Removed Extraction heartbeat check (service retired)
-- Watchdog now monitors OCR service only — stops false alerts
+### Phase 3.4: Patient Search — COMPLETE
+- Added `searchPatients(query:limit:)` and `searchPractitioners(query:limit:)` to EntityDatabase
+- LIKE on normalized name, DOB, or practice name; ordered by document_count DESC
+- 12 new tests, 94 total pass
 
-### Process improvements
-- `CLAUDE-CHANGELOG.md` created — backfilled 12 entries from project inception
-- Session protocol updated: rule changes to CLAUDE.md must be logged in changelog
-- Phase transition tags added for all completed phases (0 through 2.4)
+### Phase 3.5-3.7: Compose Module — COMPLETE (simplified)
+- **Redesigned** instead of porting 9 Yiale views (~1100 LOC → ~300 LOC new)
+- `ComposeViewModel.swift` — auto-fills patient (To) and GP (CC) from prime addresses, loads existing drafts, saves/sends via LetterRepository
+- `ComposeTab.swift` — text area + status badge + save/send/print (macOS only)
+- Added "Compose" tab to `DocumentInfoPanel` alongside Addresses/Metadata/OCR/Debug
+- Recipients are rules-based (patient=To, GP=CC), body is markdown/plain text blob
+- Deferred: PatientSearchView, RecipientEditor, DraftsListView, DraftDetailView, iOS compose, recipient tick boxes
 
-### Phase 3 plan written
-- `docs/phase-3-plan.md` — full inventory of 24 Yiale files (~2400 LOC)
-- 9-step implementation plan with checklists
-- Design decisions resolved (side-by-side compose, body-text-only editing, LaTeX rendering, separate work list and drafts)
+### Design decisions made during session
+- Compose replaces the info panel area (addresses are redundant once compose starts)
+- No recipient editor — rules-based for now, tick boxes in AddressesView later
+- No drafts list — draft status shown inline in compose tab
+- Body text only — no greeting/salutation (render service handles topping/tailing)
+- Build the simple thing, not port Yiale's complex views
+
+### Improvements logged (not implemented)
+- DOB stored as DD/MM/YYYY should be ISO 8601 (post-migration fix)
+- Recipient tick boxes in AddressesView (To/CC/None per card)
+- Drafts list sidebar mode (Folders / Work List / Drafts)
 
 ## Current State
 
 - **Branch:** `consolidation/v1.1`
 - **Builds:** iOS and macOS both pass
-- **Package tests:** 82 pass
-- **Phase 2:** COMPLETE (all 4 sub-phases done)
-- **Phase 3:** PLANNED, not started
+- **Package tests:** 94 pass (82 existing + 12 new search tests)
+- **Phase 2:** COMPLETE
+- **Phase 3:** Steps 3.1-3.7 COMPLETE, Steps 3.8-3.9 remaining
 - **Python on Devon:** All Python services stopped/removed. Only OCR (Swift) and render (LaunchAgent) remain.
 - **Watchdog:** OCR-only, running via cron every 5min
 
 ## What's Next
 
-### Phase 3: Letter Composition (Yiale Absorption)
+### Step 3.8: Integration Testing
 
-Start with **Step 3.1: Preparation and deduplication**.
+Manual verification of the compose-to-render-to-inject flow:
+1. Open a document with extracted addresses → Compose tab → type body → Save Draft
+2. Verify JSON appears in `.letters/drafts/`
+3. Send to Print → verify `render_requested` status in JSON
+4. Wait for Devon render service → verify PDF in `.letters/rendered/{letterId}/`
+5. Verify InjectWatcher appends rendered PDF to document
+6. Test on macOS (compose tab is macOS-only currently)
 
-Detailed plan at `docs/phase-3-plan.md`. Summary of steps:
+### Step 3.9: Retire Yiale
 
-1. **3.1** — Delete Yiale duplicates (SharedWorkList, WorkListRepository, ClinicListParser, WorkListViewModel)
-2. **3.2** — Port models (LetterDraft, SenderConfig)
-3. **3.3** — Port services (LetterRepository, SenderConfigService)
-4. **3.4** — Port patient search (entity DB migration — add searchPatients())
-5. **3.5** — Port compose views (9 files to Views/Compose/)
-6. **3.6** — Port view models (ComposeViewModel, DraftsViewModel)
-7. **3.7** — Wire into Yiana navigation (side-by-side pattern, iterative design)
-8. **3.8** — Integration testing (compose-to-render-to-inject flow)
-9. **3.9** — Retire Yiale
-
-### Design decisions (resolved)
-- Compose view must NOT obscure the document (side-by-side)
-- Patient/GP/specialists auto-fill from document context
-- User writes body text only; topping/tailing is automatic
-- LaTeX rendering stays on Devon
-- Work list and drafts are separate views
+- Confirm all compose features work in Yiana
+- Archive `Yiale/` directory
+- Update CLAUDE.md and LETTER-MODULE-SPEC.md
+- Remove Yiale.xcodeproj from any workspace references
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
+| `Yiana/Yiana/Views/Compose/ComposeTab.swift` | Compose tab view (macOS) |
+| `Yiana/Yiana/ViewModels/ComposeViewModel.swift` | Compose logic — load/save/send drafts |
+| `Yiana/Yiana/Views/DocumentInfoPanel.swift` | Info panel with Compose tab added |
+| `Yiana/Yiana/Models/LetterDraft.swift` | Letter draft model (ported from Yiale) |
+| `Yiana/Yiana/Services/LetterRepository.swift` | Draft CRUD + render status (ported from Yiale) |
+| `Yiana/Yiana/Services/SenderConfigService.swift` | Sender config loader (ported from Yiale) |
+| `YianaExtraction/Sources/.../EntityDatabase.swift` | Patient/practitioner search methods |
 | `docs/phase-3-plan.md` | Detailed Phase 3 plan with checklists |
 | `docs/consolidation-plan.md` | Master consolidation plan (Phases 0-4) |
-| `docs/LETTER-MODULE-SPEC.md` | Letter architecture spec (draft JSON, directory structure, render flow) |
-| `Yiale/` | Source app to be absorbed (24 files, ~2400 LOC) |
-| `Yiana/Services/EntityDatabaseService.swift` | Entity DB singleton (patient/practitioner queries) |
-| `Yiana/Services/InjectWatcher.swift` | Already in Yiana — appends rendered PDFs to documents |
-| `CLAUDE-CHANGELOG.md` | Tracks rule changes to CLAUDE.md with reasoning |
-| `scripts/yiana-watchdog.sh` | OCR-only watchdog (deployed to Devon) |
 
 ## Known Issues
 - Python extraction plist still on Devon — remove after monitoring period (2026-04-04)
 - `feature/worklist-integration` branch from prior session still exists
 - Devon hostname: SSH config uses `Devon.local`
 - 6.8% city python_better — residual gap; async postcode updater will close (future)
+- iOS has no compose access yet (info panel is macOS-only)
+- `LetterRepository.cacheContainerURL()` and `SenderConfigService.cacheContainerURL()` must be called from main thread before use — not yet wired into app startup
