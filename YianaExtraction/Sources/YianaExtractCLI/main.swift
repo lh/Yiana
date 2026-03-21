@@ -19,9 +19,13 @@ struct OCRPage: Codable {
 func run() throws {
     // Parse arguments
     var dbPath: String?
+    var documentIdOverride: String?
     let args = CommandLine.arguments
     if let idx = args.firstIndex(of: "--db-path"), idx + 1 < args.count {
         dbPath = args[idx + 1]
+    }
+    if let idx = args.firstIndex(of: "--document-id"), idx + 1 < args.count {
+        documentIdOverride = args[idx + 1]
     }
 
     // Read OCR JSON from stdin
@@ -33,10 +37,13 @@ func run() throws {
 
     let ocrFile = try JSONDecoder().decode(OCRFile.self, from: inputData)
 
+    // Use --document-id override (filename stem) if provided, otherwise JSON field
+    let documentId = documentIdOverride ?? ocrFile.documentId
+
     // Build ExtractionInput per page
     let inputs = ocrFile.pages.map { page in
         ExtractionInput(
-            documentId: ocrFile.documentId,
+            documentId: documentId,
             pageNumber: page.pageNumber,
             text: page.text,
             confidence: page.confidence ?? 0.85
@@ -45,7 +52,7 @@ func run() throws {
 
     // Run extraction cascade
     let cascade = ExtractionCascade()
-    var result = cascade.extractDocument(documentId: ocrFile.documentId, pages: inputs)
+    var result = cascade.extractDocument(documentId: documentId, pages: inputs)
 
     // NHS lookup enrichment
     if let dbPath {

@@ -207,6 +207,9 @@ def run_swift_extraction(ocr_path, swift_bin, db_path):
         cmd = [swift_bin]
         if db_path:
             cmd += ["--db-path", db_path]
+        # Pass the filename stem as document ID (matches app behaviour)
+        stem = Path(ocr_path).stem
+        cmd += ["--document-id", stem]
         result = subprocess.run(
             cmd, input=ocr_data, capture_output=True, text=True, timeout=30
         )
