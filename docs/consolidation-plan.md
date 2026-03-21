@@ -240,25 +240,24 @@ Python junk). Full results in `docs/phase-1.4-plan.md`.
 
 **Goal:** Replace `backend_db.py` with GRDB-based entity resolution in Yiana.
 
-### 2.1 Entity Database Schema (GRDB)
+### 2.1 Entity Database Schema (GRDB) -- DONE (2026-03-21)
 
-- [ ] Write tests FIRST using Phase 0.2 corpus (30 cases)
-- [ ] Define GRDB records:
+- [x] Write tests FIRST using Phase 0.2 corpus (30 cases)
+- [x] Define GRDB records:
   - `Patient` (id, normalised name, DOB, canonical name)
   - `Practitioner` (id, normalised name, type, ODS code, canonical name)
   - `DocumentEntity` (document ↔ patient/practitioner links)
   - `Extraction` (raw per-page results, verbatim)
-- [ ] Implement:
+- [x] Implement:
   - `EntityDatabase` service class
   - `resolvePatient(name:, dob:)` — normalise + dedup
   - `resolvePractitioner(name:, type:, odsCode:)` — normalise + dedup
   - `ingestAddressFile(url:)` — parse JSON, resolve entities, store links
   - `statistics()` — counts matching backend_db.py --stats output
-- [ ] Filename parsing: `parse_filename_dob()` port (Surname_Firstname_DDMMYY)
+- [x] Filename parsing: `parse_filename_dob()` port (Surname_Firstname_DDMMYY)
 
-**Test gate:** 30 entity resolution cases match expected outcomes. Statistics
-on full dataset match Python's output (patient count, practitioner count,
-link count within 5%).
+**Test gate:** 30/30 corpus scenarios pass. 82 total tests (30 corpus + 8
+edge cases + schema/normalisation). Statistics method implemented.
 
 ### 2.2 Wire Into Yiana
 

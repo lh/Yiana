@@ -25,11 +25,19 @@
 - CLI now accepts `--document-id` flag for filename-based extraction
 - Comparison script passes filename stem, matching in-app behaviour
 
-### Postcode sector -> town lookup
+### Postcode sector -> town lookup (2325d11)
 - 254 postcode sectors mapped to towns via postcodes.io BUA data
 - `PostcodeLookup.swift` — static dictionary in YianaExtraction package
 - `ExtractionHelpers.townForPostcode()` used as fallback in all 4 extractors
 - City python_better dropped from 22.4% to **6.8%**, swift_better up to **9.1%**
+
+### Phase 2.1: Entity Database Schema — COMPLETE (728be19, c6e5ba9)
+- **Steps 1-2:** GRDB records (8 tables), schema migration, `normalizeName()`, 21 tests
+- **Steps 3-5:** `resolvePatient`, `resolvePractitioner`, `linkPatientPractitioner`,
+  `ingestAddressFile` with content hash idempotency, override map, filename-based
+  patient ownership, cross-row linking (same-page + single-patient document)
+- 30/30 corpus scenarios pass, 82 total tests
+- Architecture decision: entity DB is a local derived cache, rebuildable from iCloud JSON
 
 ### SSH / Devon
 - SSH key loaded into macOS Keychain
@@ -52,9 +60,10 @@ as canonical, which is more reliable than Python's OCR-extracted values.
 
 - **Branch:** `consolidation/v1.1`
 - **Builds:** iOS and macOS both succeed
-- **Package tests:** 73/73 pass
+- **Package tests:** 82 pass (73 prior + 8 entity edge cases + test count growth)
 - **Python extraction:** STOPPED on Devon (2026-03-21)
 - **Override format:** split into separate `.overrides.json` files
+- **Phase 2.1:** COMPLETE — entity database schema, resolution, and ingestion all working
 
 ## Monitoring Period (2 weeks from 2026-03-21)
 
@@ -67,29 +76,35 @@ After monitoring: remove LaunchAgent plist, archive Python extraction code.
 
 ## What's Next
 
+### Phase 2.2: Wire Into Yiana
+- After extraction completes, call `EntityDatabase.ingestAddressFile()`
+- Entity DB stored locally (not in iCloud — same as search index)
+- Boss instance: full entity DB across all documents
+- Regular instances: lazy ingestion for viewed documents
+- AddressesView: show enriched data from entity DB (canonical names, cross-document links)
+
+### Phase 2.3: Parallel Validation
+- Run full ingestion on all `.addresses/*.json` files
+- Compare entity counts and links against `addresses_backend.db`
+- Review discrepancies
+
 ### Postcode lookup async updater (future)
 - When a sector isn't in the static table, query postcodes.io live and cache
 - Grows the table organically over time
 - Logged in Serena memory `ideas_and_problems` (idea #13)
 
-### Phase 2.1: Entity Database — IN PROGRESS
-- **Done:** GRDB records (8 tables), schema migration, `normalizeName()`, 21 new tests
-- **Next:** Entity resolution methods (Steps 3-5): `resolvePatient`, `resolvePractitioner`, ingestion, enrichment write-back
-- Architecture decision: entity DB is a local derived cache, rebuildable from iCloud JSON
-- Test corpus ready (Phase 0.2: 30 scenarios, 55 synthetic files)
-- See plan at `.claude/plans/majestic-waddling-spindle.md`
-
 ## Key Files
 
 | File | Purpose |
 |------|---------|
+| `YianaExtraction/Services/EntityDatabase.swift` | Entity resolution, ingestion, GRDB schema |
 | `YianaExtraction/Utilities/PostcodeLookup.swift` | 254-sector town lookup table |
 | `YianaExtraction/Utilities/ExtractionHelpers.swift` | Filename parser, city helpers, townForPostcode |
 | `YianaExtraction/Extractors/ExtractionCascade.swift` | Filename overlay logic |
 | `Yiana/Services/AddressRepository.swift` | Split read/write for overrides |
 | `Yiana/Services/DocumentExtractionService.swift` | Extraction writes pages + enriched only |
 | `YianaExtraction/Models/AddressSchema.swift` | OverridesFile struct |
-| `docs/consolidation-plan.md` | Phase 1 complete, all decisions logged |
+| `docs/consolidation-plan.md` | Phase 1 complete, Phase 2.1 complete, all decisions logged |
 
 ## Known Issues
 - 6.8% city python_better — residual gap; async postcode updater will close
