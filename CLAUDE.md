@@ -13,6 +13,7 @@
 
 - **Start:** Read `HANDOFF.md` if it exists. Run `git status`.
 - **End:** Commit and push all changes before ending. Write a detailed handoff to `HANDOFF.md` — what was completed, what's in progress, what's next, known issues.
+- **Rule changes:** If you add or change a rule in this file, log it in `CLAUDE-CHANGELOG.md` with the date and the incident that prompted it.
 
 ## Project Overview
 
