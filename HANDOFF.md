@@ -52,7 +52,7 @@ as canonical, which is more reliable than Python's OCR-extracted values.
 
 - **Branch:** `consolidation/v1.1`
 - **Builds:** iOS and macOS both succeed
-- **Package tests:** 52/52 pass
+- **Package tests:** 73/73 pass
 - **Python extraction:** STOPPED on Devon (2026-03-21)
 - **Override format:** split into separate `.overrides.json` files
 
@@ -72,10 +72,12 @@ After monitoring: remove LaunchAgent plist, archive Python extraction code.
 - Grows the table organically over time
 - Logged in Serena memory `ideas_and_problems` (idea #13)
 
-### Phase 2: Entity Database
-- Replace `backend_db.py` with GRDB-based entity resolution in Yiana
+### Phase 2.1: Entity Database — IN PROGRESS
+- **Done:** GRDB records (8 tables), schema migration, `normalizeName()`, 21 new tests
+- **Next:** Entity resolution methods (Steps 3-5): `resolvePatient`, `resolvePractitioner`, ingestion, enrichment write-back
+- Architecture decision: entity DB is a local derived cache, rebuildable from iCloud JSON
 - Test corpus ready (Phase 0.2: 30 scenarios, 55 synthetic files)
-- See `docs/consolidation-plan.md` Phase 2
+- See plan at `.claude/plans/majestic-waddling-spindle.md`
 
 ## Key Files
 

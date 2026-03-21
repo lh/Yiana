@@ -81,6 +81,40 @@ enum ExtractionHelpers {
         return remainder
     }
 
+    // MARK: - Name Normalisation
+
+    /// Titles to strip during normalisation.
+    private static let titlePattern =
+        #"^(mr|mrs|ms|miss|dr|prof|professor|sir|dame|lord|lady|rev|reverend)\.?\s+"#
+
+    /// Normalise a name for entity dedup: lowercase, strip titles,
+    /// keep only letters/hyphens/apostrophes/spaces, collapse whitespace.
+    ///
+    /// Examples:
+    /// - "Dr John Smith-Jones" → "john smith-jones"
+    /// - "MRS. O'Brien" → "o'brien"
+    /// - "Prof. Jane Doe" → "jane doe"
+    static func normalizeName(_ raw: String) -> String {
+        var name = raw.lowercased()
+        // Strip titles
+        if let regex = try? NSRegularExpression(pattern: titlePattern, options: []) {
+            let range = NSRange(name.startIndex..., in: name)
+            name = regex.stringByReplacingMatches(in: name, range: range, withTemplate: "")
+        }
+        // Keep only letters, hyphens, apostrophes, spaces
+        let cleaned = name.unicodeScalars.filter { scalar in
+            CharacterSet.letters.contains(scalar)
+                || scalar == " " || scalar == "-" || scalar == "'" || scalar == "\u{2019}"
+        }
+        name = String(String.UnicodeScalarView(cleaned))
+        // Normalize curly apostrophes to straight
+        name = name.replacingOccurrences(of: "\u{2019}", with: "'")
+        name = name.replacingOccurrences(of: "\u{2018}", with: "'")
+        // Collapse whitespace
+        let parts = name.split(separator: " ")
+        return parts.joined(separator: " ")
+    }
+
     // MARK: - Name Cleaning
 
     /// Remove non-alpha characters (keep spaces, hyphens, apostrophes), normalize whitespace, title case.
