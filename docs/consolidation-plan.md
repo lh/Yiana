@@ -397,12 +397,12 @@ server. Build passes both platforms. PASSED.
 ### 4.2 Retire Devon Services
 
 - [x] Stopped Python render service LaunchAgent on Devon (2026-03-21)
-  - Plist preserved for rollback until 2026-04-04
-- [ ] Stop OCR service LaunchDaemon on Devon (already redundant since Phase 1)
-- [ ] Remove watchdog cron job
-- [ ] Remove dashboard LaunchAgent
+- [x] Stopped OCR service LaunchDaemon on Devon (2026-03-21)
+- [x] Removed watchdog cron job (2026-03-21)
+- [x] Stopped dashboard LaunchAgent (2026-03-21)
+- All plists preserved on disk for rollback until 2026-04-04
 - [ ] Archive server scripts and Python code
-- [ ] Devon becomes just an iCloud sync node (or is retired entirely)
+- [x] Devon is now just an iCloud sync node — no active services
 
 ### 4.3 Nice-to-Haves (not blockers)
 
