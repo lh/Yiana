@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import GRDB
 
@@ -245,6 +246,350 @@ public final class EntityDatabase: Sendable {
                 extractionCount: try ExtractionRecord.fetchCount(db)
             )
         }
+    }
+
+    // MARK: - Ingestion
+
+    /// Ingest a .addresses/*.json file, resolving entities and creating links.
+    public func ingestAddressFile(at url: URL) throws {
+        let data = try Data(contentsOf: url)
+        let hash = Self.contentHash(of: data)
+        let doc = try JSONDecoder().decode(DocumentAddressFile.self, from: data)
+        try dbQueue.write { db in
+            try self.ingestDocument(db, doc: doc, hash: hash)
+        }
+    }
+
+    // MARK: - Query
+
+    /// All patient records.
+    func allPatients() throws -> [PatientRecord] {
+        try dbQueue.read { db in try PatientRecord.fetchAll(db) }
+    }
+
+    /// All practitioner records.
+    func allPractitioners() throws -> [PractitionerRecord] {
+        try dbQueue.read { db in try PractitionerRecord.fetchAll(db) }
+    }
+
+    // MARK: - Entity Resolution
+
+    func resolvePatient(_ db: Database, name: String, dob: String?) throws -> Int64? {
+        let normalized = ExtractionHelpers.normalizeName(name)
+        guard !normalized.isEmpty else { return nil }
+        let now = Self.iso8601Now()
+
+        var existing: PatientRecord?
+        if let dob {
+            existing = try PatientRecord
+                .filter(Column("full_name_normalized") == normalized)
+                .filter(Column("date_of_birth") == dob)
+                .fetchOne(db)
+        } else {
+            let matches = try PatientRecord
+                .filter(Column("full_name_normalized") == normalized)
+                .fetchAll(db)
+            if matches.count == 1 { existing = matches[0] }
+        }
+
+        if var patient = existing {
+            patient.documentCount += 1
+            patient.lastSeenAt = now
+            try patient.update(db)
+            return patient.id
+        }
+
+        let patient = PatientRecord(
+            id: nil, fullName: name, fullNameNormalized: normalized,
+            dateOfBirth: dob,
+            addressLine1: nil, addressLine2: nil, city: nil, county: nil,
+            postcode: nil, postcodeDistrict: nil,
+            phoneHome: nil, phoneWork: nil, phoneMobile: nil,
+            documentCount: 1, firstSeenAt: now, lastSeenAt: now
+        )
+        try patient.insert(db)
+        return db.lastInsertedRowID
+    }
+
+    func resolvePractitioner(_ db: Database, name: String, type: String,
+                             practiceName: String?, address: String?,
+                             postcode: String?, odsCode: String?,
+                             officialName: String?) throws -> Int64? {
+        let normalized = ExtractionHelpers.normalizeName(name)
+        guard !normalized.isEmpty else { return nil }
+        let now = Self.iso8601Now()
+
+        if var existing = try PractitionerRecord
+            .filter(Column("full_name_normalized") == normalized)
+            .filter(Column("type") == type)
+            .fetchOne(db) {
+            if let v = practiceName { existing.practiceName = v }
+            if let v = address { existing.address = v }
+            if let v = postcode { existing.postcode = v }
+            if let v = odsCode { existing.odsCode = v }
+            if let v = officialName { existing.officialName = v }
+            existing.documentCount += 1
+            existing.lastSeenAt = now
+            try existing.update(db)
+            return existing.id
+        }
+
+        let practitioner = PractitionerRecord(
+            id: nil, type: type, fullName: name, fullNameNormalized: normalized,
+            practiceName: practiceName, odsCode: odsCode, officialName: officialName,
+            address: address, postcode: postcode,
+            documentCount: 1, firstSeenAt: now, lastSeenAt: now
+        )
+        try practitioner.insert(db)
+        return db.lastInsertedRowID
+    }
+
+    func linkPatientPractitioner(_ db: Database, patientId: Int64,
+                                 practitionerId: Int64,
+                                 relationshipType: String) throws {
+        let now = Self.iso8601Now()
+        if var existing = try PatientPractitionerRecord
+            .filter(Column("patient_id") == patientId)
+            .filter(Column("practitioner_id") == practitionerId)
+            .filter(Column("relationship_type") == relationshipType)
+            .fetchOne(db) {
+            existing.documentCount += 1
+            existing.lastSeenAt = now
+            try existing.update(db)
+        } else {
+            let link = PatientPractitionerRecord(
+                id: nil, patientId: patientId, practitionerId: practitionerId,
+                relationshipType: relationshipType,
+                documentCount: 1, firstSeenAt: now, lastSeenAt: now
+            )
+            try link.insert(db)
+        }
+    }
+
+    // MARK: - Private Helpers
+
+    private func ingestDocument(_ db: Database, doc: DocumentAddressFile,
+                                hash: String) throws {
+        let now = Self.iso8601Now()
+        let documentId = doc.documentId
+
+        // 1. Document upsert with hash check
+        if let existing = try DocumentRecord
+            .filter(Column("document_id") == documentId).fetchOne(db) {
+            if existing.jsonHash == hash { return }
+            try ExtractionRecord
+                .filter(Column("document_id") == documentId).deleteAll(db)
+            try PatientDocumentRecord
+                .filter(Column("document_id") == documentId).deleteAll(db)
+            var updated = existing
+            updated.jsonHash = hash
+            updated.schemaVersion = doc.schemaVersion
+            updated.extractedAt = doc.extractedAt
+            updated.pageCount = doc.pageCount
+            updated.updatedAt = now
+            try updated.update(db)
+        } else {
+            let docRecord = DocumentRecord(
+                id: nil, documentId: documentId, jsonHash: hash,
+                schemaVersion: doc.schemaVersion, extractedAt: doc.extractedAt,
+                pageCount: doc.pageCount, ingestedAt: now, updatedAt: nil
+            )
+            try docRecord.insert(db)
+        }
+
+        // 2. Build override map: (pageNumber:addressType) -> override
+        var overrideMap: [String: AddressOverrideEntry] = [:]
+        for override in doc.overrides {
+            let key = "\(override.pageNumber):\(override.matchAddressType)"
+            if let prev = overrideMap[key] {
+                if (override.overrideDate ?? "") > (prev.overrideDate ?? "") {
+                    overrideMap[key] = override
+                }
+            } else {
+                overrideMap[key] = override
+            }
+        }
+
+        // 3. Resolve filename patient (document owner)
+        let filenamePatient = ExtractionHelpers.parsePatientFilename(documentId)
+        var filenamePatientId: Int64?
+        if let fp = filenamePatient {
+            filenamePatientId = try resolvePatient(
+                db, name: fp.fullName, dob: fp.dateOfBirth)
+        }
+
+        // 4. Process pages
+        var pagePatients: [Int: Set<Int64>] = [:]
+        var pagePractitioners: [Int: [(Int64, String)]] = [:]
+        var seenPatients = Set<Int64>()
+        var seenPractitioners: [(Int64, String)] = []
+        var linkedPairs = Set<String>()
+
+        for page in doc.pages {
+            let pageNum = page.pageNumber
+            let addressType = page.addressType ?? "patient"
+            let overrideKey = "\(pageNum):\(addressType)"
+            let override = overrideMap[overrideKey]
+
+            let effectivePatient = override?.patient ?? page.patient
+            let effectiveAddress = override?.address ?? page.address
+            let effectiveGP = override?.gp ?? page.gp
+            let effectiveSpecialist = override?.specialistName ?? page.specialistName
+            let effectiveAddressType = override?.addressType ?? addressType
+
+            // Patient: filename patient is document owner
+            let pagePatientId = filenamePatientId
+            if let pid = pagePatientId, effectiveAddressType == "patient" {
+                try updatePatientData(db, patientId: pid,
+                                      address: effectiveAddress,
+                                      phones: effectivePatient?.phones)
+            }
+
+            // GP practitioner
+            var gpId: Int64?
+            if let gpName = effectiveGP?.name, !gpName.isEmpty {
+                gpId = try resolvePractitioner(
+                    db, name: gpName, type: "GP",
+                    practiceName: effectiveGP?.practice,
+                    address: effectiveGP?.address,
+                    postcode: effectiveGP?.postcode,
+                    odsCode: effectiveGP?.odsCode,
+                    officialName: effectiveGP?.officialName)
+            }
+
+            // Specialist practitioner
+            var specialistId: Int64?
+            if effectiveAddressType == "specialist",
+               let specName = effectiveSpecialist, !specName.isEmpty {
+                specialistId = try resolvePractitioner(
+                    db, name: specName, type: "Consultant",
+                    practiceName: nil, address: nil, postcode: nil,
+                    odsCode: nil, officialName: nil)
+            }
+
+            // Extraction record
+            let extraction = ExtractionRecord(
+                id: nil, documentId: documentId, pageNumber: pageNum,
+                addressType: effectiveAddressType, isPrime: page.isPrime,
+                patientId: pagePatientId, practitionerId: gpId ?? specialistId,
+                patientFullName: effectivePatient?.fullName,
+                patientDateOfBirth: effectivePatient?.dateOfBirth,
+                patientPhoneHome: effectivePatient?.phones?.home,
+                patientPhoneWork: effectivePatient?.phones?.work,
+                patientPhoneMobile: effectivePatient?.phones?.mobile,
+                addressLine1: effectiveAddress?.line1,
+                addressLine2: effectiveAddress?.line2,
+                addressCity: effectiveAddress?.city,
+                addressCounty: effectiveAddress?.county,
+                addressPostcode: effectiveAddress?.postcode,
+                addressPostcodeValid: effectiveAddress?.postcodeValid,
+                addressPostcodeDistrict: effectiveAddress?.postcodeDistrict,
+                gpName: effectiveGP?.name,
+                gpPractice: effectiveGP?.practice,
+                gpAddress: effectiveGP?.address,
+                gpPostcode: effectiveGP?.postcode,
+                extractionMethod: page.extraction?.method,
+                extractionConfidence: page.extraction?.confidence,
+                specialistName: effectiveSpecialist,
+                hasOverride: override != nil,
+                overrideReason: override?.overrideReason,
+                overrideDate: override?.overrideDate
+            )
+            try extraction.insert(db)
+
+            // Track for cross-row linking
+            if let pid = pagePatientId {
+                pagePatients[pageNum, default: []].insert(pid)
+                seenPatients.insert(pid)
+            }
+            if let gid = gpId {
+                pagePractitioners[pageNum, default: []].append((gid, "GP"))
+                seenPractitioners.append((gid, "GP"))
+            }
+            if let sid = specialistId {
+                pagePractitioners[pageNum, default: []].append((sid, "Consultant"))
+                seenPractitioners.append((sid, "Consultant"))
+            }
+        }
+
+        // 5. Cross-row linking
+        // Strategy 1: same-page
+        for (pageNum, patientIds) in pagePatients {
+            for patientId in patientIds {
+                for (practId, relType) in pagePractitioners[pageNum] ?? [] {
+                    let key = "\(patientId):\(practId):\(relType)"
+                    if linkedPairs.insert(key).inserted {
+                        try linkPatientPractitioner(
+                            db, patientId: patientId,
+                            practitionerId: practId,
+                            relationshipType: relType)
+                    }
+                }
+            }
+        }
+        // Strategy 2: single-patient document
+        if seenPatients.count == 1, let sole = seenPatients.first {
+            for (practId, relType) in seenPractitioners {
+                let key = "\(sole):\(practId):\(relType)"
+                if linkedPairs.insert(key).inserted {
+                    try linkPatientPractitioner(
+                        db, patientId: sole,
+                        practitionerId: practId,
+                        relationshipType: relType)
+                }
+            }
+        }
+
+        // 6. Patient-document links
+        for pid in seenPatients {
+            let link = PatientDocumentRecord(
+                id: nil, patientId: pid, documentId: documentId)
+            try link.insert(db)
+        }
+    }
+
+    private func updatePatientData(_ db: Database, patientId: Int64,
+                                   address: AddressInfo?,
+                                   phones: PhoneInfo?) throws {
+        guard var patient = try PatientRecord.fetchOne(db, key: patientId)
+        else { return }
+        var changed = false
+        if let addr = address {
+            if let v = addr.line1 { patient.addressLine1 = v; changed = true }
+            if let v = addr.line2 { patient.addressLine2 = v; changed = true }
+            if let v = addr.city { patient.city = v; changed = true }
+            if let v = addr.county { patient.county = v; changed = true }
+            if let v = addr.postcode { patient.postcode = v; changed = true }
+            if let v = addr.postcodeDistrict {
+                patient.postcodeDistrict = v; changed = true
+            }
+        }
+        if let ph = phones {
+            if let v = ph.home { patient.phoneHome = v; changed = true }
+            if let v = ph.work { patient.phoneWork = v; changed = true }
+            if let v = ph.mobile { patient.phoneMobile = v; changed = true }
+        }
+        if changed { try patient.update(db) }
+    }
+
+    // MARK: - Utilities
+
+    static func contentHash(of data: Data) -> String {
+        if var dict = try? JSONSerialization.jsonObject(with: data)
+            as? [String: Any] {
+            dict.removeValue(forKey: "enriched")
+            if let normalized = try? JSONSerialization.data(
+                withJSONObject: dict, options: [.sortedKeys]) {
+                let digest = SHA256.hash(data: normalized)
+                return digest.map { String(format: "%02x", $0) }.joined()
+            }
+        }
+        let digest = SHA256.hash(data: data)
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    private static func iso8601Now() -> String {
+        ISO8601DateFormatter().string(from: Date())
     }
 
     // MARK: - Schema Migration
