@@ -498,8 +498,8 @@ struct AddressCard: View {
                 }
             }
 
-            // Recipient role picker
-            if !isEditingPatient {
+            // Recipient role picker (only for verified/prime cards)
+            if !isEditingPatient && isPrime {
                 Divider()
                 HStack(spacing: 8) {
                     Text("Letter:")

@@ -35,6 +35,8 @@ Quick-capture list for things that come to mind mid-task.
 
 20. **iPhone camera as scanner for Mac app** — Use Continuity Camera / camera capture to scan documents directly from iPhone into the macOS Yiana app. Apple provides this natively via `NSToolbarItem` continuity camera support or the `VNDocumentCameraViewController` on iOS feeding back to macOS via Handoff/iCloud. Could eliminate the need to scan on the iPhone app separately and then wait for iCloud sync. Investigate whether Continuity Camera supports multi-page document scanning or just single photos. Logged 2026-03-21.
 
+27. **Restore last state on launch** — Remember which folder was open and which document was displayed, restore on app launch. Simple UserDefaults persistence of folder path + document URL. No new UI needed — just feels like the app remembers where you were. Logged 2026-03-22.
+
 26. **Performance: ruthless speed improvement for note loading/exiting** — Logged 2026-03-22. Priority. The app needs to feel instant when opening and closing documents. Need to: (a) measure current load/exit times with Instruments or os_signpost, (b) identify bottlenecks (file I/O, PDF rendering, iCloud downloads, extraction, entity DB ingestion), (c) set target times (e.g. <500ms to first page visible), (d) profile real-world documents (large multi-page scans, not synthetic). Consider lazy loading (show first page before full document loads), caching (keep recently opened docs in memory), and deferring non-critical work (extraction, entity ingestion, search indexing) to after the document is visible.
 
 24. **Visual form template builder for OCR extraction** — Logged 2026-03-22. Long-term.
@@ -78,6 +80,8 @@ Quick-capture list for things that come to mind mid-task.
 16. **HTML render template: leading comma when department is empty** — `sender.json` has `"department": ""`. The HTML footer template joins role/department/hospital without filtering empties, producing `, Spire Gatwick Park Hospital`. PDF render (LaTeX) handles it correctly. Low priority — cosmetic, HTML-only. Logged 2026-03-21.
 
 25. **Click NHS candidate to adopt as GP contact** — NHS lookup candidates already show in GP cards. Add tap gesture to fill gpName, gpPractice, gpAddress, gpPostcode, gpOdsCode from the selected candidate. Enters edit mode if not already editing. Small change — data is already there. Logged 2026-03-22.
+
+28. **Rename "Prime" to "Verified"** — "Prime" currently means both "primary/canonical" and "user has verified this address." "Verified" is clearer for the second meaning, which is how it's actually used. Affects: AddressCard UI, override schema (isPrime field), AddressRepository togglePrime(), extraction helpers. Logged 2026-03-22.
 
 15. **Recipient tick boxes in AddressesView** — Each address card gets To/CC/None toggles so the user can override rules-based recipient defaults. Enables per-letter flexible recipient selection without a separate editor view. Deferred from Phase 3.5 — build after compose module is proven. Logged 2026-03-21.
 
