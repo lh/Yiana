@@ -108,3 +108,25 @@
 
   ]
 }
+
+// -- Contact footer --
+#v(1fr)
+#{
+  line(length: 100%, stroke: 0.4pt)
+  v(2mm)
+  set text(size: 8pt)
+
+  if sender.at("secretary", default: none) != none {
+    let sec = sender.secretary
+    let parts = ("Secretary: " + sec.name,)
+    let parts = if sec.phone != "" { parts + ("Tel: " + sec.phone,) } else { parts }
+    let parts = if sec.email != "" { parts + ("Email: " + sec.email,) } else { parts }
+    parts.join(" | ")
+    linebreak()
+  }
+
+  let contact = (sender.hospital,)
+  let contact = if sender.address.len() > 0 { contact + (sender.address.join(", "),) } else { contact }
+  let contact = if sender.phone != "" { contact + ("Tel: " + sender.phone,) } else { contact }
+  contact.join(" | ")
+}
