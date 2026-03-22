@@ -210,7 +210,7 @@ class ComposeViewModel {
     }
 
     var canSend: Bool {
-        canSave && status == .draft
+        canSave && (status == .draft || status == .rendered)
     }
 
     /// Reset for a new letter, keeping patient/recipient context.
