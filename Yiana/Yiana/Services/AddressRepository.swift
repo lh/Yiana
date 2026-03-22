@@ -64,14 +64,14 @@ final class AddressRepository: ObservableObject {
             let data = try Data(contentsOf: fileURL)
             var file = try JSONDecoder().decode(DocumentAddressFile.self, from: data)
 
-            // No pages = no addresses
-            if file.pages.isEmpty { return .noAddresses }
-
             // Merge overrides from separate file
             let separateOverrides = readOverridesFileStatic(forDocument: documentId)
             if !separateOverrides.isEmpty {
                 file.overrides = separateOverrides
             }
+
+            // No pages and no manual overrides = no addresses
+            if file.pages.isEmpty && file.overrides.isEmpty { return .noAddresses }
 
             // Resolve effective isPrime for each page by checking overrides
             var hasPatientPrime = false
