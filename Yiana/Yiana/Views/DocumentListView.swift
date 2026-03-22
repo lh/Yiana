@@ -1094,15 +1094,13 @@ struct DocumentListView: View {
                 lastDocumentURL = ""
             }
             .toolbar {
-                if navigationPath.count > 1 {
-                    ToolbarItem(placement: .navigation) {
-                        Button {
-                            navigationPath = NavigationPath()
-                        } label: {
-                            Label("Back to List", systemImage: "list.bullet")
-                        }
-                        .help("Back to document list")
+                ToolbarItem(placement: .navigation) {
+                    Button {
+                        navigationPath = NavigationPath()
+                    } label: {
+                        Label("Back", systemImage: "chevron.left")
                     }
+                    .help("Back to document list")
                 }
             }
         #endif

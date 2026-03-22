@@ -137,13 +137,6 @@ struct DocumentReadView: View {
             printDocument()
         }
         .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Button(action: { dismiss() }) {
-                    Label("Back", systemImage: "chevron.left")
-                }
-                .help("Back to documents")
-            }
-
             ToolbarItem(placement: .principal) {
                 if isEditingTitle {
                     TextField("Document Title", text: $documentTitle, onCommit: {
