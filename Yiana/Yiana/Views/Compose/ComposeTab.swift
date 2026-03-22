@@ -32,7 +32,6 @@ struct ComposeTab: View {
                 .font(.body)
                 .frame(minHeight: 150)
                 .border(Color(NSColor.separatorColor), width: 1)
-                .disabled(viewModel.status == .rendered)
 
             // Status and actions
             HStack {
