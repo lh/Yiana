@@ -68,7 +68,7 @@ struct AddressesView: View {
             } else {
                 ScrollView {
                     VStack(spacing: 20) {
-                        // Prime addresses first
+                        // Verified addresses first (isPrime = user has verified this address)
                         let primeAddresses = sortedAddresses.filter { $0.isPrime == true }
                         let nonPrimeAddresses = sortedAddresses.filter { $0.isPrime != true }
 
@@ -227,9 +227,9 @@ struct AddressCard: View {
     @State private var patientCopied = false
     @State private var liveCandidates: [NHSCandidate]?
 
-    // Prime address system
+    // Verified address system (isPrime in code = "Verified" in UI — user has confirmed this address is correct)
     @State private var selectedType: String
-    @State private var isPrime: Bool
+    @State private var isPrime: Bool  // UI label: "Verified"
     @State private var subtypeName: String
     @State private var showingSubtypeNameInput = false
     @State private var recipientRole: String
@@ -338,7 +338,7 @@ struct AddressCard: View {
                         Spacer()
 
                         // Prime toggle
-                        Toggle("Prime", isOn: $isPrime)
+                        Toggle("Verified", isOn: $isPrime)
                             .toggleStyle(.switch)
                     }
                 }
