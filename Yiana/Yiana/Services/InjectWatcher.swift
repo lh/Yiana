@@ -144,6 +144,13 @@ final class InjectWatcher {
             )
             try? fm.removeItem(at: processingURL)
             log("Appended \(url.lastPathComponent) to \(matchingDoc.url.lastPathComponent)")
+            let docURL = matchingDoc.url
+            await MainActor.run {
+                NotificationCenter.default.post(
+                    name: .yianaDocumentContentChanged,
+                    object: docURL
+                )
+            }
         } catch {
             log("Failed to append: \(error.localizedDescription)")
             moveToUnmatched(processingURL, originalName: url.lastPathComponent)

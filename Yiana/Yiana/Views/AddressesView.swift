@@ -537,30 +537,26 @@ struct AddressCard: View {
 
         var updatedAddress = address
 
-        // Update fields based on selected type (not original type)
-        if selectedType == "gp" {
-            updatedAddress.gpName = gpName.isEmpty ? "" : gpName
-            updatedAddress.gpPractice = gpPractice.isEmpty ? "" : gpPractice
-            updatedAddress.gpAddress = gpAddress.isEmpty ? "" : gpAddress
-            updatedAddress.gpPostcode = gpPostcode.isEmpty ? "" : gpPostcode
-        } else {
-            // Join split name fields back into fullName for the override
-            let composedName = [title, firstName, surname]
-                .map { $0.trimmingCharacters(in: .whitespaces) }
-                .filter { !$0.isEmpty }
-                .joined(separator: " ")
-            updatedAddress.fullName = composedName.isEmpty ? "" : composedName
-            updatedAddress.dateOfBirth = dateOfBirth.isEmpty ? "" : dateOfBirth
-            updatedAddress.mrn = mrn.isEmpty ? nil : mrn
-            updatedAddress.addressLine1 = addressLine1.isEmpty ? "" : addressLine1
-            updatedAddress.addressLine2 = addressLine2.isEmpty ? "" : addressLine2
-            updatedAddress.city = city.isEmpty ? "" : city
-            updatedAddress.county = county.isEmpty ? "" : county
-            updatedAddress.postcode = postcode.isEmpty ? "" : postcode
-            updatedAddress.phoneHome = phoneHome.isEmpty ? "" : phoneHome
-            updatedAddress.phoneWork = phoneWork.isEmpty ? "" : phoneWork
-            updatedAddress.phoneMobile = phoneMobile.isEmpty ? "" : phoneMobile
-        }
+        // Always write all @State fields — the override captures the full card state
+        let composedName = [title, firstName, surname]
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        updatedAddress.fullName = composedName.isEmpty ? nil : composedName
+        updatedAddress.dateOfBirth = dateOfBirth.isEmpty ? nil : dateOfBirth
+        updatedAddress.mrn = mrn.isEmpty ? nil : mrn
+        updatedAddress.addressLine1 = addressLine1.isEmpty ? nil : addressLine1
+        updatedAddress.addressLine2 = addressLine2.isEmpty ? nil : addressLine2
+        updatedAddress.city = city.isEmpty ? nil : city
+        updatedAddress.county = county.isEmpty ? nil : county
+        updatedAddress.postcode = postcode.isEmpty ? nil : postcode
+        updatedAddress.phoneHome = phoneHome.isEmpty ? nil : phoneHome
+        updatedAddress.phoneWork = phoneWork.isEmpty ? nil : phoneWork
+        updatedAddress.phoneMobile = phoneMobile.isEmpty ? nil : phoneMobile
+        updatedAddress.gpName = gpName.isEmpty ? nil : gpName
+        updatedAddress.gpPractice = gpPractice.isEmpty ? nil : gpPractice
+        updatedAddress.gpAddress = gpAddress.isEmpty ? nil : gpAddress
+        updatedAddress.gpPostcode = gpPostcode.isEmpty ? nil : gpPostcode
 
         // Include type and prime changes from editing
         updatedAddress.addressType = selectedType
