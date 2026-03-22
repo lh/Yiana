@@ -313,6 +313,9 @@ class DocumentRepository {
     func renameDocument(at url: URL, newName: String) throws -> URL {
         let cleanName = Self.sanitizeName(newName)
             .replacingOccurrences(of: " ", with: "_")
+            .split(separator: "_")
+            .map { $0.prefix(1).uppercased() + $0.dropFirst() }
+            .joined(separator: "_")
 
         let parentDirectory = url.deletingLastPathComponent()
         let newURL = parentDirectory
