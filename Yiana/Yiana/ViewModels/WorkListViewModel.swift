@@ -255,20 +255,18 @@ class WorkListViewModel: ObservableObject {
         await save()
     }
 
-    /// Look up the current URL for a resolved entry by searching for its filename.
+    /// Look up the current URL for a resolved entry by direct file lookup.
     /// Returns nil if the document can't be found (e.g., renamed or deleted).
     func urlForResolved(_ entry: SharedWorkListItem) async -> URL? {
         guard let resolvedFilename = entry.resolvedFilename else { return nil }
 
-        do {
-            let results = try await searchIndex.search(query: resolvedFilename, limit: 5)
-            // Find exact filename match
-            return results.first { result in
-                result.url.deletingPathExtension().lastPathComponent == resolvedFilename
+        return await Task.detached {
+            let repository = DocumentRepository()
+            let allDocs = repository.allDocumentsRecursive()
+            return allDocs.first {
+                $0.url.deletingPathExtension().lastPathComponent == resolvedFilename
             }?.url
-        } catch {
-            return nil
-        }
+        }.value
     }
 
     /// Pre-download all resolved work list documents from iCloud.
