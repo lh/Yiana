@@ -248,11 +248,16 @@ struct AddressCard: View {
         _selectedType = State(initialValue: address.addressType ?? "patient")
         _isPrime = State(initialValue: address.isPrime ?? false)
         _subtypeName = State(initialValue: address.specialistName ?? "")
-        // Default recipient role from type if not explicitly set
-        let defaultRole: String = switch address.addressType ?? "patient" {
-        case "patient": "to"
-        case "gp": "cc"
-        default: "none"
+        // Default recipient role: only prime cards get a role by default
+        let defaultRole: String
+        if address.isPrime == true {
+            defaultRole = switch address.addressType ?? "patient" {
+            case "patient": "to"
+            case "gp": "cc"
+            default: "none"
+            }
+        } else {
+            defaultRole = "none"
         }
         _recipientRole = State(initialValue: address.recipientRole ?? defaultRole)
     }
