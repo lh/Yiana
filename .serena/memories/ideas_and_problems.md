@@ -81,6 +81,12 @@ Quick-capture list for things that come to mind mid-task.
 
 25. **Click NHS candidate to adopt as GP contact** — NHS lookup candidates already show in GP cards. Add tap gesture to fill gpName, gpPractice, gpAddress, gpPostcode, gpOdsCode from the selected candidate. Enters edit mode if not already editing. Small change — data is already there. Logged 2026-03-22.
 
+31. **Sender details in Settings UI** — Currently sender config is a manually created `sender.json` in iCloud (`.letters/config/`). No UI to edit it. Add a Sender Details section in Settings: name, credentials, role, department, hospital, address, phone, email, secretary (name/phone/email). Saves via SenderConfigService. First launch should prompt to fill in. Essential for other users — they can't hand-edit JSON. Logged 2026-03-22.
+
+30. **Built-in letter preview (iPad)** — On macOS the rendered PDF opens in Preview.app, but iPad has no equivalent. When iOS compose is built, include a sheet/modal PDF viewer for rendered letters. PDFKit is cross-platform. Bundle with the iOS compose work. Logged 2026-03-22.
+
+29. **DOB field accepts any input** — Patient DOB field in AddressCard is a plain text field with no validation. Should enforce a date format (DD/MM/YYYY or date picker). Also relates to #14 (ISO 8601 standardisation). Logged 2026-03-22.
+
 28. **Rename "Prime" to "Verified"** — "Prime" currently means both "primary/canonical" and "user has verified this address." "Verified" is clearer for the second meaning, which is how it's actually used. Affects: AddressCard UI, override schema (isPrime field), AddressRepository togglePrime(), extraction helpers. Logged 2026-03-22.
 
 15. **Recipient tick boxes in AddressesView** — Each address card gets To/CC/None toggles so the user can override rules-based recipient defaults. Enables per-letter flexible recipient selection without a separate editor view. Deferred from Phase 3.5 — build after compose module is proven. Logged 2026-03-21.
