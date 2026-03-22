@@ -272,9 +272,6 @@ struct DocumentListView: View {
                 folderSidebarContent
             } else {
                 WorkListView(viewModel: workListViewModel) { url in
-                    if !navigationPath.isEmpty {
-                        navigationPath.removeLast(navigationPath.count)
-                    }
                     navigationPath.append(url)
                 }
             }
@@ -615,9 +612,6 @@ struct DocumentListView: View {
 
             if sidebarMode == .workList && isIPad {
                 WorkListView(viewModel: workListViewModel) { url in
-                    if !navigationPath.isEmpty {
-                        navigationPath.removeLast(navigationPath.count)
-                    }
                     navigationPath.append(url)
                 }
             } else {
