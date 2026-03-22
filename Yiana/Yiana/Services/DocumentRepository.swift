@@ -186,13 +186,18 @@ class DocumentRepository {
         return clean.trimmingCharacters(in: .whitespaces)
     }
 
-    /// Title-case a single name part. Handles O'Brien → O'Brien.
+    /// Title-case a single name part. Handles O'Brien and McDonald.
     private static func titleCasePart(_ part: String) -> String {
         var result = part.prefix(1).uppercased() + part.dropFirst()
         // O'X → O'X (capitalise after O')
         if result.hasPrefix("O'") && result.count > 2 {
             let afterApostrophe = result.index(result.startIndex, offsetBy: 2)
             result = "O'" + String(result[afterApostrophe]).uppercased() + result[result.index(after: afterApostrophe)...]
+        }
+        // McX → McX (capitalise after Mc, but not Mac)
+        if result.hasPrefix("Mc") && result.count > 2 && !result.hasPrefix("Mac") {
+            let afterMc = result.index(result.startIndex, offsetBy: 2)
+            result = "Mc" + String(result[afterMc]).uppercased() + result[result.index(after: afterMc)...]
         }
         return result
     }
