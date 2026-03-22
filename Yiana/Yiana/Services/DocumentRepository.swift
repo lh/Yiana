@@ -177,13 +177,25 @@ class DocumentRepository {
         currentFolderPath = ""
     }
 
+    /// Sanitize a folder or document name — remove characters that break URL handling.
+    static func sanitizeName(_ name: String) -> String {
+        var clean = name
+        for char in ["?", "#", "%", "/", ":", "\\", "*", "\"", "<", ">", "|"] {
+            clean = clean.replacingOccurrences(of: char, with: "")
+        }
+        return clean.trimmingCharacters(in: .whitespaces)
+    }
+
     /// Create a new folder
     func createFolder(name: String) throws {
+        let cleanName = Self.sanitizeName(name)
+        guard !cleanName.isEmpty else { return }
+
         let targetDirectory = currentFolderPath.isEmpty ?
             documentsDirectory :
             documentsDirectory.appendingPathComponent(currentFolderPath)
 
-        let folderURL = targetDirectory.appendingPathComponent(name)
+        let folderURL = targetDirectory.appendingPathComponent(cleanName)
         try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
     }
 
@@ -299,9 +311,7 @@ class DocumentRepository {
 
     /// Rename a document (stays in the same folder)
     func renameDocument(at url: URL, newName: String) throws -> URL {
-        let cleanName = newName
-            .replacingOccurrences(of: "/", with: "-")
-            .replacingOccurrences(of: ":", with: "-")
+        let cleanName = Self.sanitizeName(newName)
             .replacingOccurrences(of: " ", with: "_")
 
         let parentDirectory = url.deletingLastPathComponent()
@@ -322,9 +332,7 @@ class DocumentRepository {
 
     /// Rename a folder
     func renameFolder(at url: URL, newName: String) throws -> URL {
-        let cleanName = newName
-            .replacingOccurrences(of: "/", with: "-")
-            .replacingOccurrences(of: ":", with: "-")
+        let cleanName = Self.sanitizeName(newName)
 
         let parentDirectory = url.deletingLastPathComponent()
         let newURL = parentDirectory.appendingPathComponent(cleanName)
