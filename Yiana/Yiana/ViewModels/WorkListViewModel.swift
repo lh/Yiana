@@ -125,9 +125,12 @@ class WorkListViewModel: ObservableObject {
 
     // MARK: - Add / Remove
 
+    static let maxEntries = 20
+
     func addManual(searchText: String) async {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        guard entries.count < Self.maxEntries else { return }
 
         // Skip if already present (by search text or resolved filename)
         let lowered = trimmed.lowercased()
@@ -161,6 +164,7 @@ class WorkListViewModel: ObservableObject {
     func addFromDocument(filename: String) async {
         // Skip if this document is already in the list
         if entries.contains(where: { $0.resolvedFilename == filename }) { return }
+        guard entries.count < Self.maxEntries else { return }
 
         // Parse surname/firstName from filename (Surname_Firstname_DOB)
         let parts = filename.components(separatedBy: "_")
