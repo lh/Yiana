@@ -54,10 +54,9 @@ struct DocumentInfoPanel: View {
                 if showAddressesTab {
                     Text("Addresses").tag("addresses")
                 }
-                Text("Metadata").tag("metadata")
-                Text("Text").tag("ocr")
-                Text("Debug").tag("debug")
                 Text("Compose").tag("compose")
+                Text("Text").tag("ocr")
+                Text("Metadata").tag("metadata")
             }
             .pickerStyle(.segmented)
             .padding()
@@ -73,7 +72,7 @@ struct DocumentInfoPanel: View {
                         AddressesView(documentId: document.metadata.title)
                             .padding()
                     case "metadata":
-                        MetadataView(metadata: document.metadata)
+                        MetadataView(document: document)
                             .padding()
                     case "ocr":
                         OCRView(document: document, isLoading: $isLoadingOCR) {
@@ -82,9 +81,6 @@ struct DocumentInfoPanel: View {
                         .padding()
                     case "compose":
                         ComposeTab(documentId: document.metadata.title)
-                            .padding()
-                    case "debug":
-                        DebugView(document: document)
                             .padding()
                     default:
                         EmptyView()
@@ -99,7 +95,10 @@ struct DocumentInfoPanel: View {
 
 // MARK: - Metadata View
 struct MetadataView: View {
-    let metadata: DocumentMetadata
+    let document: NoteDocument
+    @State private var fileSize: String = "Calculating..."
+
+    private var metadata: DocumentMetadata { document.metadata }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -132,7 +131,19 @@ struct MetadataView: View {
                 Spacer()
                 OCRStatusBadge(isCompleted: metadata.ocrCompleted)
             }
+
+            Divider()
+
+            // File info
+            InfoRow(label: "File Size", value: fileSize)
+            if let pdfData = document.pdfData {
+                InfoRow(label: "PDF Data", value: ByteCountFormatter.string(fromByteCount: Int64(pdfData.count), countStyle: .file))
+            }
+            if let fileURL = document.fileURL {
+                InfoRow(label: "Location", value: fileURL.path, monospaced: true)
+            }
         }
+        .onAppear { calculateFileSize() }
     }
 
     func formatDate(_ date: Date) -> String {
@@ -140,6 +151,21 @@ struct MetadataView: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+
+    func calculateFileSize() {
+        guard let fileURL = document.fileURL else {
+            fileSize = "Unknown"
+            return
+        }
+        do {
+            let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
+            if let size = attributes[FileAttributeKey.size] as? Int64 {
+                fileSize = ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
+            }
+        } catch {
+            fileSize = "Unknown"
+        }
     }
 }
 
