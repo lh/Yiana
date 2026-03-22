@@ -9,11 +9,6 @@
 import SwiftUI
 import PDFKit
 
-enum SidebarMode {
-    case pages
-    case addresses
-}
-
 struct MacPDFViewer: View {
     @ObservedObject var viewModel: DocumentViewModel
     var legacyPDFData: Data?  // optional fallback for read-only documents
@@ -27,20 +22,12 @@ struct MacPDFViewer: View {
     @State private var showingPageInput = false
     @State private var zoomAction: PDFZoomAction?
     @State private var fitMode: FitMode = .width
-    @State private var sidebarMode: SidebarMode = .pages
     @State private var pagesSidebarWidth: CGFloat = 200
-    @State private var addressesSidebarWidth: CGFloat = 300
     @State private var dragStartWidth: CGFloat?
-    @State private var documentHasAddresses = false
     var onRequestPageManagement: (() -> Void)?
 
-    private var showAddressesInSidebar: Bool {
-        AddressRepository.isDatabaseAvailable
-    }
-
-    /// Active sidebar width for the current mode — only widens for addresses if the document has any
     private var activeSidebarWidth: CGFloat {
-        sidebarMode == .addresses && documentHasAddresses ? addressesSidebarWidth : pagesSidebarWidth
+        pagesSidebarWidth
     }
 
     // Computed property for current PDF data
@@ -60,11 +47,6 @@ struct MacPDFViewer: View {
         v2Body
         .task {
             resetPDFDocument()
-            // Check if this document has extracted addresses
-            if showAddressesInSidebar, let docId = documentId {
-                let repo = AddressRepository()
-                documentHasAddresses = (try? await repo.addresses(forDocument: docId).isEmpty == false) ?? false
-            }
         }
         .onChange(of: refreshTrigger) { _, _ in
             resetPDFDocument()
@@ -116,11 +98,7 @@ struct MacPDFViewer: View {
                                     dragStartWidth = activeSidebarWidth
                                 }
                                 let newWidth = max(120, min(400, (dragStartWidth ?? 200) + value.translation.width))
-                                if sidebarMode == .addresses && documentHasAddresses {
-                                    addressesSidebarWidth = newWidth
-                                } else {
-                                    pagesSidebarWidth = newWidth
-                                }
+                                pagesSidebarWidth = newWidth
                             }
                             .onEnded { _ in
                                 dragStartWidth = nil
@@ -138,24 +116,7 @@ struct MacPDFViewer: View {
     /// Sidebar content without the frame — width is managed by v2Body
     private var v2SidebarContent: some View {
         VStack(spacing: 0) {
-            if showAddressesInSidebar {
-                Picker("", selection: $sidebarMode) {
-                    Text("Pages").tag(SidebarMode.pages)
-                    Text("Addresses").tag(SidebarMode.addresses)
-                }
-                .pickerStyle(.segmented)
-                .padding(8)
-
-                Divider()
-            }
-
-            switch sidebarMode {
-            case .pages:
-                pagesSidebarContent()
-            case .addresses:
-                addressesSidebarContent()
-            }
-
+            pagesSidebarContent()
             Spacer(minLength: 0)
         }
         .background(Color(NSColor.controlBackgroundColor))
@@ -378,25 +339,8 @@ struct MacPDFViewer: View {
     @ViewBuilder
     private func thumbnailSidebar(width: CGFloat) -> some View {
         VStack(spacing: 0) {
-            // Mode switcher at top (only show if addresses available)
-            if showAddressesInSidebar {
-                Picker("", selection: $sidebarMode) {
-                    Text("Pages").tag(SidebarMode.pages)
-                    Text("Addresses").tag(SidebarMode.addresses)
-                }
-                .pickerStyle(.segmented)
-                .padding(8)
-            }
-
             Divider()
-
-            // Content based on mode
-            switch sidebarMode {
-            case .pages:
-                pagesSidebarContent()
-            case .addresses:
-                addressesSidebarContent()
-            }
+            pagesSidebarContent()
         }
         .frame(minWidth: 160, idealWidth: width, maxWidth: 400)
         .background(Color(NSColor.controlBackgroundColor))
