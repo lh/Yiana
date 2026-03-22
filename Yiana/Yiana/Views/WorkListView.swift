@@ -233,46 +233,51 @@ struct WorkListView: View {
 
     // MARK: - Picker Sheet
 
+    @State private var addedFromPicker: Set<URL> = []
+
     private func pickerSheet(data: PickerData) -> some View {
         NavigationStack {
             List(data.urls, id: \.self) { url in
+                let filename = url.deletingPathExtension().lastPathComponent
+                let isAdded = addedFromPicker.contains(url)
                 Button {
-                    let entryID = data.entryID
-                    pickerData = nil
+                    guard !isAdded else { return }
+                    addedFromPicker.insert(url)
                     Task {
-                        await viewModel.resolveToURL(entryID: entryID, url: url)
-                        await MainActor.run { onNavigate(url) }
+                        await viewModel.addFromDocument(filename: filename)
                     }
                 } label: {
-                    VStack(alignment: .leading) {
-                        Text(url.deletingPathExtension().lastPathComponent
-                            .replacingOccurrences(of: "_", with: " "))
-                            .foregroundColor(.primary)
-                        Text(url.deletingLastPathComponent().lastPathComponent)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(filename.replacingOccurrences(of: "_", with: " "))
+                                .foregroundColor(isAdded ? .secondary : .primary)
+                            Text(url.deletingLastPathComponent().lastPathComponent)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        if isAdded {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(.green)
+                        }
                     }
                 }
             }
-            .navigationTitle("Multiple Matches")
-            #if os(macOS)
+            .navigationTitle("Add to Work List")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { pickerData = nil }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        addedFromPicker.removeAll()
+                        pickerData = nil
+                    }
                 }
             }
-            #endif
             #if os(iOS)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { pickerData = nil }
-                }
-            }
             .navigationBarTitleDisplayMode(.inline)
             #endif
         }
         #if os(macOS)
-        .frame(minWidth: 300, minHeight: 200)
+        .frame(minWidth: 300, minHeight: min(CGFloat(data.urls.count * 50 + 80), 400))
         #endif
     }
 
