@@ -85,6 +85,8 @@ struct DocumentListView: View {
     /// Selected folder in sidebar. Empty string = root "Documents".
     @State private var selectedSidebarFolder: String? = ""
     @State private var sidebarColumnVisibility: NavigationSplitViewVisibility = .automatic
+    @AppStorage("lastFolderPath") private var lastFolderPath: String = ""
+    @AppStorage("lastDocumentURL") private var lastDocumentURL: String = ""
     #elseif os(iOS)
     @State private var sidebarMode: DocumentSidebarMode = .folders
     #endif
@@ -128,11 +130,29 @@ struct DocumentListView: View {
         .task {
             workListViewModel.start()
             await workListViewModel.load()
+
+            // Restore last folder
+            #if os(macOS)
+            if !lastFolderPath.isEmpty {
+                selectedSidebarFolder = lastFolderPath
+            }
+            #endif
+
             await loadDocuments()
             await MainActor.run {
                 if contentCountKey > 0 {
                     hasLoadedAnyContent = true
                 }
+
+                // Restore last document
+                #if os(macOS)
+                if !lastDocumentURL.isEmpty {
+                    let url = URL(fileURLWithPath: lastDocumentURL)
+                    if FileManager.default.fileExists(atPath: url.path) {
+                        navigationPath.append(url)
+                    }
+                }
+                #endif
             }
         }
         .onReceive(
@@ -232,6 +252,7 @@ struct DocumentListView: View {
         }
         .onChange(of: selectedSidebarFolder) { _, newFolder in
             guard let folder = newFolder else { return }
+            lastFolderPath = folder
             Task { await viewModel.navigateToFolderPath(folder) }
         }
     }
@@ -1064,8 +1085,14 @@ struct DocumentListView: View {
         #else
         DocumentReadView(documentURL: url)
             .environmentObject(workListViewModel)
-            .onAppear { importHandler.activeDocumentURL = url }
-            .onDisappear { importHandler.activeDocumentURL = nil }
+            .onAppear {
+                importHandler.activeDocumentURL = url
+                lastDocumentURL = url.path
+            }
+            .onDisappear {
+                importHandler.activeDocumentURL = nil
+                lastDocumentURL = ""
+            }
         #endif
     }
 
