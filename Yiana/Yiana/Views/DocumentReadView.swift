@@ -23,7 +23,7 @@ struct DocumentReadView: View {
     @State private var panelWasVisibleBeforeOrganiser = true
     @State private var sidebarRefreshID = UUID()
     @State private var selectedPanelTab: PanelTab = .pages
-    @State private var panelPosition: SidebarPosition = .left
+    @AppStorage("textPage.sidebarPosition") private var panelPositionRaw: String = "left"
     @State private var panelWidth: CGFloat = 200
     @State private var dragStartWidth: CGFloat?
 
@@ -42,7 +42,9 @@ struct DocumentReadView: View {
         self.searchResult = searchResult
     }
 
-    @AppStorage("textPage.sidebarPosition") private var storedPosition: String = "left"
+    private var panelPosition: SidebarPosition {
+        SidebarPosition(rawValue: panelPositionRaw) ?? .left
+    }
 
     /// Panel width depends on selected tab — narrow for pages, wider for info tabs
     private var activePanelWidth: CGFloat {
@@ -52,8 +54,6 @@ struct DocumentReadView: View {
     var body: some View {
         mainLayout
         .task {
-            let position = await TextPageLayoutSettings.shared.preferredSidebarPosition()
-            panelPosition = position
             await loadDocument()
         }
         .sheet(isPresented: $showingPageManagement) {
@@ -63,11 +63,6 @@ struct DocumentReadView: View {
             Button("OK") { }
         } message: {
             Text(exportErrorMessage)
-        }
-        .onChange(of: storedPosition) { _, newValue in
-            if let position = SidebarPosition(rawValue: newValue) {
-                panelPosition = position
-            }
         }
         .onChange(of: viewModel?.pdfData) { _, newValue in
             if let newValue = newValue {
