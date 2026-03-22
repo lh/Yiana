@@ -546,8 +546,13 @@ struct AddressCard: View {
         .background(Color.secondary.opacity(0.1))
         .cornerRadius(12)
         .onChange(of: postcode) { _, newValue in
-            if selectedType == "patient" && city.isEmpty, let town = ExtractionHelpers.townForPostcode(newValue) {
-                city = town
+            if selectedType == "patient" {
+                if city.isEmpty, let town = ExtractionHelpers.townForPostcode(newValue) {
+                    city = town
+                }
+                if county.isEmpty, let cty = ExtractionHelpers.countyForPostcode(newValue) {
+                    county = cty
+                }
             }
         }
         .onChange(of: gpPostcode) { _, newValue in

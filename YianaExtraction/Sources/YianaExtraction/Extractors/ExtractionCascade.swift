@@ -63,11 +63,14 @@ public struct ExtractionCascade: Sendable {
         )
     }
 
-    /// Fill city from postcode lookup when city is empty but postcode is present.
+    /// Fill city and county from postcode lookup when empty but postcode is present.
     private func fillCityFromPostcode(_ page: inout AddressPageEntry) {
-        if (page.address?.city == nil || page.address?.city?.isEmpty == true),
-           let postcode = page.address?.postcode, !postcode.isEmpty {
+        guard let postcode = page.address?.postcode, !postcode.isEmpty else { return }
+        if page.address?.city == nil || page.address?.city?.isEmpty == true {
             page.address?.city = ExtractionHelpers.townForPostcode(postcode)
+        }
+        if page.address?.county == nil || page.address?.county?.isEmpty == true {
+            page.address?.county = ExtractionHelpers.countyForPostcode(postcode)
         }
     }
 
