@@ -392,9 +392,9 @@ struct AddressCard: View {
 
             Divider()
 
-            // Fields based on address type (use selectedType during editing)
+            // Fields based on address type (selectedType is always authoritative)
             VStack(alignment: .leading, spacing: 8) {
-                if (isEditingPatient ? selectedType : address.addressType ?? "patient") == "gp" {
+                if selectedType == "gp" {
                     // GP fields
                     if isEditingPatient {
                         EditableField(label: "GP Name", text: $gpName, icon: "stethoscope", onSubmit: { Task { await saveChanges() } })
@@ -420,7 +420,7 @@ struct AddressCard: View {
                         }
                         nhsCandidatesView
                     }
-                } else if (isEditingPatient ? selectedType : address.addressType ?? "patient") == "patient" {
+                } else if selectedType == "patient" {
                     // Patient fields
                     if isEditingPatient {
                         EditableField(label: "MRN", text: $mrn, icon: "number", onSubmit: { Task { await saveChanges() } })
