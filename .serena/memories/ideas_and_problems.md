@@ -35,6 +35,13 @@ Quick-capture list for things that come to mind mid-task.
 
 20. **iPhone camera as scanner for Mac app** — Use Continuity Camera / camera capture to scan documents directly from iPhone into the macOS Yiana app. Apple provides this natively via `NSToolbarItem` continuity camera support or the `VNDocumentCameraViewController` on iOS feeding back to macOS via Handoff/iCloud. Could eliminate the need to scan on the iPhone app separately and then wait for iCloud sync. Investigate whether Continuity Camera supports multi-page document scanning or just single photos. Logged 2026-03-21.
 
+24. **Visual form template builder for OCR extraction** — Logged 2026-03-22. Long-term.
+    Users drag labelled building blocks onto a scanned PDF to define regions: "patient address line 1", "patient postcode", "GP name", etc. One template per form type, reused for all instances.
+    **Tier 1 (in-app):** Region map feeds Vision framework's region-of-interest API. Extraction reads text from defined rectangles. No code changes per form type. Lightweight, fully on-device.
+    **Tier 2 (Claude-assisted):** For complex forms, export annotated template + OCR text to Claude. User iterates with Claude to produce extraction rules/recipe. Copy result back into app. Empowers users to teach the app new form types without developer involvement.
+    Key insight: inverts the extraction problem from "guess what's important" to "user shows what matters." Makes the app a platform, not a product that needs updating for every new form layout.
+    Commercial parallels exist (ABBYY FlexiCapture, Rossum, etc.) but they're enterprise SaaS. A lightweight drag-and-label approach scoped to addresses/contacts would be tractable.
+
 1. **Connected scanner support on macOS** -- Interesting but out of scope. Bulk scanning from a connected scanner is more of a DevonTHINK use case. We are not trying to compete with or be as complex as that. Would also need external LLM integration to be truly useful (auto-classify, auto-title, auto-folder scanned pages). Park indefinitely unless the product direction changes. Logged 2026-02-25.
 
 ## Swift Extraction Service on Devon (logged 2026-03-14)
