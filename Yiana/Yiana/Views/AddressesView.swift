@@ -624,8 +624,20 @@ struct AddressCard: View {
                 .foregroundColor(.secondary)
             ForEach(candidates, id: \.odsCode) { candidate in
                 NHSCandidateRow(candidate: candidate)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        adoptCandidate(candidate)
+                    }
             }
         }
+    }
+
+    private func adoptCandidate(_ candidate: NHSCandidate) {
+        gpName = candidate.name ?? gpName
+        gpPractice = [candidate.addressLine1, candidate.town]
+            .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
+        gpPostcode = candidate.postcode ?? gpPostcode
+        isEditingPatient = true
     }
 
     // Formatted addresses for sharing
@@ -833,6 +845,7 @@ private struct PostcodeRow: View {
 // MARK: - NHS Candidate Row
 private struct NHSCandidateRow: View {
     let candidate: NHSCandidate
+    @State private var isHovering = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -848,7 +861,14 @@ private struct NHSCandidateRow: View {
                 .font(.caption2)
                 .foregroundColor(.secondary)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 4)
+        .padding(.horizontal, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 4)
+                .fill(isHovering ? Color.accentColor.opacity(0.1) : Color.clear)
+        )
+        .onHover { isHovering = $0 }
+        .help("Click to use this GP")
     }
 }
 
