@@ -35,6 +35,8 @@ Quick-capture list for things that come to mind mid-task.
 
 20. **iPhone camera as scanner for Mac app** — Use Continuity Camera / camera capture to scan documents directly from iPhone into the macOS Yiana app. Apple provides this natively via `NSToolbarItem` continuity camera support or the `VNDocumentCameraViewController` on iOS feeding back to macOS via Handoff/iCloud. Could eliminate the need to scan on the iPhone app separately and then wait for iCloud sync. Investigate whether Continuity Camera supports multi-page document scanning or just single photos. Logged 2026-03-21.
 
+26. **Performance: ruthless speed improvement for note loading/exiting** — Logged 2026-03-22. Priority. The app needs to feel instant when opening and closing documents. Need to: (a) measure current load/exit times with Instruments or os_signpost, (b) identify bottlenecks (file I/O, PDF rendering, iCloud downloads, extraction, entity DB ingestion), (c) set target times (e.g. <500ms to first page visible), (d) profile real-world documents (large multi-page scans, not synthetic). Consider lazy loading (show first page before full document loads), caching (keep recently opened docs in memory), and deferring non-critical work (extraction, entity ingestion, search indexing) to after the document is visible.
+
 24. **Visual form template builder for OCR extraction** — Logged 2026-03-22. Long-term.
     Users drag labelled building blocks onto a scanned PDF to define regions: "patient address line 1", "patient postcode", "GP name", etc. One template per form type, reused for all instances.
     **Tier 1 (in-app):** Region map feeds Vision framework's region-of-interest API. Extraction reads text from defined rectangles. No code changes per form type. Lightweight, fully on-device.
