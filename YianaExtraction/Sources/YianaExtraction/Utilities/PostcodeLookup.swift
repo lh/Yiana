@@ -9,7 +9,7 @@ extension ExtractionHelpers {
     /// Look up the town/city for a UK postcode using the sector table.
     /// Extracts the sector (outward code + first inward digit) and looks it up.
     /// Returns nil for unknown sectors.
-    static func townForPostcode(_ postcode: String) -> String? {
+    public static func townForPostcode(_ postcode: String) -> String? {
         guard let m = firstMatch(#"([A-Z]{1,2}\d{1,2}[A-Z]?)\s*(\d)"#, in: postcode.uppercased()) else {
             return nil
         }

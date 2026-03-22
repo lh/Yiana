@@ -51,6 +51,7 @@ public struct ExtractionCascade: Sendable {
             if let fp = filenamePatient {
                 applyFilenamePatient(fp, to: &page)
             }
+            fillCityFromPostcode(&page)
             return page
         }
 
@@ -60,6 +61,14 @@ public struct ExtractionCascade: Sendable {
             pageCount: pages.count,
             pages: extractedPages
         )
+    }
+
+    /// Fill city from postcode lookup when city is empty but postcode is present.
+    private func fillCityFromPostcode(_ page: inout AddressPageEntry) {
+        if (page.address?.city == nil || page.address?.city?.isEmpty == true),
+           let postcode = page.address?.postcode, !postcode.isEmpty {
+            page.address?.city = ExtractionHelpers.townForPostcode(postcode)
+        }
     }
 
     /// Overlay filename-parsed patient name and DOB onto an extracted page.

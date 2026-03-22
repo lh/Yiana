@@ -1,7 +1,7 @@
 import Foundation
 
 /// Shared regex and text-processing helpers used across extractors.
-enum ExtractionHelpers {
+public enum ExtractionHelpers {
 
     // MARK: - Regex
 
