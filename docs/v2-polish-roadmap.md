@@ -11,7 +11,7 @@ Updated 2026-03-22. The core app is self-sufficient and working.
 | 26 | Performance: note loading/exiting speed | Medium | Open — measure first, then fix |
 | 19a | Envelope window alignment | Small | Open — need measurements from work |
 | 19b | Footer contact block in letter | Small | Open — Typst template change only |
-| 8 | Special characters in folder names corrupt file ops | Medium | Open — URL encoding issue |
+| 8 | ~~Special characters in folder names corrupt file ops~~ | ~~Medium~~ | DONE 2026-03-22 |
 
 ## Priority 2: Extraction Quality
 
@@ -64,6 +64,9 @@ Updated 2026-03-22. The core app is self-sufficient and working.
 | — | Address card type display (selectedType fix) | 2026-03-22 |
 | — | Derive surname/firstname from fullName | 2026-03-22 |
 | — | Sync fullName @State after save | 2026-03-22 |
+| 8 | Sanitize folder/document names — strip URL-breaking chars | 2026-03-22 |
+| — | Title case enforcement for document names (O'Brien, McDonald) | 2026-03-22 |
+| — | Live NHS lookup on GP postcode change | 2026-03-22 |
 | — | Unified side panel (thumbnails + info in one panel) | 2026-03-22 |
 | — | Configurable panel position (left/right) | 2026-03-22 |
 | — | Appearance setting (System/Light/Dark) | 2026-03-22 |
