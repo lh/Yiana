@@ -633,8 +633,8 @@ struct AddressCard: View {
     }
 
     private func adoptCandidate(_ candidate: NHSCandidate) {
-        gpName = candidate.name ?? gpName
-        gpPractice = [candidate.addressLine1, candidate.town]
+        gpPractice = candidate.name ?? gpPractice
+        gpAddress = [candidate.addressLine1, candidate.town]
             .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
         gpPostcode = candidate.postcode ?? gpPostcode
         isEditingPatient = true
