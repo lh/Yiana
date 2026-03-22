@@ -273,7 +273,9 @@ struct DocumentListView: View {
             } else {
                 WorkListView(viewModel: workListViewModel) { url in
                     navigationPath = NavigationPath()
-                    navigationPath.append(url)
+                    Task { @MainActor in
+                        navigationPath.append(url)
+                    }
                 }
             }
         }
@@ -614,7 +616,9 @@ struct DocumentListView: View {
             if sidebarMode == .workList && isIPad {
                 WorkListView(viewModel: workListViewModel) { url in
                     navigationPath = NavigationPath()
-                    navigationPath.append(url)
+                    Task { @MainActor in
+                        navigationPath.append(url)
+                    }
                 }
             } else {
                 iosFolderList
