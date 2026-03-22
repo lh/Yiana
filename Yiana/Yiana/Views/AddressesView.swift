@@ -150,6 +150,7 @@ struct AddressesView: View {
     private func addAddress(type: String) async {
         do {
             try await repository.addManualAddress(documentId: documentId, addressType: type)
+            showUnverified = true
             refreshTrigger.toggle()
         } catch {
             errorMessage = "Failed to add address: \(error.localizedDescription)"
