@@ -42,6 +42,8 @@ struct DocumentReadView: View {
         self.searchResult = searchResult
     }
 
+    @AppStorage("textPage.sidebarPosition") private var storedPosition: String = "left"
+
     /// Panel width depends on selected tab — narrow for pages, wider for info tabs
     private var activePanelWidth: CGFloat {
         selectedPanelTab == .pages ? panelWidth : 340
@@ -61,6 +63,11 @@ struct DocumentReadView: View {
             Button("OK") { }
         } message: {
             Text(exportErrorMessage)
+        }
+        .onChange(of: storedPosition) { _, newValue in
+            if let position = SidebarPosition(rawValue: newValue) {
+                panelPosition = position
+            }
         }
         .onChange(of: viewModel?.pdfData) { _, newValue in
             if let newValue = newValue {
