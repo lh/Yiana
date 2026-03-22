@@ -169,8 +169,12 @@ final class AddressRepository: ObservableObject {
     func addresses(forDocument documentId: String) async throws -> [ExtractedAddress] {
         guard let dirURL = Self.addressesDirectoryURL else { return [] }
 
-        let fileURL = dirURL.appendingPathComponent("\(documentId).json")
-        guard FileManager.default.fileExists(atPath: fileURL.path) else { return [] }
+        let mainExists = FileManager.default.fileExists(
+            atPath: dirURL.appendingPathComponent("\(documentId).json").path)
+        let overridesExist = FileManager.default.fileExists(
+            atPath: dirURL.appendingPathComponent("\(documentId).overrides.json").path)
+
+        guard mainExists || overridesExist else { return [] }
 
         let file = try readOrCreateFile(forDocument: documentId)
         return resolveAddresses(from: file)
