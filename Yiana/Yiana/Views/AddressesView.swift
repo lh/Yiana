@@ -558,6 +558,11 @@ struct AddressCard: View {
         updatedAddress.gpAddress = gpAddress.isEmpty ? nil : gpAddress
         updatedAddress.gpPostcode = gpPostcode.isEmpty ? nil : gpPostcode
 
+        // Sync @State fullName so view mode reflects edits immediately
+        if let name = updatedAddress.fullName {
+            fullName = name
+        }
+
         // Include type and prime changes from editing
         updatedAddress.addressType = selectedType
         updatedAddress.isPrime = isPrime
