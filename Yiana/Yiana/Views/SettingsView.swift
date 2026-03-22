@@ -18,6 +18,7 @@ struct SettingsView: View {
     @State private var selectedPaperSize: TextPagePaperSize = .a4
     @State private var selectedSidebarPosition: SidebarPosition = .right
     @State private var selectedThumbnailSize: SidebarThumbnailSize = .medium
+    @AppStorage("appearanceMode") private var appearanceMode: Int = 0
     @State private var isLoading = true
     @State private var showingDevMenu = false
     private var appVersion: String {
@@ -65,6 +66,14 @@ struct SettingsView: View {
                     }
                 }
 #endif
+
+                Section(header: Text("Appearance")) {
+                    Picker("Theme", selection: $appearanceMode) {
+                        Text("System").tag(0)
+                        Text("Light").tag(1)
+                        Text("Dark").tag(2)
+                    }
+                }
 
                 if AddressRepository.isDatabaseAvailable {
                     Section(header: Text("Address Types")) {

@@ -13,6 +13,7 @@ struct YianaApp: App {
     #if os(iOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     #endif
+    @AppStorage("appearanceMode") private var appearanceMode: Int = 0
     @StateObject private var importHandler = DocumentImportHandler()
     #if os(macOS)
     @Environment(\.openWindow) private var openWindow
@@ -22,6 +23,7 @@ struct YianaApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(importHandler)
+                .preferredColorScheme(appearanceMode == 1 ? .light : appearanceMode == 2 ? .dark : nil)
                 .onOpenURL { url in
                     handleIncomingURL(url)
                 }
