@@ -56,6 +56,14 @@ struct SettingsView: View {
                         }
                     }
                 }
+#elseif os(macOS)
+                Section(header: Text("Panel")) {
+                    Picker("Position", selection: $selectedSidebarPosition) {
+                        ForEach(SidebarPosition.allCases) { position in
+                            Text(position.displayName).tag(position)
+                        }
+                    }
+                }
 #endif
 
                 if AddressRepository.isDatabaseAvailable {

@@ -1,50 +1,30 @@
-//
-//  MacPDFViewer.swift
-//  Yiana
-//
-//  Created by Claude on 15/07/2025.
-//
-
 #if os(macOS)
 import SwiftUI
 import PDFKit
 
 struct MacPDFViewer: View {
     @ObservedObject var viewModel: DocumentViewModel
-    var legacyPDFData: Data?  // optional fallback for read-only documents
-    @Binding var isSidebarVisible: Bool
-    var refreshTrigger: UUID  // force rebuild when changed
+    var legacyPDFData: Data?
 
-    @State private var currentPage: Int = 0
-    @State private var pdfDocument: PDFDocument?
-    @State private var navigateToPage: Int?
+    @Binding var currentPage: Int
+    @Binding var navigateToPage: Int?
+    @Binding var pdfDocument: PDFDocument?
+    var refreshTrigger: UUID
+
     @State private var pageInputText: String = ""
     @State private var showingPageInput = false
     @State private var zoomAction: PDFZoomAction?
     @State private var fitMode: FitMode = .width
-    @State private var pagesSidebarWidth: CGFloat = 200
-    @State private var dragStartWidth: CGFloat?
-    var onRequestPageManagement: (() -> Void)?
 
-    private var activeSidebarWidth: CGFloat {
-        pagesSidebarWidth
-    }
-
-    // Computed property for current PDF data
     private var currentPDFData: Data? {
         viewModel.displayPDFData ?? viewModel.pdfData ?? legacyPDFData
     }
 
-    // Get document ID for addresses
-    private var documentId: String? {
-        // Extract document ID from viewModel
-        // This needs to match how AddressRepository expects it (filename without extension)
-        // For now, use the title which typically contains the filename
-        return viewModel.title
-    }
-
     var body: some View {
-        v2Body
+        VStack(spacing: 0) {
+            navigationBar
+            pdfContent
+        }
         .task {
             resetPDFDocument()
         }
@@ -62,74 +42,14 @@ struct MacPDFViewer: View {
         }
     }
 
-    // MARK: - Body Content
+    // MARK: - Navigation Bar
 
-    private var v2Body: some View {
-        HStack(spacing: 0) {
-            // Sidebar toggle always at extreme left
-            VStack {
-                sidebarToggleButton
-                    .padding(.top, 6)
-                    .padding(.leading, 6)
-                Spacer()
-            }
-            .frame(width: 32)
-
-            if isSidebarVisible {
-                v2SidebarContent
-                    .frame(width: activeSidebarWidth - 32)  // account for toggle column
-
-                // Draggable resize handle
-                Rectangle()
-                    .fill(Color(NSColor.separatorColor))
-                    .frame(width: 1)
-                    .contentShape(Rectangle().inset(by: -3))
-                    .onHover { hovering in
-                        if hovering {
-                            NSCursor.resizeLeftRight.push()
-                        } else {
-                            NSCursor.pop()
-                        }
-                    }
-                    .gesture(
-                        DragGesture(minimumDistance: 1)
-                            .onChanged { value in
-                                if dragStartWidth == nil {
-                                    dragStartWidth = activeSidebarWidth
-                                }
-                                let newWidth = max(120, min(400, (dragStartWidth ?? 200) + value.translation.width))
-                                pagesSidebarWidth = newWidth
-                            }
-                            .onEnded { _ in
-                                dragStartWidth = nil
-                            }
-                    )
-            }
-
-            VStack(spacing: 0) {
-                v2NavigationBar
-                pdfContent
-            }
-        }
-    }
-
-    /// Sidebar content without the frame — width is managed by v2Body
-    private var v2SidebarContent: some View {
-        VStack(spacing: 0) {
-            pagesSidebarContent()
-            Spacer(minLength: 0)
-        }
-        .background(Color(NSColor.controlBackgroundColor))
-    }
-
-    private var v2NavigationBar: some View {
+    private var navigationBar: some View {
         let pageCount = pdfDocument?.pageCount ?? 0
         return HStack(spacing: 0) {
-            // Left column: spacer for balance
             Spacer()
                 .frame(maxWidth: .infinity)
 
-            // Centre column: page navigator in pill (centred to window)
             HStack(spacing: 2) {
                 pageNavPrevButton(pageCount: pageCount)
                 pageNavDisplay(pageCount: pageCount, showPagePrefix: false)
@@ -146,7 +66,6 @@ struct MacPDFViewer: View {
                     .strokeBorder(Color.primary.opacity(0.04), lineWidth: 0.5)
             )
 
-            // Right column: zoom + fit toggle
             HStack {
                 Spacer()
                 HStack(spacing: 4) {
@@ -162,7 +81,7 @@ struct MacPDFViewer: View {
         .background(Color(NSColor.windowBackgroundColor))
     }
 
-    // MARK: - Shared Controls
+    // MARK: - PDF Content
 
     @ViewBuilder
     private var pdfContent: some View {
@@ -177,20 +96,7 @@ struct MacPDFViewer: View {
         }
     }
 
-    private var sidebarToggleButton: some View {
-        Button {
-            isSidebarVisible.toggle()
-        } label: {
-            Image(systemName: "sidebar.left")
-                .foregroundColor(isSidebarVisible ? .accentColor : .secondary)
-        }
-        .buttonStyle(.borderless)
-        .help(isSidebarVisible ? "Hide Sidebar" : "Show Sidebar")
-        .toolbarActionAccessibility(
-            label: isSidebarVisible ? "Hide sidebar" : "Show sidebar",
-            keyboardShortcut: "Control Command S"
-        )
-    }
+    // MARK: - Navigation Controls
 
     private func pageNavPrevButton(pageCount: Int) -> some View {
         Button {
@@ -203,7 +109,7 @@ struct MacPDFViewer: View {
         }
         .buttonStyle(.borderless)
         .disabled(currentPage <= 0)
-        .help("Previous Page (← or ↑)")
+        .help("Previous Page")
         .toolbarActionAccessibility(label: "Previous page", keyboardShortcut: "Arrow left")
         .accessibilityValue("Page \(currentPage + 1) of \(pageCount)")
     }
@@ -225,8 +131,6 @@ struct MacPDFViewer: View {
                         pageInputText = ""
                     }
                     .accessibilityLabel("Page number")
-                    .accessibilityValue("Currently on page \(currentPage + 1)")
-                    .accessibilityHint("Enter a page number and press Return")
                 Text("of \(pageCount)")
                     .foregroundColor(.secondary)
             }
@@ -256,15 +160,15 @@ struct MacPDFViewer: View {
         }
         .buttonStyle(.borderless)
         .disabled(currentPage >= pageCount - 1)
-        .help("Next Page (→ or ↓)")
+        .help("Next Page")
         .toolbarActionAccessibility(label: "Next page", keyboardShortcut: "Arrow right")
         .accessibilityValue("Page \(currentPage + 1) of \(pageCount)")
     }
 
+    // MARK: - Zoom Controls
+
     private var zoomOutButton: some View {
-        Button {
-            zoomAction = .zoomOut
-        } label: {
+        Button { zoomAction = .zoomOut } label: {
             Image(systemName: "minus.magnifyingglass")
                 .foregroundColor(.secondary)
         }
@@ -275,9 +179,7 @@ struct MacPDFViewer: View {
     }
 
     private var zoomInButton: some View {
-        Button {
-            zoomAction = .zoomIn
-        } label: {
+        Button { zoomAction = .zoomIn } label: {
             Image(systemName: "plus.magnifyingglass")
                 .foregroundColor(.secondary)
         }
@@ -287,47 +189,12 @@ struct MacPDFViewer: View {
         .toolbarActionAccessibility(label: "Zoom in", keyboardShortcut: "Command plus")
     }
 
-    private var fitPageButton: some View {
-        Button {
-            fitMode = .height
-            zoomAction = .fitToWindow
-        } label: {
-            Image(systemName: "arrow.up.left.and.arrow.down.right")
-                .foregroundColor(.secondary)
-        }
-        .buttonStyle(.borderless)
-        .help("Fit Page (⌘0)")
-        .keyboardShortcut("0", modifiers: .command)
-        .toolbarActionAccessibility(label: "Fit page", keyboardShortcut: "Command zero")
-    }
-
-    private var fitWidthButton: some View {
-        Button {
-            fitMode = .width
-            zoomAction = .fitToWindow
-        } label: {
-            Image(systemName: "arrow.left.and.right")
-                .foregroundColor(.secondary)
-        }
-        .buttonStyle(.borderless)
-        .help("Fit Width (⌘3)")
-        .keyboardShortcut("3", modifiers: .command)
-        .toolbarActionAccessibility(label: "Fit width", keyboardShortcut: "Command three")
-    }
-
-    /// V2 only: single toggle that cycles between fit-to-height and fit-to-width
     private var fitToggleButton: some View {
         Button {
-            if fitMode == .height {
-                fitMode = .width
-            } else {
-                fitMode = .height
-            }
+            fitMode = fitMode == .height ? .width : .height
             zoomAction = .fitToWindow
         } label: {
-            Image(systemName: fitMode == .height
-                  ? "arrow.up.and.down"
-                  : "arrow.left.and.right")
+            Image(systemName: fitMode == .height ? "arrow.up.and.down" : "arrow.left.and.right")
                 .foregroundColor(.secondary)
         }
         .buttonStyle(.borderless)
@@ -336,89 +203,7 @@ struct MacPDFViewer: View {
         .toolbarActionAccessibility(label: fitMode == .height ? "Fit height" : "Fit width")
     }
 
-    @ViewBuilder
-    private func thumbnailSidebar(width: CGFloat) -> some View {
-        VStack(spacing: 0) {
-            Divider()
-            pagesSidebarContent()
-        }
-        .frame(minWidth: 160, idealWidth: width, maxWidth: 400)
-        .background(Color(NSColor.controlBackgroundColor))
-    }
-
-    @ViewBuilder
-    private func pagesSidebarContent() -> some View {
-        if let document = pdfDocument {
-            let pageIndices = Array(0..<document.pageCount)
-
-            ScrollViewReader { scrollProxy in
-                ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(pageIndices, id: \.self) { pageIndex in
-                            sidebarThumbnail(for: pageIndex)
-                                .id(pageIndex)
-                        }
-                    }
-                    .padding()
-                    .id(refreshTrigger)  // Force refresh when trigger changes
-                }
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel("Page thumbnails")
-                .accessibilityHint("Navigate pages using arrow keys")
-                .onChange(of: currentPage) { _, newPage in
-                    withAnimation {
-                        scrollProxy.scrollTo(newPage, anchor: .center)
-                    }
-                }
-            }
-        } else {
-            EmptyView()
-        }
-    }
-
-    @ViewBuilder
-    private func addressesSidebarContent() -> some View {
-        if let docId = documentId {
-            AddressesView(documentId: docId)
-                .padding(8)
-        } else {
-            VStack(spacing: 12) {
-                Image(systemName: "doc.text.magnifyingglass")
-                    .font(.largeTitle)
-                    .foregroundColor(.secondary)
-                Text("No document loaded")
-                    .font(.headline)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-    }
-
-    @ViewBuilder
-    private func sidebarThumbnail(for pageIndex: Int) -> some View {
-        let page = pdfDocument?.page(at: pageIndex)
-        let pageNumber = pageIndex + 1
-        let isSelected = pageIndex == currentPage
-
-        ThumbnailView(
-            page: page,
-            pageNumber: pageNumber,
-            isSelected: isSelected
-        )
-        .pageThumbnailAccessibility(
-            pageNumber: pageNumber,
-            isSelected: isSelected,
-            isCurrent: isSelected,
-            isProvisional: false
-        )
-        .onTapGesture(count: 2) {
-            guard isSidebarVisible else { return }
-            onRequestPageManagement?()
-        }
-        .onTapGesture(count: 1) {
-            guard isSidebarVisible else { return }
-            navigateToPage = pageIndex
-        }
-    }
+    // MARK: - PDF Reset
 
     private func resetPDFDocument() {
         guard let data = currentPDFData, let doc = PDFDocument(data: data) else {
@@ -426,7 +211,6 @@ struct MacPDFViewer: View {
             return
         }
         pdfDocument = doc
-        // Maintain current page position if valid
         if currentPage >= doc.pageCount {
             currentPage = max(0, doc.pageCount - 1)
         }

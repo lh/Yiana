@@ -109,6 +109,10 @@ struct YianaApp: App {
         }
         .windowResizability(.contentSize)
         .defaultPosition(.center)
+
+        Settings {
+            SettingsView()
+        }
         #endif
     }
 

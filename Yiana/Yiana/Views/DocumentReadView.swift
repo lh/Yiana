@@ -1,10 +1,3 @@
-//
-//  DocumentReadView.swift
-//  Yiana
-//
-//  Created by Claude on 15/07/2025.
-//
-
 import SwiftUI
 import PDFKit
 import YianaDocumentArchive
@@ -18,7 +11,6 @@ struct DocumentReadView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var showingPageManagement = false
-    @State private var showingInfoPanel = false
     @State private var document: NoteDocument?
     @State private var viewModel: DocumentViewModel?
     @State private var initialPageToShow: Int?
@@ -26,10 +18,19 @@ struct DocumentReadView: View {
     @State private var exportErrorMessage = ""
     @EnvironmentObject var workListViewModel: WorkListViewModel
 
-    // New state for sidebar management
-    @State private var isSidebarVisible = true
-    @State private var sidebarWasVisibleBeforeOrganiser = true
+    // Unified panel state
+    @State private var isPanelVisible = true
+    @State private var panelWasVisibleBeforeOrganiser = true
     @State private var sidebarRefreshID = UUID()
+    @State private var selectedPanelTab: PanelTab = .pages
+    @State private var panelPosition: SidebarPosition = .left
+    @State private var panelWidth: CGFloat = 200
+    @State private var dragStartWidth: CGFloat?
+
+    // Hoisted PDF state (shared with MacPDFViewer and UnifiedSidePanel)
+    @State private var currentPage: Int = 0
+    @State private var navigateToPage: Int?
+    @State private var pdfDocument: PDFDocument?
 
     @State private var isEditingTitle = false
     @FocusState private var titleFocused: Bool
@@ -41,9 +42,16 @@ struct DocumentReadView: View {
         self.searchResult = searchResult
     }
 
+    /// Panel width depends on selected tab — narrow for pages, wider for info tabs
+    private var activePanelWidth: CGFloat {
+        selectedPanelTab == .pages ? panelWidth : 340
+    }
+
     var body: some View {
-        v2Body
+        mainLayout
         .task {
+            let position = await TextPageLayoutSettings.shared.preferredSidebarPosition()
+            panelPosition = position
             await loadDocument()
         }
         .sheet(isPresented: $showingPageManagement) {
@@ -82,11 +90,19 @@ struct DocumentReadView: View {
         }
     }
 
-    // MARK: - Body Content
+    // MARK: - Main Layout
 
-    private var v2Body: some View {
-        ZStack(alignment: .trailing) {
-            // Main content (full width)
+    private var mainLayout: some View {
+        HStack(spacing: 0) {
+            if panelPosition == .left {
+                panelToggleColumn
+                if isPanelVisible {
+                    panelContent
+                    resizeHandle
+                }
+            }
+
+            // Main content
             VStack(spacing: 0) {
                 ReadOnlyBanner(isReadOnly: isReadOnly)
                 DocumentReadContent(
@@ -94,27 +110,24 @@ struct DocumentReadView: View {
                     errorMessage: errorMessage,
                     pdfData: pdfData,
                     viewModel: viewModel,
-                    isSidebarVisible: $isSidebarVisible,
+                    currentPage: $currentPage,
+                    navigateToPage: $navigateToPage,
+                    pdfDocument: $pdfDocument,
                     sidebarRefreshID: sidebarRefreshID,
                     onRequestPageManagement: handleManagePages
                 )
             }
 
-            // Right sidebar as overlay
-            if showingInfoPanel, let document = document {
-                DocumentInfoPanel(document: document)
-                    .frame(width: 340)
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 0))
-                    .shadow(color: .black.opacity(0.3), radius: 20, x: -5)
-                    .overlay(alignment: .leading) {
-                        Rectangle()
-                            .fill(Color.white.opacity(0.08))
-                            .frame(width: 1)
-                    }
-                    .transition(.move(edge: .trailing))
+            if panelPosition == .right {
+                if isPanelVisible {
+                    resizeHandle
+                    panelContent
+                }
+                panelToggleColumn
             }
         }
+        .animation(.easeInOut(duration: 0.15), value: isPanelVisible)
+        .animation(.easeInOut(duration: 0.15), value: selectedPanelTab)
         .navigationTitle(isEditingTitle ? "" : documentTitle)
         .navigationBarBackButtonHidden(true)
         .onReceive(NotificationCenter.default.publisher(for: .printDocument)) { _ in
@@ -180,7 +193,7 @@ struct DocumentReadView: View {
                         Button(action: handleManagePages) {
                             Label("Manage Pages", systemImage: "rectangle.stack")
                         }
-                        .help("Manage pages (copy, cut, paste, reorder)")
+                        .help("Manage pages")
                     }
 
                     Button(action: printDocument) {
@@ -192,15 +205,72 @@ struct DocumentReadView: View {
                         Label("Export PDF", systemImage: "square.and.arrow.up")
                     }
                     .help("Export as PDF")
-
-                    Button(action: handleToggleInfo) {
-                        Label("Info", systemImage: showingInfoPanel ? "info.circle.fill" : "info.circle")
-                    }
-                    .help("Toggle document info panel")
                 }
             }
         }
         .toolbarTitleDisplayMode(.inline)
+    }
+
+    // MARK: - Panel Components
+
+    private var panelToggleColumn: some View {
+        VStack {
+            Button {
+                isPanelVisible.toggle()
+            } label: {
+                Image(systemName: panelPosition == .left ? "sidebar.left" : "sidebar.right")
+                    .foregroundColor(isPanelVisible ? .accentColor : .secondary)
+            }
+            .buttonStyle(.borderless)
+            .help(isPanelVisible ? "Hide panel" : "Show panel")
+            .padding(.top, 6)
+            .padding(.horizontal, 6)
+            Spacer()
+        }
+        .frame(width: 32)
+    }
+
+    private var panelContent: some View {
+        UnifiedSidePanel(
+            document: document,
+            pdfDocument: pdfDocument,
+            selectedTab: $selectedPanelTab,
+            currentPage: $currentPage,
+            navigateToPage: $navigateToPage,
+            refreshTrigger: sidebarRefreshID,
+            onRequestPageManagement: handleManagePages
+        )
+        .frame(width: activePanelWidth - 32)
+    }
+
+    private var resizeHandle: some View {
+        Rectangle()
+            .fill(Color(NSColor.separatorColor))
+            .frame(width: 1)
+            .contentShape(Rectangle().inset(by: -3))
+            .onHover { hovering in
+                if selectedPanelTab == .pages {
+                    if hovering {
+                        NSCursor.resizeLeftRight.push()
+                    } else {
+                        NSCursor.pop()
+                    }
+                }
+            }
+            .gesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { value in
+                        guard selectedPanelTab == .pages else { return }
+                        if dragStartWidth == nil {
+                            dragStartWidth = panelWidth
+                        }
+                        let delta = panelPosition == .left ? value.translation.width : -value.translation.width
+                        panelWidth = max(120, min(400, (dragStartWidth ?? 200) + delta))
+                    }
+                    .onEnded { _ in
+                        dragStartWidth = nil
+                    }
+            )
     }
 
     // MARK: - Work List
@@ -223,52 +293,37 @@ struct DocumentReadView: View {
         errorMessage = nil
 
         do {
-            // Create a NoteDocument instance
             let noteDocument = NoteDocument(fileURL: documentURL)
-
-            // Load the document content
             try noteDocument.read(from: documentURL)
 
-            // Store the document and its data
             self.document = noteDocument
             self.pdfData = noteDocument.pdfData
             self.documentTitle = noteDocument.metadata.title
 
-            // Create view model for document operations
             let vm = DocumentViewModel(document: noteDocument)
             await MainActor.run {
                 self.viewModel = vm
             }
-
-            // Immediately index so the placeholder entry is replaced —
-            // the user opened this file, no need to wait for background indexer
             await vm.indexDocument()
 
         } catch {
-            // If loading as NoteDocument fails, try legacy approach
             do {
                 let data = try Data(contentsOf: documentURL)
 
                 if isPDFData(data) {
-                    // It's a raw PDF
                     pdfData = data
                     documentTitle = documentURL.deletingPathExtension().lastPathComponent
                 } else if data.isEmpty {
-                    // Empty file
                     pdfData = nil
                     documentTitle = documentURL.deletingPathExtension().lastPathComponent
                 } else {
-                    // Try to parse as our document format
                     if let documentData = try? extractDocumentData(from: data) {
                         pdfData = documentData.pdfData
                         documentTitle = documentData.title
 
-                        // Create document with extracted metadata
                         let noteDoc = NoteDocument(fileURL: documentURL)
-                        // Load will have been called during extraction
                         self.document = noteDoc
 
-                        // Create view model
                         let vm = DocumentViewModel(document: noteDoc)
                         await MainActor.run {
                             self.viewModel = vm
@@ -287,7 +342,6 @@ struct DocumentReadView: View {
     }
 
     private func isPDFData(_ data: Data) -> Bool {
-        // Check for PDF magic number
         let pdfHeader = "%PDF"
         if let string = String(data: data.prefix(4), encoding: .ascii) {
             return string == pdfHeader
@@ -297,8 +351,6 @@ struct DocumentReadView: View {
 
     private func exportPDF() {
         let exportService = ExportService()
-
-        // Create save panel
         let savePanel = NSSavePanel()
         savePanel.allowedContentTypes = [.pdf]
         savePanel.nameFieldStringValue = exportService.suggestedFileName(for: documentURL)
@@ -309,11 +361,9 @@ struct DocumentReadView: View {
             if response == .OK, let destinationURL = savePanel.url {
                 do {
                     try exportService.exportToPDF(from: documentURL, to: destinationURL)
-                    // Optionally show success feedback
                     let parentPath = destinationURL.deletingLastPathComponent().path
                     NSWorkspace.shared.selectFile(destinationURL.path, inFileViewerRootedAtPath: parentPath)
                 } catch {
-                    // Show error
                     exportErrorMessage = error.localizedDescription
                     showingExportError = true
                 }
@@ -334,24 +384,17 @@ struct DocumentReadView: View {
 
     private func extractDocumentData(from data: Data) throws -> (title: String, pdfData: Data?) {
         let payload = try DocumentArchive.read(from: data)
-
         let decoder = JSONDecoder()
         let metadata = try decoder.decode(DocumentMetadata.self, from: payload.metadata)
-
-        return (
-            title: metadata.title,
-            pdfData: payload.pdfData
-        )
+        return (title: metadata.title, pdfData: payload.pdfData)
     }
 
     // MARK: - Computed Properties
 
-    /// Derived state: whether the document is read-only
     private var isReadOnly: Bool {
         viewModel?.isReadOnly ?? false
     }
 
-    /// Derived state: whether PDF has content
     private var hasPDFContent: Bool {
         guard let pdfData = pdfData else { return false }
         return pdfData.count > 0
@@ -359,14 +402,12 @@ struct DocumentReadView: View {
 
     // MARK: - Helper Methods
 
-    /// Handles the page management action
     private func handleManagePages() {
-        sidebarWasVisibleBeforeOrganiser = isSidebarVisible
-        isSidebarVisible = false
+        panelWasVisibleBeforeOrganiser = isPanelVisible
+        isPanelVisible = false
         showingPageManagement = true
     }
 
-    /// Commits the inline title edit: saves metadata, renames file.
     private func commitTitleEdit() {
         isEditingTitle = false
         titleFocused = false
@@ -377,26 +418,16 @@ struct DocumentReadView: View {
             if let newURL = await viewModel.renameFileIfNeeded() {
                 documentTitle = newURL.deletingPathExtension().lastPathComponent
             }
-            // Sync back in case rename sanitized or reverted
             documentTitle = viewModel.title
         }
     }
 
-    /// Cancels inline title editing, reverting to the view model's current title.
     private func cancelTitleEdit() {
         isEditingTitle = false
         titleFocused = false
         documentTitle = viewModel?.title ?? documentTitle
     }
 
-    /// Handles toggling the info panel
-    private func handleToggleInfo() {
-        showingInfoPanel.toggle()
-        let message = showingInfoPanel ? "Showing document information" : "Hiding document information"
-        AccessibilityAnnouncer.shared.post(message)
-    }
-
-    /// Builds the page management sheet view
     @ViewBuilder
     private var pageManagementSheet: some View {
         if let viewModel = viewModel {
@@ -407,17 +438,15 @@ struct DocumentReadView: View {
                 ),
                 viewModel: viewModel,
                 isPresented: $showingPageManagement,
-                currentPageIndex: 0,  // macOS version doesn't track current page yet
+                currentPageIndex: 0,
                 displayPDFData: viewModel.displayPDFData,
                 provisionalPageRange: viewModel.provisionalPageRange,
                 onDismiss: {
-                    // Restore sidebar visibility and trigger refresh
-                    isSidebarVisible = sidebarWasVisibleBeforeOrganiser
+                    isPanelVisible = panelWasVisibleBeforeOrganiser
                     sidebarRefreshID = UUID()
                 }
             )
         } else {
-            // Legacy fallback for raw PDFs
             PageManagementView(
                 pdfData: Binding(
                     get: { pdfData ?? Data() },
@@ -429,8 +458,7 @@ struct DocumentReadView: View {
                 displayPDFData: pdfData,
                 provisionalPageRange: nil,
                 onDismiss: {
-                    // Restore sidebar visibility and trigger refresh
-                    isSidebarVisible = sidebarWasVisibleBeforeOrganiser
+                    isPanelVisible = panelWasVisibleBeforeOrganiser
                     sidebarRefreshID = UUID()
                 }
             )

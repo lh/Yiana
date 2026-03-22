@@ -93,7 +93,9 @@ extension DocumentReadView {
         let errorMessage: String?
         let pdfData: Data?
         let viewModel: DocumentViewModel?
-        @Binding var isSidebarVisible: Bool
+        @Binding var currentPage: Int
+        @Binding var navigateToPage: Int?
+        @Binding var pdfDocument: PDFDocument?
         let sidebarRefreshID: UUID
         let onRequestPageManagement: () -> Void
 
@@ -112,8 +114,6 @@ extension DocumentReadView {
                 }
             }
         }
-
-        // MARK: - State Views
 
         private var loadingView: some View {
             ProgressView("Loading document...")
@@ -173,18 +173,19 @@ extension DocumentReadView {
                 MacPDFViewer(
                     viewModel: viewModel,
                     legacyPDFData: pdfData,
-                    isSidebarVisible: $isSidebarVisible,
-                    refreshTrigger: sidebarRefreshID,
-                    onRequestPageManagement: onRequestPageManagement
+                    currentPage: $currentPage,
+                    navigateToPage: $navigateToPage,
+                    pdfDocument: $pdfDocument,
+                    refreshTrigger: sidebarRefreshID
                 )
             } else if let pdfData = pdfData {
-                // Fallback for legacy PDFs without view model
                 MacPDFViewer(
                     viewModel: DocumentViewModel(pdfData: pdfData),
                     legacyPDFData: pdfData,
-                    isSidebarVisible: $isSidebarVisible,
-                    refreshTrigger: sidebarRefreshID,
-                    onRequestPageManagement: onRequestPageManagement
+                    currentPage: $currentPage,
+                    navigateToPage: $navigateToPage,
+                    pdfDocument: $pdfDocument,
+                    refreshTrigger: sidebarRefreshID
                 )
             }
         }
