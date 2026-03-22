@@ -141,10 +141,17 @@ struct ComposeTab: View {
     }
 
     private func printRenderedPDFs(_ urls: [URL]) {
-        guard let first = urls.first,
-              let pdfDoc = PDFDocument(url: first) else { return }
+        let combined = PDFDocument()
+        for url in urls {
+            guard let doc = PDFDocument(url: url) else { continue }
+            for i in 0..<doc.pageCount {
+                guard let page = doc.page(at: i) else { continue }
+                combined.insert(page, at: combined.pageCount)
+            }
+        }
+        guard combined.pageCount > 0 else { return }
         let printInfo = NSPrintInfo.shared
-        let operation = pdfDoc.printOperation(for: printInfo, scalingMode: .pageScaleToFit, autoRotate: true)
+        let operation = combined.printOperation(for: printInfo, scalingMode: .pageScaleToFit, autoRotate: true)
         operation?.runModal(for: NSApp.keyWindow ?? NSWindow(), delegate: nil, didRun: nil, contextInfo: nil)
     }
 }
