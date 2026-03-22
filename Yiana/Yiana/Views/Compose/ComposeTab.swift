@@ -96,15 +96,26 @@ struct ComposeTab: View {
             if !pdfs.isEmpty {
                 Divider()
                 ForEach(pdfs, id: \.lastPathComponent) { url in
-                    HStack {
+                    HStack(spacing: 8) {
                         Button(pdfLabel(url)) {
                             NSWorkspace.shared.open(url)
                         }
                         .buttonStyle(.link)
+                        Button {
+                            printRenderedPDFs([url])
+                        } label: {
+                            Image(systemName: "printer")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Print \(pdfLabel(url))")
                     }
                 }
-                Button("Print All") {
-                    printRenderedPDFs(pdfs)
+                if pdfs.count > 1 {
+                    Button("Print All") {
+                        printRenderedPDFs(pdfs)
+                    }
                 }
             }
         }
