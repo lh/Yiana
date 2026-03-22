@@ -65,6 +65,7 @@ struct ExtractedAddress {
     var isPrime: Bool?
     var specialistName: String?
     var isDismissed: Bool?
+    var recipientRole: String?  // "to", "cc", or "none" — user override for letter recipients
 }
 
 // MARK: - Conversion from JSON structs to view model
@@ -125,6 +126,7 @@ extension ExtractedAddress {
         self.isPrime = override?.isPrime ?? page.isPrime
         self.specialistName = override?.specialistName ?? page.specialistName
         self.isDismissed = override?.isDismissed
+        self.recipientRole = override?.recipientRole
 
         // Fields not in the JSON schema
         self.country = nil

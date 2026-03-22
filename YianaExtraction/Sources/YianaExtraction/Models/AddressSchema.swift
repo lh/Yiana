@@ -264,12 +264,14 @@ public struct AddressOverrideEntry: Codable, Sendable {
     public var overrideReason: String?
     public var overrideDate: String?
     public var isDismissed: Bool?
+    public var recipientRole: String?  // "to", "cc", or "none"
 
     public init(
         pageNumber: Int, matchAddressType: String,
         patient: PatientInfo? = nil, address: AddressInfo? = nil, gp: GPInfo? = nil,
         addressType: String? = nil, isPrime: Bool? = nil, specialistName: String? = nil,
-        overrideReason: String? = nil, overrideDate: String? = nil, isDismissed: Bool? = nil
+        overrideReason: String? = nil, overrideDate: String? = nil, isDismissed: Bool? = nil,
+        recipientRole: String? = nil
     ) {
         self.pageNumber = pageNumber
         self.matchAddressType = matchAddressType
@@ -282,6 +284,7 @@ public struct AddressOverrideEntry: Codable, Sendable {
         self.overrideReason = overrideReason
         self.overrideDate = overrideDate
         self.isDismissed = isDismissed
+        self.recipientRole = recipientRole
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -296,6 +299,7 @@ public struct AddressOverrideEntry: Codable, Sendable {
         case overrideReason = "override_reason"
         case overrideDate = "override_date"
         case isDismissed = "is_dismissed"
+        case recipientRole = "recipient_role"
     }
 }
 

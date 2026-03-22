@@ -217,6 +217,7 @@ struct AddressCard: View {
     @State private var isPrime: Bool
     @State private var subtypeName: String
     @State private var showingSubtypeNameInput = false
+    @State private var recipientRole: String
 
     init(address: ExtractedAddress, documentId: String,
          patientDocumentCount: Int? = nil, practitionerDocumentCount: Int? = nil,
@@ -247,6 +248,13 @@ struct AddressCard: View {
         _selectedType = State(initialValue: address.addressType ?? "patient")
         _isPrime = State(initialValue: address.isPrime ?? false)
         _subtypeName = State(initialValue: address.specialistName ?? "")
+        // Default recipient role from type if not explicitly set
+        let defaultRole: String = switch address.addressType ?? "patient" {
+        case "patient": "to"
+        case "gp": "cc"
+        default: "none"
+        }
+        _recipientRole = State(initialValue: address.recipientRole ?? defaultRole)
     }
 
     var body: some View {
@@ -485,6 +493,23 @@ struct AddressCard: View {
                 }
             }
 
+            // Recipient role picker
+            if !isEditingPatient {
+                Divider()
+                HStack(spacing: 8) {
+                    Text("Letter:")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Picker("", selection: $recipientRole) {
+                        Text("To").tag("to")
+                        Text("CC").tag("cc")
+                        Text("None").tag("none")
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 160)
+                }
+            }
+
             // Metadata
             if !isEditingPatient, let confidence = address.extractionConfidence {
                 HStack {
@@ -511,6 +536,27 @@ struct AddressCard: View {
             } else {
                 liveCandidates = nil
             }
+        }
+        .onChange(of: recipientRole) { _, newValue in
+            Task { await saveRecipientRole(newValue) }
+        }
+    }
+
+    private func saveRecipientRole(_ role: String) async {
+        var updatedAddress = address
+        updatedAddress.addressType = selectedType
+        updatedAddress.isPrime = isPrime
+        updatedAddress.recipientRole = role
+
+        do {
+            try await repository.saveRecipientRole(
+                documentId: documentId,
+                pageNumber: address.pageNumber ?? 1,
+                matchAddressType: address.matchAddressType ?? address.addressType ?? "patient",
+                recipientRole: role
+            )
+        } catch {
+            print("Failed to save recipient role: \(error)")
         }
     }
 

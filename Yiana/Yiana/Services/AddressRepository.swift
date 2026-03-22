@@ -284,6 +284,25 @@ final class AddressRepository: ObservableObject {
         logger.info("Saved override for \(documentId) page \(pageNumber) type \(matchAddressType)")
     }
 
+    /// Save recipient role (To/CC/None) — updates existing override or appends a minimal one
+    func saveRecipientRole(documentId: String, pageNumber: Int, matchAddressType: String, recipientRole: String) async throws {
+        var overrides = try readOverridesFile(forDocument: documentId)
+
+        // Find the most recent override for this page+type and update it
+        if let idx = overrides.lastIndex(where: { $0.pageNumber == pageNumber && $0.matchAddressType == matchAddressType }) {
+            overrides[idx].recipientRole = recipientRole
+        } else {
+            // No existing override — append a minimal one
+            overrides.append(AddressOverrideEntry(
+                pageNumber: pageNumber,
+                matchAddressType: matchAddressType,
+                recipientRole: recipientRole
+            ))
+        }
+
+        try atomicWriteOverrides(documentId: documentId, overrides: overrides)
+    }
+
     /// Toggle the prime status of an address
     func togglePrime(documentId: String, pageNumber: Int, addressType: String, makePrime: Bool) async throws {
         var file = try readOrCreateFile(forDocument: documentId)

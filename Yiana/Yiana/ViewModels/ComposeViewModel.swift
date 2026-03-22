@@ -28,10 +28,6 @@ class ComposeViewModel {
         let primePatient = addresses.first {
             $0.isPrime == true && $0.typedAddressType == .patient
         }
-        // Find prime GP
-        let primeGP = addresses.first {
-            $0.isPrime == true && $0.typedAddressType == .gp
-        }
 
         if let p = primePatient {
             patientName = p.fullName ?? "Unknown Patient"
@@ -44,32 +40,35 @@ class ComposeViewModel {
                 phones: [p.phoneHome, p.phoneWork, p.phoneMobile]
                     .compactMap { $0 }.filter { !$0.isEmpty }
             )
-
-            // Patient is always the primary recipient (To)
-            recipients.append(LetterRecipient(
-                role: "to",
-                source: "patient",
-                name: p.fullName ?? "",
-                address: [p.addressLine1, p.addressLine2, p.city, p.postcode]
-                    .compactMap { $0 }.filter { !$0.isEmpty }
-            ))
         }
 
-        if let gp = primeGP {
-            gpName = gp.gpName ?? "Unknown GP"
-            // GP is always CC
-            recipients.append(LetterRecipient(
-                role: "cc",
-                source: "gp",
-                name: gp.gpName ?? "",
-                practice: gp.gpPractice,
-                address: [gp.gpAddress, gp.gpPostcode]
-                    .compactMap { $0 }.filter { !$0.isEmpty }
-            ))
+        // Build recipients from recipientRole settings on address cards
+        for addr in addresses where addr.isDismissed != true {
+            let role = addr.recipientRole ?? (addr.typedAddressType == .patient ? "to" : addr.typedAddressType == .gp ? "cc" : "none")
+            guard role != "none" else { continue }
+
+            if addr.typedAddressType == .patient {
+                recipients.append(LetterRecipient(
+                    role: role,
+                    source: "patient",
+                    name: addr.fullName ?? "",
+                    address: [addr.addressLine1, addr.addressLine2, addr.city, addr.postcode]
+                        .compactMap { $0 }.filter { !$0.isEmpty }
+                ))
+            } else if addr.typedAddressType == .gp {
+                if gpName.isEmpty { gpName = addr.gpName ?? "Unknown GP" }
+                recipients.append(LetterRecipient(
+                    role: role,
+                    source: "gp",
+                    name: addr.gpName ?? "",
+                    practice: addr.gpPractice,
+                    address: [addr.gpAddress, addr.gpPostcode]
+                        .compactMap { $0 }.filter { !$0.isEmpty }
+                ))
+            }
         }
 
-        // Implicit hospital_records recipient — render service uses this
-        // to produce the PDF that InjectWatcher appends to the document
+        // Implicit hospital_records recipient
         recipients.append(LetterRecipient(
             role: "hospital_records",
             source: "implicit",
