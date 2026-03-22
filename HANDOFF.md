@@ -1,56 +1,41 @@
 # Session Handoff — 2026-03-22
 
 ## Branch
-`consolidation/v1.1` — pushed, up to date with origin.
+`main` — merged from `consolidation/v1.1`, pushed to TestFlight as build 49 (2.0).
 
 ## What Was Done This Session
 
-### Phase 4 Complete — App is fully self-sufficient
+Massive polish session — 40+ items completed across two days.
 
-| Step | Summary |
-|------|---------|
-| M3.1 | Switched YianaRenderer to `.binaryTarget` XCFramework (no unsafeFlags) |
-| M3.2 | Added YianaRenderer as local package in Xcode project |
-| M3.3 | Created `LetterRenderService` — bridges types, writes PDFs |
-| M3.4 | Updated `ComposeViewModel.sendToPrint()` for local Typst rendering |
-| M3.5 | Fixed Typst template: method chain literal text, removed valediction |
-| M3.6 | Per-recipient PDF links in ComposeTab |
-| M4.1 | Stopped Devon render service |
-| M4.2 | Stopped Devon OCR service, dashboard, watchdog cron |
-| Fix | iPad Air watchdog kill — removed sync migration from AddressRepository.init() |
-| Fix | XCFramework universal macOS binary (arm64 + x86_64) for archive |
-| New | "New Letter" button in ComposeTab |
-| New | Version bumped to 2.0 |
-| New | Polish roadmap (`docs/v2-polish-roadmap.md` + Typst editions) |
+### Highlights
+- Unified side panel (thumbnails + info tabs, configurable L/R, icons)
+- Full postcode-to-town/county lookup (9,603 sectors from ONS ONSPD)
+- Address card editing: overrides persist, type changes work, live NHS lookup
+- Recipient tick boxes (To/CC/None per verified card)
+- Letter template: footer on every page, slim header, MRN field
+- Work list: pre-download, loading spinner, multi-add picker, back-to-list button
+- Name handling: title case, O'Brien, McDonald
+- Folder/document name sanitisation
+- Settings: appearance, panel position, macOS Settings scene
+- GitHub Issues: 20 items migrated, labels created, stale branches/PRs cleaned
 
-### TestFlight
-- Build 47: v1.1 — first local rendering build. Crashed on iPad Air + MacBook Air (watchdog)
-- Build 48: v1.1 — fixed watchdog. All devices working.
-- Build 49 pending: v2.0 with New Letter button (not yet uploaded)
+### Key Lessons Learned
+- NavigationPath clear+append is unreliable inside navigation destination (SwiftUI limitation)
+- Search index tokenises on hyphens — use direct file scan for exact lookups
+- Always check #if os() guards when debugging platform-specific issues
+- @State fields and let properties can desync in SwiftUI — use @State consistently for display
 
 ## Current State
 
-- **Branch:** `consolidation/v1.1`
-- **Version:** 2.0 (build 48 on TestFlight, local is ahead)
-- **Builds:** iOS and macOS both pass
-- **Package tests:** 94 pass (YianaExtraction), 5 pass (YianaRenderer), 3 pass (Rust)
-- **Phase 4:** COMPLETE — all Devon services retired
-- **Devon:** iCloud sync node only. No active services. Plists preserved until 2026-04-04
+- **Branch:** `main`
+- **Version:** 2.0 (build 49 on TestFlight, build 50 pending)
+- **GitHub Issues:** 16 open
+- **Devon:** Retired (iCloud sync node only)
 
 ## What's Next
 
-See `docs/v2-polish-roadmap.md` for full prioritised backlog.
-
-**Session A (next):** Letter template polish — envelope window alignment + footer contact block. Bring envelope measurements. Pure Typst, no app code.
-
-**Session B:** Auto-reload after inject (#17) + GP card save bug (#21c).
-
-## Key Files
-
-| File | Purpose |
-|------|---------|
-| `Yiana/Yiana/Services/LetterRenderService.swift` | Bridges types, renders locally |
-| `Yiana/Yiana/ViewModels/ComposeViewModel.swift` | Compose logic with local render |
-| `Yiana/Yiana/Views/Compose/ComposeTab.swift` | Compose UI (macOS) |
-| `YianaRenderer/Sources/YianaRenderer/Resources/letter.typ` | Typst letter template |
-| `docs/v2-polish-roadmap.md` | Prioritised backlog |
+See GitHub Issues for full backlog. Priorities:
+1. **#5 Envelope window alignment** — bring measurements from work
+2. **#4 Sender details in Settings UI** — essential for other users
+3. **#3 Performance** — measure with Instruments
+4. **#14 iOS compose** — the big one
