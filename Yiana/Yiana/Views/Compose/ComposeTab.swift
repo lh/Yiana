@@ -54,12 +54,7 @@ struct ComposeTab: View {
                     }
                 }
 
-                Button("Save Draft") {
-                    Task { await viewModel.saveDraft() }
-                }
-                .disabled(!viewModel.canSave || viewModel.isSaving)
-
-                Button("Send to Print") {
+                Button("Generate Letter") {
                     Task { await viewModel.sendToPrint() }
                 }
                 .disabled(!viewModel.canSend || viewModel.isSaving)
