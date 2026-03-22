@@ -16,7 +16,8 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var devMode = DevModeManager.shared
     @State private var selectedPaperSize: TextPagePaperSize = .a4
-    @State private var selectedSidebarPosition: SidebarPosition = .right
+    @AppStorage("textPage.sidebarPosition") private var sidebarPositionRaw: String = "left"
+    @State private var selectedSidebarPosition: SidebarPosition = .left
     @State private var selectedThumbnailSize: SidebarThumbnailSize = .medium
     @AppStorage("appearanceMode") private var appearanceMode: Int = 0
     @State private var isLoading = true
@@ -142,10 +143,11 @@ struct SettingsView: View {
         .onChange(of: selectedPaperSize) { _, newValue in
             Task { await TextPageLayoutSettings.shared.setPreferredPaperSize(newValue) }
         }
-#if os(iOS)
         .onChange(of: selectedSidebarPosition) { _, newValue in
+            sidebarPositionRaw = newValue.rawValue
             Task { await TextPageLayoutSettings.shared.setPreferredSidebarPosition(newValue) }
         }
+#if os(iOS)
         .onChange(of: selectedThumbnailSize) { _, newValue in
             Task { await TextPageLayoutSettings.shared.setPreferredThumbnailSize(newValue) }
         }
@@ -154,14 +156,14 @@ struct SettingsView: View {
 
     private func loadPreferences() async {
         let size = await TextPageLayoutSettings.shared.preferredPaperSize()
-#if os(iOS)
         let position = await TextPageLayoutSettings.shared.preferredSidebarPosition()
+#if os(iOS)
         let thumbnail = await TextPageLayoutSettings.shared.preferredThumbnailSize()
 #endif
         await MainActor.run {
             selectedPaperSize = size
-#if os(iOS)
             selectedSidebarPosition = position
+#if os(iOS)
             selectedThumbnailSize = thumbnail
 #endif
             isLoading = false
