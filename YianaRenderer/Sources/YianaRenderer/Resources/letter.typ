@@ -18,7 +18,27 @@
 #let day = today.day()
 #let suffix = if day in (1, 21, 31) { "st" } else if day in (2, 22) { "nd" } else if day in (3, 23) { "rd" } else { "th" }
 #let letter-date = today.display("[weekday], [day padding:none]") + suffix + today.display(" [month repr:long] [year]")
-#let letter-location = sender.hospital
+
+// -- Contact footer content (built once, used in page footer) --
+#let footer-content = {
+  line(length: 100%, stroke: 0.4pt)
+  v(2mm)
+  set text(size: 8pt)
+
+  if sender.at("secretary", default: none) != none {
+    let sec = sender.secretary
+    let parts = ("Secretary: " + sec.name,)
+    let parts = if sec.phone != "" { parts + ("Tel: " + sec.phone,) } else { parts }
+    let parts = if sec.email != "" { parts + ("Email: " + sec.email,) } else { parts }
+    parts.join(" | ")
+    linebreak()
+  }
+
+  let contact = (sender.hospital,)
+  let contact = if sender.address.len() > 0 { contact + (sender.address.join(", "),) } else { contact }
+  let contact = if sender.phone != "" { contact + ("Tel: " + sender.phone,) } else { contact }
+  contact.join(" | ")
+}
 
 // -- Page setup --
 #let body-size = if is-patient-copy { 14pt } else { 11pt }
@@ -37,6 +57,7 @@
       "Page " + counter(page).display("1")
     }
   },
+  footer: footer-content,
 )
 
 #set text(
@@ -54,29 +75,22 @@
   leading: body-leading,
 )
 
-// -- Sender header (bold italic) --
-#let header-line(content) = {
-  text(weight: "bold", style: "italic", content)
+// -- Sender header (name and role only — contact details are in footer) --
+#{
+  set text(size: 11pt)
+  text(weight: "bold", style: "italic", sender.name)
+  linebreak()
+  text(weight: "bold", style: "italic", sender.role)
+  if sender.department != "" {
+    linebreak()
+    text(weight: "bold", style: "italic", sender.department)
+  }
   linebreak()
 }
 
-#{
-  set text(size: 11pt)
-  header-line(sender.name)
-  header-line(sender.role)
-  if sender.department != "" { header-line(sender.department) }
-  header-line(sender.hospital)
-  for line in sender.address {
-    header-line(line)
-  }
-  header-line[Ph: #sender.phone]
-}
-
-// -- Date and location --
+// -- Date --
 #v(0.3em)
 #letter-date.
-
-#letter-location.
 
 // -- Postal address for windowed envelope --
 #if has-postal-address {
@@ -107,26 +121,4 @@
     Cc: #r.name #if r.at("practice", default: none) != none [#r.practice] #r.address.join(", ").
 
   ]
-}
-
-// -- Contact footer --
-#v(1fr)
-#{
-  line(length: 100%, stroke: 0.4pt)
-  v(2mm)
-  set text(size: 8pt)
-
-  if sender.at("secretary", default: none) != none {
-    let sec = sender.secretary
-    let parts = ("Secretary: " + sec.name,)
-    let parts = if sec.phone != "" { parts + ("Tel: " + sec.phone,) } else { parts }
-    let parts = if sec.email != "" { parts + ("Email: " + sec.email,) } else { parts }
-    parts.join(" | ")
-    linebreak()
-  }
-
-  let contact = (sender.hospital,)
-  let contact = if sender.address.len() > 0 { contact + (sender.address.join(", "),) } else { contact }
-  let contact = if sender.phone != "" { contact + ("Tel: " + sender.phone,) } else { contact }
-  contact.join(" | ")
 }
