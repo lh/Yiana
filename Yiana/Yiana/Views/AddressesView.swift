@@ -210,6 +210,7 @@ struct AddressCard: View {
 
     @State private var isSavingPatient = false
     @State private var patientCopied = false
+    @State private var liveCandidates: [NHSCandidate]?
 
     // Prime address system
     @State private var selectedType: String
@@ -499,6 +500,18 @@ struct AddressCard: View {
         .padding()
         .background(Color.secondary.opacity(0.1))
         .cornerRadius(12)
+        .onChange(of: gpPostcode) { _, newValue in
+            if selectedType == "gp" {
+                lookupNHSCandidates(postcode: newValue)
+            }
+        }
+        .onChange(of: selectedType) { _, newValue in
+            if newValue == "gp" && !gpPostcode.isEmpty {
+                lookupNHSCandidates(postcode: gpPostcode)
+            } else {
+                liveCandidates = nil
+            }
+        }
     }
 
     @ViewBuilder
@@ -622,7 +635,8 @@ struct AddressCard: View {
 
     @ViewBuilder
     private var nhsCandidatesView: some View {
-        if let candidates = address.nhsGPCandidates, !candidates.isEmpty {
+        let candidates = liveCandidates ?? address.nhsGPCandidates ?? []
+        if !candidates.isEmpty {
             Divider()
             Text("NHS Matches")
                 .font(.caption)
@@ -643,6 +657,20 @@ struct AddressCard: View {
             .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
         gpPostcode = candidate.postcode ?? gpPostcode
         isEditingPatient = true
+    }
+
+    private func lookupNHSCandidates(postcode: String) {
+        guard postcode.count >= 5 else {
+            liveCandidates = nil
+            return
+        }
+        guard let dbURL = Bundle.main.url(forResource: "nhs_lookup", withExtension: "db"),
+              let service = try? NHSLookupService(databasePath: dbURL.path) else { return }
+        liveCandidates = try? service.lookupGP(
+            postcode: postcode,
+            nameHint: gpName.isEmpty ? nil : gpName,
+            addressHint: gpAddress.isEmpty ? nil : gpAddress
+        )
     }
 
     // Formatted addresses for sharing
