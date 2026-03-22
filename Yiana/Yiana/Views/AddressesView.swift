@@ -17,6 +17,7 @@ struct AddressesView: View {
     @State private var refreshTrigger = false
     @State private var entityPatientDocCount: Int?
     @State private var entityPractitioners: [PractitionerRecord] = []
+    @State private var showUnverified = false
 
     // Sort addresses by type (Patient, GP, Optician, Specialist), then by specialist name if applicable
     private var sortedAddresses: [ExtractedAddress] {
@@ -83,22 +84,35 @@ struct AddressesView: View {
                             )
                         }
 
-                        // Divider between prime and non-prime
-                        if !primeAddresses.isEmpty && !nonPrimeAddresses.isEmpty {
-                            Divider()
-                                .padding(.vertical, 8)
-                        }
-
-                        ForEach(nonPrimeAddresses, id: \.stableId) { address in
-                            AddressCard(
-                                address: address,
-                                documentId: documentId,
-                                patientDocumentCount: entityPatientDocCount,
-                                practitionerDocumentCount: practitionerCount(for: address),
-                                onSave: {
-                                    refreshTrigger.toggle()
+                        // Unverified cards toggle
+                        if !nonPrimeAddresses.isEmpty {
+                            Button {
+                                withAnimation { showUnverified.toggle() }
+                            } label: {
+                                HStack {
+                                    Image(systemName: showUnverified ? "chevron.down" : "chevron.right")
+                                        .font(.caption)
+                                    Text("Unverified (\(nonPrimeAddresses.count))")
+                                        .font(.caption)
+                                    Spacer()
                                 }
-                            )
+                                .foregroundColor(.secondary)
+                            }
+                            .buttonStyle(.plain)
+
+                            if showUnverified {
+                                ForEach(nonPrimeAddresses, id: \.stableId) { address in
+                                    AddressCard(
+                                        address: address,
+                                        documentId: documentId,
+                                        patientDocumentCount: entityPatientDocCount,
+                                        practitionerDocumentCount: practitionerCount(for: address),
+                                        onSave: {
+                                            refreshTrigger.toggle()
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
