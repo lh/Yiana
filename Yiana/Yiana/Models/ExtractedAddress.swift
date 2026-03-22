@@ -159,6 +159,24 @@ extension ExtractedAddress {
                 break
             }
         }
+
+        // Derive surname/firstname from fullName when not already set
+        if (self.surname == nil || self.surname?.isEmpty == true),
+           (self.firstname == nil || self.firstname?.isEmpty == true),
+           let name = self.fullName, !name.isEmpty {
+            // Strip title prefix if present
+            var nameToParse = name
+            if let t = self.title {
+                nameToParse = String(name.dropFirst(t.count).drop(while: { $0 == " " }))
+            }
+            let parts = nameToParse.split(separator: " ").map(String.init)
+            if parts.count >= 2 {
+                self.firstname = parts.dropLast().joined(separator: " ")
+                self.surname = parts.last
+            } else if parts.count == 1 {
+                self.surname = parts[0]
+            }
+        }
     }
 }
 
