@@ -1,6 +1,6 @@
 # Yiana 2.0 — Polish Roadmap
 
-Updated 2026-03-22. The core app is self-sufficient and working.
+Updated 2026-03-22 (afternoon). The core app is self-sufficient and working.
 
 ---
 
@@ -18,7 +18,6 @@ Updated 2026-03-22. The core app is self-sufficient and working.
 
 | # | Item | Effort | Status |
 |---|------|--------|--------|
-| 13 | Postcode-to-town lookup table | Small | Open |
 | 9 | Extraction misses address lines on some layouts | Medium | Open — investigation needed |
 | 11 | GP data not extracted from some documents | Medium | Open — related to #9 |
 | 10 | Duplicate phone numbers | Small | Open |
@@ -49,6 +48,7 @@ Updated 2026-03-22. The core app is self-sufficient and working.
 | 24 | Visual form template builder for OCR | Large | Open — long-term |
 | 23 | Local peer-to-peer sync (Multipeer/Bonjour) | Large | Open |
 | 20 | iPhone camera as scanner for Mac (Continuity Camera) | Medium | Open |
+| 32 | Auto-update postcode lookup from ONS ONSPD | Small | Open — direct download URL works |
 | 1 | Connected scanner support on macOS | Parked | Not our direction |
 
 ---
@@ -57,6 +57,11 @@ Updated 2026-03-22. The core app is self-sufficient and working.
 
 | # | Item | Date |
 |---|------|------|
+| 13 | Postcode-to-town lookup — full 9,603 sectors from ONS ONSPD | 2026-03-22 |
+| — | County lookup from postcode (3,058 sectors, ceremonial counties) | 2026-03-22 |
+| — | Live town + county fill on postcode edit | 2026-03-22 |
+| — | Fix add address when no main JSON exists | 2026-03-22 |
+| — | Fix green indicator for manual-only addresses | 2026-03-22 |
 | — | MRN passed to letter, PN renamed to MRN, hidden when empty | 2026-03-22 |
 | — | Per-letter print icons + Print All fix (all PDFs) | 2026-03-22 |
 | — | Re-generate after editing (Generate Letter enabled in rendered state) | 2026-03-22 |
@@ -104,6 +109,6 @@ Updated 2026-03-22. The core app is self-sufficient and working.
 
 **Session C:** Item 26 (performance). Measure with Instruments, identify bottlenecks.
 
-**Session D:** Items 13 + 10 (postcode lookup + phone dedup). Extraction quality.
+**Session D:** Items 9 + 11 (extraction missing address lines + GP data). Investigation.
 
 **Session E:** iOS compose + letter preview (#30). The big one.

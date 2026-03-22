@@ -85,6 +85,8 @@ Quick-capture list for things that come to mind mid-task.
 
 30. **Built-in letter preview (iPad)** — On macOS the rendered PDF opens in Preview.app, but iPad has no equivalent. When iOS compose is built, include a sheet/modal PDF viewer for rendered letters. PDFKit is cross-platform. Bundle with the iOS compose work. Logged 2026-03-22.
 
+32. **Auto-update postcode lookup from ONS ONSPD** — Direct download works: `https://www.arcgis.com/sharing/rest/content/items/3080229224424c9cb53c0b48f5a64d27/data` (235MB zip, no auth). Item ID may change quarterly. Script exists at `scripts/generate_sector_lookup.py`. Could automate: download zip, unzip, run generator, commit. Quarterly is overkill — annually or per-release is fine. Postcodes don't move towns. Logged 2026-03-22.
+
 29. **DOB field accepts any input** — Patient DOB field in AddressCard is a plain text field with no validation. Should enforce a date format (DD/MM/YYYY or date picker). Also relates to #14 (ISO 8601 standardisation). Logged 2026-03-22.
 
 28. **Rename "Prime" to "Verified"** — "Prime" currently means both "primary/canonical" and "user has verified this address." "Verified" is clearer for the second meaning, which is how it's actually used. Affects: AddressCard UI, override schema (isPrime field), AddressRepository togglePrime(), extraction helpers. Logged 2026-03-22.
