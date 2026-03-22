@@ -21,6 +21,7 @@ struct WorkListView: View {
 
     @State private var manualSearchText = ""
     @State private var showingClearConfirmation = false
+    @State private var loadingEntryID: String?
     @State private var pickerData: PickerData?
     @State private var showingPasteSheet = false
     @State private var pasteText = ""
@@ -112,14 +113,16 @@ struct WorkListView: View {
     }
 
     private func entryRow(_ entry: SharedWorkListItem) -> some View {
-        Button {
+        let isLoading = loadingEntryID == entry.id
+        return Button {
+            guard !isLoading else { return }
             handleTap(entry)
         } label: {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.displayText)
                         .lineLimit(1)
-                        .foregroundColor(.primary)
+                        .foregroundColor(isLoading ? .secondary : .primary)
 
                     if entry.resolvedFilename == nil, let source = sourceLabel(entry) {
                         Text(source)
@@ -130,7 +133,12 @@ struct WorkListView: View {
 
                 Spacer()
 
-                statusIndicator(entry)
+                if isLoading {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                } else {
+                    statusIndicator(entry)
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -202,22 +210,32 @@ struct WorkListView: View {
 
     private func handleTap(_ entry: SharedWorkListItem) {
         let entryID = entry.id
+        loadingEntryID = entryID
         if entry.resolvedFilename != nil {
             // Resolved — look up URL and navigate
             Task {
                 if let url = await viewModel.urlForResolved(entry) {
-                    await MainActor.run { onNavigate(url) }
+                    await MainActor.run {
+                        loadingEntryID = nil
+                        onNavigate(url)
+                    }
                 } else {
                     // Stale resolution — re-search
                     let urls = await viewModel.resolve(entryID: entryID)
-                    await MainActor.run { handleResolveResult(urls, entryID: entryID) }
+                    await MainActor.run {
+                        loadingEntryID = nil
+                        handleResolveResult(urls, entryID: entryID)
+                    }
                 }
             }
         } else {
             // Unresolved — search
             Task {
                 let urls = await viewModel.resolve(entryID: entryID)
-                await MainActor.run { handleResolveResult(urls, entryID: entryID) }
+                await MainActor.run {
+                    loadingEntryID = nil
+                    handleResolveResult(urls, entryID: entryID)
+                }
             }
         }
     }
