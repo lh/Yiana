@@ -186,6 +186,17 @@ class DocumentRepository {
         return clean.trimmingCharacters(in: .whitespaces)
     }
 
+    /// Title-case a single name part. Handles O'Brien → O'Brien.
+    private static func titleCasePart(_ part: String) -> String {
+        var result = part.prefix(1).uppercased() + part.dropFirst()
+        // O'X → O'X (capitalise after O')
+        if result.hasPrefix("O'") && result.count > 2 {
+            let afterApostrophe = result.index(result.startIndex, offsetBy: 2)
+            result = "O'" + String(result[afterApostrophe]).uppercased() + result[result.index(after: afterApostrophe)...]
+        }
+        return result
+    }
+
     /// Create a new folder
     func createFolder(name: String) throws {
         let cleanName = Self.sanitizeName(name)
@@ -314,7 +325,7 @@ class DocumentRepository {
         let cleanName = Self.sanitizeName(newName)
             .replacingOccurrences(of: " ", with: "_")
             .split(separator: "_")
-            .map { $0.prefix(1).uppercased() + $0.dropFirst() }
+            .map { Self.titleCasePart(String($0)) }
             .joined(separator: "_")
 
         let parentDirectory = url.deletingLastPathComponent()
