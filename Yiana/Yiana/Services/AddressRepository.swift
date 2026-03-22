@@ -172,7 +172,7 @@ final class AddressRepository: ObservableObject {
         let fileURL = dirURL.appendingPathComponent("\(documentId).json")
         guard FileManager.default.fileExists(atPath: fileURL.path) else { return [] }
 
-        let file = try readAddressFile(at: fileURL)
+        let file = try readOrCreateFile(forDocument: documentId)
         return resolveAddresses(from: file)
     }
 
@@ -188,7 +188,8 @@ final class AddressRepository: ObservableObject {
         var allResults: [ExtractedAddress] = []
         for fileURL in fileURLs {
             do {
-                let file = try readAddressFile(at: fileURL)
+                let docId = fileURL.deletingPathExtension().lastPathComponent
+                let file = try readOrCreateFile(forDocument: docId)
                 allResults.append(contentsOf: resolveAddresses(from: file))
             } catch {
                 logger.warning("Failed to read \(fileURL.lastPathComponent): \(error)")
