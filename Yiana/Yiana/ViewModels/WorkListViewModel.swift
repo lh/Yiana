@@ -108,6 +108,7 @@ class WorkListViewModel: ObservableObject {
 
         if let workList = loaded {
             entries = workList.items
+            await prefetchResolvedDocuments()
         }
     }
 
@@ -263,6 +264,26 @@ class WorkListViewModel: ObservableObject {
             }?.url
         } catch {
             return nil
+        }
+    }
+
+    /// Pre-download all resolved work list documents from iCloud.
+    /// Fire-and-forget — iCloud manages the downloads in the background.
+    private func prefetchResolvedDocuments() async {
+        let filenames = entries.compactMap(\.resolvedFilename)
+        guard !filenames.isEmpty else { return }
+
+        let repository = DocumentRepository()
+        let allDocs = await Task.detached {
+            repository.allDocumentsRecursive()
+        }.value
+
+        for filename in filenames {
+            guard let doc = allDocs.first(where: {
+                $0.url.deletingPathExtension().lastPathComponent == filename
+            }) else { continue }
+
+            try? FileManager.default.startDownloadingUbiquitousItem(at: doc.url)
         }
     }
 
