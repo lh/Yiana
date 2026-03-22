@@ -34,7 +34,7 @@ class ComposeViewModel {
             patient = LetterPatient(
                 name: p.fullName ?? "",
                 dob: p.dateOfBirth ?? "",
-                mrn: "",
+                mrn: p.mrn ?? "",
                 address: [p.addressLine1, p.addressLine2, p.city, p.postcode]
                     .compactMap { $0 }.filter { !$0.isEmpty },
                 phones: [p.phoneHome, p.phoneWork, p.phoneMobile]

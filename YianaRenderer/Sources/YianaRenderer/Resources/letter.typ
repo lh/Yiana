@@ -104,7 +104,7 @@
 
 // -- Re: line (bold) --
 #v(0.3em)
-#text(weight: "bold")[Re: #patient.name. DOB: #patient.dob. PN: #patient.mrn. #if patient.address.len() > 0 [Add: #patient.address.join(" ").] #if patient.phones.len() > 0 [Tel: #patient.phones.first().]]
+#text(weight: "bold")[Re: #patient.name. DOB: #patient.dob. #if patient.mrn != "" [MRN: #patient.mrn. ]#if patient.address.len() > 0 [Add: #patient.address.join(" ").] #if patient.phones.len() > 0 [Tel: #patient.phones.first().]]
 
 // -- Body --
 #v(0.5em)
