@@ -102,7 +102,7 @@ struct DocumentReadView: View {
                 }
             }
 
-            // Main content
+            // Main content — must claim remaining space
             VStack(spacing: 0) {
                 ReadOnlyBanner(isReadOnly: isReadOnly)
                 DocumentReadContent(
@@ -117,6 +117,7 @@ struct DocumentReadView: View {
                     onRequestPageManagement: handleManagePages
                 )
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             if panelPosition == .right {
                 if isPanelVisible {

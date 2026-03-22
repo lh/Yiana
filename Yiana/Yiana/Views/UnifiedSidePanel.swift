@@ -30,13 +30,18 @@ struct UnifiedSidePanel: View {
     var body: some View {
         VStack(spacing: 0) {
             Picker("", selection: $selectedTab) {
-                Text("Pages").tag(PanelTab.pages)
+                Image(systemName: "doc.on.doc").tag(PanelTab.pages)
+                    .help("Pages")
                 if showAddressesTab {
-                    Text("Addresses").tag(PanelTab.addresses)
+                    Image(systemName: "person.2").tag(PanelTab.addresses)
+                        .help("Addresses")
                 }
-                Text("Compose").tag(PanelTab.compose)
-                Text("Text").tag(PanelTab.ocr)
-                Text("Metadata").tag(PanelTab.metadata)
+                Image(systemName: "square.and.pencil").tag(PanelTab.compose)
+                    .help("Compose")
+                Image(systemName: "doc.text").tag(PanelTab.ocr)
+                    .help("Text")
+                Image(systemName: "info.circle").tag(PanelTab.metadata)
+                    .help("Metadata")
             }
             .pickerStyle(.segmented)
             .padding(8)
