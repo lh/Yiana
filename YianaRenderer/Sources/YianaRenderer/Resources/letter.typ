@@ -1,5 +1,10 @@
 // Yiana Letter Template
 // Renders clinical correspondence from JSON data passed via sys.inputs.
+//
+// Layout for postal copies (has-postal-address = true):
+//   Above fold (0-99mm): sender, date, postal address — all at 20mm left margin
+//   Below fold (99mm+):  Re: line, body, sign-off, CC — at 45mm left margin
+// Non-postal copies (GP CC, hospital records): standard layout, 45mm margins throughout.
 
 #let data = json(bytes(sys.inputs.data))
 #let sender = data.sender
@@ -43,10 +48,11 @@
 // -- Page setup --
 #let body-size = if is-patient-copy { 14pt } else { 11pt }
 #let body-leading = if is-patient-copy { 1.4em } else { 1.2em }
+#let left-margin = if has-postal-address { 20mm } else { 4.5cm }
 
 #set page(
   paper: "a4",
-  margin: (top: 4.5cm, bottom: 3.5cm, left: 4.5cm, right: 4.5cm),
+  margin: (top: 20mm, bottom: 3.5cm, left: left-margin, right: 20mm),
   header: context {
     if counter(page).get().first() > 1 {
       set text(9pt, style: "italic")
@@ -75,7 +81,7 @@
   leading: body-leading,
 )
 
-// -- Sender header (name and role only — contact details are in footer) --
+// -- Sender header --
 #{
   set text(size: 11pt)
   text(weight: "bold", style: "italic", sender.name)
@@ -85,40 +91,62 @@
     linebreak()
     text(weight: "bold", style: "italic", sender.department)
   }
-  linebreak()
 }
 
 // -- Date --
-#v(0.3em)
+#v(0.5em)
 #letter-date.
 
-// -- Postal address for windowed envelope --
+// -- Postal address (above fold, centered in envelope window) --
 #if has-postal-address {
-  v(0.5em)
+  v(1em)
+  recipient.name
+  linebreak()
   for line in recipient.address {
     line
     linebreak()
   }
-  v(0.3em)
+  // Pad to push body below the fold line (~99mm from top)
+  v(1fr)
+  // Invisible fold marker — body starts here
 }
 
 // -- Re: line (bold) --
 #v(0.3em)
-#text(weight: "bold")[Re: #patient.name. DOB: #patient.dob. #if patient.mrn != "" [MRN: #patient.mrn. ]#if patient.address.len() > 0 [Add: #patient.address.join(" ").] #if patient.phones.len() > 0 [Tel: #patient.phones.first().]]
+#if has-postal-address {
+  // After the fold: widen left margin for body text
+  pad(left: 25mm)[
+    #text(weight: "bold")[Re: #patient.name. DOB: #patient.dob. #if patient.mrn != "" [MRN: #patient.mrn. ]#if patient.address.len() > 0 [Add: #patient.address.join(" ").] #if patient.phones.len() > 0 [Tel: #patient.phones.first().]]
 
-// -- Body --
-#v(0.5em)
-#body-text
+    #v(0.5em)
+    #body-text
 
-// -- Sign-off --
-#v(2em)
-#signer-name
+    #v(2em)
+    #signer-name
 
-// -- CC lines --
-#v(0.3em)
-#for r in all-recipients {
-  if r.role != recipient.role and r.role != "hospital_records" [
-    Cc: #r.name #if r.at("practice", default: none) != none [#r.practice] #r.address.join(", ").
+    #v(0.3em)
+    #for r in all-recipients {
+      if r.role != recipient.role and r.role != "hospital_records" [
+        Cc: #r.name #if r.at("practice", default: none) != none [#r.practice] #r.address.join(", ").
 
+      ]
+    }
   ]
+} else {
+  // Non-postal copies: standard layout
+  text(weight: "bold")[Re: #patient.name. DOB: #patient.dob. #if patient.mrn != "" [MRN: #patient.mrn. ]#if patient.address.len() > 0 [Add: #patient.address.join(" ").] #if patient.phones.len() > 0 [Tel: #patient.phones.first().]]
+
+  v(0.5em)
+  body-text
+
+  v(2em)
+  signer-name
+
+  v(0.3em)
+  for r in all-recipients {
+    if r.role != recipient.role and r.role != "hospital_records" [
+      Cc: #r.name #if r.at("practice", default: none) != none [#r.practice] #r.address.join(", ").
+
+    ]
+  }
 }
