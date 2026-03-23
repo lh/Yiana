@@ -46,7 +46,7 @@
 }
 
 // -- Page setup --
-#let body-size = if is-patient-copy { 14pt } else { 11pt }
+#let body-size = if is-patient-copy { 13pt } else { 11pt }
 #let body-leading = if is-patient-copy { 1.4em } else { 1.2em }
 #let left-margin = if has-postal-address { 20mm } else { 4.5cm }
 
@@ -81,38 +81,42 @@
   leading: body-leading,
 )
 
-// -- Sender header --
-#{
-  set text(size: 11pt)
-  text(weight: "bold", style: "italic", sender.name)
-  linebreak()
-  text(weight: "bold", style: "italic", sender.role)
-  if sender.department != "" {
-    linebreak()
-    text(weight: "bold", style: "italic", sender.department)
-  }
-}
-
-// -- Date --
-#v(0.5em)
-#letter-date.
-
-// -- Postal address (above fold, centered in envelope window) --
+// -- Above-fold content --
 #if has-postal-address {
-  v(1em)
-  recipient.name
-  linebreak()
-  for line in recipient.address {
-    line
+  // Postal copies: just date and recipient address, no sender header.
+  // Sender details are in the footer on every page.
+  letter-date + "."
+  // Push address down to envelope window zone (~55mm from top, margin is 20mm = 35mm from content top)
+  v(35mm)
+  {
+    set text(size: 11pt)
+    recipient.name
     linebreak()
+    for line in recipient.address {
+      line
+      linebreak()
+    }
   }
-  // Pad to push body below the fold line (~99mm from top)
+  // Push body below the fold
   v(1fr)
-  // Invisible fold marker — body starts here
+} else {
+  // Non-postal (hospital records): sender header + date
+  {
+    set text(size: 11pt)
+    text(weight: "bold", style: "italic", sender.name)
+    linebreak()
+    text(weight: "bold", style: "italic", sender.role)
+    if sender.department != "" {
+      linebreak()
+      text(weight: "bold", style: "italic", sender.department)
+    }
+  }
+  v(0.5em)
+  letter-date + "."
 }
 
 // -- Re: line (bold) --
-#v(0.3em)
+#v(1em)
 #if has-postal-address {
   // After the fold: widen left margin for body text
   pad(left: 25mm)[
