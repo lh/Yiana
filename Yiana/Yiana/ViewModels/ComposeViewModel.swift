@@ -42,9 +42,9 @@ class ComposeViewModel {
             )
         }
 
-        // Build recipients from recipientRole settings on address cards
-        for addr in addresses where addr.isDismissed != true {
-            let role = addr.recipientRole ?? (addr.typedAddressType == .patient ? "to" : addr.typedAddressType == .gp ? "cc" : "none")
+        // Build recipients from verified address cards with recipient roles
+        for addr in addresses where addr.isDismissed != true && addr.isPrime == true {
+            let role = addr.recipientRole ?? "none"
             guard role != "none" else { continue }
 
             if addr.typedAddressType == .patient {
