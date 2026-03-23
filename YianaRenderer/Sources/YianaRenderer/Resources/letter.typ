@@ -15,7 +15,7 @@
 #let body-text = data.body
 
 // -- Derived values --
-#let has-postal-address = recipient.role != "hospital_records" and recipient.address.len() > 0
+#let has-postal-address = recipient.role != "hospital_records"
 #let signer-name = sender.name.replace("MBBS", "").replace("BSc", "").replace("FRCOphth", "").replace("FRCS", "").replace("MD", "").replace("PhD", "").split(",").first().trim()
 
 // Date formatting
