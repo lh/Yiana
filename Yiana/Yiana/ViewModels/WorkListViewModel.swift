@@ -107,7 +107,9 @@ class WorkListViewModel: ObservableObject {
         }.value
 
         if let workList = loaded {
-            entries = workList.items
+            await MainActor.run {
+                entries = workList.items
+            }
             await prefetchResolvedDocuments()
         }
     }
