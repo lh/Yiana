@@ -72,9 +72,9 @@ Quick-capture list for things that come to mind mid-task.
 
 18. **Typst replaces LaTeX for letter rendering** — Rust crate `yiana-typst-bridge` and Swift package `YianaRenderer` built and tested. Compiles Typst templates to PDF via FFI (no subprocess). XCFramework for macOS + iOS. 30ms to render 3 PDFs. Next: wire into Yiana app (Milestone 3) then retire Devon render service (Milestone 4). Logged 2026-03-21.
 
-19. **Letter formatting finessing needed** — Logged 2026-03-21, updated 2026-03-21.
-    a. **Envelope window alignment** — Recipient address block needs precise positioning to show through a standard window envelope. User will measure dimensions from work stationery. Priority for postal letters.
-    b. **Footer contact block** — Previous LaTeX version had a nice block at the bottom with sender contact details, secretary info, etc. Bring this back in the Typst template.
+19. **Letter formatting finessing needed** — Logged 2026-03-21, updated 2026-03-23.
+    a. **Envelope window alignment** — NEEDS REDESIGN. Calibration grid method worked (window at 15-115mm x 55-90mm from page edge). Multiple template iterations degraded quality. Current state: postal copies have no sender header, body indented below fold, but layout needs a fresh attempt. Consider Option B (address on obverse/page 2) as cleaner alternative. Do in a dedicated session with fresh eyes.
+    b. **Footer contact block** — DONE. Secretary + hospital/address/phone on every page.
     c. **Custom/user-editable templates** — When the app is generalised beyond medical/personal use, users will need to write or adapt their own Typst templates. Design TBD — could be template selection, in-app editor, or user-supplied .typ files. Long-term product consideration.
 
 16. **HTML render template: leading comma when department is empty** — `sender.json` has `"department": ""`. The HTML footer template joins role/department/hospital without filtering empties, producing `, Spire Gatwick Park Hospital`. PDF render (LaTeX) handles it correctly. Low priority — cosmetic, HTML-only. Logged 2026-03-21.
