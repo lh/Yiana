@@ -836,10 +836,29 @@ struct AddressCard: View {
                 addressType: selectedType,
                 makePrime: newValue
             )
-            onSave() // Trigger refresh
+
+            // Write default recipient role to data — single source of truth
+            let defaultRole: String
+            if newValue {
+                defaultRole = switch selectedType {
+                case "patient": "to"
+                case "gp": "cc"
+                default: "none"
+                }
+            } else {
+                defaultRole = "none"
+            }
+            recipientRole = defaultRole
+            try await repository.saveRecipientRole(
+                documentId: documentId,
+                pageNumber: address.pageNumber ?? 1,
+                matchAddressType: address.matchAddressType ?? address.addressType ?? "patient",
+                recipientRole: defaultRole
+            )
+
+            onSave()
         } catch {
             print("Failed to toggle prime status: \(error)")
-            // Revert the toggle on error
             isPrime = !newValue
         }
     }
