@@ -144,9 +144,10 @@ struct ComposeTab: View {
         if name.hasSuffix("_hospital_records") { return "Hospital records" }
         if name.contains("_to_") {
             let parts = name.components(separatedBy: "_to_")
-            if let recipient = parts.last {
+            if let recipient = parts.last, !recipient.isEmpty {
                 return "To: " + recipient.replacingOccurrences(of: "_", with: " ")
             }
+            return "To: GP"
         }
         return name
     }
