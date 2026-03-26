@@ -560,7 +560,26 @@ struct AddressCard: View {
                 lookupNHSCandidates(postcode: newValue)
             }
         }
-        .onChange(of: selectedType) { _, newValue in
+        .onChange(of: selectedType) { oldValue, newValue in
+            guard oldValue != newValue else { return }
+            // Clear fields when switching type — the old data belongs to a different entity
+            if oldValue == "patient" {
+                fullName = ""
+                title = ""
+                firstName = ""
+                surname = ""
+                dateOfBirth = ""
+                mrn = ""
+                phoneHome = ""
+                phoneWork = ""
+                phoneMobile = ""
+            } else if oldValue == "gp" {
+                gpName = ""
+                gpPractice = ""
+                gpAddress = ""
+                gpPostcode = ""
+            }
+
             if newValue == "gp" && !gpPostcode.isEmpty {
                 lookupNHSCandidates(postcode: gpPostcode)
             } else {
