@@ -62,7 +62,7 @@
 
 #set text(
   font: "New Computer Modern",
-  size: body-size,
+  size: 11pt,
   lang: "en",
   region: "gb",
   hyphenate: true,
@@ -72,7 +72,7 @@
   justify: true,
   first-line-indent: 0pt,
   spacing: 0.8em,
-  leading: body-leading,
+  leading: 1.2em,
 )
 
 // -- Sender header (name and role only — contact details are in footer) --
@@ -110,11 +110,15 @@
 
 // -- Body --
 #v(0.5em)
-#body-text
+#{
+  set text(size: body-size)
+  set par(leading: body-leading)
+  body-text
 
-// -- Sign-off --
-#v(2em)
-#signer-name
+  // -- Sign-off --
+  v(2em)
+  signer-name
+}
 
 // -- CC lines --
 #v(0.3em)
