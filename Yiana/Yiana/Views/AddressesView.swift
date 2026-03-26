@@ -646,11 +646,17 @@ struct AddressCard: View {
         var updatedAddress = address
 
         // Always write all @State fields — the override captures the full card state
-        let composedName = [title, firstName, surname]
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
-        updatedAddress.fullName = composedName.isEmpty ? nil : composedName
+        // Patient cards: compose name from title/firstName/surname
+        // Other types: use fullName directly (edited as a single field)
+        if selectedType == "patient" {
+            let composedName = [title, firstName, surname]
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+            updatedAddress.fullName = composedName.isEmpty ? nil : composedName
+        } else {
+            updatedAddress.fullName = fullName.isEmpty ? nil : fullName
+        }
         updatedAddress.dateOfBirth = dateOfBirth.isEmpty ? nil : dateOfBirth
         updatedAddress.mrn = mrn.isEmpty ? nil : mrn
         updatedAddress.addressLine1 = addressLine1.isEmpty ? nil : addressLine1
