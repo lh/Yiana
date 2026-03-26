@@ -1,7 +1,12 @@
-// Yiana Letter Template
-// Renders clinical correspondence from JSON data passed via sys.inputs.
+// LETTER TEMPLATE SANDBOX
+// Edit this file and run: typst watch preview.typ
+// It will recompile on every save — open preview.pdf to see changes live.
+//
+// When you're happy, copy the template section (below the data loading)
+// back to: YianaRenderer/Sources/YianaRenderer/Resources/letter.typ
+// (replacing the json loading line with: #let data = json(bytes(sys.inputs.data)))
 
-#let data = json(bytes(sys.inputs.data))
+#let data = json("test-data.json")
 #let sender = data.sender
 #let patient = data.patient
 #let recipient = data.recipient
@@ -40,6 +45,10 @@
   contact.join(" | ")
 }
 
+// ============================================================
+// EVERYTHING BELOW HERE IS THE TEMPLATE — EDIT THIS PART
+// ============================================================
+
 // -- Page setup --
 #let body-size = if is-patient-copy { 13pt } else { 11pt }
 #let body-leading = if is-patient-copy { 1.2em } else { 1.1em }
@@ -75,7 +84,7 @@
   leading: 1.2em,
 )
 
-// -- Sender header + date (top-right, bold italic) --
+// -- Sender header (top-right, bold italic) --
 #place(top + right)[
   #set text(size: 11pt)
   #align(right)[
@@ -84,22 +93,33 @@
     #if sender.department != "" [
       \ #text(weight: "bold", style: "italic", sender.department)
     ]
-
-    #letter-date.
   ]
+
+
+// -- Date (left-aligned, below sender) --
+#letter-date.
 ]
+
+// -- Recipient address (left-aligned, below date) --
+/* #if has-postal-address {
+  v(0.8em)
+  recipient.name
+  linebreak()
+  for line in recipient.address {
+    line
+    linebreak()
+  }
+  v(0.5em)
+}
+*/
 
 // -- Re: line (bold) --
 #v(10em)
 #text(weight: "bold")[Re: #patient.name. DOB: #patient.dob. #if patient.mrn != "" [MRN: #patient.mrn. ]#if patient.address.len() > 0 [Add: #patient.address.join(" ").] #if patient.phones.len() > 0 [Tel: #patient.phones.first().]]
 
-// -- Salutation / cover line --
+//-- Salutation --
 #v(0.5em)
-#if recipient.role == "to" [
-  Dear #patient.title #patient.surname,
-] else [
-  Please see below a copy of a letter I sent to #patient.title #patient.surname today.
-]
+// this is where I would have Dear Mr/Mrs Surname,
 
 // -- Body --
 #v(0.5em)
@@ -113,17 +133,11 @@
   signer-name
 }
 
-// -- CC lines (current recipient in bold) --
+// -- CC lines --
 #v(0.3em)
 #for r in all-recipients {
-  if r.role != "hospital_records" {
-    let is-current = r.name == recipient.name and r.role == recipient.role
-    let cc-text = [#r.name #if r.at("practice", default: none) != none [#r.practice] #r.address.join(", ").]
-    if is-current [
-      Cc: #text(weight: "bold")[#cc-text]
-    ] else [
-      Cc: #cc-text
-    ]
-    linebreak()
-  }
+  if r.role != recipient.role and r.role != "hospital_records" [
+    Cc: #r.name #if r.at("practice", default: none) != none [#r.practice] #r.address.join(", ").
+
+  ]
 }

@@ -1,0 +1,49 @@
+{
+  "sender": {
+    "name": "Mr Luke Herbert",
+    "credentials": "FRCOphth",
+    "role": "Consultant Ophthalmologist",
+    "department": "",
+    "hospital": "Spire Gatwick Park Hospital",
+    "address": ["Povey Cross Road", "Hookwood", "Horley", "RH6 0BB"],
+    "phone": "01293 78511",
+    "email": "referrals@vitygas.com",
+    "secretary": {
+      "name": "Mrs Liz Matthews",
+      "phone": "020 7884 9411",
+      "email": "referrals@vitygas.com"
+    }
+  },
+  "patient": {
+    "name": "Mr Tony Abbott",
+    "title": "Mr",
+    "surname": "Abbott",
+    "dob": "15/06/1954",
+    "mrn": "33204127",
+    "address": ["81 Slipshatch Road", "Reigate", "Surrey", "RH2 8HA"],
+    "phones": ["07855402173"]
+  },
+  "recipient": {
+    "role": "to",
+    "source": "patient",
+    "name": "Mr Tony Abbott",
+    "address": ["81 Slipshatch Road", "Reigate", "Surrey", "RH2 8HA"]
+  },
+  "all_recipients": [
+    {
+      "role": "to",
+      "source": "patient",
+      "name": "Mr Tony Abbott",
+      "address": ["81 Slipshatch Road", "Reigate", "Surrey", "RH2 8HA"]
+    },
+    {
+      "role": "cc",
+      "source": "gp",
+      "name": "Dr Shaw",
+      "practice": "Holmhurst Medical Centre",
+      "address": ["12 Thornton Side", "Redhill", "RH1 2NP"]
+    }
+  ],
+  "is_patient_copy": true,
+  "body": "It was a pleasure to see you in clinic again today. You came to see me because of a persistent left upper eyelid lump and chronic eyelid inflammation despite previous treatment with incision and curettage and steroid injection.\n\nYour vision today measured 6/5 in the right eye and 6/5 in the left. Your pressure was 13mmHg right and 10mmHg left.\n\nThere is chronic meibomitis of the upper lids with inspissated meibomian gland secretions. Given that surgical and steroid treatment has not resolved the problem, I think it is worth trying treatment directed at Demodex mites, which are a common cause of recurrent eyelid inflammation and chalazia.\n\nI have given you an information leaflet about this treatment. In summary, you will apply ivermectin 1% cream (Soolantra) and metronidazole 0.75% gel (Rozex) to the eyelid margins on three occasions, each two weeks apart. Both medications are applied to the eyelid skin at the base of the lashes and left on overnight. These are off-label treatments; they are licensed medications used for a purpose outside their original indication, but there is good clinical evidence supporting their use for eyelid Demodex infestation.\n\nI would like to see you again in six weeks to assess your response to treatment.\n\nPlease don't hesitate to contact me (07956 226276) if you have any problems."
+}

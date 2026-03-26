@@ -65,8 +65,23 @@ class LetterRenderService {
             }
         )
 
+        // Derive title and surname from patient name for salutation
+        let patientTitle = draft.patient.title ?? {
+            let knownTitles = ["Mr", "Mrs", "Ms", "Miss", "Dr", "Prof"]
+            return knownTitles.first { draft.patient.name.hasPrefix($0 + " ") } ?? ""
+        }()
+        let patientSurname: String = {
+            var nameToParse = draft.patient.name
+            if !patientTitle.isEmpty {
+                nameToParse = String(nameToParse.dropFirst(patientTitle.count).drop(while: { $0 == " " }))
+            }
+            return nameToParse.split(separator: " ").last.map(String.init) ?? ""
+        }()
+
         let patientInfo = PatientInfo(
             name: draft.patient.name.displayTitleCased,
+            title: patientTitle,
+            surname: patientSurname.displayTitleCased,
             dob: draft.patient.dob,
             mrn: draft.patient.mrn,
             address: draft.patient.address.map(\.displayTitleCased),

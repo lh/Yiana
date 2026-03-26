@@ -54,13 +54,17 @@ public struct SenderInfo: Codable, Sendable {
 /// Patient information for letter rendering.
 public struct PatientInfo: Codable, Sendable {
     public var name: String
+    public var title: String
+    public var surname: String
     public var dob: String
     public var mrn: String
     public var address: [String]
     public var phones: [String]
 
-    public init(name: String, dob: String, mrn: String, address: [String], phones: [String]) {
+    public init(name: String, title: String = "", surname: String = "", dob: String, mrn: String, address: [String], phones: [String]) {
         self.name = name
+        self.title = title
+        self.surname = surname
         self.dob = dob
         self.mrn = mrn
         self.address = address
@@ -265,6 +269,8 @@ public final class LetterRenderer: Sendable {
     private func encodePatient(_ p: PatientInfo) -> [String: Any] {
         [
             "name": p.name,
+            "title": p.title,
+            "surname": p.surname,
             "dob": p.dob,
             "mrn": p.mrn,
             "address": p.address,
