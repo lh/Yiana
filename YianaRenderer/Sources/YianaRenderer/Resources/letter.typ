@@ -113,10 +113,10 @@
   signer-name
 }
 
-// -- CC lines (current recipient in bold) --
+// -- CC lines (exclude primary recipient and hospital_records; bold current copy's recipient) --
 #v(0.3em)
 #for r in all-recipients {
-  if r.role != "hospital_records" {
+  if r.role != "to" and r.role != "hospital_records" {
     let is-current = r.name == recipient.name and r.role == recipient.role
     let cc-text = [#r.name #if r.at("practice", default: none) != none [#r.practice] #r.address.join(", ").]
     if is-current [
