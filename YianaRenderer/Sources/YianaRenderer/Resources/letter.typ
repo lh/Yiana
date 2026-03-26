@@ -42,7 +42,7 @@
 
 // -- Page setup --
 #let body-size = if is-patient-copy { 13pt } else { 11pt }
-#let body-leading = if is-patient-copy { 1.4em } else { 1.2em }
+#let body-leading = if is-patient-copy { 1.2em } else { 1.1em }
 
 #set page(
   paper: "a4",
