@@ -75,33 +75,31 @@
   leading: 1.2em,
 )
 
-// -- Sender header (name and role only — contact details are in footer) --
-#{
-  set text(size: 11pt)
-  text(weight: "bold", style: "italic", sender.name)
-  linebreak()
-  text(weight: "bold", style: "italic", sender.role)
-  if sender.department != "" {
-    linebreak()
-    text(weight: "bold", style: "italic", sender.department)
-  }
-  linebreak()
-}
+// -- Sender header (top-right, bold italic) --
+#place(top + right)[
+  #set text(size: 11pt)
+  #align(right)[
+    #text(weight: "bold", style: "italic", sender.name) \
+    #text(weight: "bold", style: "italic", sender.role)
+    #if sender.department != "" [
+      \ #text(weight: "bold", style: "italic", sender.department)
+    ]
+  ]
+]
 
-// -- Date --
-#v(0.3em)
+// -- Date (left-aligned, below sender) --
 #letter-date.
 
-// -- Recipient address (no longer for window envelope — printed on C5 envelope separately) --
+// -- Recipient address (left-aligned, below date) --
 #if has-postal-address {
-  v(0.5em)
+  v(0.8em)
   recipient.name
   linebreak()
   for line in recipient.address {
     line
     linebreak()
   }
-  v(0.3em)
+  v(0.5em)
 }
 
 // -- Re: line (bold) --
