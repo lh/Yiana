@@ -66,10 +66,10 @@ class LetterRenderService {
         )
 
         let patientInfo = PatientInfo(
-            name: draft.patient.name,
+            name: draft.patient.name.displayTitleCased,
             dob: draft.patient.dob,
             mrn: draft.patient.mrn,
-            address: draft.patient.address,
+            address: draft.patient.address.map(\.displayTitleCased),
             phones: draft.patient.phones
         )
 
@@ -77,9 +77,9 @@ class LetterRenderService {
             RecipientInfo(
                 role: r.role,
                 source: r.source,
-                name: r.name,
-                practice: r.practice,
-                address: r.address
+                name: r.name.displayTitleCased,
+                practice: r.practice?.displayTitleCased,
+                address: r.address.map(\.displayTitleCased)
             )
         }
 
