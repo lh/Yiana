@@ -93,9 +93,15 @@ struct ComposeTab: View {
     private var renderedPDFActions: some View {
         if viewModel.status == .rendered {
             let pdfs = viewModel.getRenderedPDFs()
-            if !pdfs.isEmpty {
+            let letters = pdfs.filter { !$0.lastPathComponent.contains("_envelope") }
+            let envelopes = pdfs.filter { $0.lastPathComponent.contains("_envelope") }
+
+            if !letters.isEmpty {
                 Divider()
-                ForEach(pdfs, id: \.lastPathComponent) { url in
+                Text("Letters")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                ForEach(letters, id: \.lastPathComponent) { url in
                     HStack(spacing: 8) {
                         Button(pdfLabel(url)) {
                             NSWorkspace.shared.open(url)
@@ -112,11 +118,22 @@ struct ComposeTab: View {
                         .help("Print \(pdfLabel(url))")
                     }
                 }
-                if pdfs.count > 1 {
-                    Button("Print All") {
-                        printRenderedPDFs(pdfs)
+                if letters.count > 1 {
+                    Button("Print All Letters") {
+                        printRenderedPDFs(letters)
                     }
                 }
+            }
+
+            if !envelopes.isEmpty {
+                Divider()
+                Text("Envelopes")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Button("Print Envelopes") {
+                    printRenderedPDFs(envelopes)
+                }
+                .buttonStyle(.bordered)
             }
         }
     }

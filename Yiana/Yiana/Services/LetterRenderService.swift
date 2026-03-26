@@ -17,15 +17,26 @@ class LetterRenderService {
             try renderer.render(input: input)
         }.value
 
+        // Also render envelopes
+        let envelopes = try await Task.detached { [renderer] in
+            try renderer.renderEnvelopes(input: input)
+        }.value
+
         try await Task.detached { [repository] in
-            // Write all PDFs to rendered/{letterId}/
             let renderedDir = try repository.renderedDirectory(letterId: draft.letterId)
             let fm = FileManager.default
             try fm.createDirectory(at: renderedDir, withIntermediateDirectories: true)
 
+            // Write letter PDFs
             for letter in rendered {
                 let url = renderedDir.appendingPathComponent(letter.filename)
                 try letter.pdfData.write(to: url, options: .atomic)
+            }
+
+            // Write envelope PDFs
+            for envelope in envelopes {
+                let url = renderedDir.appendingPathComponent(envelope.filename)
+                try envelope.pdfData.write(to: url, options: .atomic)
             }
 
             // Copy hospital_records PDF to inject/ for InjectWatcher

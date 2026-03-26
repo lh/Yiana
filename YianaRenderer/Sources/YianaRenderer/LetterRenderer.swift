@@ -156,10 +156,51 @@ public final class LetterRenderer: Sendable {
         return results
     }
 
+    /// Render C5 envelopes for all postal recipients.
+    /// Returns one PDF per recipient (excludes hospital_records).
+    public func renderEnvelopes(input: LetterRenderInput) throws -> [RenderedLetter] {
+        let templateData = try loadEnvelopeTemplate()
+        var results: [RenderedLetter] = []
+
+        for recipient in input.recipients where recipient.role != "hospital_records" {
+            let data: [String: Any] = [
+                "sender": encodeSender(input.sender),
+                "recipient": encodeRecipient(recipient),
+            ]
+
+            let dataJSON = try JSONSerialization.data(withJSONObject: data)
+            let dataString = String(data: dataJSON, encoding: .utf8) ?? "{}"
+
+            let inputs: [String: Any] = ["data": dataString]
+            let pdfData = try TypstBridge.compile(template: templateData, inputs: inputs)
+
+            let filename = buildFilename(
+                patient: input.patient,
+                recipient: recipient
+            ).replacingOccurrences(of: ".pdf", with: "_envelope.pdf")
+
+            results.append(RenderedLetter(
+                recipientRole: recipient.role,
+                recipientName: recipient.name,
+                pdfData: pdfData,
+                filename: filename
+            ))
+        }
+
+        return results
+    }
+
     // MARK: - Private
 
     private func loadTemplate() throws -> Data {
         guard let url = Bundle.module.url(forResource: "letter", withExtension: "typ") else {
+            throw TypstError.invalidTemplate
+        }
+        return try Data(contentsOf: url)
+    }
+
+    private func loadEnvelopeTemplate() throws -> Data {
+        guard let url = Bundle.module.url(forResource: "envelope", withExtension: "typ") else {
             throw TypstError.invalidTemplate
         }
         return try Data(contentsOf: url)
