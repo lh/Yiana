@@ -59,12 +59,19 @@ The last month has been a polish and consolidation sprint: letter formatting, re
 
 ## 3. GitHub Issues
 
-**20 open, 4 closed** (24 total)
+**26 open, 4 closed** (30 total)
 
 ### By Category
 
-**Bugs (1 open):**
+**Bugs (4 open):**
 - #25 Restore-on-launch needs timeout and escape hatch
+- #28 Search bar refreshes on each letter typed (should debounce or search-on-submit)
+- #30 Special characters in folder names corrupt file operations
+- #32 Document doesn't auto-reload after InjectWatcher appends PDF
+
+**Data Model (2 open):**
+- #27 Multiple "other" addresses needed — adding a second overwrites the first; also needs position/title field
+- #31 iCloud override race condition — separate override file needed
 
 **Polish / UX (6 open):**
 - #5 Envelope window alignment (needs measurements from work stationery)
@@ -74,12 +81,13 @@ The last month has been a polish and consolidation sprint: letter formatting, re
 - #23 Clean up dead draft infrastructure
 - #24 Email addresses (Spire form has them, we don't save them)
 
-**Enhancements (5 open):**
+**Enhancements (6 open):**
 - #3 Performance: note loading/exiting speed
 - #4 Sender details in Settings UI
 - #14 iOS compose access (the big one)
 - #15 Built-in letter preview (iPad)
 - #22 Auto-update postcode lookup from ONS ONSPD
+- #29 Envelope printing (driving printer properly)
 
 **Extraction Quality (4 open):**
 - #7 Extraction misses address lines on some layouts
@@ -103,62 +111,25 @@ The last month has been a polish and consolidation sprint: letter formatting, re
 
 ## 4. Serena Memory Audit
 
-### Ideas & Problems Log (32 items)
+### Ideas & Problems Log
+Deleted. All open items migrated to GitHub Issues (including 3 filed this session: #30, #31, #32). GitHub Issues is now the single source of truth for bugs, improvements, and ideas.
 
-Cross-referenced against GitHub Issues and current codebase state:
+### Serena Memory Cleanup (completed this session)
 
-| # | Item | Status | Notes |
-|---|------|--------|-------|
-| 1 | Connected scanner on macOS | Parked | Deliberately out of scope |
-| 3 | Expandable Typst dashboard | Stale | Devon retired; dashboard was Devon-only |
-| 7 | fullText as extraction fallback | Open | GitHub #10 |
-| 8 | Special chars in folder names | Open | Not in GitHub issues — **should be filed** |
-| 9 | Extraction misses address lines | Open | GitHub #7 |
-| 10 | Duplicate phone numbers | Open | GitHub #9 |
-| 11 | GP data not extracted | Open | GitHub #8 |
-| 12 | iCloud override race condition | Open | Not in GitHub — **should be filed or resolved** |
-| 13 | Postcode lookup table | **Done** | Implemented (9,603 sectors from ONS ONSPD) |
-| 14 | DOB format standardisation | Open | GitHub #12 |
-| 15 | Recipient tick boxes | **Done** | Implemented (To/CC/None per card) |
-| 16 | HTML render leading comma | Stale | HTML render was Devon Python; now Typst |
-| 17 | Document auto-reload after inject | Open | Not in GitHub — **should be filed** |
-| 18 | Typst replaces LaTeX | **Done** | YianaRenderer fully operational |
-| 19a | Envelope window alignment | Open | GitHub #5 |
-| 19b | Footer contact block | **Done** |  |
-| 19c | Custom letter templates | Open | GitHub #18 |
-| 20 | iPhone Continuity Camera | Open | GitHub #21 |
-| 21a-c | Address card UI issues | **Mostly done** | Town inferred, GP cards work, save fixed today |
-| 22 | Traffic light filters | Open | GitHub #11 |
-| 23 | P2P sync | Open | GitHub #20 |
-| 24 | Visual form template builder | Open | GitHub #19 |
-| 25 | NHS candidate click to adopt | **Done** | Implemented |
-| 26 | Performance improvements | Open | GitHub #3 |
-| 27 | Restore last state | **Done** | Implemented |
-| 28 | Rename Prime to Verified | **Done** | GitHub #13 closed |
-| 29 | DOB field validation | Open | GitHub #6 |
-| 30 | Built-in letter preview (iPad) | Open | GitHub #15 |
-| 31 | Sender details Settings UI | Open | GitHub #4 |
-| 32 | Auto-update postcode lookup | Open | GitHub #22 |
-
-**Summary:** 10 items done, 15 open (most tracked in GitHub), 3 stale, 3 not in GitHub and should be filed or resolved.
-
-### Stale Serena Memories
-
-| Memory | Issue | Recommendation |
-|--------|-------|----------------|
-| `pending_devon_local_sqlite` | Devon retired; no need for local SQLite rebuild | **Delete** — entity DB now runs in-app via GRDB |
-| `project_overview` | Lists Phase 2 "in progress", references macOS 14+/iOS 17+ (now 15+/12+), says "server-side OCR" | **Rewrite** — fundamentally outdated |
-| `project_structure` | Lists 8 development phases from original plan, missing 4 Swift packages, AddressExtractor, scripts | **Rewrite** — doesn't reflect current repo |
-| `session_handoff_2026-02-08` | Historical record only | **Keep as-is** (session handoffs are snapshots) |
-| `session_handoff_2026-02-09` | Historical record only | **Keep as-is** |
-| `session_handoff_2026-02-10` | Historical record only | **Keep as-is** |
-| `address_backend_guide` | References Python backend_db.py on Devon, deployment commands | **Mark as legacy** — Python backend retired |
-| `address_database_architecture` | Dual-layer design doc; references Python Devon writes, planned phases | **Mark as legacy** — architecture superseded by consolidation |
-| `json_sync_architecture` | References Devon Python extraction, LaunchAgent deployment, git pull deploy | **Update** — Devon retired, write ownership simplified (Swift-only) |
-| `code_style_conventions` | May be current | **Verify** — some conventions may reference old patterns |
-| `suggested_commands` | May reference Devon SSH commands | **Verify and prune** |
-| `swiftui_uikit_integration_patterns` | Likely still valid | **Keep** |
-| `task_completion_checklist` | Likely still valid | **Keep** |
+| Memory | Action Taken |
+|--------|-------------|
+| `pending_devon_local_sqlite` | **Deleted** — Devon retired |
+| `ideas_and_problems` | **Deleted** — migrated to GitHub Issues |
+| `project_overview` | **Rewritten** — reflects current all-Swift architecture |
+| `project_structure` | **Rewritten** — reflects current repo layout |
+| `address_backend_guide` | **Moved to legacy/** — Python backend retired |
+| `address_database_architecture` | **Moved to legacy/** — superseded by consolidation |
+| `json_sync_architecture` | **Moved to legacy/** — Devon retired, Swift-only now |
+| `session_handoff_2026-02-*` | **Kept** — historical snapshots |
+| `code_style_conventions` | **Kept** — still valid |
+| `suggested_commands` | **Kept** — may need pruning of Devon commands |
+| `swiftui_uikit_integration_patterns` | **Kept** — still valid |
+| `task_completion_checklist` | **Kept** — still valid |
 
 ### Stale Claude Memory Files
 
@@ -228,57 +199,48 @@ untested
 
 ---
 
-## 7. Items Not Tracked Anywhere
+## 7. Housekeeping Completed This Session
 
-Found during audit — these exist in `ideas_and_problems` but not in GitHub Issues:
+All items from the original audit have been actioned:
 
-1. **Special characters in folder names** (#8 in ideas) — `?`, `#`, `%` corrupt file operations
-2. **iCloud override race condition** (#12 in ideas) — separate override file needed
-3. **Document auto-reload after InjectWatcher** (#17 in ideas) — appended pages not visible without reopen
+1. **Deleted 14 stale branches** + 1 stale worktree + remote `consolidation/v1.1`
+2. **Deleted `memory-bank/` directory** — superseded by Serena + Claude memories
+3. **Deleted `AddressExtractor/`** (74 files) — retired Python backend, preserved in git history
+4. **Pruned `scripts/`** to just `generate_sector_lookup.py`
+5. **Deleted Serena memories:** `pending_devon_local_sqlite`, `ideas_and_problems`
+6. **Rewrote Serena memories:** `project_overview`, `project_structure`
+7. **Archived Serena memories:** `address_backend_guide`, `address_database_architecture`, `json_sync_architecture` moved to `legacy/`
+8. **Updated Claude memories:** `feedback_compose_design.md` (Typst), `project_consolidation.md` (complete), `MEMORY.md` (Devon retired)
+9. **Filed 3 missing issues** to GitHub: #30, #31, #32
+10. **Single source of truth:** GitHub Issues is now the only place for bugs/improvements/ideas
 
-These should either be filed as GitHub Issues or resolved/dismissed.
-
----
-
-## 8. Recommended Housekeeping
-
-### Immediate (low effort, high clarity)
-
-1. **Delete 14 stale branches** (all fully merged)
-2. **Delete `PLAN.md`** — superseded by roadmap and consolidation plan
-3. **Delete `memory-bank/` directory** — superseded by Serena + Claude memories
-4. **Delete Serena memory `pending_devon_local_sqlite`** — Devon retired
-5. **Update `feedback_compose_design.md`** — Typst is in-app now, not LaTeX on Devon
-6. **Update `project_consolidation.md`** — mark consolidation as complete
-7. **File 3 untracked issues** to GitHub (#8 folder chars, #12 override race, #17 inject reload)
-
-### Medium effort
-
-8. **Rewrite Serena memories `project_overview` and `project_structure`** — fundamentally outdated
-9. **Mark `address_backend_guide`, `address_database_architecture`, `json_sync_architecture`** as legacy/archived in Serena
-10. **Update MEMORY.md** — Devon and backend DB sections need revision
-11. **Prune `ideas_and_problems`** — remove completed items, update status of remaining
-
-### Consider for roadmap discussion
-
-12. **AddressExtractor/ directory** — 74 files of retired Python code still in repo. Archive or delete?
-13. **YianaOCRService/** — retired but contains useful plist templates and SERVER-SETUP.md
-14. **scripts/** — some scripts reference Devon services that no longer run
+### Still to do
+- **Delete `PLAN.md`** — superseded by roadmap (needs user confirmation)
 
 ---
 
-## 9. Roadmap Priorities (for discussion)
+## 8. Roadmap Priorities (for discussion)
 
-Based on GitHub Issues, ideas log, and current state, here's how the open work clusters:
+Based on GitHub Issues and current state, here's how the 26 open issues cluster:
+
+### Bugs (fix first)
+- #25 Restore-on-launch timeout/escape hatch
+- #28 Search bar refreshes on each letter typed
+- #30 Special characters in folder names corrupt file operations
+- #32 Document doesn't auto-reload after InjectWatcher appends PDF
+
+### Data Model
+- #27 Multiple "other" addresses + position/title field
+- #31 iCloud override race condition
 
 ### Essential for Other Users
 - #4 Sender details in Settings UI
-- #25 Restore-on-launch timeout/escape hatch (bug)
 
 ### Essential for Clinical Workflow
-- #14 iOS compose access
+- #14 iOS compose access (the big one)
 - #15 Built-in letter preview (iPad)
 - #5 Envelope window alignment
+- #29 Envelope printing
 
 ### Quality of Life
 - #3 Performance measurement and optimisation
@@ -286,10 +248,10 @@ Based on GitHub Issues, ideas log, and current state, here's how the open work c
 - #12 DOB format standardisation (ISO 8601)
 - #23 Clean up dead draft infrastructure
 - #11 Traffic light filters on iPad/iPhone
+- #24 Email addresses
 
 ### Extraction Quality
 - #7, #8, #9, #10 — extraction improvements (address lines, GP data, dedup, fullText fallback)
-- #24 Email addresses
 
 ### Future / Ideas
 - #18, #19, #20, #21, #22 — templates, form builder, P2P sync, Continuity Camera, postcode updates
