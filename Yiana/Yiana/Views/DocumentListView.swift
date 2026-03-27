@@ -2667,6 +2667,7 @@ private struct DocumentSearchBar: View {
             TextField("Search documents", text: $input)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 200)
+                .focusEffectDisabled()
                 .onSubmit { onSubmit(input) }
             if !input.isEmpty {
                 Button {
