@@ -91,6 +91,7 @@ extension DocumentReadView {
     struct DocumentReadContent: View {
         let isLoading: Bool
         let errorMessage: String?
+        let showSlowLoadPrompt: Bool
         let pdfData: Data?
         let viewModel: DocumentViewModel?
         @Binding var currentPage: Int
@@ -98,10 +99,15 @@ extension DocumentReadView {
         @Binding var pdfDocument: PDFDocument?
         let sidebarRefreshID: UUID
         let onRequestPageManagement: () -> Void
+        var onRetry: () -> Void = {}
+        var onKeepWaiting: () -> Void = {}
+        var onDismiss: () -> Void = {}
 
         var body: some View {
             ZStack {
-                if isLoading {
+                if isLoading && showSlowLoadPrompt {
+                    slowLoadPromptView
+                } else if isLoading {
                     loadingView
                 } else if let error = errorMessage {
                     errorView(error: error)
@@ -120,6 +126,25 @@ extension DocumentReadView {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
 
+        private var slowLoadPromptView: some View {
+            VStack(spacing: 20) {
+                ProgressView()
+                    .scaleEffect(1.4)
+                Text("Taking longer than expected")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                Text("The document may still be downloading from iCloud.")
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                HStack(spacing: 16) {
+                    Button("Keep Waiting") { onKeepWaiting() }
+                    Button("Go Back") { onDismiss() }
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+
         private func errorView(error: String) -> some View {
             VStack(spacing: 20) {
                 Image(systemName: "exclamationmark.triangle")
@@ -129,6 +154,10 @@ extension DocumentReadView {
                     .font(.title2)
                 Text(error)
                     .foregroundColor(.secondary)
+                HStack(spacing: 16) {
+                    Button("Try Again") { onRetry() }
+                    Button("Go Back") { onDismiss() }
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }

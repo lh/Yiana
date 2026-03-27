@@ -144,9 +144,10 @@ struct DocumentListView: View {
                     hasLoadedAnyContent = true
                 }
 
-                // Restore last document
+                // Restore last document (hold Option to skip)
                 #if os(macOS)
-                if !lastDocumentURL.isEmpty {
+                let skipRestore = NSEvent.modifierFlags.contains(.option)
+                if !skipRestore && !lastDocumentURL.isEmpty {
                     let url = URL(fileURLWithPath: lastDocumentURL)
                     if FileManager.default.fileExists(atPath: url.path) {
                         navigationPath.append(url)

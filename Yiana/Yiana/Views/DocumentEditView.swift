@@ -33,6 +33,8 @@ struct DocumentEditView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingSaveError = false
     @State private var isLoading = true
+    @State private var showSlowLoadPrompt = false
+    @State private var loadError: String?
     @FocusState private var titleFieldFocused: Bool
     @State private var showingScanner = false
     @State private var isProcessingScans = false
@@ -69,9 +71,13 @@ struct DocumentEditView: View {
 
     var body: some View {
         Group {
-            if isLoading {
+            if isLoading && showSlowLoadPrompt {
+                slowLoadPromptView
+            } else if isLoading {
                 ProgressView("Loading document...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let error = loadError {
+                loadErrorView(error: error)
             } else if let viewModel = viewModel {
                 documentContent(viewModel: viewModel)
             } else {
@@ -644,12 +650,62 @@ struct DocumentEditView: View {
         Task { await workListViewModel.toggleDocument(filename: filename) }
     }
 
+    private var slowLoadPromptView: some View {
+        VStack(spacing: 20) {
+            ProgressView()
+                .scaleEffect(1.4)
+            Text("Taking longer than expected")
+                .font(.title2)
+                .fontWeight(.semibold)
+            Text("The document may still be downloading from iCloud.")
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            HStack(spacing: 16) {
+                Button("Keep Waiting") { showSlowLoadPrompt = false }
+                Button("Go Back") { dismiss() }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func loadErrorView(error: String) -> some View {
+        VStack(spacing: 20) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 50))
+                .foregroundColor(.orange)
+            Text("Unable to load document")
+                .font(.title2)
+            Text(error)
+                .foregroundColor(.secondary)
+            HStack(spacing: 16) {
+                Button("Try Again") { Task { await loadDocument() } }
+                Button("Go Back") { dismiss() }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     private func loadDocument() async {
+        isLoading = true
+        loadError = nil
+        showSlowLoadPrompt = false
+
+        let timerTask = Task {
+            try? await Task.sleep(for: .seconds(5))
+            if isLoading {
+                showSlowLoadPrompt = true
+            }
+        }
+
         nonisolated(unsafe) let loadedDocument = NoteDocument(fileURL: documentURL)
 
         await withCheckedContinuation { continuation in
             loadedDocument.open { success in
                 Task { @MainActor in
+                    timerTask.cancel()
+                    showSlowLoadPrompt = false
+
                     if success {
                         self.document = loadedDocument
                         self.viewModel = DocumentViewModel(document: loadedDocument)
@@ -696,6 +752,8 @@ struct DocumentEditView: View {
                                 }
                             }
                         }
+                    } else {
+                        self.loadError = "The document could not be opened."
                     }
                     self.isLoading = false
                     continuation.resume()

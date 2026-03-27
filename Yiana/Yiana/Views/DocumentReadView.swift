@@ -10,6 +10,8 @@ struct DocumentReadView: View {
     @State private var documentTitle: String = ""
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var showSlowLoadPrompt = false
+    @State private var loadTask: Task<Void, Never>?
     @State private var showingPageManagement = false
     @State private var document: NoteDocument?
     @State private var viewModel: DocumentViewModel?
@@ -54,7 +56,8 @@ struct DocumentReadView: View {
     var body: some View {
         mainLayout
         .task {
-            await loadDocument()
+            loadTask = Task { await loadDocument() }
+            await loadTask?.value
         }
         .sheet(isPresented: $showingPageManagement) {
             pageManagementSheet
@@ -110,13 +113,17 @@ struct DocumentReadView: View {
                 DocumentReadContent(
                     isLoading: isLoading,
                     errorMessage: errorMessage,
+                    showSlowLoadPrompt: showSlowLoadPrompt,
                     pdfData: pdfData,
                     viewModel: viewModel,
                     currentPage: $currentPage,
                     navigateToPage: $navigateToPage,
                     pdfDocument: $pdfDocument,
                     sidebarRefreshID: sidebarRefreshID,
-                    onRequestPageManagement: handleManagePages
+                    onRequestPageManagement: handleManagePages,
+                    onRetry: { Task { await loadDocument() } },
+                    onKeepWaiting: { showSlowLoadPrompt = false },
+                    onDismiss: { loadTask?.cancel(); dismiss() }
                 )
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -287,51 +294,63 @@ struct DocumentReadView: View {
     private func loadDocument() async {
         isLoading = true
         errorMessage = nil
+        showSlowLoadPrompt = false
+
+        let url = documentURL
+
+        // Show prompt if load takes longer than 5 seconds
+        let timerTask = Task {
+            try? await Task.sleep(for: .seconds(5))
+            if isLoading {
+                showSlowLoadPrompt = true
+            }
+        }
 
         do {
-            let noteDocument = NoteDocument(fileURL: documentURL)
-            try noteDocument.read(from: documentURL)
+            // Load file data off the main actor
+            let data = try await Task.detached(priority: .userInitiated) {
+                try Data(contentsOf: url)
+            }.value
 
-            self.document = noteDocument
-            self.pdfData = noteDocument.pdfData
-            self.documentTitle = noteDocument.metadata.title
+            timerTask.cancel()
+            showSlowLoadPrompt = false
 
-            let vm = DocumentViewModel(document: noteDocument)
-            await MainActor.run {
-                self.viewModel = vm
-            }
-            await vm.indexDocument()
-
-        } catch {
+            // Try as .yianazip archive first
+            let noteDocument = NoteDocument(fileURL: url)
             do {
-                let data = try Data(contentsOf: documentURL)
+                try noteDocument.read(from: data, ofType: "yianaDocument")
+                self.document = noteDocument
+                self.pdfData = noteDocument.pdfData
+                self.documentTitle = noteDocument.metadata.title
 
+                let vm = DocumentViewModel(document: noteDocument)
+                self.viewModel = vm
+                await vm.indexDocument()
+            } catch {
+                // Fallback: raw PDF or other format
                 if isPDFData(data) {
                     pdfData = data
-                    documentTitle = documentURL.deletingPathExtension().lastPathComponent
+                    documentTitle = url.deletingPathExtension().lastPathComponent
                 } else if data.isEmpty {
                     pdfData = nil
-                    documentTitle = documentURL.deletingPathExtension().lastPathComponent
+                    documentTitle = url.deletingPathExtension().lastPathComponent
+                } else if let documentData = try? extractDocumentData(from: data) {
+                    pdfData = documentData.pdfData
+                    documentTitle = documentData.title
+
+                    let noteDoc = NoteDocument(fileURL: url)
+                    self.document = noteDoc
+                    let vm = DocumentViewModel(document: noteDoc)
+                    self.viewModel = vm
+                    await vm.indexDocument()
                 } else {
-                    if let documentData = try? extractDocumentData(from: data) {
-                        pdfData = documentData.pdfData
-                        documentTitle = documentData.title
-
-                        let noteDoc = NoteDocument(fileURL: documentURL)
-                        self.document = noteDoc
-
-                        let vm = DocumentViewModel(document: noteDoc)
-                        await MainActor.run {
-                            self.viewModel = vm
-                        }
-                        await vm.indexDocument()
-                    } else {
-                        throw YianaError.invalidFormat
-                    }
+                    errorMessage = error.localizedDescription
                 }
-            } catch {
-                errorMessage = error.localizedDescription
             }
+        } catch {
+            timerTask.cancel()
+            showSlowLoadPrompt = false
+            errorMessage = error.localizedDescription
         }
 
         isLoading = false
