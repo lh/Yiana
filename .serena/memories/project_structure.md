@@ -1,71 +1,44 @@
 # Yiana Project Structure
 
-## Root Directory
+## Repository Layout
 ```
-Yiana/
-├── .gitignore
-├── README.md           - Project documentation
-├── PLAN.md            - Phased implementation roadmap
-├── CLAUDE.md          - AI assistant context
-├── memory-bank/       - Project memory storage
-│   └── activeContext.md
-├── docs/              - Extended documentation
-│   ├── DataStructures.md
-│   └── API.md
-└── Yiana/            - Main project directory
+Yiana/                          # Root
+├── Yiana/                      # Xcode project (iOS/macOS app)
+│   ├── Yiana.xcodeproj/
+│   ├── Yiana/                  # App source
+│   │   ├── Models/             # 12 files — DocumentMetadata, ExtractedAddress, LetterDraft, etc.
+│   │   ├── Views/              # 26 files — SwiftUI views (cross-platform)
+│   │   ├── ViewModels/         # 5 files — DocumentListVM, DocumentVM, ComposeVM, etc.
+│   │   ├── Services/           # 32 files — Repos, import/export, OCR, rendering, sync
+│   │   ├── Extensions/         # 5 files — PDFDocument+PageIndexing, String+TitleCase
+│   │   ├── Utilities/          # 12 files — Formatting, dev tools, typography
+│   │   ├── Accessibility/      # VoiceOver support
+│   │   └── Markup/             # PencilKit PDF markup
+│   ├── YianaTests/             # 25 test files
+│   └── YianaUITests/           # 3 UI test files
+├── YianaExtraction/            # Swift Package — address extraction, entity DB, NHS lookup
+├── YianaRenderer/              # Swift Package — Typst rendering via Rust FFI
+├── YianaDocumentArchive/       # Swift Package — .yianazip format (ZIPFoundation)
+├── YianaOCRService/            # Swift Package — legacy server OCR (retired)
+├── AddressExtractor/           # Python backend (retired, legacy reference)
+├── scripts/                    # Dashboard, watchdog, postcode generator
+├── docs/                       # Architecture, plans, roadmap
+└── .claude/                    # Skills (/deploy, /testflight, /check), hooks
 ```
 
-## Xcode Project Structure
-```
-Yiana/
-├── Yiana.xcodeproj/
-│   └── project.pbxproj    - Xcode project configuration
-├── Yiana/                 - Main app code
-│   ├── YianaApp.swift     - App entry point (@main)
-│   ├── ContentView.swift  - Root view
-│   ├── Info.plist         - App configuration
-│   ├── Yiana.entitlements - App capabilities (iCloud)
-│   ├── Assets.xcassets/   - Images and colors
-│   ├── Models/            - Data models
-│   │   ├── DocumentMetadata.swift
-│   │   └── NoteDocument.swift
-│   ├── ViewModels/        - Business logic
-│   │   ├── DocumentListViewModel.swift
-│   │   └── DocumentViewModel.swift
-│   ├── Views/             - UI components
-│   │   ├── DocumentListView.swift
-│   │   ├── DocumentEditView.swift
-│   │   ├── DocumentReadView.swift
-│   │   ├── PDFViewer.swift
-│   │   ├── PageManagementView.swift
-│   │   └── ScannerView.swift
-│   ├── Services/          - Backend services
-│   │   ├── DocumentRepository.swift
-│   │   └── ScanningService.swift
-│   ├── Utilities/         - Helper code
-│   └── Tests/            - Internal tests
-├── YianaTests/           - Unit tests
-│   ├── YianaTests.swift
-│   ├── DocumentMetadataTests.swift
-│   ├── NoteDocumentTests.swift
-│   ├── DocumentRepositoryTests.swift
-│   ├── DocumentListViewModelTests.swift
-│   ├── DocumentViewModelTests.swift
-│   └── ScanningServiceTests.swift
-└── YianaUITests/         - UI tests
+## Swift Packages (4)
+| Package | Purpose | Dependencies |
+|---------|---------|-------------|
+| YianaExtraction | Extraction, entity DB, NHS lookup | GRDB.swift |
+| YianaRenderer | Typst letter/envelope PDF rendering | CYianaTypstBridge (Rust) |
+| YianaDocumentArchive | .yianazip package format | ZIPFoundation |
+| YianaOCRService | Server OCR (retired) | swift-argument-parser, swift-log |
 
-## Key Files
-- **YianaApp.swift**: Main app entry with @main, handles URL imports
-- **DocumentMetadata.swift**: Core data structure for document info
-- **NoteDocument.swift**: UIDocument subclass for document handling
-- **.yianazip format**: Custom package (PDF + metadata.json)
+## Xcode Schemes
+- **Yiana** — main app (iOS + macOS)
+- **yiana-extract** — CLI extraction tool
+- **YianaRenderer**, **YianaDocumentArchive**, **YianaExtraction** — package schemes
 
-## Development Phases (from PLAN.md)
-1. ✅ Project Structure & Core Models
-2. 🔄 Remove Core Data & Setup Document Repository
-3. ⏳ ViewModels with TDD
-4. ⏳ Basic UI Implementation
-5. ⏳ Scanner Integration (iOS only)
-6. ⏳ PDF Viewer Integration
-7. ⏳ iCloud Configuration
-8. ⏳ Polish & Error Handling
+## Single Branch
+- `main` only (14 stale branches cleaned up 2026-03-27)
+- 10 consolidation phase tags for historical reference
