@@ -495,8 +495,18 @@ struct DocumentListView: View {
                 .toolbarActionAccessibility(label: downloadManager.isDownloading ? "Downloading documents" : "Download all documents")
             }
 
-            ToolbarItem(placement: .automatic) {
-                macSearchToolbar
+            ToolbarItem(placement: .principal) {
+                DocumentSearchBar(
+                    isSearchInProgress: viewModel.isSearchInProgress,
+                    onSubmit: { query in
+                        searchText = query
+                        handleSearchChange(query)
+                    },
+                    onClear: {
+                        searchText = ""
+                        handleSearchChange("")
+                    }
+                )
             }
 
             #if DEBUG
@@ -1765,12 +1775,6 @@ struct DocumentListView: View {
                 .accessibilityHint(downloadManager.isDownloading ? "Download in progress" : "Double tap to download all documents")
             }
 
-            #if os(macOS)
-            ToolbarItem(placement: .automatic) {
-                macSearchToolbar
-            }
-            #endif
-
             #if DEBUG
             ToolbarItem(placement: .automatic) {
                 DevelopmentMenu()
@@ -1964,31 +1968,6 @@ struct DocumentListView: View {
     }
 
     #if os(macOS)
-    private var macSearchToolbar: some View {
-        HStack {
-            Image(systemName: "magnifyingglass")
-                .foregroundColor(.secondary)
-            TextField("Search", text: $searchText)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 200)
-                .onSubmit {
-                    handleSearchChange(searchText)
-                }
-            if !searchText.isEmpty {
-                Button(action: clearSearch) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-            if viewModel.isSearchInProgress {
-                ProgressView()
-                    .scaleEffect(0.7)
-                    .frame(width: 16, height: 16)
-            }
-        }
-    }
-
     private func selectPDFsForImport() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.pdf]
@@ -2668,6 +2647,42 @@ private struct CreateDocumentAlertContent: View {
             let t = title
             title = ""
             onCreate(t)
+        }
+    }
+}
+
+// MARK: - Search Bar (isolated from parent to avoid keystroke re-renders)
+
+private struct DocumentSearchBar: View {
+    let isSearchInProgress: Bool
+    let onSubmit: (String) -> Void
+    let onClear: () -> Void
+
+    @State private var input = ""
+
+    var body: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.secondary)
+            TextField("Search documents", text: $input)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 200)
+                .onSubmit { onSubmit(input) }
+            if !input.isEmpty {
+                Button {
+                    input = ""
+                    onClear()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            if isSearchInProgress {
+                ProgressView()
+                    .scaleEffect(0.7)
+                    .frame(width: 16, height: 16)
+            }
         }
     }
 }
