@@ -643,43 +643,52 @@ struct AddressCard: View {
     private func saveChanges() async {
         isSavingPatient = true
 
-        var updatedAddress = address
+        // Start clean — only set fields the current type owns
+        var updatedAddress = ExtractedAddress(documentId: documentId, pageNumber: address.pageNumber ?? 0)
 
-        // Always write all @State fields — the override captures the full card state
-        // Patient cards: compose name from title/firstName/surname
-        // Other types: use fullName directly (edited as a single field)
-        if selectedType == "patient" {
+        // Common fields
+        updatedAddress.addressType = selectedType
+        updatedAddress.isPrime = isPrime
+        updatedAddress.recipientRole = recipientRole
+        updatedAddress.specialistName = selectedType == "specialist" ? subtypeName : nil
+
+        // Address fields (shared by patient + optician/specialist, not GP)
+        if selectedType != "gp" {
+            updatedAddress.addressLine1 = addressLine1.isEmpty ? nil : addressLine1
+            updatedAddress.addressLine2 = addressLine2.isEmpty ? nil : addressLine2
+            updatedAddress.city = city.isEmpty ? nil : city
+            updatedAddress.county = county.isEmpty ? nil : county
+            updatedAddress.postcode = postcode.isEmpty ? nil : postcode
+        }
+
+        // Type-specific fields
+        switch selectedType {
+        case "patient":
             let composedName = [title, firstName, surname]
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty }
                 .joined(separator: " ")
             updatedAddress.fullName = composedName.isEmpty ? nil : composedName
-        } else {
+            updatedAddress.title = title.isEmpty ? nil : title
+            updatedAddress.dateOfBirth = dateOfBirth.isEmpty ? nil : dateOfBirth
+            updatedAddress.mrn = mrn.isEmpty ? nil : mrn
+            updatedAddress.phoneHome = phoneHome.isEmpty ? nil : phoneHome
+            updatedAddress.phoneWork = phoneWork.isEmpty ? nil : phoneWork
+            updatedAddress.phoneMobile = phoneMobile.isEmpty ? nil : phoneMobile
+        case "gp":
+            updatedAddress.gpName = gpName.isEmpty ? nil : gpName
+            updatedAddress.gpPractice = gpPractice.isEmpty ? nil : gpPractice
+            updatedAddress.gpAddress = gpAddress.isEmpty ? nil : gpAddress
+            updatedAddress.gpPostcode = gpPostcode.isEmpty ? nil : gpPostcode
+        default: // optician, specialist
             updatedAddress.fullName = fullName.isEmpty ? nil : fullName
+            updatedAddress.phoneHome = phoneHome.isEmpty ? nil : phoneHome
         }
-        updatedAddress.dateOfBirth = dateOfBirth.isEmpty ? nil : dateOfBirth
-        updatedAddress.mrn = mrn.isEmpty ? nil : mrn
-        updatedAddress.addressLine1 = addressLine1.isEmpty ? nil : addressLine1
-        updatedAddress.addressLine2 = addressLine2.isEmpty ? nil : addressLine2
-        updatedAddress.city = city.isEmpty ? nil : city
-        updatedAddress.county = county.isEmpty ? nil : county
-        updatedAddress.postcode = postcode.isEmpty ? nil : postcode
-        updatedAddress.phoneHome = phoneHome.isEmpty ? nil : phoneHome
-        updatedAddress.phoneWork = phoneWork.isEmpty ? nil : phoneWork
-        updatedAddress.phoneMobile = phoneMobile.isEmpty ? nil : phoneMobile
-        updatedAddress.gpName = gpName.isEmpty ? nil : gpName
-        updatedAddress.gpPractice = gpPractice.isEmpty ? nil : gpPractice
-        updatedAddress.gpAddress = gpAddress.isEmpty ? nil : gpAddress
-        updatedAddress.gpPostcode = gpPostcode.isEmpty ? nil : gpPostcode
 
         // Sync @State fullName so view mode reflects edits immediately
         if let name = updatedAddress.fullName {
             fullName = name
         }
-
-        // Include type and prime changes from editing
-        updatedAddress.addressType = selectedType
-        updatedAddress.isPrime = isPrime
 
         do {
             try await repository.saveOverride(

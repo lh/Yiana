@@ -133,10 +133,10 @@ extension ExtractedAddress {
         self.rawText = nil
         self.ocrJson = nil
 
-        // Enriched patient data fills gaps in override/page data.
-        // Override may have partial patient info (e.g. just a title like "Mrs")
-        // so use enriched values when the resolved name looks incomplete.
-        if let ep = enriched?.patient {
+        // Enriched patient data fills gaps — but only for patient cards.
+        // For other types, enriched patient data (from filename) is irrelevant.
+        let resolvedType = override?.addressType ?? page.addressType ?? "patient"
+        if resolvedType == "patient", let ep = enriched?.patient {
             let nameIsSubstantive = (self.fullName ?? "").split(separator: " ").count >= 2
             if !nameIsSubstantive, let name = ep.fullName, !name.isEmpty {
                 self.fullName = name
@@ -153,8 +153,8 @@ extension ExtractedAddress {
             }
         }
 
-        // Infer title from fullName if it starts with a known title prefix
-        if self.title == nil, let name = self.fullName {
+        // Infer title from fullName if it starts with a known title prefix (patient only)
+        if resolvedType == "patient", self.title == nil, let name = self.fullName {
             let knownTitles = ["Mr", "Mrs", "Ms", "Miss", "Dr", "Prof"]
             for t in knownTitles where name.hasPrefix(t + " ") {
                 self.title = t
@@ -162,8 +162,9 @@ extension ExtractedAddress {
             }
         }
 
-        // Derive surname/firstname from fullName when not already set
-        if (self.surname == nil || self.surname?.isEmpty == true),
+        // Derive surname/firstname from fullName when not already set (patient only)
+        if resolvedType == "patient",
+           (self.surname == nil || self.surname?.isEmpty == true),
            (self.firstname == nil || self.firstname?.isEmpty == true),
            let name = self.fullName, !name.isEmpty {
             // Strip title prefix if present

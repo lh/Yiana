@@ -246,39 +246,49 @@ final class AddressRepository: ObservableObject {
     /// Save user correction as an override
     func saveOverride(documentId: String, pageNumber: Int, matchAddressType: String,
                       updatedAddress: ExtractedAddress, reason: String) async throws {
+        let resolvedType = updatedAddress.addressType ?? "patient"
+
+        // Only create sub-objects the current type owns
+        let patient: PatientInfo? = (resolvedType == "patient" || resolvedType == "optician" || resolvedType == "specialist") ? PatientInfo(
+            fullName: updatedAddress.fullName,
+            dateOfBirth: updatedAddress.dateOfBirth,
+            phones: PhoneInfo(
+                home: updatedAddress.phoneHome,
+                work: updatedAddress.phoneWork,
+                mobile: updatedAddress.phoneMobile
+            ),
+            mrn: updatedAddress.mrn
+        ) : nil
+
+        let addressInfo: AddressInfo? = resolvedType != "gp" ? AddressInfo(
+            line1: updatedAddress.addressLine1,
+            line2: updatedAddress.addressLine2,
+            city: updatedAddress.city,
+            county: updatedAddress.county,
+            postcode: updatedAddress.postcode,
+            postcodeValid: updatedAddress.postcodeValid,
+            postcodeDistrict: updatedAddress.postcodeDistrict
+        ) : nil
+
+        let gp: GPInfo? = resolvedType == "gp" ? GPInfo(
+            name: updatedAddress.gpName,
+            practice: updatedAddress.gpPractice,
+            address: updatedAddress.gpAddress,
+            postcode: updatedAddress.gpPostcode
+        ) : nil
+
         let override = AddressOverrideEntry(
             pageNumber: pageNumber,
             matchAddressType: matchAddressType,
-            patient: PatientInfo(
-                fullName: updatedAddress.fullName,
-                dateOfBirth: updatedAddress.dateOfBirth,
-                phones: PhoneInfo(
-                    home: updatedAddress.phoneHome,
-                    work: updatedAddress.phoneWork,
-                    mobile: updatedAddress.phoneMobile
-                ),
-                mrn: updatedAddress.mrn
-            ),
-            address: AddressInfo(
-                line1: updatedAddress.addressLine1,
-                line2: updatedAddress.addressLine2,
-                city: updatedAddress.city,
-                county: updatedAddress.county,
-                postcode: updatedAddress.postcode,
-                postcodeValid: updatedAddress.postcodeValid,
-                postcodeDistrict: updatedAddress.postcodeDistrict
-            ),
-            gp: GPInfo(
-                name: updatedAddress.gpName,
-                practice: updatedAddress.gpPractice,
-                address: updatedAddress.gpAddress,
-                postcode: updatedAddress.gpPostcode
-            ),
+            patient: patient,
+            address: addressInfo,
+            gp: gp,
             addressType: updatedAddress.addressType,
             isPrime: updatedAddress.isPrime,
             specialistName: updatedAddress.specialistName,
             overrideReason: reason,
-            overrideDate: ISO8601DateFormatter().string(from: Date())
+            overrideDate: ISO8601DateFormatter().string(from: Date()),
+            recipientRole: updatedAddress.recipientRole
         )
 
         var overrides = try readOverridesFile(forDocument: documentId)
