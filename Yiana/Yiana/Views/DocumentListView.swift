@@ -2665,9 +2665,12 @@ private struct DocumentSearchBar: View {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(.secondary)
             TextField("Search documents", text: $input)
-                .textFieldStyle(.roundedBorder)
+                .textFieldStyle(.plain)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(Color(NSColor.controlBackgroundColor))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
                 .frame(width: 200)
-                .focusEffectDisabled()
                 .onSubmit { onSubmit(input) }
             if !input.isEmpty {
                 Button {
