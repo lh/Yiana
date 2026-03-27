@@ -2672,16 +2672,16 @@ private struct DocumentSearchBar: View {
                 .clipShape(RoundedRectangle(cornerRadius: 6))
                 .frame(width: 200)
                 .onSubmit { onSubmit(input) }
-            if !input.isEmpty {
-                Button {
-                    input = ""
-                    onClear()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
+            Button {
+                input = ""
+                onClear()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.secondary)
             }
+            .buttonStyle(.plain)
+            .opacity(input.isEmpty ? 0 : 1)
+            .disabled(input.isEmpty)
             if isSearchInProgress {
                 ProgressView()
                     .scaleEffect(0.7)
