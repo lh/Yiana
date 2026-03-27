@@ -1,41 +1,42 @@
-# Session Handoff — 2026-03-22
+# Session Handoff — 2026-03-27
 
 ## Branch
-`main` — merged from `consolidation/v1.1`, pushed to TestFlight as build 49 (2.0).
+`main` — pushed, build 51 on TestFlight (2.0).
 
 ## What Was Done This Session
 
-Massive polish session — 40+ items completed across two days.
+### Address Card Data Model (plan at `.claude/plans/address-card-data-model.md`)
+- Type-aware saves — `saveChanges()` starts clean, only writes fields the current type owns
+- `ExtractedAddress.init` guards enriched data, title inference, name derivation to patient type only
+- `saveOverride()` creates sub-objects conditionally by type
+- Build 51 deployed to TestFlight (iOS + macOS)
 
-### Highlights
-- Unified side panel (thumbnails + info tabs, configurable L/R, icons)
-- Full postcode-to-town/county lookup (9,603 sectors from ONS ONSPD)
-- Address card editing: overrides persist, type changes work, live NHS lookup
-- Recipient tick boxes (To/CC/None per verified card)
-- Letter template: footer on every page, slim header, MRN field
-- Work list: pre-download, loading spinner, multi-add picker, back-to-list button
-- Name handling: title case, O'Brien, McDonald
-- Folder/document name sanitisation
-- Settings: appearance, panel position, macOS Settings scene
-- GitHub Issues: 20 items migrated, labels created, stale branches/PRs cleaned
+### Major Housekeeping
+- Deleted `AddressExtractor/` (74 files, -17,497 lines), `memory-bank/`, pruned `scripts/`
+- Deleted 14 stale branches + 1 worktree + remote `consolidation/v1.1`
+- Serena memories: deleted 2, rewrote 2, archived 3 to `legacy/`
+- Claude memories: updated 3 (compose design, consolidation, MEMORY.md)
+- Migrated all ideas/problems to GitHub Issues — single source of truth
+- Filed 3 new issues (#30, #31, #32)
+- Project audit written: `docs/project-audit-2026-03-27.md`
 
-### Key Lessons Learned
-- NavigationPath clear+append is unreliable inside navigation destination (SwiftUI limitation)
-- Search index tokenises on hyphens — use direct file scan for exact lookups
-- Always check #if os() guards when debugging platform-specific issues
-- @State fields and let properties can desync in SwiftUI — use @State consistently for display
+### Bug Fixes
+- **#25 Restore-on-launch** — soft 5s timeout with Keep Waiting / Go Back prompt, Option-key bypass on macOS, file I/O moved off main actor
+- **#28 Search bar lag** — extracted into standalone `DocumentSearchBar` struct with own `@State`, centred via `.principal` placement, plain text field (no focus ring), stable layout (opacity for clear button)
+- **#30 Special chars in folder names** — already fixed (closed)
+- **#32 Document auto-reload after inject** — already fixed (closed)
+
+### Polish
+- Clear button layout jump fixed in both search bar and address card editable fields (opacity instead of conditional insert/remove)
 
 ## Current State
-
 - **Branch:** `main`
-- **Version:** 2.0 (build 49 on TestFlight, build 50 pending)
-- **GitHub Issues:** 16 open
+- **Version:** 2.0 (build 51 on TestFlight)
+- **GitHub Issues:** 22 open, 8 closed
 - **Devon:** Retired (iCloud sync node only)
 
 ## What's Next
-
-See GitHub Issues for full backlog. Priorities:
-1. **#5 Envelope window alignment** — bring measurements from work
-2. **#4 Sender details in Settings UI** — essential for other users
-3. **#3 Performance** — measure with Instruments
-4. **#14 iOS compose** — the big one
+- **#27 Multiple "Other" addresses + position field** — design questions captured in issue comment, needs design session before implementation
+- **#31 iCloud override race condition** — may be less urgent post-consolidation, needs verification
+- See `docs/project-audit-2026-03-27.md` section 8 for full prioritised roadmap
+- `PLAN.md` still in repo — can be deleted (superseded)
