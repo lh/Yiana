@@ -949,16 +949,16 @@ private struct EditableField: View {
             VStack(spacing: 4) {
                 Image(systemName: icon)
                     .foregroundColor(.secondary)
-                if !text.isEmpty {
-                    Button {
-                        text = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.caption2)
-                            .foregroundColor(.red.opacity(0.6))
-                    }
-                    .buttonStyle(.plain)
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.caption2)
+                        .foregroundColor(.red.opacity(0.6))
                 }
+                .buttonStyle(.plain)
+                .opacity(text.isEmpty ? 0 : 1)
+                .disabled(text.isEmpty)
             }
             .frame(width: 20)
             VStack(alignment: .leading, spacing: 2) {

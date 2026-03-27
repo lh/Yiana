@@ -2668,7 +2668,11 @@ private struct DocumentSearchBar: View {
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
+                #if os(macOS)
                 .background(Color(NSColor.controlBackgroundColor))
+                #else
+                .background(Color(UIColor.secondarySystemBackground))
+                #endif
                 .clipShape(RoundedRectangle(cornerRadius: 6))
                 .frame(width: 200)
                 .onSubmit { onSubmit(input) }
